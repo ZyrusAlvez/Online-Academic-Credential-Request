@@ -1,58 +1,79 @@
 <?php
 
-namespace Tests\Feature\Auth;
-
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Livewire\Volt\Volt as LivewireVolt;
-use Tests\TestCase;
+use Livewire\Volt\Volt;
 
-class AuthenticationTest extends TestCase
-{
-    use RefreshDatabase;
+test('login screen can be rendered', function () {
+    $this->get('/login')->assertOk();
+});
 
-    public function test_login_screen_can_be_rendered(): void
-    {
-        $response = $this->get('/login');
+test('REQ-01-05 users can log in with email and password', function () {
+    $user = User::factory()->create();
 
-        $response->assertStatus(200);
+    Volt::test('auth.login')
+        ->set('email', $user->email)
+        ->set('password', 'password')
+        ->call('login')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('dashboard', absolute: false));
+
+    $this->assertAuthenticatedAs($user);
+});
+
+test('REQ-01-05 users cannot log in with an invalid password', function () {
+    $user = User::factory()->create();
+
+    Volt::test('auth.login')
+        ->set('email', $user->email)
+        ->set('password', 'wrong-password')
+        ->call('login')
+        ->assertHasErrors('email');
+
+    $this->assertGuest();
+});
+
+test('REQ-01-06 login is locked after 5 failed attempts', function () {
+    $user = User::factory()->create();
+
+    foreach (range(1, 5) as $attempt) {
+        Volt::test('auth.login')->set('email', $user->email)->set('password', 'wrong')->call('login');
     }
 
-    public function test_users_can_authenticate_using_the_login_screen(): void
-    {
-        $user = User::factory()->create();
+    Volt::test('auth.login')
+        ->set('email', $user->email)
+        ->set('password', 'password')
+        ->call('login')
+        ->assertHasErrors('email');
 
-        $response = LivewireVolt::test('auth.login')
-            ->set('email', $user->email)
-            ->set('password', 'password')
-            ->call('login');
+    $this->assertGuest();
+});
 
-        $response
-            ->assertHasNoErrors()
-            ->assertRedirect(route('dashboard', absolute: false));
+test('REQ-01-07 deactivated users cannot log in', function () {
+    $user = User::factory()->inactive()->create();
 
-        $this->assertAuthenticated();
-    }
+    Volt::test('auth.login')
+        ->set('email', $user->email)
+        ->set('password', 'password')
+        ->call('login')
+        ->assertHasErrors(['email' => __('auth.deactivated')]);
 
-    public function test_users_can_not_authenticate_with_invalid_password(): void
-    {
-        $user = User::factory()->create();
+    $this->assertGuest();
+});
 
-        $this->post('/login', [
-            'email' => $user->email,
-            'password' => 'wrong-password',
-        ]);
+test('REQ-01-08 a user deactivated mid-session is logged out on the next request', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user)->get(route('student.dashboard'))->assertOk();
 
-        $this->assertGuest();
-    }
+    $user->forceFill(['is_active' => false])->save();
 
-    public function test_users_can_logout(): void
-    {
-        $user = User::factory()->create();
+    $this->get(route('student.dashboard'))
+        ->assertRedirect(route('login'))
+        ->assertSessionHasErrors('email');
+    $this->assertGuest();
+});
 
-        $response = $this->actingAs($user)->post('/logout');
+test('users can log out', function () {
+    $this->actingAs(User::factory()->create())->post('/logout')->assertRedirect('/');
 
-        $this->assertGuest();
-        $response->assertRedirect('/');
-    }
-}
+    $this->assertGuest();
+});

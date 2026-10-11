@@ -1,89 +1,56 @@
 <?php
 
-namespace Tests\Feature\Settings;
-
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Volt\Volt;
-use Tests\TestCase;
 
-class ProfileUpdateTest extends TestCase
-{
-    use RefreshDatabase;
+test('profile page is displayed', function () {
+    $this->actingAs(User::factory()->create())->get('/settings/profile')->assertOk();
+});
 
-    public function test_profile_page_is_displayed(): void
-    {
-        $this->actingAs($user = User::factory()->create());
+test('REQ-01-12 users can update their name', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-        $this->get('/settings/profile')->assertOk();
-    }
+    Volt::test('settings.profile')
+        ->set('first_name', 'Maria')
+        ->set('middle_name', '')
+        ->set('last_name', 'Santos')
+        ->set('email', $user->email)
+        ->call('updateProfileInformation')
+        ->assertHasNoErrors();
 
-    public function test_profile_information_can_be_updated(): void
-    {
-        $user = User::factory()->create();
+    $user->refresh();
+    expect($user->first_name)->toBe('Maria')
+        ->and($user->middle_name)->toBeNull()
+        ->and($user->last_name)->toBe('Santos')
+        ->and($user->email_verified_at)->not->toBeNull();
+});
 
-        $this->actingAs($user);
+test('REQ-01-12 changing the email resets verification', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-        $response = Volt::test('settings.profile')
-            ->set('name', 'Test User')
-            ->set('email', 'test@example.com')
-            ->call('updateProfileInformation');
+    Volt::test('settings.profile')
+        ->set('email', 'new@example.com')
+        ->call('updateProfileInformation')
+        ->assertHasNoErrors();
 
-        $response->assertHasNoErrors();
+    expect($user->refresh()->email_verified_at)->toBeNull();
+});
 
-        $user->refresh();
+test('REQ-01-13 users cannot delete their own account', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/settings/profile')
+        ->assertDontSee('Delete account');
 
-        $this->assertEquals('Test User', $user->name);
-        $this->assertEquals('test@example.com', $user->email);
-        $this->assertNull($user->email_verified_at);
-    }
+    expect(fn () => Volt::test('settings.delete-user-form'))->toThrow(Exception::class);
+});
 
-    public function test_email_verification_status_is_unchanged_when_email_address_is_unchanged(): void
-    {
-        $user = User::factory()->create();
+test('REQ-01-14 names are displayed as First M. Last', function () {
+    $withMiddle = User::factory()->make(['first_name' => 'Juan', 'middle_name' => 'dizon', 'last_name' => 'Dela Cruz']);
+    $withoutMiddle = User::factory()->make(['first_name' => 'Ana', 'middle_name' => null, 'last_name' => 'Reyes']);
 
-        $this->actingAs($user);
-
-        $response = Volt::test('settings.profile')
-            ->set('name', 'Test User')
-            ->set('email', $user->email)
-            ->call('updateProfileInformation');
-
-        $response->assertHasNoErrors();
-
-        $this->assertNotNull($user->refresh()->email_verified_at);
-    }
-
-    public function test_user_can_delete_their_account(): void
-    {
-        $user = User::factory()->create();
-
-        $this->actingAs($user);
-
-        $response = Volt::test('settings.delete-user-form')
-            ->set('password', 'password')
-            ->call('deleteUser');
-
-        $response
-            ->assertHasNoErrors()
-            ->assertRedirect('/');
-
-        $this->assertNull($user->fresh());
-        $this->assertFalse(auth()->check());
-    }
-
-    public function test_correct_password_must_be_provided_to_delete_account(): void
-    {
-        $user = User::factory()->create();
-
-        $this->actingAs($user);
-
-        $response = Volt::test('settings.delete-user-form')
-            ->set('password', 'wrong-password')
-            ->call('deleteUser');
-
-        $response->assertHasErrors(['password']);
-
-        $this->assertNotNull($user->fresh());
-    }
-}
+    expect($withMiddle->name)->toBe('Juan D. Dela Cruz')
+        ->and($withoutMiddle->name)->toBe('Ana Reyes')
+        ->and($withMiddle->initials())->toBe('JD');
+});

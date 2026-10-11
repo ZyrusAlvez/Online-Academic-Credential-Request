@@ -2,32 +2,39 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\Role;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 
-class User extends Authenticatable // implements MustVerifyEmail
+/**
+ * @property Role $role
+ * @property bool $is_active
+ * @property-read string $name
+ */
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
+     * Role and activation are never mass assignable; they are set explicitly by the registrar.
      *
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'first_name',
+        'middle_name',
+        'last_name',
         'email',
         'password',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
      * @var list<string>
      */
     protected $hidden = [
@@ -36,8 +43,14 @@ class User extends Authenticatable // implements MustVerifyEmail
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'role' => 'student',
+        'is_active' => true,
+    ];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -45,17 +58,37 @@ class User extends Authenticatable // implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => Role::class,
+            'is_active' => 'boolean',
         ];
     }
 
     /**
-     * Get the user's initials
+     * Display name, e.g. "Juan D. Dela Cruz".
+     *
+     * @return Attribute<string, never>
      */
+    protected function name(): Attribute
+    {
+        return Attribute::get(fn (): string => $this->fullName());
+    }
+
+    public function fullName(): string
+    {
+        $middle = filled($this->middle_name)
+            ? Str::upper(Str::substr($this->middle_name, 0, 1)).'. '
+            : '';
+
+        return "{$this->first_name} {$middle}{$this->last_name}";
+    }
+
     public function initials(): string
     {
-        return Str::of($this->name)
-            ->explode(' ')
-            ->map(fn (string $name) => Str::of($name)->substr(0, 1))
-            ->implode('');
+        return Str::upper(Str::substr($this->first_name, 0, 1).Str::substr($this->last_name, 0, 1));
+    }
+
+    public function hasRole(Role ...$roles): bool
+    {
+        return in_array($this->role, $roles, true);
     }
 }

@@ -9,7 +9,9 @@ use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 new #[Layout('components.layouts.auth')] class extends Component {
-    public string $name = '';
+    public string $first_name = '';
+    public string $middle_name = '';
+    public string $last_name = '';
     public string $email = '';
     public string $password = '';
     public string $password_confirmation = '';
@@ -20,13 +22,17 @@ new #[Layout('components.layouts.auth')] class extends Component {
     public function register(): void
     {
         $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:100'],
+            'middle_name' => ['nullable', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
+        $validated['middle_name'] = filled($validated['middle_name']) ? $validated['middle_name'] : null;
 
+        // Self-registered accounts are always students; role is not mass assignable.
         event(new Registered(($user = User::create($validated))));
 
         Auth::login($user);
@@ -42,10 +48,12 @@ new #[Layout('components.layouts.auth')] class extends Component {
     <x-auth-session-status class="text-center" :status="session('status')" />
 
     <form wire:submit="register" class="flex flex-col gap-6">
-        <!-- Name -->
-        <div class="grid gap-2">
-            <flux:input wire:model="name" id="name" label="{{ __('Name') }}" type="text" name="name" required autofocus autocomplete="name" placeholder="Full name" />
+        <div class="grid gap-6 sm:grid-cols-2">
+            <flux:input wire:model="first_name" id="first_name" label="{{ __('First name') }}" type="text" name="first_name" required autofocus autocomplete="given-name" />
+            <flux:input wire:model="last_name" id="last_name" label="{{ __('Last name') }}" type="text" name="last_name" required autocomplete="family-name" />
         </div>
+
+        <flux:input wire:model="middle_name" id="middle_name" label="{{ __('Middle name') }}" badge="Optional" type="text" name="middle_name" autocomplete="additional-name" />
 
         <!-- Email Address -->
         <div class="grid gap-2">
@@ -62,7 +70,6 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 name="password"
                 required
                 autocomplete="new-password"
-                placeholder="Password"
             />
         </div>
 
@@ -76,7 +83,6 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 name="password_confirmation"
                 required
                 autocomplete="new-password"
-                placeholder="Confirm password"
             />
         </div>
 
@@ -87,7 +93,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
         </div>
     </form>
 
-    <div class="space-x-1 text-center text-sm text-zinc-600 dark:text-zinc-400">
+    <div class="space-x-1 text-center text-sm text-zinc-600">
         Already have an account?
         <x-text-link href="{{ route('login') }}">Log in</x-text-link>
     </div>

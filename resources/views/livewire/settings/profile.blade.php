@@ -7,7 +7,9 @@ use Illuminate\Validation\Rule;
 use Livewire\Volt\Component;
 
 new class extends Component {
-    public string $name = '';
+    public string $first_name = '';
+    public string $middle_name = '';
+    public string $last_name = '';
     public string $email = '';
 
     /**
@@ -15,8 +17,12 @@ new class extends Component {
      */
     public function mount(): void
     {
-        $this->name = Auth::user()->name;
-        $this->email = Auth::user()->email;
+        $user = Auth::user();
+
+        $this->first_name = $user->first_name;
+        $this->middle_name = $user->middle_name ?? '';
+        $this->last_name = $user->last_name;
+        $this->email = $user->email;
     }
 
     /**
@@ -27,7 +33,9 @@ new class extends Component {
         $user = Auth::user();
 
         $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:100'],
+            'middle_name' => ['nullable', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
 
             'email' => [
                 'required',
@@ -38,6 +46,8 @@ new class extends Component {
                 Rule::unique(User::class)->ignore($user->id)
             ],
         ]);
+
+        $validated['middle_name'] = filled($validated['middle_name']) ? $validated['middle_name'] : null;
 
         $user->fill($validated);
 
@@ -74,7 +84,12 @@ new class extends Component {
 
     <x-settings.layout heading="Profile" subheading="Update your name and email address">
         <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
-            <flux:input wire:model="name" label="{{ __('Name') }}" type="text" name="name" required autofocus autocomplete="name" />
+            <div class="grid gap-6 sm:grid-cols-2">
+                <flux:input wire:model="first_name" label="{{ __('First name') }}" type="text" name="first_name" required autofocus autocomplete="given-name" />
+                <flux:input wire:model="last_name" label="{{ __('Last name') }}" type="text" name="last_name" required autocomplete="family-name" />
+            </div>
+
+            <flux:input wire:model="middle_name" label="{{ __('Middle name') }}" badge="Optional" type="text" name="middle_name" autocomplete="additional-name" />
 
             <div>
                 <flux:input wire:model="email" label="{{ __('Email') }}" type="email" name="email" required autocomplete="email" />
@@ -86,7 +101,7 @@ new class extends Component {
 
                             <button
                                 wire:click.prevent="resendVerificationNotification"
-                                class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2"
                             >
                                 {{ __('Click here to re-send the verification email.') }}
                             </button>
@@ -111,7 +126,5 @@ new class extends Component {
                 </x-action-message>
             </div>
         </form>
-
-        <livewire:settings.delete-user-form />
     </x-settings.layout>
 </section>
