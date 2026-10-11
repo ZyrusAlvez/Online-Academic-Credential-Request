@@ -87,15 +87,8 @@
 
     @if ($request->steps->isNotEmpty())
         <section aria-labelledby="route-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
-            <h2 id="route-heading" class="text-lg font-semibold text-primary">{{ __('Signing route') }}</h2>
-            <ol class="mt-4 space-y-2">
-                @foreach ($request->steps as $step)
-                    <li class="flex items-center justify-between gap-3 text-sm">
-                        <span><span class="text-zinc-500">{{ $step->position }}.</span> {{ $step->department->name }}</span>
-                        <flux:badge size="sm" :color="$step->status->color()">{{ $step->status->label() }}</flux:badge>
-                    </li>
-                @endforeach
-            </ol>
+            <h2 id="route-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Signing route') }}</h2>
+            <x-signing-route :steps="$request->steps" />
         </section>
     @endif
 

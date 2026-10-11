@@ -18,7 +18,7 @@
         </flux:navlist.group>
     @else
         <flux:navlist.group :heading="auth()->user()->department?->code ?? __('Department')" class="grid">
-            <flux:navlist.item icon="inbox-stack" :href="route('department.dashboard')" :current="request()->routeIs('department.dashboard')" wire:navigate>{{ __('Signature Queue') }}</flux:navlist.item>
+            <flux:navlist.item icon="inbox-stack" :href="route('department.dashboard')" :current="request()->routeIs('department.*')" wire:navigate>{{ __('Signature Queue') }}</flux:navlist.item>
         </flux:navlist.group>
     @endif
 </flux:navlist>

@@ -3,21 +3,20 @@
 namespace App\Livewire\Registrar\Requests;
 
 use App\Enums\PaymentStatus;
-use App\Exceptions\InvalidTransition;
+use App\Livewire\Concerns\ActsOnSteps;
 use App\Models\CredentialRequest;
 use App\Models\Department;
-use App\Models\User;
 use App\Services\RequestWorkflow;
-use Closure;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class Show extends Component
 {
+    use ActsOnSteps;
+
     #[Locked]
     public CredentialRequest $credentialRequest;
 
@@ -28,6 +27,8 @@ class Show extends Component
     public string $cancelReason = '';
 
     public ?int $collegeId = null;
+
+    public string $skipReason = '';
 
     public function mount(CredentialRequest $credentialRequest): void
     {
@@ -42,7 +43,7 @@ class Show extends Component
         $this->authorize('review', $this->credentialRequest);
         $this->validate(['remarks' => ['nullable', 'string', 'max:500']]);
 
-        $this->attempt(fn () => $workflow->approve($this->credentialRequest, $this->registrar(), $this->remarks), 'Request approved and routed to the first office.');
+        $this->attempt(fn () => $workflow->approve($this->credentialRequest, $this->actor(), $this->remarks), 'Request approved and routed to the first office.');
         $this->reset('remarks');
     }
 
@@ -51,7 +52,7 @@ class Show extends Component
         $this->authorize('review', $this->credentialRequest);
         $this->validate(['rejectRemarks' => ['required', 'string', 'max:500']], attributes: ['rejectRemarks' => 'remarks']);
 
-        $this->attempt(fn () => $workflow->rejectPayment($this->credentialRequest, $this->registrar(), $this->rejectRemarks), 'Payment rejected. The student was asked to upload a new receipt.');
+        $this->attempt(fn () => $workflow->rejectPayment($this->credentialRequest, $this->actor(), $this->rejectRemarks), 'Payment rejected. The student was asked to upload a new receipt.');
         Flux::modal('reject-payment')->close();
         $this->reset('rejectRemarks');
     }
@@ -61,7 +62,7 @@ class Show extends Component
         $this->authorize('review', $this->credentialRequest);
         $this->validate(['collegeId' => ['required', 'integer', Rule::exists('departments', 'id')->where('type', 'college')->where('is_active', true)]]);
 
-        $this->attempt(fn () => $workflow->changeCollege($this->credentialRequest, $this->registrar(), Department::findOrFail($this->collegeId)), 'College updated.');
+        $this->attempt(fn () => $workflow->changeCollege($this->credentialRequest, $this->actor(), Department::findOrFail($this->collegeId)), 'College updated.');
     }
 
     public function cancel(RequestWorkflow $workflow): void
@@ -69,34 +70,34 @@ class Show extends Component
         $this->authorize('cancel', $this->credentialRequest);
         $this->validate(['cancelReason' => ['required', 'string', 'max:500']], attributes: ['cancelReason' => 'reason']);
 
-        $this->attempt(fn () => $workflow->cancel($this->credentialRequest, $this->registrar(), $this->cancelReason), 'Request cancelled.');
+        $this->attempt(fn () => $workflow->cancel($this->credentialRequest, $this->actor(), $this->cancelReason), 'Request cancelled.');
         Flux::modal('cancel-request')->close();
         $this->reset('cancelReason');
     }
 
-    /**
-     * Run a workflow transition, reporting refused transitions as a toast instead of an error page.
-     */
-    private function attempt(Closure $transition, string $success): void
+    public function skipStep(RequestWorkflow $workflow): void
     {
-        try {
-            $transition();
-            $this->dispatch('notify', message: $success);
-        } catch (InvalidTransition $e) {
-            $this->dispatch('notify', message: $e->getMessage());
-        }
+        $step = $this->credentialRequest->currentStep()->with(['department', 'credentialRequest'])->firstOrFail();
+        $this->authorize('skip', $step);
+        $this->validate(['skipReason' => ['required', 'string', 'max:500']], attributes: ['skipReason' => 'reason']);
+
+        $this->attempt(fn () => $workflow->skip($step, $this->actor(), $this->skipReason), "{$step->department->name} skipped.");
+        Flux::modal('skip-step')->close();
+        $this->reset('skipReason');
     }
 
-    private function registrar(): User
+    public function release(RequestWorkflow $workflow): void
     {
-        /** @var User */
-        return Auth::user();
+        $this->authorize('release', $this->credentialRequest);
+
+        $this->attempt(fn () => $workflow->release($this->credentialRequest, $this->actor()), 'Marked as released to the student.');
     }
 
     public function render(): View
     {
         $request = $this->credentialRequest->load([
-            'student', 'credentialType', 'college', 'currentStep.department', 'paymentProofs.reviewer', 'steps.department',
+            'student', 'credentialType', 'college', 'currentStep.department', 'currentStep.credentialRequest',
+            'paymentProofs.reviewer', 'steps.department', 'steps.actor',
         ]);
 
         return view('livewire.registrar.requests.show', [
