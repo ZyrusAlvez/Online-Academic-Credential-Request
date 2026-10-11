@@ -31,7 +31,11 @@ use Throwable;
  */
 class RequestWorkflow
 {
-    public const PROOF_DISK = 'local';
+    /** Disk holding payment receipts: local or Cloudflare R2 (config uphsl.receipts_disk). */
+    public static function proofDisk(): string
+    {
+        return (string) config('uphsl.receipts_disk', 'local');
+    }
 
     /**
      * @param  array{credential_type_id: int, college_id: int, student_number: string, program: string, student_status: string, last_school_year: string, purpose: string, copies: int}  $data
@@ -69,7 +73,7 @@ class RequestWorkflow
         $path = $file->storeAs(
             "payment-proofs/{$request->id}",
             Str::uuid().'.'.$file->extension(),
-            self::PROOF_DISK,
+            self::proofDisk(),
         );
 
         try {
@@ -92,7 +96,7 @@ class RequestWorkflow
                 return $proof;
             });
         } catch (Throwable $e) {
-            Storage::disk(self::PROOF_DISK)->delete((string) $path);
+            Storage::disk(self::proofDisk())->delete((string) $path);
 
             throw $e;
         }

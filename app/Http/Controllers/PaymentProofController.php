@@ -14,7 +14,7 @@ class PaymentProofController extends Controller
     {
         Gate::authorize('view', $paymentProof);
 
-        $disk = Storage::disk(RequestWorkflow::PROOF_DISK);
+        $disk = Storage::disk(RequestWorkflow::proofDisk());
         abort_unless($disk->exists($paymentProof->path), 404);
 
         return $disk->response($paymentProof->path, $paymentProof->original_name, [

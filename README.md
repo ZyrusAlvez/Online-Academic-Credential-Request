@@ -32,6 +32,7 @@ listed in [docs/credentials.md](docs/credentials.md).
 ## Documentation
 
 - [Credentials & testing](docs/credentials.md)
+- [Email and receipt storage setup](docs/setup-mail-and-storage.md) (Gmail, Cloudflare R2)
 - [Data dictionary](docs/data-dictionary.md)
 - [Design documents DES-01 to DES-04](docs/des/) (Word files; upload to Google Drive to open as Google Docs)
 - [Specifications](docs/specs/00-overview.md) (spec-driven development, one folder per feature)

@@ -25,7 +25,7 @@ class ResetDemo extends Command
             return self::FAILURE;
         }
 
-        Storage::disk(RequestWorkflow::PROOF_DISK)->deleteDirectory('payment-proofs');
+        Storage::disk(RequestWorkflow::proofDisk())->deleteDirectory('payment-proofs');
 
         $this->call('migrate:fresh', ['--seed' => true, '--force' => true]);
         $this->call('db:seed', ['--class' => DemoSeeder::class, '--force' => true]);
