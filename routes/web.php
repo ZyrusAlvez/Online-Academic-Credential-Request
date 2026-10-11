@@ -20,6 +20,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', Registrar\Dashboard::class)->name('dashboard');
         Route::get('departments', Registrar\Departments\Index::class)->name('departments');
         Route::get('users', Registrar\Users\Index::class)->name('users');
+        Route::get('credential-types', Registrar\CredentialTypes\Index::class)->name('credential-types');
+        Route::get('credential-types/{credentialType}/workflow', Registrar\CredentialTypes\Workflow::class)->name('credential-types.workflow');
     });
 
     Route::prefix('department')->name('department.')->middleware('role:department')->group(function () {
