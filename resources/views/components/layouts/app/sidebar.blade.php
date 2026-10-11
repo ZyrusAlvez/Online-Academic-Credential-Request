@@ -7,9 +7,14 @@
         <flux:sidebar sticky stashable class="border-r border-secondary/40 bg-primary-50">
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
-            <a href="{{ route('dashboard') }}" class="mr-5 flex items-center gap-3 text-primary" wire:navigate>
-                <x-app-logo />
-            </a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('dashboard') }}" class="flex min-w-0 flex-1 items-center gap-3 text-primary" wire:navigate>
+                    <x-app-logo />
+                </a>
+                <div class="max-lg:hidden">
+                    <livewire:notification-bell />
+                </div>
+            </div>
 
             @include('partials.nav')
 
@@ -66,6 +71,8 @@
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
             <flux:spacer />
+
+            <livewire:notification-bell />
 
             <flux:dropdown position="top" align="end">
                 <flux:profile

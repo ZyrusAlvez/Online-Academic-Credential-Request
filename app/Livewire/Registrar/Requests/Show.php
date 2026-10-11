@@ -97,7 +97,7 @@ class Show extends Component
     {
         $request = $this->credentialRequest->load([
             'student', 'credentialType', 'college', 'currentStep.department', 'currentStep.credentialRequest',
-            'paymentProofs.reviewer', 'steps.department', 'steps.actor',
+            'paymentProofs.reviewer', 'steps.department', 'steps.actor', 'events.department', 'events.actor',
         ]);
 
         return view('livewire.registrar.requests.show', [

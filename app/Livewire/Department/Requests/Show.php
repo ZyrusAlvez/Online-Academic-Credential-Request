@@ -25,7 +25,7 @@ class Show extends Component
     public function render(): View
     {
         $request = $this->credentialRequest->load([
-            'student', 'credentialType', 'college', 'currentStep.department', 'currentStep.credentialRequest', 'steps.department', 'steps.actor',
+            'student', 'credentialType', 'college', 'currentStep.department', 'currentStep.credentialRequest', 'steps.department', 'steps.actor', 'events.department', 'events.actor',
         ]);
 
         return view('livewire.department.requests.show', ['request' => $request])->title($request->reference_no);

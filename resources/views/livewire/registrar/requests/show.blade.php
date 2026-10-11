@@ -50,6 +50,11 @@
                     <x-signing-route :steps="$request->steps" show-actors />
                 </section>
             @endif
+
+            <section aria-labelledby="history-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
+                <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('History') }}</h2>
+                <x-request-timeline :events="$request->events" show-actors />
+            </section>
         </div>
 
         <aside class="space-y-6">
