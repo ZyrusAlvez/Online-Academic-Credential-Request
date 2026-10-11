@@ -13,9 +13,9 @@ digitally** (the only upload is the student's proof of payment).
 
 ## Spec-driven development
 
-`specs/` is the source of truth. Every feature follows this loop:
+`docs/specs/` is the source of truth. Every feature follows this loop:
 
-1. Write `specs/NN-feature/requirements.md` (user stories + EARS acceptance criteria with
+1. Write `docs/specs/NN-feature/requirements.md` (user stories + EARS acceptance criteria with
    IDs like `REQ-04-03`), `design.md`, `tasks.md` → commit (`docs(spec): ...`).
 2. Implement; every acceptance criterion gets a Pest test whose name starts with its ID.
 3. Tick `tasks.md`, run `composer qa` → commit (`feat(...): ...`).

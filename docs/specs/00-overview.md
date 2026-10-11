@@ -100,6 +100,10 @@ reason required).
   Events are never edited or deleted.
 - Students are notified in-app and by email on every status change of their request.
 - Students must verify their email before submitting a request. Deactivated accounts cannot log in.
+- Student sign-up accepts any email address (not limited to UPHSL addresses). *(Confirmed by the client.)*
+- Students see only office names in their tracking, never the names of the staff who acted. *(Confirmed by the client.)*
+- Signing offices, their order and fees per credential are configuration, edited by the registrar
+  in the app; the seeded defaults are placeholders until the official process is final.
 
 ## Feature specs
 
