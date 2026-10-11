@@ -32,7 +32,7 @@ No unique index on position: reordering swaps two rows inside a transaction inst
 - `App\Models\WorkflowStep` — `belongsTo(CredentialType, Department)`, `label()` returns the
   department name or "Student's College".
 - Actions (`app/Actions/Workflow`): `AddWorkflowStep`, `MoveWorkflowStep` (up/down swap),
-  `RemoveWorkflowStep` (then resequence), `UpdateWorkflowStepInstructions`. Duplicate and
+  `RemoveWorkflowStep` (then resequence). Editing instructions is a plain validated update. Duplicate and
   multiple-college checks raise `ValidationException` so the UI shows a field error.
 - `App\Policies\CredentialTypePolicy` — registrar only.
 - Livewire: `Registrar\CredentialTypes\Index` (table + modal form, status toggle) and
