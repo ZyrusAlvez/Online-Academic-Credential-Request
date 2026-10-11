@@ -76,7 +76,7 @@ app/
   Policies/              who may view/act; cross-user access answers 404
   Queries/               StepQueue (office queues), RegistrarRequestFilter (list + CSV)
   Livewire/{Student,Department,Registrar}/  screens per role
-specs/                   spec-driven development: requirements (EARS, REQ-xx-yy), design, tasks
+docs/specs/              spec-driven development: requirements (EARS, REQ-xx-yy), design, tasks
 tests/Feature/           Pest tests named after the acceptance criteria they verify
 ```
 
@@ -89,15 +89,20 @@ registrar_review ──────────────────┴→ in
 any open status → cancelled
 ```
 
+## Documentation
+
+- [Credentials & testing](docs/credentials.md): demo accounts, where secrets live, how to test
+- [Data dictionary](docs/data-dictionary.md): every table, column and code value
+
 ## Specifications
 
 | Spec | Topic |
 |---|---|
-| [00](specs/00-overview.md) | Product overview, roles, lifecycle |
-| [01](specs/01-auth) | Authentication & roles |
-| [02](specs/02-departments-staff) | Departments & staff accounts |
-| [03](specs/03-credential-types-workflows) | Credential types & workflow builder |
-| [04](specs/04-request-submission-payment) | Request submission, payment & registrar review |
-| [05](specs/05-department-signing-release) | Department signing, hold, skip & release |
-| [06](specs/06-tracking-notifications) | Tracking timeline & notifications |
-| [07](specs/07-registrar-console) | Registrar console & monitoring |
+| [00](docs/specs/00-overview.md) | Product overview, roles, lifecycle |
+| [01](docs/specs/01-auth) | Authentication & roles |
+| [02](docs/specs/02-departments-staff) | Departments & staff accounts |
+| [03](docs/specs/03-credential-types-workflows) | Credential types & workflow builder |
+| [04](docs/specs/04-request-submission-payment) | Request submission, payment & registrar review |
+| [05](docs/specs/05-department-signing-release) | Department signing, hold, skip & release |
+| [06](docs/specs/06-tracking-notifications) | Tracking timeline & notifications |
+| [07](docs/specs/07-registrar-console) | Registrar console & monitoring |
