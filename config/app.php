@@ -39,7 +39,8 @@ return [
     |
     */
 
-    'debug' => (bool) env('APP_DEBUG', false),
+    // Never on in production; on in staging unless APP_DEBUG says otherwise.
+    'debug' => env('APP_ENV') !== 'production' && (bool) env('APP_DEBUG', true),
 
     /*
     |--------------------------------------------------------------------------
@@ -52,7 +53,10 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://localhost'),
+    // One .env serves both environments; APP_ENV picks the URL.
+    'url' => env('APP_ENV') === 'production'
+        ? env('APP_URL_PRODUCTION', 'http://localhost:8001')
+        : env('APP_URL_STAGING', 'http://localhost:8000'),
 
     /*
     |--------------------------------------------------------------------------

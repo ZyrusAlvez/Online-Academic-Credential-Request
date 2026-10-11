@@ -35,7 +35,8 @@
   `/registrar`, `/department` behind `auth`, `verified`, `role:*`. Content comes in later specs.
 - Sidebar navigation is chosen by role.
 - `DatabaseSeeder` creates `registrar@uphsl.edu.ph` with password from
-  `SEED_REGISTRAR_PASSWORD` (default `password` outside production).
+  `INITIAL_REGISTRAR_PASSWORD` in production (renamed from `SEED_REGISTRAR_PASSWORD` for clarity;
+  staging always uses `password`).
 
 ## Routes
 

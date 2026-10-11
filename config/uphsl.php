@@ -9,11 +9,13 @@ return [
     'payment_url' => env('UPHSL_PAYMENT_URL', 'https://uphsl.edu.ph/online_payment/guest'),
 
     /*
-    | Initial registrar account created by `php artisan db:seed`.
+    | The first registrar account, created when a database is set up (`db:seed`) so that
+    | someone can log in and create every other account. Changing these later does not
+    | change an existing password. In staging the password is always "password" (demo).
     */
-    'seed' => [
-        'registrar_email' => env('SEED_REGISTRAR_EMAIL', 'registrar@uphsl.edu.ph'),
-        'registrar_password' => env('SEED_REGISTRAR_PASSWORD'),
+    'initial_registrar' => [
+        'email' => env('INITIAL_REGISTRAR_EMAIL', 'registrar@uphsl.edu.ph'),
+        'password' => env('APP_ENV') === 'production' ? env('INITIAL_REGISTRAR_PASSWORD') : 'password',
     ],
 
 ];

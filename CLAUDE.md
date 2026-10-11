@@ -53,8 +53,11 @@ composer prod        # PRODUCTION: build assets, server + queue on :8001
 
 ## Environments
 
-Exactly two: `staging` (`.env`, database `uphsl_credential_tracker_staging`) and `production`
-(`.env.production`, database `uphsl_credential_tracker`, run with `--env=production`).
+Exactly two: `staging` (database `uphsl_credential_tracker_staging`) and `production` (database
+`uphsl_credential_tracker`). ONE `.env` serves both: `APP_ENV` (default `staging`) picks the
+database (`DB_DATABASE_STAGING` / `DB_DATABASE_PRODUCTION`) and URL (`APP_URL_STAGING` /
+`APP_URL_PRODUCTION`) in `config/`; debug is forced off and logging is `warning` in production.
+Run any production command with the variable set, e.g. `APP_ENV=production php artisan migrate`.
 `AppServiceProvider` refuses any other `APP_ENV`; the only exception is Laravel's internal
 `testing` mode used by the test runner, which always points at the staging database. Receipt
 files live in `storage/app/private/<env>`. Demo data and `app:reset-demo` are staging-only.
@@ -63,10 +66,9 @@ files live in `storage/app/private/<env>`. Demo data and `app:reset-demo` are st
 
 ```bash
 composer install && npm install
-cp .env.example .env && php artisan key:generate                 # staging; set DB_*
-cp .env.production.example .env.production                         # production; set DB_*, APP_KEY, SEED_REGISTRAR_PASSWORD
-php artisan app:reset-demo                                         # staging schema + demo data
-php artisan migrate --seed --env=production                        # production schema + base data
+cp .env.example .env && php artisan key:generate      # set DB_USERNAME/DB_PASSWORD and INITIAL_REGISTRAR_PASSWORD
+php artisan app:reset-demo                              # staging: schema + demo data
+APP_ENV=production php artisan migrate --seed           # production: schema + base data + first registrar
 npm run dev
 ```
 

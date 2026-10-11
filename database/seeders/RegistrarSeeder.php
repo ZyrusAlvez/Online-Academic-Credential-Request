@@ -14,17 +14,13 @@ class RegistrarSeeder extends Seeder
 {
     public function run(): void
     {
-        $password = config('uphsl.seed.registrar_password');
+        $password = config('uphsl.initial_registrar.password');
 
         if (blank($password)) {
-            if (app()->isProduction()) {
-                throw new RuntimeException('Set SEED_REGISTRAR_PASSWORD before seeding in production.');
-            }
-
-            $password = 'password';
+            throw new RuntimeException('Set INITIAL_REGISTRAR_PASSWORD in .env before setting up production.');
         }
 
-        $registrar = User::firstOrNew(['email' => config('uphsl.seed.registrar_email')]);
+        $registrar = User::firstOrNew(['email' => config('uphsl.initial_registrar.email')]);
 
         $registrar->fill([
             'first_name' => 'Office of the',
