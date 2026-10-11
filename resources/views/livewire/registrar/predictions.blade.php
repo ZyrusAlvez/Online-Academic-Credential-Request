@@ -21,9 +21,12 @@
                     @endforeach
                 </flux:select>
 
-                <div class="grid gap-5 sm:grid-cols-2">
-                    <flux:input wire:model="copies" type="number" min="1" max="10" inputmode="numeric" :label="__('Copies')" />
-                    <flux:input wire:model="openWorkload" type="number" min="0" inputmode="numeric" :label="__('Open requests')" :description="__('In progress right now; change it to test a busy week.')" />
+                <div class="space-y-2">
+                    <div class="grid gap-5 sm:grid-cols-2">
+                        <flux:input wire:model="copies" type="number" min="1" max="10" inputmode="numeric" :label="__('Copies')" />
+                        <flux:input wire:model="openWorkload" type="number" min="0" inputmode="numeric" :label="__('Open requests')" />
+                    </div>
+                    <p class="text-sm text-zinc-600">{{ __('Open requests starts at the number in progress right now; raise it to test a busy week.') }}</p>
                 </div>
 
                 <flux:radio.group wire:model="studentStatus" :label="__('Requester')" variant="segmented">
@@ -117,12 +120,13 @@
             <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No predicted request has reached ready for release yet.') }}</p>
         @else
             @php
-                $max = max(1, ceil(max($completed->max('predicted'), $completed->max('actual'))));
+                $step = max(1, (int) ceil(max($completed->max('predicted'), $completed->max('actual')) / 4));
+                $max = $step * 4;
                 $w = 480; $h = 320; $pad = 44;
                 $x = fn ($v) => round($pad + $v / $max * ($w - $pad - 12), 1);
                 $y = fn ($v) => round($h - $pad - $v / $max * ($h - $pad - 12), 1);
                 $mae = round($completed->avg(fn ($r) => abs($r['predicted'] - $r['actual'])), 1);
-                $ticks = collect(range(0, 4))->map(fn ($i) => round($max * $i / 4, 1));
+                $ticks = collect(range(0, 4))->map(fn ($i) => $i * $step);
             @endphp
             <figure class="rounded-xl border border-secondary/50 p-4">
                 <svg viewBox="0 0 {{ $w }} {{ $h }}" class="h-auto w-full max-w-2xl" role="img"
