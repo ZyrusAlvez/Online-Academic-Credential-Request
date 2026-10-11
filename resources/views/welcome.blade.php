@@ -7,9 +7,12 @@
         <header class="bg-primary text-white">
             <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
                 <a href="{{ route('home') }}" class="flex items-center gap-3">
-                    <img src="{{ asset('images/uphsl-logo.webp') }}" alt="" class="h-11 w-auto rounded-sm bg-white p-0.5" width="33" height="44">
+                    <img src="{{ asset('images/uphsl-logo.webp') }}" alt="" class="h-14 w-auto shrink-0" width="42" height="56">
                     <span class="leading-tight">
-                        <span class="block text-sm font-semibold sm:text-base">University of Perpetual Help System</span>
+                        <span class="block text-base font-semibold">
+                            <abbr title="University of Perpetual Help System" class="no-underline sm:hidden">UPHSL</abbr>
+                            <span class="max-sm:hidden">University of Perpetual Help System</span>
+                        </span>
                         <span class="block text-xs text-secondary">Office of the Registrar</span>
                     </span>
                 </a>
