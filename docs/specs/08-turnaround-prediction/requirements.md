@@ -34,7 +34,8 @@ against average-based reporting).
 ### Confidence
 - **REQ-08-11** THE SYSTEM SHALL give each prediction an 80% likely range (low and high days), the
   probability that the request will be late, and a confidence in its at-risk call, all derived from the
-  model's cross-validation errors stored in the model file.
+  model's cross-validation errors stored in the model file, and SHALL show an at-risk prediction
+  whose late probability is below 50% as borderline.
 
 ### API
 - **REQ-08-07** THE SYSTEM SHALL provide `POST /api/v1/predictions/turnaround` that returns predicted
