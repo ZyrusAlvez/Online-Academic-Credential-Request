@@ -3,138 +3,32 @@
 **Online Academic Credential Request, Tracking & Monitoring** for the Office of the Registrar,
 University of Perpetual Help System.
 
-Students request credentials (Transcript of Records, certifications, …) online and follow the
-paper document from office to office like a parcel. Departments see what is waiting for their
-signature, and the registrar controls the flow. The system is a **digital ledger**: credential
-documents are never transferred digitally. The only upload is the student's proof of payment
-for paid credentials, paid on the UPHSL online payment portal.
+Students request academic credentials such as the Transcript of Records online, then follow
+the paper document from office to office like a parcel. The system is a **digital ledger**:
+it records every hand-off and signature. The documents themselves are never sent digitally.
 
-## Features
+## Who uses it
 
-| Role | Can |
+| Role | What they do |
 |---|---|
-| **Student** | Register (name, email, password), verify email, request credentials, pay online and upload the receipt, see *where the document is now* and its full tracking history, get in-app + email updates, cancel before routing |
-| **Department staff** | See a signature queue for their office, sign, put on hold with a reason, lift holds, see their history |
-| **Registrar** (admin) | Review requests and receipts, approve & route, reject payments, correct the college, skip steps, release, cancel; manage departments, credential types, **per-credential signing workflows** and staff accounts; monitor with a dashboard (overdue, bottlenecks, turnaround) and CSV export |
+| **Student** | Requests a credential, pays online for paid ones (e.g. TOR) and uploads the receipt, sees where the document is right now and its full history, gets notified of every update |
+| **Department** (colleges and offices) | Sees the requests waiting for their signature, signs them, or puts them on hold with a reason (e.g. an unreturned library book) |
+| **Registrar** (admin) | Verifies receipts, approves and routes requests, releases finished documents, adds departments, and decides which offices sign each credential and in what order |
 
-Key rules:
+Only the student's own college signs, not every college. Each credential's signing order and
+fee can be changed by the registrar at any time.
 
-- Workflows are **strictly sequential** and configured per credential type by the registrar.
-- A **Student's College** step resolves to the college chosen on the request, so only that
-  college's Dean signs.
-- When a request is routed, it gets its own copy of the workflow. Later workflow edits never
-  disturb requests already in progress.
-- Every change is appended to an **immutable ledger** (`request_events`).
-
-## Stack
-
-Laravel 12 · PHP 8.4+ · MySQL 8 · Livewire 4 + Flux · Tailwind CSS 4 · Pest · Larastan (level 6) · Pint
-
-## Running it locally
-
-**Requirements:** PHP 8.4+ (with `pdo_mysql`, `gd`, `intl`, `mbstring`, `zip`), Composer 2,
-Node.js 20+, MySQL 8.
-
-**1. Create the databases** (once). Pick your own password:
-
-```sql
-CREATE DATABASE uphsl_credential_tracker      CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE uphsl_credential_tracker_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'uphsl_tracker'@'localhost' IDENTIFIED BY 'choose-a-password';
-GRANT ALL PRIVILEGES ON uphsl_credential_tracker.*      TO 'uphsl_tracker'@'localhost';
-GRANT ALL PRIVILEGES ON uphsl_credential_tracker_test.* TO 'uphsl_tracker'@'localhost';
-```
-
-| Database | Used for |
-|---|---|
-| `uphsl_credential_tracker` | The application |
-| `uphsl_credential_tracker_test` | Automated tests only (wiped on every run) |
-
-**2. Install and configure:**
+## Run it
 
 ```bash
-composer install
-npm install
-cp .env.example .env            # then put your password in DB_PASSWORD
-php artisan key:generate
+composer dev
 ```
 
-**3. Create the tables and data:**
-
-```bash
-php artisan migrate --seed                  # departments, credential types, registrar account
-php artisan db:seed --class=DemoSeeder      # optional: demo accounts and sample requests
-```
-
-**4. Start it:**
-
-```bash
-composer dev        # web server + queue worker + logs + Vite, all in one terminal
-```
-
-Open **http://localhost:8000** and log in (see the accounts below). Stop with `Ctrl+C`.
-
-- Emails (verification, updates) are written to `storage/logs/laravel.log` until SMTP is configured.
-- Notifications are queued; `composer dev` runs the queue worker for you.
-- Start over with fresh demo data: `php artisan migrate:fresh --seed && php artisan db:seed --class=DemoSeeder`.
-
-### Demo accounts (DemoSeeder; password `password`; full list in [docs/credentials.md](docs/credentials.md))
-
-| Role | Email |
-|---|---|
-| Registrar | `registrar@uphsl.edu.ph` |
-| Student | `student@example.com` (also `maria@`, `jose@`, `ana@example.com`) |
-| Department staff | `<office code>@uphsl.edu.ph`, e.g. `lib@`, `fin@`, `sas@`, `ccs@`, `cba@`, `reg@uphsl.edu.ph` |
-
-In production, set `SEED_REGISTRAR_EMAIL` / `SEED_REGISTRAR_PASSWORD` before `php artisan db:seed`.
-The demo seeder refuses to run in production.
-
-## Quality gate
-
-```bash
-composer qa      # pint --test · phpstan · pest
-composer fix     # apply code style
-```
-
-## Architecture
-
-```
-app/
-  Enums/                 Role, RequestStatus, StepStatus, PaymentStatus, RequestEventType, …
-  Services/RequestWorkflow.php   the ONLY place request/step statuses change
-                                 (row locks, transition guards, ledger, after-commit event)
-  Listeners/SendRequestNotifications.php   who hears about each ledger event
-  Notifications/RequestActivity.php        database + (students, key events) mail, queued
-  Policies/              who may view/act; cross-user access answers 404
-  Queries/               StepQueue (office queues), RegistrarRequestFilter (list + CSV)
-  Livewire/{Student,Department,Registrar}/  screens per role
-docs/specs/              spec-driven development: requirements (EARS, REQ-xx-yy), design, tasks
-tests/Feature/           Pest tests named after the acceptance criteria they verify
-```
-
-Request lifecycle:
-
-```
-awaiting_payment → payment_review ─┐            (paid credentials)
-registrar_review ──────────────────┴→ in_progress → ready_for_release → released
-                                          step: pending ⇄ on_hold → signed | skipped
-any open status → cancelled
-```
+Then open **http://localhost:8000**. Demo accounts and testing steps are in
+[docs/credentials.md](docs/credentials.md).
 
 ## Documentation
 
-- [Credentials & testing](docs/credentials.md): demo accounts, where secrets live, how to test
-- [Data dictionary](docs/data-dictionary.md): every table, column and code value
-
-## Specifications
-
-| Spec | Topic |
-|---|---|
-| [00](docs/specs/00-overview.md) | Product overview, roles, lifecycle |
-| [01](docs/specs/01-auth) | Authentication & roles |
-| [02](docs/specs/02-departments-staff) | Departments & staff accounts |
-| [03](docs/specs/03-credential-types-workflows) | Credential types & workflow builder |
-| [04](docs/specs/04-request-submission-payment) | Request submission, payment & registrar review |
-| [05](docs/specs/05-department-signing-release) | Department signing, hold, skip & release |
-| [06](docs/specs/06-tracking-notifications) | Tracking timeline & notifications |
-| [07](docs/specs/07-registrar-console) | Registrar console & monitoring |
+- [Credentials & testing](docs/credentials.md)
+- [Data dictionary](docs/data-dictionary.md)
+- [Specifications](docs/specs/00-overview.md) (spec-driven development, one folder per feature)
