@@ -6,6 +6,7 @@ use App\Enums\RequestStatus;
 use App\Enums\StepStatus;
 use App\Enums\StudentStatus;
 use Database\Factories\CredentialRequestFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property ?string $fee
  * @property int $copies
  * @property ?Carbon $routed_at
+ * @property ?Carbon $due_at
  * @property ?Carbon $ready_at
  * @property ?Carbon $released_at
  * @property ?Carbon $cancelled_at
@@ -61,10 +63,26 @@ class CredentialRequest extends Model
             'fee' => 'decimal:2',
             'copies' => 'integer',
             'routed_at' => 'datetime',
+            'due_at' => 'datetime',
             'ready_at' => 'datetime',
             'released_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];
+    }
+
+    /**
+     * In progress past the target turnaround.
+     *
+     * @param  Builder<CredentialRequest>  $query
+     */
+    public function scopeOverdue(Builder $query): void
+    {
+        $query->where('status', RequestStatus::InProgress)->where('due_at', '<', now());
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->status === RequestStatus::InProgress && $this->due_at?->isPast() === true;
     }
 
     public function getRouteKeyName(): string

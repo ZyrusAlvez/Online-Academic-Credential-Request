@@ -65,3 +65,8 @@ npm run dev
   `component_layout` to `components.layouts.app`.
 - `tests/TestCase.php` calls `withoutVite()` so tests don't need a front-end build.
 - Mail uses the `log` mailer locally — check `storage/logs/laravel.log` for verification emails.
+- Notifications are queued (`QUEUE_CONNECTION=database`); run `composer dev` or `php artisan queue:work`.
+- `php artisan db:seed --class=DemoSeeder` creates demo accounts (password `password`) and requests
+  in every status; it refuses to run in production.
+- Request queries for the registrar list and CSV export share `App\Queries\RegistrarRequestFilter`;
+  office queues use `App\Queries\StepQueue`.

@@ -7,6 +7,9 @@
     <x-page-header :title="$request->reference_no" :description="$request->credentialType->name.' · '.$request->student->name">
         <x-slot:actions>
             <x-request-status :status="$request->status" class="self-center" />
+            @if ($request->isOverdue())
+                <flux:badge color="red" icon="clock" class="self-center">{{ __('Overdue since :date', ['date' => $request->due_at->format('M j')]) }}</flux:badge>
+            @endif
             @can('cancel', $request)
                 <flux:modal.trigger name="cancel-request">
                     <flux:button variant="ghost" icon="x-circle">{{ __('Cancel request') }}</flux:button>

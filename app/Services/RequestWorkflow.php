@@ -143,6 +143,7 @@ class RequestWorkflow
             }
 
             $locked->routed_at = now();
+            $locked->due_at = now()->addWeekdays($locked->credentialType()->firstOrFail()->processing_days);
             $this->transition($locked, $request, RequestStatus::InProgress, $registrar, RequestEventType::Routed, $remarks);
         });
     }
