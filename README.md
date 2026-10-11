@@ -31,4 +31,5 @@ Then open **http://localhost:8000**. Demo accounts and testing steps are in
 
 - [Credentials & testing](docs/credentials.md)
 - [Data dictionary](docs/data-dictionary.md)
+- [Design documents DES-01 to DES-04](docs/des/) (Word files; upload to Google Drive to open as Google Docs)
 - [Specifications](docs/specs/00-overview.md) (spec-driven development, one folder per feature)
