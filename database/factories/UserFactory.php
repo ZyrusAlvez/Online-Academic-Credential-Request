@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\Role;
+use App\Models\Department;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -64,10 +65,11 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function departmentStaff(): static
+    public function departmentStaff(?Department $department = null): static
     {
         return $this->state(fn (array $attributes) => [
             'role' => Role::Department,
+            'department_id' => $department ?? Department::factory(),
         ]);
     }
 }
