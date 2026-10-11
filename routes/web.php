@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PaymentProofController;
 use App\Livewire\Department;
 use App\Livewire\Registrar;
 use App\Livewire\Student;
@@ -14,10 +15,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('student')->name('student.')->middleware('role:student')->group(function () {
         Route::get('/', Student\Dashboard::class)->name('dashboard');
+        Route::get('requests/new', Student\Requests\Create::class)->name('requests.create');
+        Route::get('requests/{credentialRequest}', Student\Requests\Show::class)->name('requests.show');
     });
 
     Route::prefix('registrar')->name('registrar.')->middleware('role:registrar')->group(function () {
         Route::get('/', Registrar\Dashboard::class)->name('dashboard');
+        Route::get('requests', Registrar\Requests\Index::class)->name('requests');
+        Route::get('requests/{credentialRequest}', Registrar\Requests\Show::class)->name('requests.show');
         Route::get('departments', Registrar\Departments\Index::class)->name('departments');
         Route::get('users', Registrar\Users\Index::class)->name('users');
         Route::get('credential-types', Registrar\CredentialTypes\Index::class)->name('credential-types');
@@ -27,6 +32,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('department')->name('department.')->middleware('role:department')->group(function () {
         Route::get('/', Department\Dashboard::class)->name('dashboard');
     });
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('payment-proofs/{paymentProof}', [PaymentProofController::class, 'show'])->name('payment-proofs.show');
 });
 
 Route::middleware(['auth'])->group(function () {

@@ -38,7 +38,7 @@
 ### Registrar review & routing
 - **REQ-04-09** THE SYSTEM SHALL list requests needing registrar review (`payment_review`,
   `registrar_review`) for the registrar, with search by reference number or student name.
-- **REQ-04-10** WHILE a request is under review THE SYSTEM SHALL let the registrar correct the
+- **REQ-04-10** WHILE a request has not been routed yet THE SYSTEM SHALL let the registrar correct the
   request's college.
 - **REQ-04-11** WHEN the registrar approves a request in `registrar_review`, or accepts the
   payment of a request in `payment_review`, THE SYSTEM SHALL copy the credential type's current
