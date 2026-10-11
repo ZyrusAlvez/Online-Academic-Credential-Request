@@ -67,7 +67,7 @@
                         </div>
                         @if ($result['lateProbability'] !== null)
                             <div>
-                                <dt class="text-zinc-600">{{ __('Chance of being late') }}</dt>
+                                <dt class="text-zinc-600">{{ __('Chance late') }}</dt>
                                 <dd @class(['font-semibold tabular-nums', 'text-red-800' => $result['lateProbability'] >= 0.5, 'text-ink' => $result['lateProbability'] < 0.5])>{{ round($result['lateProbability'] * 100) }}%</dd>
                             </div>
                         @endif
