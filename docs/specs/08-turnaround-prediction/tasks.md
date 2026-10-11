@@ -6,5 +6,6 @@
 - [x] `turnaround_predictions` migration, model, listener (REQ-08-04..06)
 - [x] Sanctum, API route, controller, form request, resource, token command (REQ-08-07..08)
 - [x] Registrar predictions page: predictor, at-risk list, chart (REQ-08-09..10)
-- [x] Pest tests for REQ-08-01..10
+- [x] Likely range, late probability and confidence (REQ-08-11)
+- [x] Pest tests for REQ-08-01..11
 - [x] `composer qa` green

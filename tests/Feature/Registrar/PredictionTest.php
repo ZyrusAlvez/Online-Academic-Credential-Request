@@ -19,11 +19,12 @@ beforeEach(function () {
 });
 
 /**
- * Swap in a model file with the given intercept (all coefficients zero unless given).
+ * Swap in a model file with the given intercept (all coefficients zero unless given). Errors are
+ * spread evenly from -5 to +5 days unless $quantiles is false.
  *
  * @param  array<string, float>  $coefficients
  */
-function useModel(float $intercept, array $coefficients = []): TurnaroundPredictor
+function useModel(float $intercept, array $coefficients = [], bool $quantiles = true): TurnaroundPredictor
 {
     $path = tempnam(sys_get_temp_dir(), 'model');
     file_put_contents($path, json_encode([
@@ -31,6 +32,7 @@ function useModel(float $intercept, array $coefficients = []): TurnaroundPredict
         'intercept' => $intercept,
         'coefficients' => array_merge(array_fill_keys(TurnaroundPredictor::FEATURES, 0), $coefficients),
         'peak_months' => [6, 7, 8],
+        'residual_quantiles' => $quantiles ? array_map(fn (int $i) => round(-5 + $i * 0.1, 1), range(0, 100)) : null,
         'metrics' => ['mae' => 1.0, 'rmse' => 1.5, 'r2' => 0.5],
         'trained_on' => 'simulated',
     ]));
@@ -144,7 +146,7 @@ test('REQ-08-07 the API returns a prediction as JSON', function () {
         ->assertJsonPath('data.model_version', 'test')
         ->assertJsonPath('data.at_risk', false)
         ->assertJsonPath('data.features.open_workload', 5)
-        ->assertJsonStructure(['data' => ['predicted_days', 'routed_at', 'predicted_ready_at', 'due_at', 'at_risk', 'features', 'model_version']]);
+        ->assertJsonStructure(['data' => ['predicted_days', 'likely_range' => ['low_days', 'high_days', 'coverage'], 'routed_at', 'predicted_ready_at', 'due_at', 'at_risk', 'late_probability', 'confidence', 'features', 'model_version']]);
 
     Carbon::setTestNow();
 });
@@ -212,4 +214,44 @@ test('REQ-08-10 the page lists at-risk requests and compares predicted with actu
         ->assertOk()
         ->assertSee('Scatter chart of 1 requests', false)
         ->assertSee('No in-progress request is predicted to be late.');
+});
+
+test('REQ-08-11 each prediction has a likely range, a late probability and a confidence', function () {
+    // Monday 09:00 + 3 weekdays = Thursday 09:00: due in 3 days, predicted 4 days.
+    $this->org->free->update(['processing_days' => 3]);
+    $predictor = useModel(4.0);
+    $routed = Carbon::parse('2026-10-12 09:00:00');
+    $due = TurnaroundPredictor::dueAt($routed, $this->org->free->fresh());
+
+    // Errors run evenly from -5 to +5: 40% of them are at or below -1 (= due - predicted).
+    expect($predictor->confidence(4.0, $routed, $due))->toBe([
+        'low' => 0.0,
+        'high' => 8.0,
+        'lateProbability' => 0.6,
+        'confidence' => 0.6,
+        'atRisk' => true,
+    ]);
+
+    // On track: the confidence is the chance of being on time.
+    expect($predictor->confidence(1.0, $routed, $due))->toMatchArray(['lateProbability' => 0.3, 'confidence' => 0.7, 'atRisk' => false]);
+
+    Sanctum::actingAs($this->registrar);
+    Carbon::setTestNow($routed);
+    $this->postJson(route('api.v1.predictions.turnaround'), ['credential_type_id' => $this->org->free->id, 'copies' => 1, 'student_status' => 'current', 'open_workload' => 0])
+        ->assertOk()
+        ->assertJsonPath('data.likely_range.high_days', 8)
+        ->assertJsonPath('data.late_probability', 0.6)
+        ->assertJsonPath('data.confidence', 0.6);
+
+    Livewire::actingAs($this->registrar)->test(Predictions::class)
+        ->set('credentialTypeId', $this->org->free->id)
+        ->set('openWorkload', 0)
+        ->call('predict')
+        ->assertSee('Likely 0.0 to 8.0 days')
+        ->assertSee('60%');
+    Carbon::setTestNow();
+
+    // A model file without error percentiles still predicts, without confidence.
+    useModel(4.0, quantiles: false);
+    expect(app(TurnaroundPredictor::class)->confidence(4.0, $routed, $due))->toBeNull();
 });

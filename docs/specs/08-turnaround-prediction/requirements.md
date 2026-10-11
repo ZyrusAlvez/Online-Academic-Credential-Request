@@ -31,9 +31,15 @@ against average-based reporting).
 - **REQ-08-06** IF the model file is missing or invalid THEN THE SYSTEM SHALL still route the request
   and skip the prediction.
 
+### Confidence
+- **REQ-08-11** THE SYSTEM SHALL give each prediction an 80% likely range (low and high days), the
+  probability that the request will be late, and a confidence in its at-risk call, all derived from the
+  model's cross-validation errors stored in the model file.
+
 ### API
 - **REQ-08-07** THE SYSTEM SHALL provide `POST /api/v1/predictions/turnaround` that returns predicted
-  days, predicted ready date, due date, at-risk flag and model version as JSON.
+  days, likely range, predicted ready date, due date, at-risk flag, late probability, confidence and
+  model version as JSON.
 - **REQ-08-08** THE SYSTEM SHALL require a registrar API token for the API, rate-limit it, and return
   401 without a token, 403 for other roles and 422 with field errors for invalid input.
 
