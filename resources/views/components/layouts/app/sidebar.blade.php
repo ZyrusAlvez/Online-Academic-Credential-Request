@@ -4,6 +4,7 @@
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-white">
+        <a href="#main-content" class="sr-only z-50 rounded-md bg-primary px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">{{ __('Skip to main content') }}</a>
         <flux:sidebar sticky stashable class="border-r border-secondary/40 bg-primary-50">
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 

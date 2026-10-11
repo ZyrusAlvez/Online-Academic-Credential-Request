@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PaymentProofController;
+use App\Http\Controllers\RequestsCsvController;
 use App\Livewire\Department;
 use App\Livewire\Notifications;
 use App\Livewire\Registrar;
@@ -23,6 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('registrar')->name('registrar.')->middleware('role:registrar')->group(function () {
         Route::get('/', Registrar\Dashboard::class)->name('dashboard');
         Route::get('requests', Registrar\Requests\Index::class)->name('requests');
+        Route::get('requests/export', RequestsCsvController::class)->name('requests.export');
         Route::get('requests/{credentialRequest}', Registrar\Requests\Show::class)->name('requests.show');
         Route::get('departments', Registrar\Departments\Index::class)->name('departments');
         Route::get('users', Registrar\Users\Index::class)->name('users');
