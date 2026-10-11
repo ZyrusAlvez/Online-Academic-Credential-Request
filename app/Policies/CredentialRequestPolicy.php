@@ -51,6 +51,11 @@ class CredentialRequestPolicy
         return $request->user_id === $user->id && $request->status->isBeforeRouting();
     }
 
+    public function release(User $user, CredentialRequest $request): bool
+    {
+        return $user->hasRole(Role::Registrar) && $request->status === RequestStatus::ReadyForRelease;
+    }
+
     /** Approve, reject payment, correct college. */
     public function review(User $user, CredentialRequest $request): bool
     {

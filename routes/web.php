@@ -31,6 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('department')->name('department.')->middleware('role:department')->group(function () {
         Route::get('/', Department\Dashboard::class)->name('dashboard');
+        Route::get('requests/{credentialRequest}', Department\Requests\Show::class)->name('requests.show');
     });
 });
 

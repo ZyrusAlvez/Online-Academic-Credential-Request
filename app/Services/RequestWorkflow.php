@@ -197,6 +197,138 @@ class RequestWorkflow
         });
     }
 
+    public function sign(RequestStep $step, User $actor, ?string $remarks = null): void
+    {
+        DB::transaction(function () use ($step, $actor, $remarks): void {
+            [$locked, $current] = $this->lockCurrentStep($step, [StepStatus::Pending, StepStatus::OnHold]);
+
+            $this->completeStep($locked, $step, $current, StepStatus::Signed, $actor, RequestEventType::StepSigned, $remarks);
+        });
+    }
+
+    public function hold(RequestStep $step, User $actor, string $remarks): void
+    {
+        if (blank($remarks)) {
+            throw new InvalidTransition('Remarks are required to put a request on hold.');
+        }
+
+        DB::transaction(function () use ($step, $actor, $remarks): void {
+            [$locked, $current] = $this->lockCurrentStep($step, [StepStatus::Pending]);
+
+            $this->updateStep($current, $step, StepStatus::OnHold, $actor, $remarks);
+            $this->record($locked, $actor, RequestEventType::StepHeld, null, null, $remarks, $current);
+        });
+    }
+
+    public function resume(RequestStep $step, User $actor): void
+    {
+        DB::transaction(function () use ($step, $actor): void {
+            [$locked, $current] = $this->lockCurrentStep($step, [StepStatus::OnHold]);
+
+            $this->updateStep($current, $step, StepStatus::Pending, $actor, null);
+            $this->record($locked, $actor, RequestEventType::StepResumed, null, null, null, $current);
+        });
+    }
+
+    /**
+     * Registrar override: pass over the current office and continue the flow.
+     */
+    public function skip(RequestStep $step, User $registrar, string $reason): void
+    {
+        if (blank($reason)) {
+            throw new InvalidTransition('A reason is required to skip a step.');
+        }
+
+        DB::transaction(function () use ($step, $registrar, $reason): void {
+            [$locked, $current] = $this->lockCurrentStep($step, [StepStatus::Pending, StepStatus::OnHold]);
+
+            $this->completeStep($locked, $step, $current, StepStatus::Skipped, $registrar, RequestEventType::StepSkipped, $reason);
+        });
+    }
+
+    public function release(CredentialRequest $request, User $registrar, ?string $remarks = null): void
+    {
+        DB::transaction(function () use ($request, $registrar, $remarks): void {
+            $locked = $this->lock($request, [RequestStatus::ReadyForRelease], 'Only requests that are ready for release can be released.');
+
+            $locked->released_at = now();
+            $this->transition($locked, $request, RequestStatus::Released, $registrar, RequestEventType::Released, $remarks);
+        });
+    }
+
+    /**
+     * Lock the step's request (must be in progress) and re-read the step, asserting it is the
+     * current step in one of the given statuses.
+     *
+     * @param  list<StepStatus>  $allowed
+     * @return array{CredentialRequest, RequestStep}
+     */
+    private function lockCurrentStep(RequestStep $step, array $allowed): array
+    {
+        $locked = $this->lock(
+            $step->credentialRequest()->firstOrFail(),
+            [RequestStatus::InProgress],
+            'This request is no longer in progress.',
+        );
+
+        /** @var RequestStep $current */
+        $current = RequestStep::whereKey($step->getKey())->lockForUpdate()->firstOrFail();
+
+        if (! in_array($current->status, $allowed, true)) {
+            throw new InvalidTransition($current->status->isDone()
+                ? 'This step has already been completed.'
+                : 'This action is not available for the step right now.');
+        }
+
+        return [$locked, $current];
+    }
+
+    /**
+     * Sign or skip the current step, then hand the request to the next office or mark it ready.
+     */
+    private function completeStep(
+        CredentialRequest $locked,
+        RequestStep $original,
+        RequestStep $current,
+        StepStatus $outcome,
+        User $actor,
+        RequestEventType $type,
+        ?string $remarks,
+    ): void {
+        $this->updateStep($current, $original, $outcome, $actor, $remarks);
+        $this->record($locked, $actor, $type, null, null, $remarks, $current);
+
+        $next = $locked->steps()
+            ->where('position', '>', $current->position)
+            ->where('status', StepStatus::Waiting)
+            ->first();
+
+        if ($next !== null) {
+            $next->update(['status' => StepStatus::Pending]);
+
+            return;
+        }
+
+        $locked->ready_at = now();
+        $original->setRelation('credentialRequest', $locked);
+        $this->transition($locked, $locked, RequestStatus::ReadyForRelease, $actor, RequestEventType::ReadyForRelease);
+    }
+
+    private function updateStep(RequestStep $current, RequestStep $original, StepStatus $status, User $actor, ?string $remarks): void
+    {
+        // A step back in `pending` has no outcome yet; the ledger keeps who lifted the hold.
+        $reopened = $status === StepStatus::Pending;
+
+        $current->forceFill([
+            'status' => $status,
+            'acted_by' => $reopened ? null : $actor->id,
+            'acted_at' => $reopened ? null : now(),
+            'remarks' => filled($remarks) ? $remarks : null,
+        ])->save();
+
+        $original->setRawAttributes($current->getAttributes(), sync: true);
+    }
+
     /**
      * Re-read the request with a row lock and assert its status.
      *

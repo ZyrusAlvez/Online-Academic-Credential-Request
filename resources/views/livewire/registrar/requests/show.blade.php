@@ -46,20 +46,54 @@
 
             @if ($request->steps->isNotEmpty())
                 <section aria-labelledby="route-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
-                    <h2 id="route-heading" class="text-lg font-semibold text-primary">{{ __('Signing route') }}</h2>
-                    <ol class="mt-4 space-y-2">
-                        @foreach ($request->steps as $step)
-                            <li class="flex items-center justify-between gap-3 text-sm">
-                                <span><span class="text-zinc-500">{{ $step->position }}.</span> {{ $step->department->name }}</span>
-                                <flux:badge size="sm" :color="$step->status->color()">{{ $step->status->label() }}</flux:badge>
-                            </li>
-                        @endforeach
-                    </ol>
+                    <h2 id="route-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Signing route') }}</h2>
+                    <x-signing-route :steps="$request->steps" show-actors />
                 </section>
             @endif
         </div>
 
         <aside class="space-y-6">
+            @if ($request->status === \App\Enums\RequestStatus::InProgress && $request->currentStep)
+                @php($step = $request->currentStep)
+                <section aria-labelledby="current-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5">
+                    <div>
+                        <h2 id="current-heading" class="text-sm font-medium text-zinc-600">{{ __('Currently at') }}</h2>
+                        <p class="text-lg font-semibold text-primary">{{ $step->department->name }}</p>
+                        <p class="text-xs text-zinc-600">{{ __('Waiting since :time', ['time' => $step->updated_at->diffForHumans()]) }}</p>
+                    </div>
+
+                    @include('partials.step-actions', ['step' => $step])
+
+                    @can('skip', $step)
+                        <flux:modal.trigger name="skip-step">
+                            <flux:button variant="ghost" icon="forward" class="w-full">{{ __('Skip this step') }}</flux:button>
+                        </flux:modal.trigger>
+                    @endcan
+                </section>
+
+                <flux:modal name="skip-step" class="w-full md:w-[28rem]">
+                    <form wire:submit="skipStep" class="space-y-6">
+                        <div>
+                            <flux:heading size="lg">{{ __('Skip :office?', ['office' => $step->department->name]) }}</flux:heading>
+                            <flux:text class="mt-2">{{ __('The request moves on to the next office as if this one had signed. The reason is recorded in the ledger.') }}</flux:text>
+                        </div>
+                        <flux:textarea wire:model="skipReason" :label="__('Reason')" rows="3" required />
+                        <div class="flex justify-end gap-2">
+                            <flux:modal.close><flux:button variant="ghost">{{ __('Back') }}</flux:button></flux:modal.close>
+                            <flux:button type="submit" variant="primary">{{ __('Skip step') }}</flux:button>
+                        </div>
+                    </form>
+                </flux:modal>
+            @endif
+
+            @can('release', $request)
+                <section aria-labelledby="release-heading" class="space-y-3 rounded-xl border border-green-700 bg-green-50 p-5">
+                    <h2 id="release-heading" class="text-lg font-semibold text-green-900">{{ __('Ready for release') }}</h2>
+                    <p class="text-sm text-green-900">{{ __('All offices have signed. Mark it released when the student claims the document.') }}</p>
+                    <flux:button wire:click="release" wire:confirm="{{ __('Confirm that the student has claimed the document.') }}" variant="primary" icon="hand-raised" class="w-full">{{ __('Mark as released') }}</flux:button>
+                </section>
+            @endcan
+
             @if ($request->status->needsRegistrarReview())
                 <section aria-labelledby="review-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5">
                     <h2 id="review-heading" class="text-lg font-semibold text-primary">{{ __('Review') }}</h2>
