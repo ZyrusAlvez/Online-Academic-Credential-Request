@@ -14,7 +14,8 @@ return [
     |
     */
 
-    'default' => env('MAIL_MAILER', 'log'),
+    // Staging never sends real email (demo accounts use example.com); it writes to the log.
+    'default' => env('APP_ENV') === 'staging' ? 'log' : env('MAIL_MAILER', 'log'),
 
     /*
     |--------------------------------------------------------------------------
@@ -109,7 +110,8 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
+        // Gmail only sends from its own address, so default to the SMTP username.
+        'address' => env('MAIL_FROM_ADDRESS') ?: (env('MAIL_USERNAME') ?: 'no-reply@example.com'),
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 

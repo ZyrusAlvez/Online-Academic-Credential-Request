@@ -13,8 +13,9 @@ There are exactly two environments. Any other `APP_ENV` value stops the app at s
 | Start it | `composer dev` → http://localhost:8000 | `composer prod` → http://localhost:8001 |
 | Settings | `.env` with `APP_ENV=staging` (default) | Same `.env`, run with `APP_ENV=production` |
 | Database | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
-| Receipt files | `storage/app/private/staging` | `storage/app/private/production` |
+| Receipt files | `staging/` folder (R2 bucket, or `storage/app/private/staging` while `RECEIPTS_DISK=local`) | `production/` folder (R2, or `storage/app/private/production`) |
 | Data | Base data + demo accounts and requests | Base data + one registrar account; real data only |
+| Email | Written to `storage/logs/laravel.log` | Sent through Gmail (`MAIL_MAILER=smtp`) |
 | Wiped by tests | Yes, then demo data is reloaded | Never (tests refuse to run on it) |
 
 Base data = the 15 departments, the 7 credential types with their workflows, and the registrar account.
@@ -81,7 +82,8 @@ Registrar accounts can also sign the Office of the Registrar (REG) step.
 | Database user/password | `.env` (`DB_USERNAME`, `DB_PASSWORD`) | `.env` is git-ignored; never copy its values into docs or commits |
 | App key | `.env` (`APP_KEY`) | `php artisan key:generate` |
 | First production registrar | `.env` (`INITIAL_REGISTRAR_EMAIL`, `INITIAL_REGISTRAR_PASSWORD`) | Email `registrar@uphsl.edu.ph`; read the password from `.env`. Used only when the production database is first set up; changing it later does not change the account's password. Setup refuses to run without it |
-| Mail (SMTP) | `.env` (`MAIL_*`) | Defaults to the `log` mailer |
+| Gmail (production email) | `.env` (`MAIL_USERNAME`, `MAIL_PASSWORD` = Google App Password) | Staging always writes emails to the log. Setup: [setup-mail-and-storage.md](setup-mail-and-storage.md) |
+| Cloudflare R2 (receipts) | `.env` (`RECEIPTS_DISK=r2`, `R2_*`) | One private bucket, folders `staging/` and `production/`. Setup: [setup-mail-and-storage.md](setup-mail-and-storage.md) |
 
 There is one settings file, `.env` (git-ignored), for both environments. Its committed template is
 `.env.example`. Production commands are run with `APP_ENV=production` in front, for example

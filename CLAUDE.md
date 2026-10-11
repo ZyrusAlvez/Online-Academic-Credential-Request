@@ -80,7 +80,11 @@ npm run dev
 - Tests wipe the staging database (RefreshDatabase). `tests/TestCase.php` refuses to run unless the
   database name ends in `_staging`; the PHPUnit extension `Tests\Support\ReseedDemoData` runs
   `php artisan app:reset-demo` after every run to reload staging demo data (skipped when `CI` is set).
-- Mail uses the `log` mailer locally — check `storage/logs/laravel.log` for verification emails.
+- Mail: staging is forced to the `log` mailer (`config/mail.php`), so check `storage/logs/laravel.log`;
+  production sends through Gmail SMTP. Receipts use `config('uphsl.receipts_disk')` (`local` or
+  Cloudflare `r2`, foldered per environment); use `RequestWorkflow::proofDisk()`, never a disk name.
+  `php artisan app:test-mail <email>` and `app:test-storage` check the settings
+  (prefix `APP_ENV=production` for production). Setup steps: `docs/setup-mail-and-storage.md`.
 - Notifications are queued (`QUEUE_CONNECTION=database`); run `composer dev` or `php artisan queue:work`.
 - `php artisan db:seed --class=DemoSeeder` creates demo accounts (password `password`) and requests
   in every status; it runs only in staging.
