@@ -3,6 +3,7 @@
 namespace App\Livewire\Student\Requests;
 
 use App\Enums\PaymentStatus;
+use App\Enums\RequestEventType;
 use App\Exceptions\InvalidTransition;
 use App\Models\CredentialRequest;
 use App\Models\User;
@@ -94,6 +95,9 @@ class Show extends Component
         return view('livewire.student.requests.show', [
             'request' => $this->credentialRequest,
             'rejectedProof' => $this->credentialRequest->paymentProofs->firstWhere('status', PaymentStatus::Rejected),
+            // Internal registrar bookkeeping is not part of the student's tracking history.
+            'events' => $this->credentialRequest->events()->with('department')
+                ->where('type', '!=', RequestEventType::PaymentAccepted)->get(),
         ])->title($this->credentialRequest->reference_no);
     }
 }

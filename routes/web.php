@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PaymentProofController;
 use App\Livewire\Department;
+use App\Livewire\Notifications;
 use App\Livewire\Registrar;
 use App\Livewire\Student;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('payment-proofs/{paymentProof}', [PaymentProofController::class, 'show'])->name('payment-proofs.show');
+    Route::get('notifications', Notifications\Index::class)->name('notifications');
 });
 
 Route::middleware(['auth'])->group(function () {

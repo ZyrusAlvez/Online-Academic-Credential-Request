@@ -52,6 +52,31 @@ class RequestEvent extends Model
     }
 
     /**
+     * One-line description used by the timeline, notifications and emails.
+     * Expects `department` to be loaded for step events.
+     */
+    public function summary(): string
+    {
+        $office = $this->department->name ?? 'an office';
+
+        return match ($this->type) {
+            RequestEventType::Submitted => 'Request submitted',
+            RequestEventType::PaymentSubmitted => 'Proof of payment uploaded',
+            RequestEventType::PaymentRejected => 'Payment not accepted – please upload a new receipt',
+            RequestEventType::PaymentAccepted => 'Payment verified by the Registrar',
+            RequestEventType::CollegeChanged => 'College corrected by the Registrar',
+            RequestEventType::Routed => 'Approved and sent to the signing offices',
+            RequestEventType::StepSigned => "Signed by {$office}",
+            RequestEventType::StepHeld => "On hold at {$office}",
+            RequestEventType::StepResumed => "Hold lifted at {$office}",
+            RequestEventType::StepSkipped => "{$office} step skipped by the Registrar",
+            RequestEventType::ReadyForRelease => 'Ready for release at the Office of the Registrar',
+            RequestEventType::Released => 'Released to the student',
+            RequestEventType::Cancelled => 'Request cancelled',
+        };
+    }
+
+    /**
      * @return BelongsTo<CredentialRequest, $this>
      */
     public function credentialRequest(): BelongsTo

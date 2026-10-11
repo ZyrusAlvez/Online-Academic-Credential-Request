@@ -92,6 +92,11 @@
         </section>
     @endif
 
+    <section aria-labelledby="history-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
+        <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Tracking history') }}</h2>
+        <x-request-timeline :events="$events" />
+    </section>
+
     <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request details') }}</h2>
         <x-request-details :request="$request" />
