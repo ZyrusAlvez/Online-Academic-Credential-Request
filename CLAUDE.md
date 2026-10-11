@@ -9,7 +9,7 @@ digitally** (the only upload is the student's proof of payment).
 
 - Laravel 12 / PHP 8.5, MySQL 8.4
 - Livewire 4 + Flux (free) + Volt (starter-kit auth pages only), Tailwind CSS 4
-- Pest for tests (runs against the MySQL `uphsl_credential_tracker_test` database)
+- Pest for tests (runs against the single app database `uphsl_credential_tracker`)
 
 ## Spec-driven development
 
@@ -64,6 +64,9 @@ npm run dev
 - Livewire 4 is installed with a starter kit written for v3: `config/livewire.php` sets
   `component_layout` to `components.layouts.app`.
 - `tests/TestCase.php` calls `withoutVite()` so tests don't need a front-end build.
+- There is ONE database. Tests wipe it (RefreshDatabase); the PHPUnit extension
+  `Tests\Support\ReseedDemoData` runs `php artisan app:reset-demo` after every run to reload
+  demo data (skipped when `CI` is set). Data entered by hand is lost on each test run.
 - Mail uses the `log` mailer locally — check `storage/logs/laravel.log` for verification emails.
 - Notifications are queued (`QUEUE_CONNECTION=database`); run `composer dev` or `php artisan queue:work`.
 - `php artisan db:seed --class=DemoSeeder` creates demo accounts (password `password`) and requests
