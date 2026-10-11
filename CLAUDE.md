@@ -30,7 +30,7 @@ Gates: `composer qa` green; `laravel-security` checklist for auth, uploads, paym
 ## Project rules
 
 - Business operations live in `app/Actions/<Domain>/`, one public `handle()` per class.
-- All request status transitions go through `App\Services\RequestWorkflow` — never update
+- All request status transitions are methods on `App\Services\RequestWorkflow` — never update
   `credential_requests.status` or `request_steps.status` anywhere else. It writes the
   `request_events` ledger, which is append-only (no updates, no deletes).
 - Fixed sets of states are backed enums in `app/Enums`.

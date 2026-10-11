@@ -108,7 +108,7 @@ reason required).
 | 01 | Authentication & roles |
 | 02 | Departments & staff accounts |
 | 03 | Credential types & workflow builder |
-| 04 | Request submission & payment |
-| 05 | Routing & department actions |
+| 04 | Request submission, payment & registrar review (incl. routing) |
+| 05 | Department signing, hold, skip & release |
 | 06 | Tracking & notifications |
 | 07 | Registrar console |
