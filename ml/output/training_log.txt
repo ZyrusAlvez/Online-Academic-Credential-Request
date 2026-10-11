@@ -1,0 +1,56 @@
+
+=== 1. Raw data ===
+2010 rows, 11 columns from raw_requests.csv
+
+=== 2. Validation ===
+  rejected  12  required field is empty
+  rejected  12  copies outside 1-10 or negative workload
+  rejected  10  duplicate reference_no
+  rejected   6  not finished yet (no ready_at)
+  rejected   5  copies or open_workload is not a number
+  rejected   5  ready_at is not after routed_at
+  rejected   4  student_status is not current or alumni
+1956 clean rows kept, 54 rejected -> output/validation_report.csv
+
+=== 3. Feature engineering ===
+10 features: processing_days, requires_payment, has_library, has_finance, has_student_affairs, has_college, copies, is_alumni, open_workload, is_peak_month
+target turnaround_days: mean 8.23, median 6.92
+outliers flagged (kept): 63; requests that breached their due date: 611
+
+=== 4. Train/test split ===
+train 1564 rows, test 392 rows (80/20, random_state=42)
+
+=== 5. Baseline (DEV-01): always predict the training mean ===
+predicts 8.23 days for every request
+
+=== 6. Linear regression (DEV-02) ===
+OLS 5-fold CV: MAE 3.022, R2 0.495
+Ridge 5-fold CV over alpha: best alpha=30, CV MAE 3.014
+chosen on cross-validation (not the test set): Ridge
+
+=== 7. Evaluation on the held-out test set ===
+  Baseline (mean)    MAE 4.405  RMSE 5.857  R2 -0.000
+  Linear (OLS)       MAE 3.065  RMSE 4.300  R2 0.461
+  Linear (Ridge)     MAE 3.065  RMSE 4.301  R2 0.461
+deadline-breach early warning (predicted ready date after due date):
+  Baseline (mean)    precision 0.365  recall 0.551  F1 0.439  (192 flagged, 127 actually breached)
+  Linear regression  precision 0.560  recall 0.512  F1 0.535  (116 flagged, 127 actually breached)
+
+=== 8. Explainability (DEV-03) ===
+  College step               +0.623 days MAE when shuffled   (std. coef +1.733)
+  Cashier step               +0.375 days MAE when shuffled   (std. coef +1.276)
+  Library step               +0.181 days MAE when shuffled   (std. coef +1.031)
+  Peak month                 +0.135 days MAE when shuffled   (std. coef +0.932)
+  Student Affairs step       +0.062 days MAE when shuffled   (std. coef +0.664)
+  Alumni requester           +0.049 days MAE when shuffled   (std. coef +0.613)
+  Copies                     +0.045 days MAE when shuffled   (std. coef +0.483)
+  Open requests at routing   +0.032 days MAE when shuffled   (std. coef +0.548)
+  Processing days            +0.002 days MAE when shuffled   (std. coef +0.161)
+  Paid credential            +0.001 days MAE when shuffled   (std. coef +0.069)
+charts written to output/
+
+=== 9. Export ===
+model lr-2026-10-11 -> resources\ml\turnaround-model.json
+
+=== 10. Sample prediction ===
+TOR, 2 copies, alumni, 20 open requests, routed Mon 12 Oct: 12.4 days predicted, due in 14 calendar days -> on track
