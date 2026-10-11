@@ -9,7 +9,7 @@ digitally** (the only upload is the student's proof of payment).
 
 - Laravel 12 / PHP 8.5, MySQL 8.4
 - Livewire 4 + Flux (free) + Volt (starter-kit auth pages only), Tailwind CSS 4
-- Pest for tests (runs against the single app database `uphsl_credential_tracker`)
+- Pest for tests (run against the staging database, never production)
 
 ## Spec-driven development
 
@@ -47,15 +47,26 @@ Gates: `composer qa` green; `laravel-security` checklist for auth, uploads, paym
 ```bash
 composer qa          # pint --test, phpstan (level 6), pest
 composer fix         # apply pint
-composer dev         # server + queue + logs + vite
+composer dev         # STAGING: server + queue + logs + vite on :8000
+composer prod        # PRODUCTION: build assets, server + queue on :8001
 ```
+
+## Environments
+
+Exactly two: `staging` (`.env`, database `uphsl_credential_tracker_staging`) and `production`
+(`.env.production`, database `uphsl_credential_tracker`, run with `--env=production`).
+`AppServiceProvider` refuses any other `APP_ENV`; the only exception is Laravel's internal
+`testing` mode used by the test runner, which always points at the staging database. Receipt
+files live in `storage/app/private/<env>`. Demo data and `app:reset-demo` are staging-only.
 
 ## Local setup
 
 ```bash
 composer install && npm install
-cp .env.example .env && php artisan key:generate   # set DB_* for MySQL
-php artisan migrate --seed
+cp .env.example .env && php artisan key:generate                 # staging; set DB_*
+cp .env.production.example .env.production                         # production; set DB_*, APP_KEY, SEED_REGISTRAR_PASSWORD
+php artisan app:reset-demo                                         # staging schema + demo data
+php artisan migrate --seed --env=production                        # production schema + base data
 npm run dev
 ```
 
@@ -64,12 +75,12 @@ npm run dev
 - Livewire 4 is installed with a starter kit written for v3: `config/livewire.php` sets
   `component_layout` to `components.layouts.app`.
 - `tests/TestCase.php` calls `withoutVite()` so tests don't need a front-end build.
-- There is ONE database. Tests wipe it (RefreshDatabase); the PHPUnit extension
-  `Tests\Support\ReseedDemoData` runs `php artisan app:reset-demo` after every run to reload
-  demo data (skipped when `CI` is set). Data entered by hand is lost on each test run.
+- Tests wipe the staging database (RefreshDatabase). `tests/TestCase.php` refuses to run unless the
+  database name ends in `_staging`; the PHPUnit extension `Tests\Support\ReseedDemoData` runs
+  `php artisan app:reset-demo` after every run to reload staging demo data (skipped when `CI` is set).
 - Mail uses the `log` mailer locally — check `storage/logs/laravel.log` for verification emails.
 - Notifications are queued (`QUEUE_CONNECTION=database`); run `composer dev` or `php artisan queue:work`.
 - `php artisan db:seed --class=DemoSeeder` creates demo accounts (password `password`) and requests
-  in every status; it refuses to run in production.
+  in every status; it runs only in staging.
 - Request queries for the registrar list and CSV export share `App\Queries\RegistrarRequestFilter`;
   office queues use `App\Queries\StepQueue`.

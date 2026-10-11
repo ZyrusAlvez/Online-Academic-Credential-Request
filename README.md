@@ -24,8 +24,10 @@ fee can be changed by the registrar at any time.
 composer dev
 ```
 
-Then open **http://localhost:8000**. Demo accounts and testing steps are in
-[docs/credentials.md](docs/credentials.md).
+Then open **http://localhost:8000**. That is the **staging** environment, with demo accounts
+listed in [docs/credentials.md](docs/credentials.md).
+
+`composer prod` runs the **production** environment at http://localhost:8001 (real data only).
 
 ## Documentation
 

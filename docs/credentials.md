@@ -1,17 +1,27 @@
 # Credentials & Testing
 
-> **Development and demo use only.** Every account below uses the password `password` and is
-> created by the seeders. Never run the demo seeder on a production server; it refuses to run
-> when `APP_ENV=production`.
+> **Staging only.** Every account below uses the password `password` and exists only in the
+> **staging** environment. Production has no demo data; the demo seeder and `app:reset-demo`
+> refuse to run anywhere but staging.
 
-## 1. Loading the demo data
+## 1. Environments
 
-```bash
-php artisan app:reset-demo      # wipes the database, then loads base data + demo accounts and requests
-composer dev                    # app + queue worker (needed for notifications) + Vite
-```
+There are exactly two environments. Any other `APP_ENV` value stops the app at startup.
 
-Open http://localhost:8000 and log in with an **email and password** below.
+| | Staging | Production |
+|---|---|---|
+| Start it | `composer dev` → http://localhost:8000 | `composer prod` → http://localhost:8001 |
+| Env file | `.env` | `.env.production` |
+| Database | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
+| Receipt files | `storage/app/private/staging` | `storage/app/private/production` |
+| Data | Base data + demo accounts and requests | Base data + one registrar account; real data only |
+| Wiped by tests | Yes, then demo data is reloaded | Never (tests refuse to run on it) |
+
+Base data = the 15 departments, the 7 credential types with their workflows, and the registrar account.
+
+To reload the staging demo data: `php artisan app:reset-demo`.
+
+Open http://localhost:8000 (staging) and log in with an **email and password** below.
 
 ## 2. Demo accounts
 
@@ -70,10 +80,11 @@ Registrar accounts can also sign the Office of the Registrar (REG) step.
 |---|---|---|
 | Database user/password | `.env` (`DB_USERNAME`, `DB_PASSWORD`) | `.env` is git-ignored; never copy its values into docs or commits |
 | App key | `.env` (`APP_KEY`) | `php artisan key:generate` |
-| First registrar on a real server | `.env` (`SEED_REGISTRAR_EMAIL`, `SEED_REGISTRAR_PASSWORD`) | Seeding refuses to run in production without a password |
-| Mail (SMTP) | `.env` (`MAIL_*`) | Defaults to the `log` mailer |
+| Production registrar login | `.env.production` (`SEED_REGISTRAR_EMAIL`, `SEED_REGISTRAR_PASSWORD`) | Email `registrar@uphsl.edu.ph`; the password is generated, read it from `.env.production`. Seeding refuses to run in production without a password |
+| Mail (SMTP) | `.env` / `.env.production` (`MAIL_*`) | Defaults to the `log` mailer |
 
-Database: `uphsl_credential_tracker` (one database for the app and the tests).
+`.env` and `.env.production` are git-ignored. Their committed templates are `.env.example` and
+`.env.production.example`.
 
 ## 4. Automated tests
 
@@ -84,10 +95,12 @@ php artisan test --filter=REQ-05-04      # one acceptance criterion
 php artisan test tests/Feature/Requests  # one area
 ```
 
-- Tests run against the app database `uphsl_credential_tracker`. **Each run wipes it**, then the demo
-  data is reloaded automatically when the tests finish (pass or fail). Anything you entered by hand
-  is lost, so don't run the tests while you're preparing a demo.
-- Reload the demo data yourself at any time with `php artisan app:reset-demo`.
+- Tests run against the **staging** database `uphsl_credential_tracker_staging`. **Each run wipes
+  it**, then the demo data is reloaded automatically when the tests finish (pass or fail). Anything
+  you entered by hand in staging is lost, so don't run the tests while preparing a staging demo.
+- Production is never touched: the tests stop before doing anything if their database name does
+  not end in `_staging`.
+- Reload the staging demo data yourself at any time with `php artisan app:reset-demo`.
 - Each test name starts with the acceptance criterion it proves (e.g. `REQ-04-11 accepting a
   payment snapshots the workflow…`), so every requirement in `docs/specs/` can be traced to a test.
 - Uploads use a fake disk and mail/notifications are faked where asserted, so no real files or
@@ -95,7 +108,7 @@ php artisan test tests/Feature/Requests  # one area
 
 ## 5. Manual end-to-end test
 
-Use three browser profiles (or one normal window plus private windows) to stay logged in as
+Run this in **staging** (`composer dev`). Use three browser profiles (or one normal window plus private windows) to stay logged in as
 several roles at once.
 
 | # | As | Do | Expect |
