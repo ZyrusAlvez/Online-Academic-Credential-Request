@@ -26,7 +26,7 @@ class Show extends Component
 
     public string $cancelReason = '';
 
-    public ?int $collegeId = null;
+    public int|string|null $collegeId = null;
 
     public string $skipReason = '';
 
@@ -62,7 +62,7 @@ class Show extends Component
         $this->authorize('review', $this->credentialRequest);
         $this->validate(['collegeId' => ['required', 'integer', Rule::exists('departments', 'id')->where('type', 'college')->where('is_active', true)]]);
 
-        $this->attempt(fn () => $workflow->changeCollege($this->credentialRequest, $this->actor(), Department::findOrFail($this->collegeId)), 'College updated.');
+        $this->attempt(fn () => $workflow->changeCollege($this->credentialRequest, $this->actor(), Department::findOrFail((int) $this->collegeId)), 'College updated.');
     }
 
     public function cancel(RequestWorkflow $workflow): void

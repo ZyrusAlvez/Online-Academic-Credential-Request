@@ -11,15 +11,16 @@ use Livewire\Form;
 
 class CredentialRequestForm extends Form
 {
-    public ?int $credential_type_id = null;
+    // Numeric inputs accept strings so invalid input reaches validation instead of a TypeError.
+    public int|string|null $credential_type_id = null;
 
-    public int $copies = 1;
+    public int|string|null $copies = 1;
 
     public string $purpose = '';
 
     public string $student_number = '';
 
-    public ?int $college_id = null;
+    public int|string|null $college_id = null;
 
     public string $program = '';
 
@@ -73,7 +74,14 @@ class CredentialRequestForm extends Form
      */
     public function validated(): array
     {
-        /** @var array{credential_type_id: int, college_id: int, student_number: string, program: string, student_status: string, last_school_year: string, purpose: string, copies: int} */
-        return $this->validate();
+        /** @var array{credential_type_id: int|string, college_id: int|string, student_number: string, program: string, student_status: string, last_school_year: string, purpose: string, copies: int|string} $data */
+        $data = $this->validate();
+
+        return [
+            ...$data,
+            'credential_type_id' => (int) $data['credential_type_id'],
+            'college_id' => (int) $data['college_id'],
+            'copies' => (int) $data['copies'],
+        ];
     }
 }

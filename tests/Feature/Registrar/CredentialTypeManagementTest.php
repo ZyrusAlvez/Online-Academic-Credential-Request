@@ -74,9 +74,9 @@ test('REQ-03-03 fee is dropped when payment is not required and inputs are valid
     Livewire::actingAs($this->registrar)->test(Index::class)
         ->set('form.name', 'Old')
         ->set('form.fee', '-5')
-        ->set('form.processing_days', 0)
+        ->set('form.processing_days', 'ten')
         ->call('save')
-        ->assertHasErrors(['form.name' => 'unique', 'form.fee' => 'min', 'form.processing_days' => 'between']);
+        ->assertHasErrors(['form.name' => 'unique', 'form.fee' => 'min', 'form.processing_days' => 'integer']);
 });
 
 test('REQ-03-04 the registrar can deactivate and reactivate a credential type', function () {
