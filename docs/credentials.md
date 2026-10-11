@@ -11,7 +11,7 @@ There are exactly two environments. Any other `APP_ENV` value stops the app at s
 | | Staging | Production |
 |---|---|---|
 | Start it | `composer dev` → http://localhost:8000 | `composer prod` → http://localhost:8001 |
-| Env file | `.env` | `.env.production` |
+| Settings | `.env` with `APP_ENV=staging` (default) | Same `.env`, run with `APP_ENV=production` |
 | Database | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
 | Receipt files | `storage/app/private/staging` | `storage/app/private/production` |
 | Data | Base data + demo accounts and requests | Base data + one registrar account; real data only |
@@ -80,11 +80,12 @@ Registrar accounts can also sign the Office of the Registrar (REG) step.
 |---|---|---|
 | Database user/password | `.env` (`DB_USERNAME`, `DB_PASSWORD`) | `.env` is git-ignored; never copy its values into docs or commits |
 | App key | `.env` (`APP_KEY`) | `php artisan key:generate` |
-| Production registrar login | `.env.production` (`SEED_REGISTRAR_EMAIL`, `SEED_REGISTRAR_PASSWORD`) | Email `registrar@uphsl.edu.ph`; the password is generated, read it from `.env.production`. Seeding refuses to run in production without a password |
-| Mail (SMTP) | `.env` / `.env.production` (`MAIL_*`) | Defaults to the `log` mailer |
+| First production registrar | `.env` (`INITIAL_REGISTRAR_EMAIL`, `INITIAL_REGISTRAR_PASSWORD`) | Email `registrar@uphsl.edu.ph`; read the password from `.env`. Used only when the production database is first set up; changing it later does not change the account's password. Setup refuses to run without it |
+| Mail (SMTP) | `.env` (`MAIL_*`) | Defaults to the `log` mailer |
 
-`.env` and `.env.production` are git-ignored. Their committed templates are `.env.example` and
-`.env.production.example`.
+There is one settings file, `.env` (git-ignored), for both environments. Its committed template is
+`.env.example`. Production commands are run with `APP_ENV=production` in front, for example
+`APP_ENV=production php artisan migrate`.
 
 ## 4. Automated tests
 
