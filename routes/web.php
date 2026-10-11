@@ -26,6 +26,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('requests', Registrar\Requests\Index::class)->name('requests');
         Route::get('requests/export', RequestsCsvController::class)->name('requests.export');
         Route::get('requests/{credentialRequest}', Registrar\Requests\Show::class)->name('requests.show');
+        Route::get('predictions', Registrar\Predictions::class)->name('predictions');
         Route::get('departments', Registrar\Departments\Index::class)->name('departments');
         Route::get('users', Registrar\Users\Index::class)->name('users');
         Route::get('credential-types', Registrar\CredentialTypes\Index::class)->name('credential-types');
