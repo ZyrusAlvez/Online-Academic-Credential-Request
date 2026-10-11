@@ -5,7 +5,7 @@
         </x-slot:actions>
     </x-page-header>
 
-    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_auto_auto_auto]">
+    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" label:sr-only :placeholder="__('Reference, student name or number')" clearable />
         <flux:select wire:model.live="status" :label="__('Status')" label:sr-only>
             <flux:select.option value="review">{{ __('Needs review (:count)', ['count' => $reviewCount]) }}</flux:select.option>
