@@ -48,7 +48,9 @@
                                 <p class="text-sm text-zinc-600">{{ __('Likely :low to :high days (8 in 10 requests fall in this range)', ['low' => number_format($result['low'], 1), 'high' => number_format($result['high'], 1)]) }}</p>
                             @endif
                         </div>
-                        @if ($result['atRisk'])
+                        @if ($result['atRisk'] && $result['lateProbability'] !== null && $result['lateProbability'] < 0.5)
+                            <flux:badge color="amber" icon="exclamation-triangle">{{ __('Borderline: just past the due date') }}</flux:badge>
+                        @elseif ($result['atRisk'])
                             <flux:badge color="red" icon="exclamation-triangle">{{ __('At risk of missing the due date') }}</flux:badge>
                         @else
                             <flux:badge color="green" icon="check-circle">{{ __('On track') }}</flux:badge>

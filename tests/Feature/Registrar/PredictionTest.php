@@ -24,7 +24,7 @@ beforeEach(function () {
  *
  * @param  array<string, float>  $coefficients
  */
-function useModel(float $intercept, array $coefficients = [], bool $quantiles = true): TurnaroundPredictor
+function useModel(float $intercept, array $coefficients = [], bool $quantiles = true, float $shift = 0.0): TurnaroundPredictor
 {
     $path = tempnam(sys_get_temp_dir(), 'model');
     file_put_contents($path, json_encode([
@@ -32,7 +32,7 @@ function useModel(float $intercept, array $coefficients = [], bool $quantiles = 
         'intercept' => $intercept,
         'coefficients' => array_merge(array_fill_keys(TurnaroundPredictor::FEATURES, 0), $coefficients),
         'peak_months' => [6, 7, 8],
-        'residual_quantiles' => $quantiles ? array_map(fn (int $i) => round(-5 + $i * 0.1, 1), range(0, 100)) : null,
+        'residual_quantiles' => $quantiles ? array_map(fn (int $i) => round(-5 + $shift + $i * 0.1, 1), range(0, 100)) : null,
         'metrics' => ['mae' => 1.0, 'rmse' => 1.5, 'r2' => 0.5],
         'trained_on' => 'simulated',
     ]));
@@ -249,6 +249,18 @@ test('REQ-08-11 each prediction has a likely range, a late probability and a con
         ->call('predict')
         ->assertSee('Likely 0.0 to 8.0 days')
         ->assertSee('60%');
+    Carbon::setTestNow();
+
+    // Skewed errors (median -1 day): 3.5 days is past the 3-day due date, but only 45% likely late.
+    $this->org->free->update(['processing_days' => 3]);
+    useModel(3.5, shift: -1.0);
+    Carbon::setTestNow($routed);
+    Livewire::actingAs($this->registrar)->test(Predictions::class)
+        ->set('credentialTypeId', $this->org->free->id)
+        ->set('openWorkload', 0)
+        ->call('predict')
+        ->assertSee('Borderline: just past the due date')
+        ->assertSee('45%');
     Carbon::setTestNow();
 
     // A model file without error percentiles still predicts, without confidence.
