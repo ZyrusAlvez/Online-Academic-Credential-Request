@@ -5,6 +5,7 @@ namespace App\Livewire\Registrar\CredentialTypes;
 use App\Actions\Workflow\AddWorkflowStep;
 use App\Actions\Workflow\MoveWorkflowStep;
 use App\Actions\Workflow\RemoveWorkflowStep;
+use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\WorkflowStep;
@@ -14,6 +15,8 @@ use Livewire\Component;
 
 class Workflow extends Component
 {
+    use TrimsInput;
+
     private const STUDENT_COLLEGE = 'college';
 
     #[Locked]

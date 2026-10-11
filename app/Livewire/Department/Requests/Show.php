@@ -3,6 +3,7 @@
 namespace App\Livewire\Department\Requests;
 
 use App\Livewire\Concerns\ActsOnSteps;
+use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
@@ -11,6 +12,7 @@ use Livewire\Component;
 class Show extends Component
 {
     use ActsOnSteps;
+    use TrimsInput;
 
     #[Locked]
     public CredentialRequest $credentialRequest;

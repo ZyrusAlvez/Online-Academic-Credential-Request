@@ -5,6 +5,7 @@ namespace App\Livewire\Student\Requests;
 use App\Enums\PaymentStatus;
 use App\Enums\RequestEventType;
 use App\Exceptions\InvalidTransition;
+use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use App\Models\User;
 use App\Services\RequestWorkflow;
@@ -18,6 +19,7 @@ use Livewire\WithFileUploads;
 
 class Show extends Component
 {
+    use TrimsInput;
     use WithFileUploads;
 
     #[Locked]

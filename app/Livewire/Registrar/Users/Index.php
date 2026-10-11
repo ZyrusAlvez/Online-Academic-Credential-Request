@@ -4,6 +4,7 @@ namespace App\Livewire\Registrar\Users;
 
 use App\Actions\Staff\SetAccountStatus;
 use App\Enums\Role;
+use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\StaffForm;
 use App\Models\Department;
 use App\Models\User;
@@ -18,6 +19,7 @@ use Livewire\WithPagination;
 #[Title('Accounts')]
 class Index extends Component
 {
+    use TrimsInput;
     use WithPagination;
 
     public StaffForm $form;

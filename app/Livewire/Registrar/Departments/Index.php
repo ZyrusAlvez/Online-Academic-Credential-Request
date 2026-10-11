@@ -3,6 +3,7 @@
 namespace App\Livewire\Registrar\Departments;
 
 use App\Enums\DepartmentType;
+use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\DepartmentForm;
 use App\Models\Department;
 use Flux\Flux;
@@ -15,6 +16,7 @@ use Livewire\WithPagination;
 #[Title('Departments')]
 class Index extends Component
 {
+    use TrimsInput;
     use WithPagination;
 
     public DepartmentForm $form;

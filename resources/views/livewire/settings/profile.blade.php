@@ -7,6 +7,8 @@ use Illuminate\Validation\Rule;
 use Livewire\Volt\Component;
 
 new class extends Component {
+    use \App\Livewire\Concerns\TrimsInput;
+
     public string $first_name = '';
     public string $middle_name = '';
     public string $last_name = '';
