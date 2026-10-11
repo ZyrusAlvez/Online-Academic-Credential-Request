@@ -56,6 +56,7 @@ test('REQ-02-08 a department is required for department staff and must be active
 
     $component->call('save')->assertHasErrors(['form.department_id' => 'required']);
     $component->set('form.department_id', $inactive->id)->call('save')->assertHasErrors(['form.department_id' => 'exists']);
+    $component->set('form.department_id', 'abc')->call('save')->assertHasErrors('form.department_id');
 });
 
 test('REQ-02-08 a registrar account has no department', function () {

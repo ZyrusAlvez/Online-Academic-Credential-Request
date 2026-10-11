@@ -23,7 +23,7 @@ class StaffForm extends Form
 
     public string $role = 'department';
 
-    public ?int $department_id = null;
+    public int|string|null $department_id = null;
 
     public string $password = '';
 
@@ -53,6 +53,7 @@ class StaffForm extends Form
             'department_id' => [
                 Rule::requiredIf($this->role === Role::Department->value),
                 'nullable',
+                'integer',
                 Rule::exists('departments', 'id')->where('is_active', true),
             ],
             'password' => [$this->account ? 'nullable' : 'required', 'string', Password::defaults()],
@@ -69,7 +70,7 @@ class StaffForm extends Form
             'last_name' => $validated['last_name'],
             'email' => $validated['email'],
             'role' => Role::from($validated['role']),
-            'department_id' => $validated['department_id'] ?? null,
+            'department_id' => isset($validated['department_id']) ? (int) $validated['department_id'] : null,
             'password' => $validated['password'] ?? null,
         ], $this->account);
 

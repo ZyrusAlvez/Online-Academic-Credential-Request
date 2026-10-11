@@ -18,7 +18,7 @@ class CredentialTypeForm extends Form
 
     public string $fee = '';
 
-    public int $processing_days = 5;
+    public int|string|null $processing_days = 5;
 
     public function edit(CredentialType $credentialType): void
     {
@@ -54,7 +54,7 @@ class CredentialTypeForm extends Form
             'description' => filled($validated['description']) ? $validated['description'] : null,
             'requires_payment' => $validated['requires_payment'],
             'fee' => $validated['requires_payment'] && filled($validated['fee']) ? $validated['fee'] : null,
-            'processing_days' => $validated['processing_days'],
+            'processing_days' => (int) $validated['processing_days'],
         ])->save();
 
         $this->reset();

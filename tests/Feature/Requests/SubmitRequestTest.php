@@ -53,6 +53,8 @@ test('REQ-04-01 invalid request details are rejected', function (array $override
     expect(CredentialRequest::count())->toBe(0);
 })->with([
     'too many copies' => [['form.copies' => 11], 'form.copies'],
+    'non-numeric copies' => [['form.copies' => 'two'], 'form.copies'],
+    'non-numeric college' => [['form.college_id' => 'abc'], 'form.college_id'],
     'bad school year format' => [['form.last_school_year' => '2023'], 'form.last_school_year'],
     'non-consecutive school year' => [['form.last_school_year' => '2020-2023'], 'form.last_school_year'],
     'office instead of college' => [fn () => ['form.college_id' => test()->org->library->id], 'form.college_id'],
