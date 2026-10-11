@@ -39,6 +39,7 @@ class TurnaroundPredictionController extends Controller
         $days = (float) $predictor->predict($features);
         $readyAt = TurnaroundPredictor::readyAt($routedAt, $days);
         $dueAt = TurnaroundPredictor::dueAt($routedAt, $type);
+        $confidence = $predictor->confidence($days, $routedAt, $dueAt);
 
         return new TurnaroundPredictionResource([
             'credential_type' => ['id' => $type->id, 'name' => $type->name],
@@ -47,6 +48,7 @@ class TurnaroundPredictionController extends Controller
             'predicted_ready_at' => $readyAt,
             'due_at' => $dueAt,
             'at_risk' => $readyAt->greaterThan($dueAt),
+            'confidence' => $confidence,
             'features' => $features,
             'model_version' => (string) $predictor->version(),
         ]);

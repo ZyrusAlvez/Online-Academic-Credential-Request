@@ -16,6 +16,9 @@ use Illuminate\Support\Carbon;
  * The model is a linear regression trained offline by ml/train.py and exported to
  * resources/ml/turnaround-model.json with coefficients on the raw feature scale, so a
  * prediction is the intercept plus a weighted sum of the features. See spec 08.
+ *
+ * @phpstan-type TurnaroundModel array{version: string, intercept: float, coefficients: array<string, float>, peak_months: list<int>, residual_quantiles: list<float>, metrics: array<string, float>, baseline_metrics: array<string, float>, algorithm: string, trained_on: string}
+ * @phpstan-type Confidence array{low: float, high: float, lateProbability: float, confidence: float, atRisk: bool}
  */
 class TurnaroundPredictor
 {
@@ -33,7 +36,7 @@ class TurnaroundPredictor
         'is_peak_month',
     ];
 
-    /** @var array{version: string, intercept: float, coefficients: array<string, float>, peak_months: list<int>, metrics: array<string, float>, baseline_metrics: array<string, float>, algorithm: string, trained_on: string}|false|null */
+    /** @var TurnaroundModel|false|null */
     private array|false|null $model = null;
 
     public function __construct(private readonly ?string $path = null) {}
@@ -49,7 +52,7 @@ class TurnaroundPredictor
     }
 
     /**
-     * @return array{version: string, intercept: float, coefficients: array<string, float>, peak_months: list<int>, metrics: array<string, float>, baseline_metrics: array<string, float>, algorithm: string, trained_on: string}|null
+     * @return TurnaroundModel|null
      */
     public function details(): ?array
     {
@@ -108,6 +111,34 @@ class TurnaroundPredictor
         return round(max(0.0, $days), 2);
     }
 
+    /**
+     * How sure the prediction is (REQ-08-11), from the model's cross-validation errors: an 80% likely
+     * range of days, the probability the request is ready after its due date, and the confidence in
+     * the at-risk call. Null when the model file has no error percentiles.
+     *
+     * @return Confidence|null
+     */
+    public function confidence(float $days, Carbon $routedAt, Carbon $dueAt): ?array
+    {
+        $q = $this->model() ? $this->model()['residual_quantiles'] : [];
+
+        if (count($q) !== 101) {
+            return null;
+        }
+
+        $daysToDue = $routedAt->diffInMinutes($dueAt) / 1440;
+        $lateProbability = round(1 - $this->errorBelow($q, $daysToDue - $days), 3);
+        $atRisk = self::readyAt($routedAt, $days)->greaterThan($dueAt);
+
+        return [
+            'low' => round(max(0.0, $days + $q[10]), 1),
+            'high' => round(max(0.0, $days + $q[90]), 1),
+            'lateProbability' => $lateProbability,
+            'confidence' => round($atRisk ? $lateProbability : 1 - $lateProbability, 3),
+            'atRisk' => $atRisk,
+        ];
+    }
+
     /** Ready date for a prediction: the routing time plus the predicted days. */
     public static function readyAt(Carbon $routedAt, float $days): Carbon
     {
@@ -121,6 +152,31 @@ class TurnaroundPredictor
     }
 
     /**
+     * Share of past errors at or below $x, read from the 0th to 100th error percentiles.
+     *
+     * @param  list<float>  $q
+     */
+    private function errorBelow(array $q, float $x): float
+    {
+        if ($x < $q[0]) {
+            return 0.0;
+        }
+        if ($x >= $q[100]) {
+            return 1.0;
+        }
+
+        for ($i = 0; $i < 100; $i++) {
+            if ($x < $q[$i + 1]) {
+                $span = $q[$i + 1] - $q[$i];
+
+                return ($i + ($span > 0 ? ($x - $q[$i]) / $span : 0)) / 100;
+            }
+        }
+
+        return 1.0;
+    }
+
+    /**
      * @return list<int>
      */
     private function peakMonths(): array
@@ -131,7 +187,7 @@ class TurnaroundPredictor
     /**
      * Load and validate the model file once. False when it is missing or malformed.
      *
-     * @return array{version: string, intercept: float, coefficients: array<string, float>, peak_months: list<int>, metrics: array<string, float>, baseline_metrics: array<string, float>, algorithm: string, trained_on: string}|false
+     * @return TurnaroundModel|false
      */
     private function model(): array|false
     {
@@ -158,10 +214,29 @@ class TurnaroundPredictor
             'intercept' => (float) $json['intercept'],
             'coefficients' => array_map('floatval', array_intersect_key($json['coefficients'], array_flip(self::FEATURES))),
             'peak_months' => array_values(array_map('intval', $json['peak_months'])),
+            'residual_quantiles' => $this->quantiles($json['residual_quantiles'] ?? null),
             'metrics' => array_map('floatval', (array) ($json['metrics'] ?? [])),
             'baseline_metrics' => array_map('floatval', (array) ($json['baseline_metrics'] ?? [])),
             'algorithm' => (string) ($json['algorithm'] ?? 'Linear regression'),
             'trained_on' => (string) ($json['trained_on'] ?? 'unknown'),
         ];
+    }
+
+    /**
+     * 101 ascending numbers, or an empty list when the file has none (confidence is then skipped).
+     *
+     * @return list<float>
+     */
+    private function quantiles(mixed $values): array
+    {
+        if (! is_array($values) || count($values) !== 101 || ! collect($values)->every(fn ($v) => is_numeric($v))) {
+            return [];
+        }
+
+        $q = array_values(array_map('floatval', $values));
+        $sorted = $q;
+        sort($sorted);
+
+        return $q === $sorted ? $q : [];
     }
 }

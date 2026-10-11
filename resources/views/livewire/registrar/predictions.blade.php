@@ -44,6 +44,9 @@
                         <div>
                             <p class="text-sm text-zinc-600">{{ __('Predicted turnaround') }}</p>
                             <p class="text-3xl font-bold text-primary tabular-nums">{{ trans_choice(':count day|:count days', round($result['days'], 1)) }}</p>
+                            @if ($result['low'] !== null)
+                                <p class="text-sm text-zinc-600">{{ __('Likely :low to :high days (8 in 10 requests fall in this range)', ['low' => number_format($result['low'], 1), 'high' => number_format($result['high'], 1)]) }}</p>
+                            @endif
                         </div>
                         @if ($result['atRisk'])
                             <flux:badge color="red" icon="exclamation-triangle">{{ __('At risk of missing the due date') }}</flux:badge>
@@ -51,7 +54,7 @@
                             <flux:badge color="green" icon="check-circle">{{ __('On track') }}</flux:badge>
                         @endif
                     </div>
-                    <dl class="grid grid-cols-2 gap-3 text-sm">
+                    <dl class="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
                         <div>
                             <dt class="text-zinc-600">{{ __('Predicted ready') }}</dt>
                             <dd class="font-semibold text-ink">{{ __('Around :date', ['date' => \Illuminate\Support\Carbon::parse($result['readyAt'])->format('D, M j')]) }}</dd>
@@ -60,6 +63,12 @@
                             <dt class="text-zinc-600">{{ __('Due date') }}</dt>
                             <dd class="font-semibold text-ink">{{ \Illuminate\Support\Carbon::parse($result['dueAt'])->format('D, M j') }}</dd>
                         </div>
+                        @if ($result['lateProbability'] !== null)
+                            <div>
+                                <dt class="text-zinc-600">{{ __('Chance of being late') }}</dt>
+                                <dd @class(['font-semibold tabular-nums', 'text-red-800' => $result['lateProbability'] >= 0.5, 'text-ink' => $result['lateProbability'] < 0.5])>{{ round($result['lateProbability'] * 100) }}%</dd>
+                            </div>
+                        @endif
                     </dl>
 
                     <div>
@@ -101,7 +110,7 @@
                             </div>
                             <div class="text-end text-xs">
                                 <p class="font-semibold text-red-800">{{ __('Predicted :date', ['date' => $request->prediction->predicted_ready_at->format('M j')]) }}</p>
-                                <p class="text-zinc-600">{{ __('Due :date', ['date' => $request->prediction->due_at->format('M j')]) }}</p>
+                                <p class="text-zinc-600">{{ __('Due :date', ['date' => $request->prediction->due_at->format('M j')]) }}@if ($request->late_chance !== null) · {{ __(':pct% chance late', ['pct' => round($request->late_chance * 100)]) }}@endif</p>
                             </div>
                         </li>
                     @endforeach

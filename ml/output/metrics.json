@@ -7,10 +7,15 @@
     "test": 392
   },
   "regression": {
-    "Baseline (mean)": {
+    "Reference (average)": {
       "mae": 4.405,
       "rmse": 5.857,
       "r2": -0.0
+    },
+    "Baseline (simple LR)": {
+      "mae": 3.441,
+      "rmse": 4.768,
+      "r2": 0.337
     },
     "Linear (OLS)": {
       "mae": 3.065,
@@ -24,11 +29,18 @@
     }
   },
   "breach_detection": {
-    "Baseline (mean)": {
+    "Reference (average)": {
       "precision": 0.365,
       "recall": 0.551,
       "f1": 0.439,
       "flagged": 192,
+      "actual": 127
+    },
+    "Baseline (simple LR)": {
+      "precision": 0.378,
+      "recall": 0.11,
+      "f1": 0.171,
+      "flagged": 37,
       "actual": 127
     },
     "Linear regression": {
@@ -39,8 +51,45 @@
       "actual": 127
     }
   },
+  "confidence": {
+    "likely_range_coverage": 0.796,
+    "brier_model": 0.19,
+    "brier_constant": 0.219,
+    "mean_confidence": 0.71,
+    "accuracy_of_flag": 0.712,
+    "calibration": [
+      {
+        "range": "0.00-0.25",
+        "requests": 141,
+        "mean_predicted": 0.157,
+        "actually_late": 0.17
+      },
+      {
+        "range": "0.25-0.50",
+        "requests": 161,
+        "mean_predicted": 0.354,
+        "actually_late": 0.298
+      },
+      {
+        "range": "0.50-0.75",
+        "requests": 77,
+        "mean_predicted": 0.608,
+        "actually_late": 0.61
+      },
+      {
+        "range": "0.75-1.00",
+        "requests": 13,
+        "mean_predicted": 0.803,
+        "actually_late": 0.615
+      }
+    ]
+  },
   "chosen": "Ridge",
   "ridge_alpha": 30,
+  "baseline_equation": {
+    "intercept": 0.161,
+    "processing_days": 1.166
+  },
   "cv_mae": {
     "OLS": 3.022,
     "Ridge": 3.014

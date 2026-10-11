@@ -8,8 +8,9 @@ Python 3.11, scikit-learn. Training never touches the production database.
    workflows (per-office signing delay, holds, workload and peak-month effects) and writes
    `ml/data/raw_requests.csv`. **The data is simulated** (Chapter 1, 1.5) until the pilot has enough
    real requests; `ml/export_dataset.sql` produces the same columns from a real database.
-2. `ml/train.py` validates and cleans the data, builds features, splits 80/20, compares the
-   mean-turnaround baseline with linear regression (OLS and Ridge, 5-fold CV over alpha),
+2. `ml/train.py` validates and cleans the data, builds features, splits 80/20, compares a simple
+   linear regression on processing days (baseline) and the average (reference) with multiple linear
+   regression on all features (OLS and Ridge, 5-fold CV over alpha),
    evaluates MAE, RMSE and R² on the test set, draws the charts and writes the model JSON.
 
 ## Model file
@@ -24,6 +25,11 @@ Python 3.11, scikit-learn. Training never touches the production database.
 ```
 
 Coefficients are on the raw (unscaled) feature scale, so PHP needs only a weighted sum.
+
+`residual_quantiles` holds the 0th to 100th percentiles of the model's errors (actual minus predicted)
+from 5-fold cross-validation on the training set. The likely range is predicted + q10 to predicted + q90
+(80%), the late probability is the share of errors larger than (days to due - predicted), and the
+confidence is the late probability when the request is flagged at risk, otherwise one minus it.
 
 ## Features (all known at routing)
 

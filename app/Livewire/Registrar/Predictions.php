@@ -28,7 +28,7 @@ class Predictions extends Component
 
     public ?int $openWorkload = null;
 
-    /** @var array{days: float, readyAt: string, dueAt: string, atRisk: bool, contributions: list<array{feature: string, label: string, value: int, days: float}>, intercept: float}|null */
+    /** @var array{days: float, low: ?float, high: ?float, lateProbability: ?float, readyAt: string, dueAt: string, atRisk: bool, contributions: list<array{feature: string, label: string, value: int, days: float}>, intercept: float}|null */
     public ?array $result = null;
 
     /** Plain-language names for the model inputs. */
@@ -81,6 +81,7 @@ class Predictions extends Component
         $days = (float) $predictor->predict($features);
         $readyAt = TurnaroundPredictor::readyAt($now, $days);
         $dueAt = TurnaroundPredictor::dueAt($now, $type);
+        $confidence = $predictor->confidence($days, $now, $dueAt);
 
         $contributions = collect(TurnaroundPredictor::FEATURES)
             ->map(fn (string $f) => [
@@ -96,6 +97,9 @@ class Predictions extends Component
 
         $this->result = [
             'days' => $days,
+            'low' => $confidence['low'] ?? null,
+            'high' => $confidence['high'] ?? null,
+            'lateProbability' => $confidence['lateProbability'] ?? null,
             'readyAt' => $readyAt->toIso8601String(),
             'dueAt' => $dueAt->toIso8601String(),
             'atRisk' => $readyAt->greaterThan($dueAt),
@@ -115,7 +119,13 @@ class Predictions extends Component
                 ->with(['prediction', 'credentialType:id,name', 'currentStep.department:id,name'])
                 ->get()
                 ->sortBy(fn (CredentialRequest $r) => $r->prediction?->predicted_ready_at)
-                ->values(),
+                ->values()
+                ->each(function (CredentialRequest $r) use ($predictor): void {
+                    $p = $r->prediction;
+                    $r->setAttribute('late_chance', $p && $r->routed_at
+                        ? $predictor->confidence((float) $p->predicted_days, $r->routed_at, $p->due_at)['lateProbability'] ?? null
+                        : null);
+                }),
             'completed' => $this->completed(),
         ]);
     }

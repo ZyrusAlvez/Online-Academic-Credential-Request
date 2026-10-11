@@ -32,6 +32,7 @@ from sklearn.dummy import DummyRegressor  # noqa: E402
 from sklearn.inspection import permutation_importance  # noqa: E402
 from sklearn.linear_model import LinearRegression, Ridge  # noqa: E402
 from sklearn.metrics import (  # noqa: E402
+    brier_score_loss,
     f1_score,
     mean_absolute_error,
     mean_squared_error,
@@ -39,7 +40,7 @@ from sklearn.metrics import (  # noqa: E402
     r2_score,
     recall_score,
 )
-from sklearn.model_selection import GridSearchCV, KFold, cross_validate, train_test_split  # noqa: E402
+from sklearn.model_selection import GridSearchCV, KFold, cross_val_predict, cross_validate, train_test_split  # noqa: E402
 from sklearn.pipeline import make_pipeline  # noqa: E402
 from sklearn.preprocessing import StandardScaler  # noqa: E402
 
@@ -238,10 +239,11 @@ def chart_bars(values: dict[str, float], title: str, xlabel: str, path: Path, er
 
 def chart_baseline(results: dict[str, dict[str, float]], path: Path) -> None:
     models = list(results)
-    fig, axes = plt.subplots(1, 3, figsize=(9.6, 3.6))
+    fig, axes = plt.subplots(1, 3, figsize=(11, 3.9))
     for ax, metric, better in zip(axes, ["mae", "rmse", "r2"], ["lower", "lower", "higher"]):
         vals = [results[m][metric] for m in models]
-        ax.bar(models, vals, color=[MUTED] + [BRAND] * (len(models) - 1))
+        labels = [m.replace(" (", "\n(") for m in models]
+        ax.bar(labels, vals, color=[MUTED if m.startswith(("Reference", "Baseline")) else BRAND for m in models])
         for i, v in enumerate(vals):
             ax.text(i, v, f"{v:.2f}", ha="center", va="bottom", fontsize=9, color=INK)
         style(ax, f"{metric.upper()} ({better} is better)")
@@ -282,12 +284,17 @@ def main() -> None:
         X, y, data["days_to_due"], data["breached"], test_size=0.2, random_state=SEED)
     print(f"train {len(X_train)} rows, test {len(X_test)} rows (80/20, random_state={SEED})")
 
-    section("5. Baseline (DEV-01): always predict the training mean")
-    baseline = DummyRegressor(strategy="mean").fit(X_train, y_train)
-    base_pred = baseline.predict(X_test)
-    print(f"predicts {baseline.constant_[0][0]:.2f} days for every request")
+    section("5. Baseline (DEV-01): simple linear regression on processing days")
+    # Reference only (Chapter 1, Objective 5): average-based reporting, one number for every request.
+    reference = DummyRegressor(strategy="mean").fit(X_train, y_train)
+    ref_pred = reference.predict(X_test)
+    print(f"reference (average-based reporting) predicts {reference.constant_[0][0]:.2f} days for every request")
+    # Baseline model: what the registrar's own target predicts, turnaround = a + b * processing_days.
+    baseline = LinearRegression().fit(X_train[["processing_days"]], y_train)
+    base_pred = np.clip(baseline.predict(X_test[["processing_days"]]), 0, None)
+    print(f"baseline: turnaround = {baseline.intercept_:.3f} + {baseline.coef_[0]:.3f} x processing_days")
 
-    section("6. Linear regression (DEV-02)")
+    section("6. Core model (DEV-02): multiple linear regression on all features")
     cv = KFold(n_splits=5, shuffle=True, random_state=SEED)
     ols = make_pipeline(StandardScaler(), LinearRegression())
     ols_cv = cross_validate(ols, X_train, y_train, cv=cv, scoring=("neg_mean_absolute_error", "r2"))
@@ -308,21 +315,59 @@ def main() -> None:
     print(f"chosen on cross-validation (not the test set): {chosen_name}")
 
     section("7. Evaluation on the held-out test set")
-    results = {"Baseline (mean)": scores(y_test, base_pred)}
+    results = {"Reference (average)": scores(y_test, ref_pred), "Baseline (simple LR)": scores(y_test, base_pred)}
     for name, m in candidates.items():
         results[f"Linear ({name})"] = scores(y_test, m.predict(X_test))
     for name, r in results.items():
-        print(f"  {name:<18} MAE {r['mae']:.3f}  RMSE {r['rmse']:.3f}  R2 {r['r2']:.3f}")
+        print(f"  {name:<20} MAE {r['mae']:.3f}  RMSE {r['rmse']:.3f}  R2 {r['r2']:.3f}")
 
     y_pred = np.clip(model.predict(X_test), 0, None)
     breach = {
-        "Baseline (mean)": breach_scores(br_test.values, base_pred, due_test.values),
+        "Reference (average)": breach_scores(br_test.values, ref_pred, due_test.values),
+        "Baseline (simple LR)": breach_scores(br_test.values, base_pred, due_test.values),
         "Linear regression": breach_scores(br_test.values, y_pred, due_test.values),
     }
     print("deadline-breach early warning (predicted ready date after due date):")
     for name, b in breach.items():
-        print(f"  {name:<18} precision {b['precision']:.3f}  recall {b['recall']:.3f}  F1 {b['f1']:.3f}  "
+        print(f"  {name:<20} precision {b['precision']:.3f}  recall {b['recall']:.3f}  F1 {b['f1']:.3f}  "
               f"({b['flagged']} flagged, {b['actual']} actually breached)")
+
+    section("7b. Confidence: likely range and probability of being late")
+    # Residuals from 5-fold cross-validation on the training set (never the test set) describe how
+    # wrong the model usually is. Their percentiles give an 80% likely range around a prediction and
+    # the chance that the real turnaround passes the due date.
+    cv_pred = np.clip(cross_val_predict(model, X_train, y_train, cv=cv), 0, None)
+    residual_q = np.percentile(y_train.values - cv_pred, np.arange(0, 101)).round(3)
+
+    def late_probability(pred: np.ndarray, days_to_due: np.ndarray) -> np.ndarray:
+        # P(actual > due) = P(residual > due - pred), read from the residual percentiles.
+        return 1 - np.interp(days_to_due - pred, residual_q, np.arange(0, 101) / 100, left=0.0, right=1.0)
+
+    p_late = late_probability(y_pred, due_test.values)
+    low, high = np.clip(y_pred + residual_q[10], 0, None), y_pred + residual_q[90]
+    coverage = float(np.mean((y_test.values >= low) & (y_test.values <= high)))
+    flagged = y_pred > due_test.values
+    confidence = np.where(flagged, p_late, 1 - p_late)
+    bins = [(0.0, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1.01)]
+    calibration = [{"range": f"{a:.2f}-{min(b, 1):.2f}", "requests": int(((p_late >= a) & (p_late < b)).sum()),
+                    "mean_predicted": round(float(p_late[(p_late >= a) & (p_late < b)].mean()), 3) if ((p_late >= a) & (p_late < b)).any() else None,
+                    "actually_late": round(float(br_test.values[(p_late >= a) & (p_late < b)].mean()), 3) if ((p_late >= a) & (p_late < b)).any() else None}
+                   for a, b in bins]
+    prob_scores = {
+        "likely_range_coverage": round(coverage, 3),
+        "brier_model": round(float(brier_score_loss(br_test.values, p_late)), 3),
+        "brier_constant": round(float(brier_score_loss(br_test.values, np.full(len(p_late), br_train.mean()))), 3),
+        "mean_confidence": round(float(confidence.mean()), 3),
+        "accuracy_of_flag": round(float((flagged == br_test.values.astype(bool)).mean()), 3),
+        "calibration": calibration,
+    }
+    print(f"80% likely range: residual percentiles {residual_q[10]:+.2f} to {residual_q[90]:+.2f} days; "
+          f"covers {coverage:.1%} of test requests")
+    print(f"probability of being late: Brier {prob_scores['brier_model']:.3f} "
+          f"(constant late rate {prob_scores['brier_constant']:.3f}; lower is better)")
+    for c in calibration:
+        print(f"  predicted {c['range']}: {c['requests']:>3} requests, mean predicted {c['mean_predicted']}, actually late {c['actually_late']}")
+    print(f"at-risk flag accuracy {prob_scores['accuracy_of_flag']:.3f}, mean confidence {prob_scores['mean_confidence']:.3f}")
 
     section("8. Explainability (DEV-03)")
     reg = model.named_steps[[k for k in model.named_steps if k != "standardscaler"][0]]
@@ -353,16 +398,20 @@ def main() -> None:
         "intercept": round(intercept, 6),
         "coefficients": {k: round(v, 6) for k, v in weights.items()},
         "residual_std": round(residual_std, 4),
+        "residual_quantiles": [float(q) for q in residual_q],
+        "likely_range_coverage": 0.8,
         "peak_months": PEAK_MONTHS,
         "metrics": results[f"Linear ({chosen_name})"],
-        "baseline_metrics": results["Baseline (mean)"],
+        "baseline_metrics": results["Reference (average)"],
+        "baseline_model_metrics": results["Baseline (simple LR)"],
         "trained_on": "simulated",
         "training_rows": int(len(X_train)),
         "trained_at": date.today().isoformat(),
     }, indent=2) + "\n")
     (OUT / "metrics.json").write_text(json.dumps({
         "rows": {"raw": len(raw), "clean": len(clean), "rejected": len(rejected), "train": len(X_train), "test": len(X_test)},
-        "regression": results, "breach_detection": breach, "chosen": chosen_name, "ridge_alpha": best_alpha,
+        "regression": results, "breach_detection": breach, "confidence": prob_scores, "chosen": chosen_name, "ridge_alpha": best_alpha,
+        "baseline_equation": {"intercept": round(float(baseline.intercept_), 3), "processing_days": round(float(baseline.coef_[0]), 3)},
         "cv_mae": {k: round(float(v), 3) for k, v in cv_mae.items()},
         "standardized_coefficients": standardized, "permutation_importance": importance,
     }, indent=2) + "\n")
