@@ -7,9 +7,8 @@
 ## 1. Loading the demo data
 
 ```bash
-php artisan migrate:fresh --seed            # departments, credential types, registrar account
-php artisan db:seed --class=DemoSeeder      # demo students, one staff account per office, sample requests
-composer dev                                # app + queue worker (needed for notifications) + Vite
+php artisan app:reset-demo      # wipes the database, then loads base data + demo accounts and requests
+composer dev                    # app + queue worker (needed for notifications) + Vite
 ```
 
 Open http://localhost:8000 and log in with an **email and password** below.
@@ -74,7 +73,7 @@ Registrar accounts can also sign the Office of the Registrar (REG) step.
 | First registrar on a real server | `.env` (`SEED_REGISTRAR_EMAIL`, `SEED_REGISTRAR_PASSWORD`) | Seeding refuses to run in production without a password |
 | Mail (SMTP) | `.env` (`MAIL_*`) | Defaults to the `log` mailer |
 
-Local databases: `uphsl_credential_tracker` (app) and `uphsl_credential_tracker_test` (tests only; wiped on every test run).
+Database: `uphsl_credential_tracker` (one database for the app and the tests).
 
 ## 4. Automated tests
 
@@ -85,7 +84,10 @@ php artisan test --filter=REQ-05-04      # one acceptance criterion
 php artisan test tests/Feature/Requests  # one area
 ```
 
-- Tests run against the MySQL database `uphsl_credential_tracker_test` (configured in `phpunit.xml`), never `uphsl_credential_tracker`.
+- Tests run against the app database `uphsl_credential_tracker`. **Each run wipes it**, then the demo
+  data is reloaded automatically when the tests finish (pass or fail). Anything you entered by hand
+  is lost, so don't run the tests while you're preparing a demo.
+- Reload the demo data yourself at any time with `php artisan app:reset-demo`.
 - Each test name starts with the acceptance criterion it proves (e.g. `REQ-04-11 accepting a
   payment snapshots the workflow…`), so every requirement in `docs/specs/` can be traced to a test.
 - Uploads use a fake disk and mail/notifications are faked where asserted, so no real files or
@@ -109,4 +111,4 @@ several roles at once.
 | 9 | Registrar | **Credential Types** → edit a workflow (add/move/remove a step), set a fee | New requests use the new order; requests already in progress keep theirs |
 | 10 | Registrar | **Dashboard**, **Requests → Overdue**, **Export CSV** | Ana's TOR shows as overdue; CSV downloads |
 
-To start over: `php artisan migrate:fresh --seed && php artisan db:seed --class=DemoSeeder`.
+To start over: `php artisan app:reset-demo`.
