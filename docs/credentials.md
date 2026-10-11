@@ -74,7 +74,7 @@ Registrar accounts can also sign the Office of the Registrar (REG) step.
 | First registrar on a real server | `.env` (`SEED_REGISTRAR_EMAIL`, `SEED_REGISTRAR_PASSWORD`) | Seeding refuses to run in production without a password |
 | Mail (SMTP) | `.env` (`MAIL_*`) | Defaults to the `log` mailer |
 
-Local databases: `thesis` (app) and `thesis_testing` (tests only; wiped on every test run).
+Local databases: `uphsl_credential_tracker` (app) and `uphsl_credential_tracker_test` (tests only; wiped on every test run).
 
 ## 4. Automated tests
 
@@ -85,7 +85,7 @@ php artisan test --filter=REQ-05-04      # one acceptance criterion
 php artisan test tests/Feature/Requests  # one area
 ```
 
-- Tests run against the MySQL database `thesis_testing` (configured in `phpunit.xml`), never `thesis`.
+- Tests run against the MySQL database `uphsl_credential_tracker_test` (configured in `phpunit.xml`), never `uphsl_credential_tracker`.
 - Each test name starts with the acceptance criterion it proves (e.g. `REQ-04-11 accepting a
   payment snapshots the workflow…`), so every requirement in `docs/specs/` can be traced to a test.
 - Uploads use a fake disk and mail/notifications are faked where asserted, so no real files or

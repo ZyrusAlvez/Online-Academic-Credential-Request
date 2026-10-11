@@ -13,8 +13,8 @@ jobs:
       mysql:
         image: mysql:8.4
         env:
-          MYSQL_DATABASE: thesis_testing
-          MYSQL_USER: thesis
+          MYSQL_DATABASE: uphsl_credential_tracker_test
+          MYSQL_USER: uphsl_tracker
           MYSQL_PASSWORD: secret
           MYSQL_ROOT_PASSWORD: root
         ports: ['3306:3306']
@@ -24,7 +24,7 @@ jobs:
 
     env:
       DB_HOST: 127.0.0.1
-      DB_USERNAME: thesis
+      DB_USERNAME: uphsl_tracker
       DB_PASSWORD: secret
 
     steps:
