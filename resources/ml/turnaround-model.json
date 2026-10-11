@@ -1,0 +1,37 @@
+{
+  "version": "lr-2026-10-11",
+  "algorithm": "Linear regression (Ridge, alpha=30)",
+  "target": "turnaround_days",
+  "intercept": 0.049013,
+  "coefficients": {
+    "processing_days": 0.0559,
+    "requires_payment": 0.138058,
+    "has_library": 2.136911,
+    "has_finance": 2.565522,
+    "has_student_affairs": 1.674227,
+    "has_college": 3.53802,
+    "copies": 0.38305,
+    "is_alumni": 1.228457,
+    "open_workload": 0.070913,
+    "is_peak_month": 1.999942
+  },
+  "residual_std": 4.3008,
+  "peak_months": [
+    6,
+    7,
+    8
+  ],
+  "metrics": {
+    "mae": 3.065,
+    "rmse": 4.301,
+    "r2": 0.461
+  },
+  "baseline_metrics": {
+    "mae": 4.405,
+    "rmse": 5.857,
+    "r2": -0.0
+  },
+  "trained_on": "simulated",
+  "training_rows": 1564,
+  "trained_at": "2026-10-11"
+}
