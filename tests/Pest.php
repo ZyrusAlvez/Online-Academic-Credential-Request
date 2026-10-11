@@ -1,50 +1,61 @@
 <?php
 
+use App\Models\CredentialRequest;
+use App\Models\CredentialType;
+use App\Models\Department;
+use App\Models\User;
+use App\Services\RequestWorkflow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-
-/*
-|--------------------------------------------------------------------------
-| Test Case
-|--------------------------------------------------------------------------
-|
-| The closure you provide to your test functions is always bound to a specific PHPUnit test
-| case class. By default, that class is "PHPUnit\Framework\TestCase". Of course, you may
-| need to change it using the "pest()" function to bind a different classes or traits.
-|
-*/
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
 
 /*
-|--------------------------------------------------------------------------
-| Expectations
-|--------------------------------------------------------------------------
-|
-| When you're writing tests, you often need to check that values meet certain conditions. The
-| "expect()" function gives you access to a set of "expectations" methods that you can use
-| to assert different things. Of course, you may extend the Expectation API at any time.
-|
+| Shared fixtures for request-lifecycle tests.
 */
 
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
-});
-
-/*
-|--------------------------------------------------------------------------
-| Functions
-|--------------------------------------------------------------------------
-|
-| While Pest is very powerful out-of-the-box, you may have some testing code specific to your
-| project that you don't want to repeat in every file. Here you can also expose helpers as
-| global functions to help you to reduce the number of lines of code in your test files.
-|
-*/
-
-function something()
+/**
+ * A small organisation: Library, Cashier, Registrar office and two colleges, plus a
+ * TOR-like credential type with Library → Cashier → Student's College → Registrar.
+ *
+ * @return object{library: Department, cashier: Department, registrarOffice: Department, ccs: Department, cba: Department, tor: CredentialType, free: CredentialType}
+ */
+function organisation(): object
 {
-    // ..
+    $library = Department::factory()->create(['name' => 'Library', 'code' => 'LIB']);
+    $cashier = Department::factory()->create(['name' => 'Cashier / Finance Office', 'code' => 'FIN']);
+    $registrarOffice = Department::factory()->registrarOffice()->create();
+    $ccs = Department::factory()->college()->create(['name' => 'College of Computer Studies', 'code' => 'CCS']);
+    $cba = Department::factory()->college()->create(['name' => 'College of Business and Accountancy', 'code' => 'CBA']);
+
+    $tor = CredentialType::factory()->paid('300.00')
+        ->withSteps([$library, $cashier, 'college', $registrarOffice])
+        ->create(['name' => 'Transcript of Records']);
+
+    $free = CredentialType::factory()
+        ->withSteps([$registrarOffice])
+        ->create(['name' => 'Certificate of Enrollment']);
+
+    return (object) compact('library', 'cashier', 'registrarOffice', 'ccs', 'cba', 'tor', 'free');
+}
+
+/**
+ * Submit a request through the real workflow.
+ *
+ * @param  array<string, mixed>  $overrides
+ */
+function submitRequest(User $student, CredentialType $type, Department $college, array $overrides = []): CredentialRequest
+{
+    return app(RequestWorkflow::class)->submit($student, array_merge([
+        'credential_type_id' => $type->id,
+        'college_id' => $college->id,
+        'student_number' => '20-1234-567',
+        'program' => 'BS Computer Science',
+        'student_status' => 'alumni',
+        'last_school_year' => '2023-2024',
+        'purpose' => 'Employment',
+        'copies' => 1,
+    ], $overrides));
 }

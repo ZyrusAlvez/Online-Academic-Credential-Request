@@ -40,7 +40,7 @@ Gates: `composer qa` green; `laravel-security` checklist for auth, uploads, paym
 - Brand colors are Tailwind tokens in `resources/css/app.css`: `primary` #012265,
   `secondary` #86A7DD, `highlight` #0000F4 (the brand "accent"; Flux's `accent` is mapped
   to primary), `ink` #1F2937 text, `background` white. Light mode only.
-- Dates stored UTC, displayed `Asia/Manila`.
+- App timezone is `Asia/Manila` (single-campus system); dates are stored and shown in it.
 
 ## Commands
 
