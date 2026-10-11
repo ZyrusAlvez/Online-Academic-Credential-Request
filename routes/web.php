@@ -18,6 +18,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('registrar')->name('registrar.')->middleware('role:registrar')->group(function () {
         Route::get('/', Registrar\Dashboard::class)->name('dashboard');
+        Route::get('departments', Registrar\Departments\Index::class)->name('departments');
+        Route::get('users', Registrar\Users\Index::class)->name('users');
     });
 
     Route::prefix('department')->name('department.')->middleware('role:department')->group(function () {

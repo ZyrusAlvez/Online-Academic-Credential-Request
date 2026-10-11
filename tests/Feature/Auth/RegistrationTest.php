@@ -3,6 +3,7 @@
 use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Volt\Volt;
@@ -52,14 +53,13 @@ test('REQ-01-02 self-registered accounts are always students', function () {
     expect(User::sole()->role)->toBe(Role::Student);
 });
 
-test('REQ-01-02 role cannot be mass assigned', function () {
-    $user = User::create([
+test('REQ-01-02 role and activation cannot be mass assigned', function () {
+    expect(fn () => User::create([
         'first_name' => 'Eve', 'last_name' => 'Mallory', 'email' => 'eve@example.com',
-        'password' => 'password123', 'role' => 'registrar', 'is_active' => false,
-    ]);
+        'password' => 'password123', 'role' => 'registrar',
+    ]))->toThrow(MassAssignmentException::class);
 
-    expect($user->fresh()->role)->toBe(Role::Student)
-        ->and($user->fresh()->is_active)->toBeTrue();
+    expect(User::count())->toBe(0);
 });
 
 test('REQ-01-03 registration is rejected for a duplicate email', function () {
