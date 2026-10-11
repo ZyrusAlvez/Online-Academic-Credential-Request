@@ -32,7 +32,8 @@ return [
 
         'local' => [
             'driver' => 'local',
-            'root' => storage_path('app/private'),
+            // One folder per environment, so resetting staging never touches production files.
+            'root' => storage_path('app/private/'.env('APP_ENV', 'production')),
             'serve' => true,
             'throw' => false,
         ],

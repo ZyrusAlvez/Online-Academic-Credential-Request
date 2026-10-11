@@ -19,8 +19,8 @@ class ResetDemo extends Command
 
     public function handle(): int
     {
-        if ($this->laravel->isProduction()) {
-            $this->error('Refusing to reset the database in production.');
+        if (! $this->laravel->environment('staging')) {
+            $this->error('Demo data can only be reset in the staging environment.');
 
             return self::FAILURE;
         }

@@ -105,6 +105,15 @@ reason required).
 - Signing offices, their order and fees per credential are configuration, edited by the registrar
   in the app; the seeded defaults are placeholders until the official process is final.
 
+## Environments
+
+Exactly two environments, each with its own database and file storage:
+
+| Environment | Database | Purpose |
+|---|---|---|
+| `staging` | `uphsl_credential_tracker_staging` | Development, demos, automated tests (wiped and re-seeded by tests) |
+| `production` | `uphsl_credential_tracker` | Real use; never receives demo or test data |
+
 ## Feature specs
 
 | # | Feature |

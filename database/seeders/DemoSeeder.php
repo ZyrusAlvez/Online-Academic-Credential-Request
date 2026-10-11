@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * Demo accounts and requests in every status, driven through the real workflow so the
+ * Staging only. Demo accounts and requests in every status, driven through the real workflow so the
  * ledger, steps and notifications are realistic. Password for every account: "password".
  *
  *   php artisan migrate:fresh --seed && php artisan db:seed --class=DemoSeeder
@@ -29,8 +29,8 @@ class DemoSeeder extends Seeder
 
     public function run(RequestWorkflow $workflow): void
     {
-        if (app()->isProduction()) {
-            throw new RuntimeException('The demo seeder must not run in production.');
+        if (! app()->environment('staging') && ! app()->runningUnitTests()) {
+            throw new RuntimeException('The demo seeder only runs in the staging environment.');
         }
 
         $this->call([DepartmentSeeder::class, CredentialTypeSeeder::class, RegistrarSeeder::class]);
