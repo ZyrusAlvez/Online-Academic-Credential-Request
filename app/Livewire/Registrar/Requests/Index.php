@@ -3,6 +3,7 @@
 namespace App\Livewire\Registrar\Requests;
 
 use App\Enums\RequestStatus;
+use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
@@ -16,6 +17,7 @@ use Livewire\WithPagination;
 #[Title('Requests')]
 class Index extends Component
 {
+    use TrimsInput;
     use WithPagination;
 
     #[Url(except: '')]

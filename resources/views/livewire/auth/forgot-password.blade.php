@@ -5,6 +5,8 @@ use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 new #[Layout('components.layouts.auth')] class extends Component {
+    use \App\Livewire\Concerns\TrimsInput;
+
     public string $email = '';
 
     /**

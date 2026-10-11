@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Student\Requests;
 
+use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\CredentialRequestForm;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
@@ -16,6 +17,8 @@ use Livewire\Component;
 #[Title('New Request')]
 class Create extends Component
 {
+    use TrimsInput;
+
     public CredentialRequestForm $form;
 
     public function mount(): void

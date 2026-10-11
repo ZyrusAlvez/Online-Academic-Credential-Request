@@ -4,6 +4,7 @@ namespace App\Livewire\Registrar\Requests;
 
 use App\Enums\PaymentStatus;
 use App\Livewire\Concerns\ActsOnSteps;
+use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use App\Models\Department;
 use App\Services\RequestWorkflow;
@@ -16,6 +17,7 @@ use Livewire\Component;
 class Show extends Component
 {
     use ActsOnSteps;
+    use TrimsInput;
 
     #[Locked]
     public CredentialRequest $credentialRequest;

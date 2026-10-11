@@ -11,6 +11,8 @@ use Livewire\Attributes\Locked;
 use Livewire\Volt\Component;
 
 new #[Layout('components.layouts.auth')] class extends Component {
+    use \App\Livewire\Concerns\TrimsInput;
+
     #[Locked]
     public string $token = '';
     public string $email = '';

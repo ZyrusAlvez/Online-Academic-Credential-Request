@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Registrar\CredentialTypes;
 
+use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\CredentialTypeForm;
 use App\Models\CredentialType;
 use Flux\Flux;
@@ -12,6 +13,8 @@ use Livewire\Component;
 #[Title('Credential Types')]
 class Index extends Component
 {
+    use TrimsInput;
+
     public CredentialTypeForm $form;
 
     public function mount(): void
