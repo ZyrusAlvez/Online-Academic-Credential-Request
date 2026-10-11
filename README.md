@@ -30,23 +30,55 @@ Key rules:
 
 Laravel 12 · PHP 8.4+ · MySQL 8 · Livewire 4 + Flux · Tailwind CSS 4 · Pest · Larastan (level 6) · Pint
 
-## Getting started
+## Running it locally
 
-```bash
-composer install && npm install
-cp .env.example .env && php artisan key:generate
-# set DB_DATABASE / DB_USERNAME / DB_PASSWORD (MySQL), then:
-php artisan migrate --seed                  # departments, credential types, registrar account
-php artisan db:seed --class=DemoSeeder      # optional: demo accounts and sample requests
-composer dev                                # server, queue worker, logs and Vite
+**Requirements:** PHP 8.4+ (with `pdo_mysql`, `gd`, `intl`, `mbstring`, `zip`), Composer 2,
+Node.js 20+, MySQL 8.
+
+**1. Create the databases** (once). Pick your own password:
+
+```sql
+CREATE DATABASE uphsl_credential_tracker      CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE uphsl_credential_tracker_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'uphsl_tracker'@'localhost' IDENTIFIED BY 'choose-a-password';
+GRANT ALL PRIVILEGES ON uphsl_credential_tracker.*      TO 'uphsl_tracker'@'localhost';
+GRANT ALL PRIVILEGES ON uphsl_credential_tracker_test.* TO 'uphsl_tracker'@'localhost';
 ```
 
-Open http://localhost:8000. Emails go to `storage/logs/laravel.log` (`MAIL_MAILER=log`) until SMTP is configured.
-Notifications are queued, so keep the queue worker running (`composer dev` does).
+| Database | Used for |
+|---|---|
+| `uphsl_credential_tracker` | The application |
+| `uphsl_credential_tracker_test` | Automated tests only (wiped on every run) |
 
-Tests use a separate MySQL database, `thesis_testing` (see `phpunit.xml`).
+**2. Install and configure:**
 
-### Demo accounts (DemoSeeder; password `password`)
+```bash
+composer install
+npm install
+cp .env.example .env            # then put your password in DB_PASSWORD
+php artisan key:generate
+```
+
+**3. Create the tables and data:**
+
+```bash
+php artisan migrate --seed                  # departments, credential types, registrar account
+php artisan db:seed --class=DemoSeeder      # optional: demo accounts and sample requests
+```
+
+**4. Start it:**
+
+```bash
+composer dev        # web server + queue worker + logs + Vite, all in one terminal
+```
+
+Open **http://localhost:8000** and log in (see the accounts below). Stop with `Ctrl+C`.
+
+- Emails (verification, updates) are written to `storage/logs/laravel.log` until SMTP is configured.
+- Notifications are queued; `composer dev` runs the queue worker for you.
+- Start over with fresh demo data: `php artisan migrate:fresh --seed && php artisan db:seed --class=DemoSeeder`.
+
+### Demo accounts (DemoSeeder; password `password`; full list in [docs/credentials.md](docs/credentials.md))
 
 | Role | Email |
 |---|---|

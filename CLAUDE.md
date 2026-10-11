@@ -9,7 +9,7 @@ digitally** (the only upload is the student's proof of payment).
 
 - Laravel 12 / PHP 8.5, MySQL 8.4
 - Livewire 4 + Flux (free) + Volt (starter-kit auth pages only), Tailwind CSS 4
-- Pest for tests (runs against the MySQL `thesis_testing` database)
+- Pest for tests (runs against the MySQL `uphsl_credential_tracker_test` database)
 
 ## Spec-driven development
 
