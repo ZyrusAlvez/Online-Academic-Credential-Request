@@ -1,0 +1,121 @@
+{
+  "rows": {
+    "raw": 2010,
+    "clean": 1956,
+    "rejected": 54,
+    "train": 1564,
+    "test": 392
+  },
+  "regression": {
+    "Reference (average)": {
+      "mae": 4.405,
+      "rmse": 5.857,
+      "r2": -0.0
+    },
+    "Baseline (simple LR)": {
+      "mae": 3.441,
+      "rmse": 4.768,
+      "r2": 0.337
+    },
+    "Linear (OLS)": {
+      "mae": 3.065,
+      "rmse": 4.3,
+      "r2": 0.461
+    },
+    "Linear (Ridge)": {
+      "mae": 3.065,
+      "rmse": 4.301,
+      "r2": 0.461
+    }
+  },
+  "breach_detection": {
+    "Reference (average)": {
+      "precision": 0.365,
+      "recall": 0.551,
+      "f1": 0.439,
+      "flagged": 192,
+      "actual": 127
+    },
+    "Baseline (simple LR)": {
+      "precision": 0.378,
+      "recall": 0.11,
+      "f1": 0.171,
+      "flagged": 37,
+      "actual": 127
+    },
+    "Linear regression": {
+      "precision": 0.56,
+      "recall": 0.512,
+      "f1": 0.535,
+      "flagged": 116,
+      "actual": 127
+    }
+  },
+  "confidence": {
+    "likely_range_coverage": 0.796,
+    "brier_model": 0.19,
+    "brier_constant": 0.219,
+    "mean_confidence": 0.71,
+    "accuracy_of_flag": 0.712,
+    "calibration": [
+      {
+        "range": "0.00-0.25",
+        "requests": 141,
+        "mean_predicted": 0.157,
+        "actually_late": 0.17
+      },
+      {
+        "range": "0.25-0.50",
+        "requests": 161,
+        "mean_predicted": 0.354,
+        "actually_late": 0.298
+      },
+      {
+        "range": "0.50-0.75",
+        "requests": 77,
+        "mean_predicted": 0.608,
+        "actually_late": 0.61
+      },
+      {
+        "range": "0.75-1.00",
+        "requests": 13,
+        "mean_predicted": 0.803,
+        "actually_late": 0.615
+      }
+    ]
+  },
+  "chosen": "Ridge",
+  "ridge_alpha": 30,
+  "baseline_equation": {
+    "intercept": 0.161,
+    "processing_days": 1.166
+  },
+  "cv_mae": {
+    "OLS": 3.022,
+    "Ridge": 3.014
+  },
+  "standardized_coefficients": {
+    "processing_days": 0.161,
+    "requires_payment": 0.069,
+    "has_library": 1.031,
+    "has_finance": 1.276,
+    "has_student_affairs": 0.664,
+    "has_college": 1.733,
+    "copies": 0.483,
+    "is_alumni": 0.613,
+    "open_workload": 0.548,
+    "is_peak_month": 0.932
+  },
+  "permutation_importance": {
+    "processing_days": 0.002,
+    "requires_payment": 0.001,
+    "has_library": 0.181,
+    "has_finance": 0.375,
+    "has_student_affairs": 0.062,
+    "has_college": 0.623,
+    "copies": 0.045,
+    "is_alumni": 0.049,
+    "open_workload": 0.032,
+    "is_peak_month": 0.135
+  }
+}
