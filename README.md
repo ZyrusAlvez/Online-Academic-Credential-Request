@@ -60,10 +60,10 @@ settings, any environment writes its emails to `storage/logs/laravel.log` instea
 ### Branches and deploying
 
 Code moves from a feature branch → `staging` → `production` (the default branch) through pull
-requests. The staging server runs the
-`staging` branch and the production server runs the `production` branch. Deploy with one click:
-`scripts/deploy-staging.sh` / `deploy-production.sh` on Ubuntu, or the `.bat` files on Windows.
-Production only accepts code that staging is already running. Details:
+requests. GitHub Actions tests every pull request. A merge into `staging` deploys the staging
+server automatically; a merge into `production` deploys the production server after you approve
+it. Production only accepts code that staging is already running. The scripts in `scripts/` deploy
+by hand if GitHub Actions is unavailable. Details:
 [docs/deployment/02-environments.md](docs/deployment/02-environments.md).
 
 ### Rules that keep production safe

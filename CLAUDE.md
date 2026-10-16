@@ -7,7 +7,7 @@ digitally** (the only upload is the student's proof of payment).
 
 ## Stack
 
-- Laravel 12 / PHP 8.5, MySQL 8.4
+- Laravel 12 / PHP 8.5, MySQL 8.0 (server and CI; 8.4 works locally)
 - Livewire 4 + Flux (free) + Volt (starter-kit auth pages only), Tailwind CSS 4
 - Pest for tests (run against their own `uphsl_credential_tracker_testing` database)
 
@@ -48,13 +48,15 @@ Gates: `composer qa` green; `laravel-security` checklist for auth, uploads, paym
 composer qa          # pint --test, phpstan (level 6), pest
 composer fix         # apply pint
 composer dev         # server + queue + logs + vite on :8000
-scripts/deploy-staging.sh      # deploy the `staging` branch (deploy-production.sh; .bat on Windows)
+scripts/deploy-staging.sh      # manual deploy fallback (deploy-production.sh; .bat on Windows)
 ```
 
 Branches: feature branches (from `staging`) → `staging` (staging server) → `production` (production
-server, the default branch; there is no `main`), promoted by pull request. The deploy scripts SSH to the `uphsl` host and run
-`scripts/server/uphsl-deploy` (installed at `/usr/local/bin/uphsl-deploy`), which refuses a
-production deploy that staging isn't already running. Never commit straight to `staging` or
+server, the default branch; there is no `main`), promoted by pull request. CI (`.github/workflows/ci.yml`, PHP 8.5 + MySQL 8.0) runs on every PR;
+`deploy.yml` deploys on every push to `staging`, and to `production` after a required approval
+(GitHub environment `production`). Deploys SSH in with environment-specific keys whose forced
+command is `/usr/local/bin/uphsl-deploy <env>` (from `scripts/server/uphsl-deploy`), which refuses
+a production deploy that staging isn't already running. Never commit straight to `staging` or
 `production`. Docs: `docs/deployment/02-environments.md`.
 
 ## Environments
