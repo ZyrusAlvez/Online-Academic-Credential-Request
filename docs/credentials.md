@@ -14,7 +14,7 @@ There are exactly three environments. Any other `APP_ENV` value stops the app at
 | Database | `uphsl_credential_tracker_local` | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
 | Receipt files | `local/` folder (R2, or `storage/app/private/local`) | `staging/` folder | `production/` folder |
 | Data | Base data + demo accounts and requests | Base data + demo accounts and requests | Base data + one registrar account; real data only |
-| Email | Written to `storage/logs/laravel.log` | Written to `storage/logs/laravel.log` | Sent through Gmail |
+| Email | Sent through Gmail, all redirected to your own inbox | Sent through Gmail | Sent through Gmail |
 
 Base data = the 15 departments, the 7 credential types with their workflows, and the registrar account.
 
@@ -29,9 +29,9 @@ Open the local or staging address and log in with an **email and password** belo
 
 ### Registrar (admin)
 
-| Name | Email | Password |
-|---|---|---|
-| Office of the Registrar | `registrar@uphsl.edu.ph` | `password` |
+The registrar is **your own account** from `.env` (`INITIAL_REGISTRAR_EMAIL` /
+`INITIAL_REGISTRAR_PASSWORD`), the same way production gets its first registrar. The demo
+requests are approved and released by this account.
 
 ### Students
 
@@ -46,7 +46,10 @@ Each student already has requests in different states, so every screen has data 
 
 ### Department staff
 
-One account per office: `<office code in lower case>@uphsl.edu.ph`, password `password`.
+One account per office: `<office code in lower case>@example.com`, password `password`.
+
+All demo accounts use `example.com`, a domain reserved for examples. The app never sends email
+to it, so demo data can't bounce or use up the Gmail sending limit.
 
 | Office | Code | Email |
 |---|---|---|
@@ -71,8 +74,8 @@ Registrar accounts can also sign the Office of the Registrar (REG) step.
 ### New accounts
 
 - **Students** register themselves at `/register` with any email address. They must click the
-  verification link before they can submit a request. Locally, the email is written to
-  `storage/logs/laravel.log`.
+  verification link before they can submit a request. Locally, every email arrives in your own
+  inbox (or in `storage/logs/laravel.log` while Gmail isn't configured).
 - **Staff** accounts are created by the registrar under **Administration → Accounts**. They
   are verified automatically.
 
@@ -82,8 +85,8 @@ Registrar accounts can also sign the Office of the Registrar (REG) step.
 |---|---|---|
 | Database user/password | `.env` (`DB_USERNAME`, `DB_PASSWORD`) | `.env` is git-ignored; never copy its values into docs or commits |
 | App key | `.env` (`APP_KEY`) | `php artisan key:generate` |
-| First production registrar | Production `.env` (`INITIAL_REGISTRAR_PASSWORD`; `INITIAL_REGISTRAR_EMAIL` optional) | Email `registrar@uphsl.edu.ph` unless overridden; read the password from `.env`. Used only when the production database is first set up; changing it later does not change the account's password. Setup refuses to run without it |
-| Gmail (production email) | `.env` (`MAIL_USERNAME`, `MAIL_PASSWORD` = Google App Password) | Local and staging always write emails to the log. Setup: [setup-mail-and-storage.md](setup-mail-and-storage.md) |
+| First registrar | Each `.env` (`INITIAL_REGISTRAR_EMAIL`, `INITIAL_REGISTRAR_PASSWORD`) | Created by the seeder only when no account with that email exists; changing these later does not change the account. Seeding and `app:reset-demo` refuse to run without them |
+| Gmail (email) | Each `.env` (`MAIL_USERNAME`, `MAIL_PASSWORD` = Google App Password) | Without them, emails are written to the log. Locally every email goes to your own inbox. Setup: [setup-mail-and-storage.md](setup-mail-and-storage.md) |
 | Cloudflare R2 (receipts) | `.env` (`RECEIPTS_DISK=r2`, `R2_*`) | One private bucket, one folder per environment (`staging/`, `production/`). Setup: [setup-mail-and-storage.md](setup-mail-and-storage.md) |
 
 Each deployment has its own small `.env` (git-ignored); its committed template is `.env.example`.
@@ -116,12 +119,12 @@ several roles at once.
 
 | # | As | Do | Expect |
 |---|---|---|---|
-| 1 | Student (new account) | Register, open the verification link from `storage/logs/laravel.log` | Lands on **My Requests** |
+| 1 | Student (new account) | Register with a real address, open the verification email (locally: in your own inbox) | Lands on **My Requests** |
 | 2 | Student | **New Request** → Transcript of Records, college *College of Computer Studies* | Status *Awaiting payment*, **Pay online** button opens the UPHSL payment page |
 | 3 | Student | Upload any JPG/PNG/PDF receipt | Status *Payment under review* |
 | 4 | Registrar | **Requests** → open it → **Reject payment** with a remark | Student sees the remark and can upload again |
 | 5 | Registrar | After a new upload → **Accept payment & route** | Request goes to the Library; `lib@` gets a notification |
-| 6 | `lib@uphsl.edu.ph` | **Put on hold** with a reason, then **Sign** | Student's tracking shows *On hold at Library* then *Signed by Library* (office only, no staff name) |
+| 6 | `lib@example.com` | **Put on hold** with a reason, then **Sign** | Student's tracking shows *On hold at Library* then *Signed by Library* (office only, no staff name) |
 | 7 | `fin@`, `ccs@` | Sign in turn | `cba@` never sees this request (only the student's college signs) |
 | 8 | Registrar | Sign the Office of the Registrar step → **Mark as released** | Student sees *Ready for release*, then *Released* |
 | 9 | Registrar | **Credential Types** → edit a workflow (add/move/remove a step), set a fee | New requests use the new order; requests already in progress keep theirs |

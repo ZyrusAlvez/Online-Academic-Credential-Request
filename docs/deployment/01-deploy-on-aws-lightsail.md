@@ -10,8 +10,12 @@ environments running side by side:
 | Database | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
 | MySQL user (used by the app) | `uphsl_staging` | `uphsl_prod` |
 | Data | Base data + demo accounts | Base data + real data only |
-| Email | Written to the log file | Sent through Gmail |
+| Email | Sent through Gmail | Sent through Gmail |
+| Error details | Shown | Never shown |
 | Receipts | R2 folder `staging/` | R2 folder `production/` |
+
+Staging works like production in everything else: real email, the same first registrar, the same
+installed packages. That's what makes it a trustworthy place to test a change.
 
 It explains *why* each step is done, not only what to type, so you can fix things when they
 go differently. The [Troubleshooting](#troubleshooting) section lists every error we hit while
@@ -421,8 +425,8 @@ The file is deliberately small. Anything that follows from `APP_ENV` is a defaul
 | | Staging | Production |
 |---|---|---|
 | Database | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
-| Debug mode | off | always off |
-| Mailer | always the log file | Gmail SMTP (`smtp.gmail.com:587`) |
+| Debug mode (error details) | on | always off |
+| Mailer | Gmail SMTP once `MAIL_USERNAME` is set | same |
 | Receipts folder | `staging/` | `production/` |
 | Address | `https://staging.<…>` from `config/app.php` | `https://<…>` from `config/app.php` |
 | Secure (HTTPS-only) login cookie | on, because the address is `https://` | same |
@@ -448,11 +452,9 @@ move, **Ctrl+W** searches, **Ctrl+O** then Enter saves, and **Ctrl+X** exits. Se
 
 ```dotenv
 APP_ENV=production
+INITIAL_REGISTRAR_EMAIL=<the registrar's email>
 INITIAL_REGISTRAR_PASSWORD=<a strong password you choose and remember>
 ```
-
-The first registrar's email is `registrar@uphsl.edu.ph`; add `INITIAL_REGISTRAR_EMAIL=` to use a
-different one.
 
 Staging:
 
@@ -465,9 +467,11 @@ nano .env
 
 ```dotenv
 APP_ENV=staging
+INITIAL_REGISTRAR_EMAIL=<the registrar's email>
+INITIAL_REGISTRAR_PASSWORD=<a strong password>
 ```
 
-**Check `APP_ENV` in both files.** One left at the template's `local` would use the laptop
+Use a different password from production's. **Check `APP_ENV` in both files.** One left at the template's `local` would use the laptop
 address `http://localhost:8000` in every email link and turn off the secure login cookie.
 
 | Setting | Staging | Production |
@@ -475,12 +479,13 @@ address `http://localhost:8000` in every email link and turn off the secure logi
 | `APP_ENV` | `staging` | `production` |
 | `APP_KEY` | Leave empty; generated in step 9 | Leave empty; generated in step 9 |
 | `DB_USERNAME` / `DB_PASSWORD` | Written automatically in 8.3 | Written automatically in 8.3 |
-| `INITIAL_REGISTRAR_PASSWORD` | Leave empty (staging always uses `password`) | Required |
-| `MAIL_USERNAME` / `MAIL_PASSWORD` | Leave empty (staging never sends real email) | Step 13 |
+| `INITIAL_REGISTRAR_EMAIL` / `_PASSWORD` | Required (its own password) | Required |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | Step 13 | Step 13 |
 | `RECEIPTS_DISK`, `R2_*` | Step 13 | Step 13 |
 
-**Staging gets no production secrets.** If staging's `.env` ever leaked, it would hold no Gmail
-or registrar password.
+**Keep production's secrets off staging.** Give staging its own registrar password and, ideally,
+its own Gmail account (step 13). Then a leak of staging's `.env` reveals nothing that opens
+production.
 
 `APP_KEY` encrypts and signs the login cookies. If it leaks, someone can forge logins. If it
 changes, everyone is logged out. Each environment gets its own.
@@ -545,14 +550,14 @@ Don't save that empty screen.
 
 | Command | What it does |
 |---|---|
-| `composer install --no-dev --optimize-autoloader` | Downloads the PHP libraries. `--no-dev` skips development tools (Pest, PHPStan, Pint, Faker), so less code ships to production. `--optimize-autoloader` builds a class index for speed |
+| `composer install --no-dev --optimize-autoloader` | Downloads the PHP libraries. `--no-dev` skips development tools (Pest, PHPStan, Pint), so less code ships to the server. `--optimize-autoloader` builds a class index for speed |
 | `php artisan key:generate` | Creates `APP_KEY` and writes it into `.env` |
 | `npm ci && npm run build` | Installs the exact build tools from the lock file, then Vite compiles Tailwind and JS into `public/build/` with hashed file names (so browsers fetch new versions after each change) |
 | `php artisan migrate --seed --force` | **Migrations** create the tables from `database/migrations/`. **Seeders** fill in the starter rows. `--force` confirms, since production asks "are you sure?" |
-| `php artisan app:reset-demo` | Staging only: rebuilds all tables and loads base + demo data. It refuses to run outside staging |
+| `php artisan app:reset-demo` | Staging (and local) only: rebuilds all tables and loads base + demo data. It refuses to run in production, and refuses to start without the `INITIAL_REGISTRAR_*` settings |
 | `php artisan optimize` | Caches config, routes and views |
 
-**Staging installs without `--no-dev`**, because the demo seeder uses Faker, a development package.
+Both environments install with `--no-dev`, so staging runs exactly the packages production runs.
 
 Every step needs its own folder's `vendor/`, build and key. Nothing is shared between the folders.
 
@@ -568,7 +573,7 @@ cd /var/www/uphsl-production && composer install --no-dev --optimize-autoloader 
 Staging:
 
 ```bash
-cd /var/www/uphsl-staging && composer install --optimize-autoloader --no-interaction && php artisan key:generate && npm ci && npm run build && php artisan app:reset-demo && php artisan optimize
+cd /var/www/uphsl-staging && composer install --no-dev --optimize-autoloader --no-interaction && php artisan key:generate && npm ci && npm run build && php artisan app:reset-demo && php artisan optimize
 ```
 
 The build may print `Generated an empty chunk: "app"`. That's harmless: Livewire and Flux bring
@@ -581,22 +586,27 @@ their own JavaScript.
 | `DepartmentSeeder` | The 15 colleges and offices |
 | `CredentialTypeSeeder` | The 7 credential types and their signing order (`workflow_steps`) |
 | `RegistrarSeeder` | The first registrar account, from `INITIAL_REGISTRAR_EMAIL` / `INITIAL_REGISTRAR_PASSWORD` |
-| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff and requests in every status. All passwords are `password` |
+| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff and requests in every status, all at `@example.com` with the password `password`. The demo requests are approved by your registrar |
 
-`RegistrarSeeder` refuses to run in production without `INITIAL_REGISTRAR_PASSWORD`, on purpose,
-so production never gets a guessable admin password. The first registrar is needed because
-someone has to be able to log in and create every other account. Running this seeder again later
-**resets** that account's password to the `.env` value, which is useful if you're locked out.
+The first registrar is needed because someone has to be able to log in and create every other
+account. `RegistrarSeeder` works the same in every environment: it creates the account from
+`INITIAL_REGISTRAR_EMAIL` / `INITIAL_REGISTRAR_PASSWORD` **only if no account with that email
+exists**, and never changes it afterwards. Re-seeding can't reset a password you changed in the
+app. Without a password it refuses to run, so no environment gets a guessable admin password.
+
+Demo accounts use `example.com`, a domain reserved for examples. The app never sends email to it,
+so demo data on staging can't bounce or use up Gmail's daily limit.
 
 After your first production login, change the registrar password in the app. Then remove the
-`INITIAL_REGISTRAR_PASSWORD` value from `.env` and run `php artisan optimize`.
+`INITIAL_REGISTRAR_PASSWORD` value from production's `.env` and run `php artisan optimize`. Keep
+the email line: the seeder uses it to see that the account already exists.
 
 ### Check
 
 In each folder:
 
 ```bash
-php artisan about              # Environment, Debug Mode (OFF in production), URL
+php artisan about              # Environment, Debug Mode (ON in staging, OFF in production), URL
 php artisan db:show --counts   # which database, and how many rows per table
 ```
 
@@ -843,16 +853,18 @@ machine where the model is retrained (`ml/`), not on the server.
 
 ## 13. Set up email and receipt storage
 
-### 13.1 Email (production only)
+### 13.1 Email (both environments)
 
-Staging **never** sends real email. It writes emails to `storage/logs/laravel.log`, so demo
-accounts never email real people.
+Staging sends real email exactly like production, so you can test the real thing before users
+see it. Until Gmail is configured, an environment writes its emails to
+`storage/logs/laravel.log` instead. Demo accounts use `example.com`, which the app never emails.
 
-For production, create a Gmail **App Password** by following
-[Part A of the mail and storage guide](../setup-mail-and-storage.md). Then, as `www-data`:
+Create a Gmail **App Password** by following
+[Part A of the mail and storage guide](../setup-mail-and-storage.md); ideally use a second Gmail
+account for staging. Then, as `www-data`, in each folder:
 
 ```bash
-cd /var/www/uphsl-production
+cd /var/www/uphsl-production      # then the same in /var/www/uphsl-staging
 nano .env
 ```
 
@@ -861,8 +873,9 @@ MAIL_USERNAME=your.account@gmail.com
 MAIL_PASSWORD=<the 16-character App Password, without spaces>
 ```
 
-Production already uses Gmail's SMTP server (`smtp.gmail.com:587`) and sends from `MAIL_USERNAME`;
-those are defaults in `config/mail.php`.
+With these set, the app uses Gmail's SMTP server (`smtp.gmail.com:587`) and sends from
+`MAIL_USERNAME`; those are defaults in `config/mail.php`. Remove any `MAIL_MAILER=log` line, which
+would override them.
 
 ```bash
 php artisan optimize && php artisan app:test-mail your.own@gmail.com
@@ -870,7 +883,7 @@ php artisan optimize && php artisan app:test-mail your.own@gmail.com
 
 `app:test-mail` sends immediately (not queued), so it tests the Gmail settings alone. Expected:
 `Sent. Check the inbox (and the spam folder).` If it says *"Written to storage/logs/laravel.log"*,
-`APP_ENV` isn't `production` or `optimize` wasn't run.
+`MAIL_USERNAME` is empty, a `MAIL_MAILER=log` line overrides it, or `optimize` wasn't run.
 
 Lightsail blocks only port 25 for outgoing mail, and Gmail uses 587, so this works.
 
@@ -1023,7 +1036,7 @@ if [ "$ENV" = production ]; then
   run "composer install --no-dev --optimize-autoloader --no-interaction"
 else
   run "git pull --ff-only"
-  run "composer install --optimize-autoloader --no-interaction"
+  run "composer install --no-dev --optimize-autoloader --no-interaction"
 fi
 run "npm ci && npm run build"
 run "php artisan migrate --force"
@@ -1062,7 +1075,7 @@ These steps go beyond the base setup, but are worth doing before real users arri
 ### 16.1 Put staging behind a password
 
 Both apps run as `www-data`, so a break-in through staging could read production's `.env`. Staging
-is also the weaker side: public, with demo logins using `password`. Nginx basic
+is also the weaker side: public, showing error details (debug mode), with demo logins using `password`. Nginx basic
 auth makes the browser ask for a username and password before showing anything on staging:
 
 ```bash
@@ -1112,13 +1125,14 @@ have never restored is a hope, not a backup, so try a restore into a scratch dat
 | Lines after `sudo -u www-data bash` or `nano` never ran | Pasting several lines that start an interactive program loses the rest | Paste interactive commands (`bash`, `nano`, `mysql`, `less`, `certbot`) on their own |
 | `Access denied for user 'uphsl_prod'@'localhost' (using password: YES)` | The password in `.env` doesn't match MySQL's. Common causes: placeholder text left in, or a typo | Test directly with `mysql -u uphsl_prod -p -h 127.0.0.1`. Reset both sides with the step 8.3 block, using `ALTER USER`, then `php artisan config:clear` |
 | The same error again after fixing `.env` | `optimize` cached the old password | `php artisan config:clear`, then re-run the command, then `php artisan optimize` |
-| `Set INITIAL_REGISTRAR_PASSWORD in .env before setting up production.` | The production registrar seeder needs a password | Set it in `.env`, then run only that seeder: `php artisan db:seed --class=RegistrarSeeder --force && php artisan optimize` |
+| `Set INITIAL_REGISTRAR_PASSWORD in .env to create the first registrar.` (or `..._EMAIL ...`) | The registrar seeder needs both settings to create the account | Set them in `.env`, then run only that seeder: `php artisan db:seed --class=RegistrarSeeder --force && php artisan optimize` |
+| `app:reset-demo`: `Set INITIAL_REGISTRAR_EMAIL and INITIAL_REGISTRAR_PASSWORD in .env first. Nothing was changed.` | The demo reset recreates the registrar, so it checks first | Set both in staging's `.env`, run `php artisan optimize`, and run it again |
 | `Failed opening required '.../vendor/autoload.php'` | `composer install` was never run in that folder | Run the step 9 chain in that folder. Each folder needs its own install |
 | `certbot: command not found` | certbot isn't installed | `sudo apt install -y certbot python3-certbot-nginx` |
 | nano shows an empty `.env` | As `ubuntu`, you can't read a file owned by `www-data` with mode 600 | **Ctrl+X** without saving, then `sudo -u www-data nano .env` |
-| Staging login fails with the `.env` registrar password | Staging ignores `INITIAL_REGISTRAR_PASSWORD`. Every staging account uses `password` | Log in as `registrar@uphsl.edu.ph` / `password` (see [credentials](../credentials.md)) |
+| Registrar login fails after changing `INITIAL_REGISTRAR_PASSWORD` | The seeder only creates the account; it never changes an existing one | Use the old password, or reset it through **Forgot password** |
 | "419 Page Expired" on login | The address is `https://…` (secure cookie) but the site is still on plain HTTP | Finish step 11 (HTTPS) |
-| No emails arrive | Staging only logs emails. In production: `MAIL_USERNAME`/`MAIL_PASSWORD` missing, `optimize` wasn't run, or no queue worker is running | Step 13.1 (`app:test-mail`) and step 12 (`supervisorctl status`) |
+| No emails arrive | `MAIL_USERNAME`/`MAIL_PASSWORD` missing, a `MAIL_MAILER=log` line, `optimize` wasn't run, no queue worker is running, or the address is on `example.com` (never emailed) | Step 13.1 (`app:test-mail`) and step 12 (`supervisorctl status`) |
 | DBeaver: "Public Key Retrieval is not allowed" | MySQL 8 password exchange without SSL | Driver properties → `allowPublicKeyRetrieval` = `true` |
 | DBeaver: `Access denied for user '<name>'` | Wrong username or password, or the user doesn't exist | `sudo mysql -e "SELECT user, host FROM mysql.user;"`, then test with `mysql -u <name> -p -h 127.0.0.1` |
 | DBeaver can't read the key file | A Snap or Flatpak DBeaver can't read hidden folders like `~/.ssh` | Keep the key in a normal folder such as `~/key/` |

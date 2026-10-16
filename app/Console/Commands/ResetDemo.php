@@ -24,6 +24,13 @@ class ResetDemo extends Command
             return self::FAILURE;
         }
 
+        // The registrar is recreated after the wipe, so check its settings before deleting anything.
+        if (blank(config('uphsl.initial_registrar.email')) || blank(config('uphsl.initial_registrar.password'))) {
+            $this->error('Set INITIAL_REGISTRAR_EMAIL and INITIAL_REGISTRAR_PASSWORD in .env first. Nothing was changed.');
+
+            return self::FAILURE;
+        }
+
         Storage::disk(RequestWorkflow::proofDisk())->deleteDirectory('payment-proofs');
 
         $this->call('migrate:fresh', ['--seed' => true, '--force' => true]);

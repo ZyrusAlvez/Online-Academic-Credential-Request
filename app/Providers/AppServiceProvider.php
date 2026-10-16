@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Services\TurnaroundPredictor;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Livewire;
@@ -33,6 +34,10 @@ class AppServiceProvider extends ServiceProvider
         Model::shouldBeStrict(! $this->app->isProduction());
 
         Password::defaults(fn () => Password::min(8));
+
+        if (filled($redirectTo = config('mail.redirect_to'))) {
+            Mail::alwaysTo($redirectTo);
+        }
 
         // Re-apply role checks on Livewire's follow-up (/livewire/update) requests.
         Livewire::addPersistentMiddleware([EnsureUserHasRole::class]);

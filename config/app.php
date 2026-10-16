@@ -39,9 +39,8 @@ return [
     |
     */
 
-    // Never on in production; on by default only on a developer's machine and in tests.
-    'debug' => env('APP_ENV') !== 'production'
-        && (bool) env('APP_DEBUG', in_array(env('APP_ENV'), ['local', 'testing'], true)),
+    // Error details show on local and staging, never in production.
+    'debug' => env('APP_ENV') !== 'production' && (bool) env('APP_DEBUG', true),
 
     /*
     |--------------------------------------------------------------------------

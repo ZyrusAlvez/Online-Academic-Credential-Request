@@ -113,7 +113,7 @@ class DemoSeeder extends Seeder
 
     private function staff(Department $department): User
     {
-        $user = User::firstOrNew(['email' => strtolower($department->code).'@uphsl.edu.ph']);
+        $user = User::firstOrNew(['email' => strtolower($department->code).'@example.com']);
         $user->fill(['first_name' => $department->code, 'middle_name' => null, 'last_name' => 'Staff', 'password' => 'password']);
         $user->forceFill(['role' => Role::Department, 'department_id' => $department->id, 'is_active' => true, 'email_verified_at' => now()])->save();
 

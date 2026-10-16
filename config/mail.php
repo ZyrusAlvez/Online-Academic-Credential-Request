@@ -14,8 +14,11 @@ return [
     |
     */
 
-    // Local and staging never send real email (demo accounts use example.com); they write to the log.
-    'default' => in_array(env('APP_ENV'), ['local', 'staging'], true) ? 'log' : env('MAIL_MAILER', 'smtp'),
+    // Real email (Gmail SMTP) wherever its credentials are set, the log file otherwise.
+    'default' => env('MAIL_MAILER', env('MAIL_USERNAME') ? 'smtp' : 'log'),
+
+    // Locally every email goes to the developer's own inbox instead of its real recipients.
+    'redirect_to' => env('APP_ENV') === 'local' ? env('MAIL_REDIRECT_TO', env('MAIL_USERNAME')) : null,
 
     /*
     |--------------------------------------------------------------------------
