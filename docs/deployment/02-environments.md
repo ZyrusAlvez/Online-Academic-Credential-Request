@@ -117,8 +117,9 @@ Tests and deploys run on **GitHub Actions**, never on the servers:
 | Actions tab → *deploy* → **Run workflow** | `deploy.yml` | Re-deploys a branch, e.g. after fixing a server setting |
 
 **Branch protection.** `staging` and `production` only accept pull requests whose `qa` and
-`release-source` checks passed, and can't be force-pushed or deleted. Admins can bypass in an
-emergency.
+`release-source` checks passed, and can't be force-pushed or deleted. Pull requests into `staging`
+must also be up to date with it. `production` doesn't require that, because each release adds a
+merge commit that `staging` never gets. Admins can bypass in an emergency.
 
 **GitHub Environments.** The deploy job runs in the `staging` or `production` environment.
 Each environment holds its own SSH key secret (`DEPLOY_SSH_KEY`) and only accepts deploys from its
@@ -150,8 +151,9 @@ put the private half in the environment's `DEPLOY_SSH_KEY` secret (Settings → 
 swap the public line in `authorized_keys`.
 
 **Production can only take what staging is running.** The server's deploy command checks that
-every commit on the `production` branch is already deployed on staging. If not, it stops with
-*"Deploy staging first"* and changes nothing.
+the code on the `production` branch is identical to the code deployed on staging. If not, it stops
+with *"Deploy staging first"* and changes nothing. It compares content, not commits, because
+merging the release pull request adds a merge commit that exists only on `production`.
 
 ## Manual deploy (fallback)
 
@@ -220,20 +222,15 @@ established"*. Your computer then remembers the server's fingerprint.
 `uphsl-deploy` lives in the repository at `scripts/server/uphsl-deploy` and is installed on the
 server at `/usr/local/bin/uphsl-deploy`. For the chosen environment it:
 
-1. fetches GitHub and, for production, checks that staging already runs every production commit;
+1. fetches GitHub and, for production, checks that its code is identical to what staging runs;
 2. switches the folder to its branch and fast-forwards it;
 3. installs packages (`composer install --no-dev`), builds the CSS/JS, runs the migrations and
    caches the settings;
-4. restarts the queue workers so they load the new code.
+4. restarts the queue workers so they load the new code;
+5. for staging, installs the newest version of `uphsl-deploy` itself, so changes to the script
+   reach the server with the next staging deploy and are used for the next production release.
 
 It stops at the first error, so a failed step never leaves half-cached settings behind.
-
-When `scripts/server/uphsl-deploy` changes in the repository, reinstall it on the server (as
-`ubuntu`):
-
-```bash
-sudo install -m 755 /var/www/uphsl-staging/scripts/server/uphsl-deploy /usr/local/bin/uphsl-deploy
-```
 
 ## Quick reference
 

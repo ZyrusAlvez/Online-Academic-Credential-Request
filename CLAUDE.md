@@ -22,6 +22,29 @@ digitally** (the only upload is the student's proof of payment).
 
 If code and spec disagree, fix the spec first (and say why in the commit).
 
+## Git workflow (every change, every session)
+
+Every change goes through a pull request; never push to `staging` or `production` directly, never
+force-push them, and never bypass branch protection (the account is an admin, so GitHub would
+allow it).
+
+1. Start from fresh staging: `git switch staging && git pull --ff-only`, then
+   `git switch -c <type>/<short-name>` (`feat/`, `fix/`, `docs/`, `ci/`, `chore/`). One feature or
+   fix per branch.
+2. Commit on the branch, following the spec-driven loop above. `composer qa` must be green before
+   every push. Push with `git push -u origin <branch>`.
+3. Open a pull request **into `staging`** (GitHub defaults to `production`, so set the base).
+   Wait for the `qa` check. If it fails, fix on the branch and push again.
+4. Once `qa` is green, merge the pull request (merge commit). That deploys staging automatically:
+   watch the `deploy` run until it succeeds, then give the user the staging URL to test.
+5. Open a pull request from `staging` into `production` describing what it releases. **Don't merge
+   it and don't approve the deploy.** The user tests staging, merges, and approves production.
+
+`gh` isn't installed. Use the GitHub REST API (`api.github.com/repos/ZyrusAlvez/Online-Academic-Credential-Request`)
+with the stored git credential (`printf 'protocol=https\nhost=github.com\n\n' | git credential fill`),
+and never print the token. Useful calls: `POST /pulls`, `GET /commits/{sha}/check-runs`,
+`PUT /pulls/{n}/merge` (`merge_method: merge`), `GET /actions/runs?branch=staging`.
+
 ## Engineering standards
 
 Load `laravel-ai-coding-standards` before any code change; it routes to the other skills.

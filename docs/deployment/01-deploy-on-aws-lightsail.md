@@ -1024,15 +1024,15 @@ The deploy command is part of the repository (`scripts/server/uphsl-deploy`). As
 sudo install -m 755 /var/www/uphsl-staging/scripts/server/uphsl-deploy /usr/local/bin/uphsl-deploy
 ```
 
-`install` copies the file and makes it executable (`-m 755`). Run the same line again whenever
-that script changes in the repository.
+`install` copies the file and makes it executable (`-m 755`). You only do this once: every
+staging deploy installs the newest version from the repository by itself.
 
 For the chosen environment, `uphsl-deploy` fetches GitHub, switches the folder to its branch,
 installs packages, builds the assets, runs the migrations, caches the settings and restarts the
 queue workers. It stops at the first error.
 
-- **Production only takes what staging is running.** If the `production` branch has commits that
-  staging hasn't deployed yet, it stops with *"Deploy staging first"*.
+- **Production only takes what staging is running.** If the code on the `production` branch
+  differs from the code deployed on staging, it stops with *"Deploy staging first"*.
 - `queue:restart` makes the workers load the new code. Without it, they keep running the old
   code from memory.
 
