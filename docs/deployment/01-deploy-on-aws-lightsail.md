@@ -1031,6 +1031,8 @@ For the chosen environment, `uphsl-deploy` fetches GitHub, switches the folder t
 installs packages, builds the assets, runs the migrations, caches the settings and restarts the
 queue workers. It stops at the first error.
 
+- **No deploy without an app key.** If the folder's `.env` has no `APP_KEY`, it stops before
+  changing anything and prints the `key:generate` command to run.
 - **Production only takes what staging is running.** If the `production` branch has commits that
   staging hasn't deployed yet, it stops with *"Deploy staging first"*.
 - `queue:restart` makes the workers load the new code. Without it, they keep running the old
