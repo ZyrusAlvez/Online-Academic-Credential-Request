@@ -1,7 +1,8 @@
 name: deploy
 
 # A push to staging deploys staging; merging the staging → production pull request deploys
-# production. Both run qa first. "Run workflow" re-deploys a branch.
+# production. Both run qa first. After a production deploy, staging is fast-forwarded to
+# production so both branches hold the same commits. "Run workflow" re-deploys a branch.
 on:
   push:
     branches: [staging, production]
@@ -19,6 +20,8 @@ jobs:
     needs: qa
     if: github.ref_name == 'staging' || github.ref_name == 'production'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # to fast-forward staging after a production release
     environment:
       name: ${{ github.ref_name }}
       url: ${{ github.ref_name == 'production' && 'https://18-139-77-227.sslip.io' || 'https://staging.18-139-77-227.sslip.io' }}
@@ -41,3 +44,21 @@ jobs:
         run: >-
           curl -fsS -o /dev/null --retry 6 --retry-delay 5 --retry-all-errors
           "${{ github.ref_name == 'production' && 'https://18-139-77-227.sslip.io' || 'https://staging.18-139-77-227.sslip.io' }}/up"
+
+      # The release merge commit exists only on production; give it to staging too. A push made
+      # with GITHUB_TOKEN starts no workflow, so this doesn't redeploy staging (its code is the same).
+      - name: Check out the repository
+        if: github.ref_name == 'production'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fast-forward staging to production
+        if: github.ref_name == 'production'
+        run: |
+          git fetch --quiet origin staging
+          if git merge-base --is-ancestor origin/staging HEAD; then
+            git push origin HEAD:staging
+          else
+            echo "::notice::staging has commits that aren't released yet, so it was left as is."
+          fi
