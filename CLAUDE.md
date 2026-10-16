@@ -134,7 +134,7 @@ MySQL needs two databases for the local user: `uphsl_credential_tracker_local` (
   environment; `RegistrarSeeder` creates it only when missing and never changes it afterwards. Receipts use `config('uphsl.receipts_disk')` (`local` or
   Cloudflare `r2`, foldered per environment); use `RequestWorkflow::proofDisk()`, never a disk name.
   `php artisan app:test-mail <email>` and `app:test-storage` check the settings of the environment
-  they run in. Setup steps: `docs/setup-mail-and-storage.md`.
+  they run in. Server setup: section 13 of `docs/deployment/01-deploy-on-aws-lightsail.md`.
 - Notifications are queued (`QUEUE_CONNECTION=database`); run `composer dev` or `php artisan queue:work`.
 - `php artisan db:seed --class=DemoSeeder` creates demo accounts (`@example.com`, password `password`) and requests
   in every status; it runs only in local and staging.

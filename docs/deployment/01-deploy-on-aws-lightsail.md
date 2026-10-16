@@ -861,9 +861,9 @@ Staging sends real email exactly like production, so you can test the real thing
 see it. Until Gmail is configured, an environment writes its emails to
 `storage/logs/laravel.log` instead. Demo accounts use `example.com`, which the app never emails.
 
-Create a Gmail **App Password** by following
-[Part A of the mail and storage guide](../setup-mail-and-storage.md); ideally use a second Gmail
-account for staging. Then, as `www-data`, in each folder:
+Create a Gmail **App Password**: in the Google Account, turn on 2-Step Verification, then open
+*Security → App passwords* and create one (16 characters). Ideally use a second Gmail account for
+staging. Then, as `www-data`, in each folder:
 
 ```bash
 cd /var/www/uphsl-production      # then the same in /var/www/uphsl-staging
@@ -891,8 +891,9 @@ Lightsail blocks only port 25 for outgoing mail, and Gmail uses 587, so this wor
 
 ### 13.2 Receipts (Cloudflare R2)
 
-Follow [Part B of the mail and storage guide](../setup-mail-and-storage.md) to create the bucket
-and API token, then put the same `RECEIPTS_DISK=r2` and four `R2_*` lines into **both** `.env` files
+In the Cloudflare dashboard, create a private R2 bucket and an R2 API token with *Object Read &
+Write* on that bucket; note the Account ID, Access Key ID and Secret Access Key (the secret is shown
+only once). Then put the same `RECEIPTS_DISK=r2` and four `R2_*` lines into **both** `.env` files
 and run `php artisan optimize` in each. Check with:
 
 ```bash

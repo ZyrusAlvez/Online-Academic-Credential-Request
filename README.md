@@ -77,7 +77,6 @@ by hand if GitHub Actions is unavailable. Details:
 ## More documentation
 
 - [Credentials and testing](docs/credentials.md): demo accounts and test steps
-- [Email and receipt storage setup](docs/setup-mail-and-storage.md): Gmail and Cloudflare R2
 - [Deploying on AWS Lightsail](docs/deployment/01-deploy-on-aws-lightsail.md): step-by-step server setup for staging and production
 - [Environments, branches and deploying](docs/deployment/02-environments.md): how local, staging and production differ, and one-click deploys
 - [Data dictionary](docs/data-dictionary.md), [design documents](docs/des/), [specifications](docs/specs/00-overview.md)
