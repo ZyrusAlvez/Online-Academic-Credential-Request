@@ -74,9 +74,8 @@ Any derived value can still be overridden by adding it to `.env` (for example `A
 ```
  feature branch ─ merge ─► staging  ────── PR (from staging only) ──────►  production (default)
        │                     │                                               │
-                       CI → deploy to staging                     CI → waits for your Approve
-                       → health check                              → deploy to production
-                                                                   → health check
+                       CI → deploy to staging                     CI → deploy to production
+                       → health check                              → health check
 ```
 
 | Branch | Holds | Deployed to |
@@ -97,13 +96,12 @@ what users run.
 3. **Staging deploys itself.** The push starts the *deploy* workflow: CI (`composer qa` and the
    rest) runs on the merged code, and only if it passes is the staging server updated and its
    `/up` health check verified. Test the change on the staging site.
-4. **Open a pull request from `staging` into `production`** and merge it once CI is green.
-5. **Approve the release.** The *deploy* workflow runs CI, then pauses at **Waiting for review**.
-   Open the run (Actions tab, or the link in the pull request), click **Review deployments**,
-   tick `production` and **Approve and deploy**. Production updates and its health check runs.
+4. **Open a pull request from `staging` into `production`** and merge it once CI is green. Merging
+   is the release: the *deploy* workflow runs CI again, then updates production and runs its
+   health check. There is no separate approval step.
 
 The pull requests and the Environments page (Code tab → *Deployments*) keep a record of what was
-released, when, and who approved it.
+released, when, and who merged it.
 
 ## CI/CD: what runs where
 
@@ -124,7 +122,7 @@ pull-request rule. The safety net is the deploy workflow, which won't deploy cod
 
 **GitHub Environments.** The deploy job runs in the `staging` or `production` environment.
 Each environment holds its own SSH key secret (`DEPLOY_SSH_KEY`) and only accepts deploys from its
-own branch. `production` also requires a reviewer (you) before the job may start. The server
+own branch; neither needs a reviewer, since the merge is the decision. The server
 address and host fingerprints are repository variables (`DEPLOY_HOST`, `DEPLOY_KNOWN_HOSTS`).
 
 **The deploy keys can only deploy.** Each key is listed on the server in
@@ -242,7 +240,7 @@ It stops at the first error, so a failed step never leaves half-cached settings 
 | Work on a feature | Branch from `staging`; `composer dev` (`composer qa` is optional, CI runs it) |
 | Reload demo data | `php artisan app:reset-demo` (local or staging folder) |
 | Test a change on the server | Merge your branch into `staging` and push; it deploys once `qa` passes |
-| Release to users | PR `staging` → `production`, then approve the deploy in the Actions tab |
+| Release to users | Merge the PR `staging` → `production`; it deploys once `qa` passes |
 | Redeploy without a code change | Actions → *deploy* → **Run workflow** on that branch |
 | Change a setting on the server | Edit that folder's `.env` as `www-data`, then `php artisan optimize` |
 | See which version a server runs | `ssh uphsl "sudo -u www-data git -C /var/www/uphsl-production log -1 --oneline"` |
