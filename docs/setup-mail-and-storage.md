@@ -1,12 +1,12 @@
 # Setting Up Email (Gmail) and Receipt Storage (Cloudflare R2)
 
-Both are configured in the single `.env` file. Until you finish these steps the app keeps working:
-emails are written to `storage/logs/laravel.log` and receipts are stored on this computer.
+Both are configured in each deployment's `.env`. Until you finish these steps the app keeps
+working: emails are written to `storage/logs/laravel.log` and receipts are stored on the machine.
 
-| | Staging | Production |
-|---|---|---|
-| Email | Always written to the log file (demo accounts never get real email) | Sent through Gmail |
-| Receipts | R2 bucket, folder `staging/` | R2 bucket, folder `production/` |
+| | Local | Staging | Production |
+|---|---|---|---|
+| Email | Always written to the log file | Always written to the log file (demo accounts never get real email) | Sent through Gmail |
+| Receipts | Keep `RECEIPTS_DISK=local` (see the note in B6) | R2 bucket, folder `staging/` | R2 bucket, folder `production/` |
 
 ---
 
@@ -32,22 +32,24 @@ App Passwords (next step) only exist when 2-Step Verification is on.
 
 Use this App Password, never your normal Gmail password.
 
-### A4. Put it in `.env`
+### A4. Put it in production's `.env`
 
 ```dotenv
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
 MAIL_USERNAME=uphsl.credential.tracker@gmail.com
 MAIL_PASSWORD=abcdefghijklmnop        # the App Password, without spaces
-MAIL_FROM_ADDRESS=                    # leave empty: emails are sent from MAIL_USERNAME
-MAIL_FROM_NAME="UPHSL Office of the Registrar"
 ```
+
+The rest is already set in `config/mail.php`: production uses SMTP through `smtp.gmail.com:587`,
+emails are sent from `MAIL_USERNAME`, and the sender name is "UPHSL Office of the Registrar".
+(`MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM_ADDRESS` and `MAIL_FROM_NAME` can still override these.)
+Then run `php artisan optimize` so the cached settings pick up the change.
 
 ### A5. Test it
 
+On the server, in the production folder:
+
 ```bash
-APP_ENV=production php artisan app:test-mail your.own.address@gmail.com
+php artisan app:test-mail your.own.address@gmail.com
 ```
 
 Expected: `Sent. Check the inbox (and the spam folder).` The first emails may land in spam; mark
@@ -55,13 +57,13 @@ them as "Not spam".
 
 ### A6. Keep the queue worker running
 
-Notifications are sent in the background. `composer prod` already starts the queue worker; on a
-server, run `APP_ENV=production php artisan queue:work` permanently (e.g. with Supervisor).
+Notifications are sent in the background by a queue worker. On the server, Supervisor keeps one
+running per environment (deployment guide, step 12). Locally, `composer dev` starts one.
 
 **Limits:** a Gmail account can send to about 500 recipients a day.
 
-**Links in emails** use `APP_URL_PRODUCTION`. `http://localhost:8001` only works on this computer;
-set it to the real public address when the system is hosted.
+**Links in emails** use the environment's address from `config/app.php` (or `APP_URL` in `.env`,
+which overrides it).
 
 ---
 
@@ -113,14 +115,21 @@ R2_ACCOUNT_ID=0123456789abcdef0123456789abcdef
 R2_ACCESS_KEY_ID=your-access-key-id
 R2_SECRET_ACCESS_KEY=your-secret-access-key
 R2_BUCKET=uphsl-credential-receipts
-R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"   # leave as is
 ```
+
+The endpoint is built from `R2_ACCOUNT_ID` in `config/filesystems.php`. Put the same values in
+both server `.env` files (staging and production) and run `php artisan optimize` in each.
+
+> **Keep your own computer on `RECEIPTS_DISK=local`.** The bucket is foldered by environment, and
+> local demo resets delete the `local/` receipts. Using local storage on your computer keeps
+> development files out of the shared bucket.
 
 ### B7. Test both environments
 
+On the server, in each folder:
+
 ```bash
-php artisan app:test-storage                      # staging  → folder staging/
-APP_ENV=production php artisan app:test-storage   # production → folder production/
+php artisan app:test-storage     # staging folder → staging/, production folder → production/
 ```
 
 Expected for each: `Write, read and delete all worked.`
@@ -131,12 +140,13 @@ Expected for each: `Write, read and delete all worked.`
 php artisan app:reset-demo
 ```
 
-This reloads the staging demo data, and its sample receipts are now uploaded to the bucket.
+Run it in the staging folder. It reloads the staging demo data, and its sample receipts are now
+uploaded to the bucket.
 Production has no receipts yet, so nothing needs moving there.
 
 ### B9. Restart the app
 
-Stop and start `composer dev` / `composer prod` so they pick up the new settings. In the
+Run `php artisan queue:restart` in each folder so the workers pick up the new settings. In the
 Cloudflare dashboard the bucket will show `staging/payment-proofs/…` (and later
 `production/payment-proofs/…`).
 
@@ -153,7 +163,7 @@ Cloudflare dashboard the bucket will show `staging/payment-proofs/…` (and late
 | `NoSuchBucket` (R2) | `R2_BUCKET` does not match the bucket name exactly. |
 | `AccessDenied` (R2) | The token needs **Object Read & Write** on this bucket. |
 | `Could not resolve host` (R2) | `R2_ACCOUNT_ID` is empty or wrong. |
-| Changes in `.env` seem ignored | Restart `composer dev` / `composer prod`; run `php artisan config:clear`. |
+| Changes in `.env` seem ignored | Run `php artisan optimize` (server) or restart `composer dev` (local); then `php artisan queue:restart`. |
 
 ## Security
 

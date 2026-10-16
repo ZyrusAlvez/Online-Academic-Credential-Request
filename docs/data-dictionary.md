@@ -1,7 +1,8 @@
 # Data Dictionary
 
 Databases: **MySQL 8.4**, one per environment with the same schema: `uphsl_credential_tracker`
-(production) and `uphsl_credential_tracker_staging` (staging). Charset `utf8mb4`, collation `utf8mb4_unicode_ci`. Times are stored in
+(production), `uphsl_credential_tracker_staging` (staging), `uphsl_credential_tracker_local`
+(local) and `uphsl_credential_tracker_testing` (automated tests). Charset `utf8mb4`, collation `utf8mb4_unicode_ci`. Times are stored in
 the app timezone **Asia/Manila**. Every table has an auto-increment `id` primary key
 (`bigint unsigned`) unless stated. `created_at` / `updated_at` are Laravel timestamps.
 

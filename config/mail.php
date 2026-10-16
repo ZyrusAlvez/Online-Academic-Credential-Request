@@ -14,8 +14,8 @@ return [
     |
     */
 
-    // Staging never sends real email (demo accounts use example.com); it writes to the log.
-    'default' => env('APP_ENV') === 'staging' ? 'log' : env('MAIL_MAILER', 'log'),
+    // Local and staging never send real email (demo accounts use example.com); they write to the log.
+    'default' => in_array(env('APP_ENV'), ['local', 'staging'], true) ? 'log' : env('MAIL_MAILER', 'smtp'),
 
     /*
     |--------------------------------------------------------------------------
@@ -42,12 +42,12 @@ return [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),
             'url' => env('MAIL_URL'),
-            'host' => env('MAIL_HOST', '127.0.0.1'),
-            'port' => env('MAIL_PORT', 2525),
+            'host' => env('MAIL_HOST', 'smtp.gmail.com'),
+            'port' => env('MAIL_PORT', 587),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) config('app.url'), PHP_URL_HOST)),
         ],
 
         'ses' => [
@@ -112,7 +112,7 @@ return [
     'from' => [
         // Gmail only sends from its own address, so default to the SMTP username.
         'address' => env('MAIL_FROM_ADDRESS') ?: (env('MAIL_USERNAME') ?: 'no-reply@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'name' => env('MAIL_FROM_NAME', 'UPHSL Office of the Registrar'),
     ],
 
 ];

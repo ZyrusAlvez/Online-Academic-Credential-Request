@@ -8,8 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Rebuilds the database with the base and demo data. Runs automatically after the test
- * suite, because tests share the application database.
+ * Rebuilds the database with the base and demo data. Local and staging only.
  */
 class ResetDemo extends Command
 {
@@ -19,8 +18,8 @@ class ResetDemo extends Command
 
     public function handle(): int
     {
-        if (! $this->laravel->environment('staging')) {
-            $this->error('Demo data can only be reset in the staging environment.');
+        if (! $this->laravel->environment(['local', 'staging'])) {
+            $this->error('Demo data can only be reset in the local and staging environments.');
 
             return self::FAILURE;
         }

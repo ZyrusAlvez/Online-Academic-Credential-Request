@@ -9,7 +9,7 @@ digitally** (the only upload is the student's proof of payment).
 
 - Laravel 12 / PHP 8.5, MySQL 8.4
 - Livewire 4 + Flux (free) + Volt (starter-kit auth pages only), Tailwind CSS 4
-- Pest for tests (run against the staging database, never production)
+- Pest for tests (run against their own `uphsl_credential_tracker_testing` database)
 
 ## Spec-driven development
 
@@ -47,46 +47,58 @@ Gates: `composer qa` green; `laravel-security` checklist for auth, uploads, paym
 ```bash
 composer qa          # pint --test, phpstan (level 6), pest
 composer fix         # apply pint
-composer dev         # STAGING: server + queue + logs + vite on :8000
-composer prod        # PRODUCTION: build assets, server + queue on :8001
+composer dev         # server + queue + logs + vite on :8000
 ```
 
 ## Environments
 
-Exactly two: `staging` (database `uphsl_credential_tracker_staging`) and `production` (database
-`uphsl_credential_tracker`). ONE `.env` serves both: `APP_ENV` (default `staging`) picks the
-database (`DB_DATABASE_STAGING` / `DB_DATABASE_PRODUCTION`) and URL (`APP_URL_STAGING` /
-`APP_URL_PRODUCTION`) in `config/`; debug is forced off and logging is `warning` in production.
-Run any production command with the variable set, e.g. `APP_ENV=production php artisan migrate`.
-`AppServiceProvider` refuses any other `APP_ENV`; the only exception is Laravel's internal
-`testing` mode used by the test runner, which always points at the staging database. Receipt
-files live in `storage/app/private/<env>`. Demo data and `app:reset-demo` are staging-only.
+Exactly three `APP_ENV` values: `local` (a developer's machine), `staging` and `production` (each
+in its own folder on the server). `AppServiceProvider` refuses any other value; the only exception
+is Laravel's internal `testing` mode used by the test runner.
+
+Each deployment has its own small `.env` (see `.env.example`): only per-deployment values and
+secrets. Everything that follows from `APP_ENV` is a default in `config/`:
+
+| | local | staging | production |
+|---|---|---|---|
+| Address (`APP_URL` overrides) | `http://localhost:8000` | `https://staging.18-139-77-227.sslip.io` | `https://18-139-77-227.sslip.io` |
+| Database (`DB_DATABASE` overrides) | `uphsl_credential_tracker_local` | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
+| Debug (`APP_DEBUG` overrides, except production) | on | off | always off |
+| Log level | debug | debug | warning |
+| Mailer | always `log` | always `log` | `smtp` (Gmail) |
+| Receipts folder (local disk or R2) | `local/` | `staging/` | `production/` |
+| Demo data / `app:reset-demo` | allowed | allowed | refused |
+
+The addresses live in `config/app.php`, so changing a site name is a code change plus a deploy.
+Session cookies are secure automatically when the address is `https://`. Server setup:
+`docs/deployment/01-deploy-on-aws-lightsail.md`.
 
 ## Local setup
 
 ```bash
 composer install && npm install
-cp .env.example .env && php artisan key:generate      # set DB_USERNAME/DB_PASSWORD and INITIAL_REGISTRAR_PASSWORD
-php artisan app:reset-demo                              # staging: schema + demo data
-APP_ENV=production php artisan migrate --seed           # production: schema + base data + first registrar
+cp .env.example .env && php artisan key:generate      # set DB_USERNAME/DB_PASSWORD
+php artisan app:reset-demo                              # schema + base data + demo data
 npm run dev
 ```
+
+MySQL needs two databases for the local user: `uphsl_credential_tracker_local` (the app) and
+`uphsl_credential_tracker_testing` (the tests).
 
 ## Things to know
 
 - Livewire 4 is installed with a starter kit written for v3: `config/livewire.php` sets
   `component_layout` to `components.layouts.app`.
 - `tests/TestCase.php` calls `withoutVite()` so tests don't need a front-end build.
-- Tests wipe the staging database (RefreshDatabase). `tests/TestCase.php` refuses to run unless the
-  database name ends in `_staging`; the PHPUnit extension `Tests\Support\ReseedDemoData` runs
-  `php artisan app:reset-demo` after every run to reload staging demo data (skipped when `CI` is set).
-- Mail: staging is forced to the `log` mailer (`config/mail.php`), so check `storage/logs/laravel.log`;
-  production sends through Gmail SMTP. Receipts use `config('uphsl.receipts_disk')` (`local` or
+- Tests wipe their own database (RefreshDatabase), set to `uphsl_credential_tracker_testing` in
+  `phpunit.xml`; `tests/TestCase.php` refuses to run unless the database name ends in `_testing`.
+- Mail: local and staging are forced to the `log` mailer (`config/mail.php`), so check
+  `storage/logs/laravel.log`; production sends through Gmail SMTP. Receipts use `config('uphsl.receipts_disk')` (`local` or
   Cloudflare `r2`, foldered per environment); use `RequestWorkflow::proofDisk()`, never a disk name.
-  `php artisan app:test-mail <email>` and `app:test-storage` check the settings
-  (prefix `APP_ENV=production` for production). Setup steps: `docs/setup-mail-and-storage.md`.
+  `php artisan app:test-mail <email>` and `app:test-storage` check the settings of the environment
+  they run in. Setup steps: `docs/setup-mail-and-storage.md`.
 - Notifications are queued (`QUEUE_CONNECTION=database`); run `composer dev` or `php artisan queue:work`.
 - `php artisan db:seed --class=DemoSeeder` creates demo accounts (password `password`) and requests
-  in every status; it runs only in staging.
+  in every status; it runs only in local and staging.
 - Request queries for the registrar list and CSV export share `App\Queries\RegistrarRequestFilter`;
   office queues use `App\Queries\StepQueue`.

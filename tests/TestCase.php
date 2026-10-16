@@ -25,8 +25,8 @@ abstract class TestCase extends BaseTestCase
 
         $database = (string) config('database.connections.'.config('database.default').'.database');
 
-        if (! str_ends_with($database, '_staging')) {
-            throw new RuntimeException("Tests must run on a *_staging database, not \"{$database}\".");
+        if (! str_ends_with($database, '_testing')) {
+            throw new RuntimeException("Tests must run on a *_testing database, not \"{$database}\".");
         }
     }
 }

@@ -17,7 +17,7 @@ return [
     /*
     | The first registrar account, created when a database is set up (`db:seed`) so that
     | someone can log in and create every other account. Changing these later does not
-    | change an existing password. In staging the password is always "password" (demo).
+    | change an existing password. Outside production the password is always "password" (demo).
     */
     'initial_registrar' => [
         'email' => env('INITIAL_REGISTRAR_EMAIL', 'registrar@uphsl.edu.ph'),
