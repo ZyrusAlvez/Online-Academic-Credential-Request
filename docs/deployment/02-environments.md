@@ -169,11 +169,13 @@ established"*. Your computer then remembers the server's fingerprint.
 `uphsl-deploy` lives in the repository at `scripts/server/uphsl-deploy` and is installed on the
 server at `/usr/local/bin/uphsl-deploy`. For the chosen environment it:
 
-1. fetches GitHub and, for production, checks that staging already runs every production commit;
-2. switches the folder to its branch and fast-forwards it;
-3. installs packages (`composer install --no-dev`), builds the CSS/JS, runs the migrations and
+1. stops if the folder's `.env` has no `APP_KEY`, since every page that uses the session would fail
+   with a 500 error (the message shows the command that creates one);
+2. fetches GitHub and, for production, checks that staging already runs every production commit;
+3. switches the folder to its branch and fast-forwards it;
+4. installs packages (`composer install --no-dev`), builds the CSS/JS, runs the migrations and
    caches the settings;
-4. restarts the queue workers so they load the new code.
+5. restarts the queue workers so they load the new code.
 
 It stops at the first error, so a failed step never leaves half-cached settings behind.
 
