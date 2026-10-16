@@ -15,13 +15,13 @@ return [
     'receipts_disk' => env('RECEIPTS_DISK', 'local'),
 
     /*
-    | The first registrar account, created when a database is set up (`db:seed`) so that
-    | someone can log in and create every other account. Changing these later does not
-    | change an existing password. Outside production the password is always "password" (demo).
+    | The first registrar account, created by `db:seed` when no account with this email exists,
+    | so that someone can log in and create every other account. The seeder never changes an
+    | existing account, so editing these later does not change its password.
     */
     'initial_registrar' => [
-        'email' => env('INITIAL_REGISTRAR_EMAIL', 'registrar@uphsl.edu.ph'),
-        'password' => env('APP_ENV') === 'production' ? env('INITIAL_REGISTRAR_PASSWORD') : 'password',
+        'email' => env('INITIAL_REGISTRAR_EMAIL'),
+        'password' => env('INITIAL_REGISTRAR_PASSWORD'),
     ],
 
 ];

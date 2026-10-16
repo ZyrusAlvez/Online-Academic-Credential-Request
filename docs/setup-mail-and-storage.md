@@ -5,17 +5,21 @@ working: emails are written to `storage/logs/laravel.log` and receipts are store
 
 | | Local | Staging | Production |
 |---|---|---|---|
-| Email | Always written to the log file | Always written to the log file (demo accounts never get real email) | Sent through Gmail |
+| Email | Sent through Gmail, **every email redirected to your own inbox** | Sent through Gmail | Sent through Gmail |
 | Receipts | Keep `RECEIPTS_DISK=local` (see the note in B6) | R2 bucket, folder `staging/` | R2 bucket, folder `production/` |
 
 ---
 
-## Part A — Email with Gmail (production)
+## Part A — Email with Gmail (every environment)
 
 ### A1. Pick the Gmail account
 
 Use a dedicated account if you can, for example `uphsl.credential.tracker@gmail.com`. Every email
 the system sends will come from this address.
+
+Production, staging and your own computer all send email the same way. A **second** Gmail account
+for staging and local (for example `uphsl.tracker.testing@gmail.com`) keeps production's App
+Password off the staging server; repeat A2–A4 for it.
 
 ### A2. Turn on 2-Step Verification
 
@@ -32,21 +36,28 @@ App Passwords (next step) only exist when 2-Step Verification is on.
 
 Use this App Password, never your normal Gmail password.
 
-### A4. Put it in production's `.env`
+### A4. Put it in each `.env`
 
 ```dotenv
 MAIL_USERNAME=uphsl.credential.tracker@gmail.com
 MAIL_PASSWORD=abcdefghijklmnop        # the App Password, without spaces
 ```
 
-The rest is already set in `config/mail.php`: production uses SMTP through `smtp.gmail.com:587`,
+The rest is already set in `config/mail.php`: with these two values set, the app uses SMTP through `smtp.gmail.com:587`,
 emails are sent from `MAIL_USERNAME`, and the sender name is "UPHSL Office of the Registrar".
 (`MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM_ADDRESS` and `MAIL_FROM_NAME` can still override these.)
 Then run `php artisan optimize` so the cached settings pick up the change.
 
+**On your own computer** (`APP_ENV=local`) every email is redirected to `MAIL_USERNAME`'s inbox,
+whoever it was addressed to, so you see exactly what students would get and nobody else is
+emailed. To send them to a different inbox, add `MAIL_REDIRECT_TO=you@example.org`.
+
+Emails to reserved example domains (`example.com`, `*.test`, …), which all demo accounts use, are
+never sent in any environment.
+
 ### A5. Test it
 
-On the server, in the production folder:
+In the environment's folder (on the server) or the project folder (locally):
 
 ```bash
 php artisan app:test-mail your.own.address@gmail.com

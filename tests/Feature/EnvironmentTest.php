@@ -61,21 +61,32 @@ test('the database name follows the environment unless DB_DATABASE is set', func
         ->and($database(['APP_ENV' => 'staging', 'DB_DATABASE' => 'custom_db']))->toBe('custom_db');
 });
 
-test('debug mode is on by default only locally and can never be on in production', function () {
+test('error details show on local and staging but never in production', function () {
     $debug = fn (array $vars) => configUnder('app.php', $vars)['debug'];
 
     expect($debug(['APP_ENV' => 'local', 'APP_DEBUG' => null]))->toBeTrue()
-        ->and($debug(['APP_ENV' => 'staging', 'APP_DEBUG' => null]))->toBeFalse()
+        ->and($debug(['APP_ENV' => 'staging', 'APP_DEBUG' => null]))->toBeTrue()
         ->and($debug(['APP_ENV' => 'production', 'APP_DEBUG' => null]))->toBeFalse()
         ->and($debug(['APP_ENV' => 'production', 'APP_DEBUG' => 'true']))->toBeFalse();
 });
 
-test('local and staging always write email to the log, production sends through smtp', function () {
-    $mailer = fn (array $vars) => configUnder('mail.php', $vars)['default'];
+test('every environment sends real email once Gmail is configured, and logs it otherwise', function () {
+    $mailer = fn (array $vars) => configUnder('mail.php', ['MAIL_MAILER' => null, ...$vars])['default'];
 
-    expect($mailer(['APP_ENV' => 'local', 'MAIL_MAILER' => 'smtp']))->toBe('log')
-        ->and($mailer(['APP_ENV' => 'staging', 'MAIL_MAILER' => 'smtp']))->toBe('log')
-        ->and($mailer(['APP_ENV' => 'production', 'MAIL_MAILER' => null]))->toBe('smtp');
+    foreach (['local', 'staging', 'production'] as $env) {
+        expect($mailer(['APP_ENV' => $env, 'MAIL_USERNAME' => 'tracker@gmail.com']))->toBe('smtp')
+            ->and($mailer(['APP_ENV' => $env, 'MAIL_USERNAME' => null]))->toBe('log');
+    }
+});
+
+test('only local redirects every email to the developer inbox', function () {
+    $redirect = fn (string $env) => configUnder('mail.php', [
+        'APP_ENV' => $env, 'MAIL_USERNAME' => 'tracker@gmail.com', 'MAIL_REDIRECT_TO' => null,
+    ])['redirect_to'];
+
+    expect($redirect('local'))->toBe('tracker@gmail.com')
+        ->and($redirect('staging'))->toBeNull()
+        ->and($redirect('production'))->toBeNull();
 });
 
 test('each environment has its own address unless APP_URL is set', function () {
@@ -103,6 +114,18 @@ test('demo data cannot be reset in production', function () {
     app()->detectEnvironment(fn () => 'production');
 
     $this->artisan('app:reset-demo')->assertFailed();
+
+    expect($department->fresh())->not->toBeNull();
+});
+
+test('demo data is not reset without the registrar settings, so nothing is wiped', function () {
+    $department = Department::factory()->create();
+    app()->detectEnvironment(fn () => 'staging');
+    config(['uphsl.initial_registrar.password' => null]);
+
+    $this->artisan('app:reset-demo')
+        ->expectsOutputToContain('Nothing was changed')
+        ->assertFailed();
 
     expect($department->fresh())->not->toBeNull();
 });

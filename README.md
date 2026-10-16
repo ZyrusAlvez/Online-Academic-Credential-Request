@@ -42,17 +42,20 @@ Any other value stops the app at startup.
 | Runs | `composer dev` → http://localhost:8000 | Server folder `/var/www/uphsl-staging` | Server folder `/var/www/uphsl-production` |
 | Database | `uphsl_credential_tracker_local` | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
 | Data | Base data plus demo accounts and sample requests | Base data plus demo accounts and sample requests | Base data and real data only |
-| Email | Written to `storage/logs/laravel.log` | Written to `storage/logs/laravel.log` | Sent through Gmail |
+| Email | Sent through Gmail, all redirected to your own inbox | Sent through Gmail | Sent through Gmail |
 | Receipts | `local/` folder | `staging/` folder | `production/` folder |
-| Debug mode | On | Off | Always off |
+| Error details (debug mode) | Shown | Shown | Never shown |
 
 Base data means the 15 departments, the 7 credential types with their signing workflows, and
 the first registrar account.
 
 The `.env` file is small: the environment name, the address, the database login, and the
 secrets for email and receipt storage (see `.env.example`). Everything that follows from the
-environment, such as the database name, debug mode and the mailer, is set automatically in
-`config/`.
+environment, such as the database name and debug mode, is set automatically in `config/`.
+
+Staging works exactly like production, including email and the first registrar account. The only
+differences are its separate database, the demo data, and visible error details. Without Gmail
+settings, any environment writes its emails to `storage/logs/laravel.log` instead.
 
 ### Rules that keep production safe
 

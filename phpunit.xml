@@ -24,6 +24,8 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="mysql"/>
         <env name="DB_DATABASE" value="uphsl_credential_tracker_testing"/>
+        <env name="INITIAL_REGISTRAR_EMAIL" value="registrar@example.com"/>
+        <env name="INITIAL_REGISTRAR_PASSWORD" value="password"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="RECEIPTS_DISK" value="local"/>
         <env name="PULSE_ENABLED" value="false"/>

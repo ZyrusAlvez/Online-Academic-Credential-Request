@@ -63,9 +63,9 @@ secrets. Everything that follows from `APP_ENV` is a default in `config/`:
 |---|---|---|---|
 | Address (`APP_URL` overrides) | `http://localhost:8000` | `https://staging.18-139-77-227.sslip.io` | `https://18-139-77-227.sslip.io` |
 | Database (`DB_DATABASE` overrides) | `uphsl_credential_tracker_local` | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
-| Debug (`APP_DEBUG` overrides, except production) | on | off | always off |
+| Debug (`APP_DEBUG` overrides, except production) | on | on | always off |
 | Log level | debug | debug | warning |
-| Mailer | always `log` | always `log` | `smtp` (Gmail) |
+| Mailer | `smtp` once `MAIL_USERNAME` is set, else `log`; **every email redirected to your inbox** | `smtp` once set, else `log` | `smtp` once set, else `log` |
 | Receipts folder (local disk or R2) | `local/` | `staging/` | `production/` |
 | Demo data / `app:reset-demo` | allowed | allowed | refused |
 
@@ -77,7 +77,7 @@ Session cookies are secure automatically when the address is `https://`. Server 
 
 ```bash
 composer install && npm install
-cp .env.example .env && php artisan key:generate      # set DB_USERNAME/DB_PASSWORD
+cp .env.example .env && php artisan key:generate      # set DB_*, INITIAL_REGISTRAR_* (and MAIL_* for real email)
 php artisan app:reset-demo                              # schema + base data + demo data
 npm run dev
 ```
@@ -92,13 +92,17 @@ MySQL needs two databases for the local user: `uphsl_credential_tracker_local` (
 - `tests/TestCase.php` calls `withoutVite()` so tests don't need a front-end build.
 - Tests wipe their own database (RefreshDatabase), set to `uphsl_credential_tracker_testing` in
   `phpunit.xml`; `tests/TestCase.php` refuses to run unless the database name ends in `_testing`.
-- Mail: local and staging are forced to the `log` mailer (`config/mail.php`), so check
-  `storage/logs/laravel.log`; production sends through Gmail SMTP. Receipts use `config('uphsl.receipts_disk')` (`local` or
+- Mail: every environment sends through Gmail SMTP once `MAIL_USERNAME`/`MAIL_PASSWORD` are set,
+  and writes to `storage/logs/laravel.log` otherwise. Locally, `Mail::alwaysTo()` redirects every
+  email to `MAIL_REDIRECT_TO` (default: `MAIL_USERNAME`). `App\Listeners\DropUndeliverableRecipients`
+  drops recipients on reserved example domains, which all demo accounts use.
+- The first registrar comes from `INITIAL_REGISTRAR_EMAIL`/`INITIAL_REGISTRAR_PASSWORD` in every
+  environment; `RegistrarSeeder` creates it only when missing and never changes it afterwards. Receipts use `config('uphsl.receipts_disk')` (`local` or
   Cloudflare `r2`, foldered per environment); use `RequestWorkflow::proofDisk()`, never a disk name.
   `php artisan app:test-mail <email>` and `app:test-storage` check the settings of the environment
   they run in. Setup steps: `docs/setup-mail-and-storage.md`.
 - Notifications are queued (`QUEUE_CONNECTION=database`); run `composer dev` or `php artisan queue:work`.
-- `php artisan db:seed --class=DemoSeeder` creates demo accounts (password `password`) and requests
+- `php artisan db:seed --class=DemoSeeder` creates demo accounts (`@example.com`, password `password`) and requests
   in every status; it runs only in local and staging.
 - Request queries for the registrar list and CSV export share `App\Queries\RegistrarRequestFilter`;
   office queues use `App\Queries\StepQueue`.
