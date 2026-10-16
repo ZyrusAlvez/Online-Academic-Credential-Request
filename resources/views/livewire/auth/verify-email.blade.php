@@ -4,9 +4,10 @@ use App\Livewire\Actions\Logout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.auth')] class extends Component {
+new #[Layout('components.layouts.auth')] #[Title('Verify email')] class extends Component {
     /**
      * Send an email verification notification to the user.
      */
@@ -34,28 +35,22 @@ new #[Layout('components.layouts.auth')] class extends Component {
     }
 }; ?>
 
-<div class="mt-4 flex flex-col gap-6">
-    <div class="text-center text-sm text-gray-600">
-        {{ __('Please verify your email address by clicking on the link we just emailed to you.') }}
-    </div>
+<div class="flex flex-col gap-6">
+    <x-auth-header title="Verify your email" :description="__('We sent a verification link to :email. Click it to finish setting up your account.', ['email' => auth()->user()->email])" />
 
     @if (session('status') == 'verification-link-sent')
-        <div class="font-medium text-center text-sm text-green-600">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
-        </div>
+        <flux:callout icon="check-circle" color="green">
+            <flux:callout.text>{{ __('A new verification link has been sent. Check your inbox and spam folder.') }}</flux:callout.text>
+        </flux:callout>
     @endif
 
-    <div class="flex flex-col items-center justify-between space-y-3">
+    <div class="flex flex-col items-center gap-3">
         <flux:button wire:click="sendVerification" variant="primary" class="w-full">
             {{ __('Resend verification email') }}
         </flux:button>
 
-        <button
-            wire:click="logout"
-            type="submit"
-            class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-        >
+        <flux:button wire:click="logout" variant="ghost" size="sm">
             {{ __('Log out') }}
-        </button>
+        </flux:button>
     </div>
 </div>

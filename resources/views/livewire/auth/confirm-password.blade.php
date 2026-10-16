@@ -3,9 +3,10 @@
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.auth')] class extends Component {
+new #[Layout('components.layouts.auth')] #[Title('Confirm password')] class extends Component {
     public string $password = '';
 
     /**
@@ -51,8 +52,9 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 type="password"
                 name="password"
                 required
-                autocomplete="new-password"
+                autocomplete="current-password"
                 placeholder="Password"
+                viewable
             />
         </div>
 

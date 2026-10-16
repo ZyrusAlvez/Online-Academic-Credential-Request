@@ -5,6 +5,9 @@
     </flux:breadcrumbs>
 
     <x-page-header :title="$request->reference_no" :description="$request->credentialType->name.' · '.$request->student->name">
+        <x-slot:afterTitle>
+            <x-copy-button :value="$request->reference_no" :label="__('Copy reference number')" :copied="__('Reference number copied.')" />
+        </x-slot:afterTitle>
         <x-slot:actions>
             <x-request-status :status="$request->status" class="self-center" />
             @if ($request->isOverdue())
