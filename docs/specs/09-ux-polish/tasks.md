@@ -7,4 +7,4 @@
 - [x] `wire:confirm` on deactivate actions (REQ-09-06)
 - [x] Verify-email page: auth header, brand colors, address shown (REQ-09-07)
 - [x] Pest tests for every REQ-09 criterion
-- [ ] `composer qa` green
+- [x] `composer qa` green (CI, deploy run on staging)
