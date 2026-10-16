@@ -48,7 +48,14 @@ Gates: `composer qa` green; `laravel-security` checklist for auth, uploads, paym
 composer qa          # pint --test, phpstan (level 6), pest
 composer fix         # apply pint
 composer dev         # server + queue + logs + vite on :8000
+scripts/deploy-staging.sh      # deploy the `staging` branch (deploy-production.sh; .bat on Windows)
 ```
+
+Branches: `main` (development) → `staging` (staging server) → `production` (production server),
+promoted by pull request. The deploy scripts SSH to the `uphsl` host and run
+`scripts/server/uphsl-deploy` (installed at `/usr/local/bin/uphsl-deploy`), which refuses a
+production deploy that staging isn't already running. Never commit straight to `staging` or
+`production`. Docs: `docs/deployment/02-environments.md`.
 
 ## Environments
 

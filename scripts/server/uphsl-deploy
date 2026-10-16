@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Deploys a GitHub branch into its server folder: `staging` → /var/www/uphsl-staging,
+# `production` → /var/www/uphsl-production. Runs on the server as `ubuntu`. Install or update it with:
+#   sudo install -m 755 /var/www/uphsl-staging/scripts/server/uphsl-deploy /usr/local/bin/uphsl-deploy
+set -euo pipefail
+
+ENV="${1:-}"
+case "$ENV" in
+  staging|production) ;;
+  *) echo "Usage: uphsl-deploy staging|production" >&2; exit 1 ;;
+esac
+
+DIR="/var/www/uphsl-$ENV"
+run() { sudo -u www-data -H bash -c "cd $DIR && $*"; }
+
+run "git fetch --quiet origin"
+
+# Production only takes code that staging is already running, so nothing reaches real users untested.
+if [ "$ENV" = production ]; then
+  STAGING_SHA=$(sudo -u www-data git -C /var/www/uphsl-staging rev-parse HEAD)
+  if ! run "git merge-base --is-ancestor origin/production $STAGING_SHA"; then
+    echo "The production branch has commits that staging isn't running yet. Deploy staging first." >&2
+    exit 1
+  fi
+fi
+
+run "git checkout --quiet $ENV && git merge --ff-only --quiet origin/$ENV"
+run "composer install --no-dev --optimize-autoloader --no-interaction"
+run "npm ci && npm run build"
+run "php artisan migrate --force"
+run "php artisan optimize"
+run "php artisan queue:restart"
+
+echo "Done: $ENV is now at $(run 'git log -1 --format="%h %s"')"

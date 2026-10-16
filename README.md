@@ -57,6 +57,14 @@ Staging works exactly like production, including email and the first registrar a
 differences are its separate database, the demo data, and visible error details. Without Gmail
 settings, any environment writes its emails to `storage/logs/laravel.log` instead.
 
+### Branches and deploying
+
+Code moves `main` → `staging` → `production` through pull requests. The staging server runs the
+`staging` branch and the production server runs the `production` branch. Deploy with one click:
+`scripts/deploy-staging.sh` / `deploy-production.sh` on Ubuntu, or the `.bat` files on Windows.
+Production only accepts code that staging is already running. Details:
+[docs/deployment/02-environments.md](docs/deployment/02-environments.md).
+
 ### Rules that keep production safe
 
 - Automated tests run on their own database, `uphsl_credential_tracker_testing`, and refuse to
@@ -70,4 +78,5 @@ settings, any environment writes its emails to `storage/logs/laravel.log` instea
 - [Credentials and testing](docs/credentials.md): demo accounts and test steps
 - [Email and receipt storage setup](docs/setup-mail-and-storage.md): Gmail and Cloudflare R2
 - [Deploying on AWS Lightsail](docs/deployment/01-deploy-on-aws-lightsail.md): step-by-step server setup for staging and production
+- [Environments, branches and deploying](docs/deployment/02-environments.md): how local, staging and production differ, and one-click deploys
 - [Data dictionary](docs/data-dictionary.md), [design documents](docs/des/), [specifications](docs/specs/00-overview.md)
