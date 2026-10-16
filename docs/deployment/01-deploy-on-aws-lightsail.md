@@ -396,9 +396,11 @@ Your prompt now starts with `www-data@`. Then:
 
 ```bash
 cd /var/www
-git clone https://github.com/ZyrusAlvez/Online-Academic-Credential-Request.git uphsl-production
-git clone https://github.com/ZyrusAlvez/Online-Academic-Credential-Request.git uphsl-staging
+git clone -b production https://github.com/ZyrusAlvez/Online-Academic-Credential-Request.git uphsl-production
+git clone -b staging https://github.com/ZyrusAlvez/Online-Academic-Credential-Request.git uphsl-staging
 ```
+
+`-b` checks out a branch: each folder follows its own branch (see step 15).
 
 ### Check
 
@@ -1010,57 +1012,42 @@ Finish, then **Edit Connection → General**: name it `UPHSL Production` and set
 
 ## 15. Deploy updates
 
-Every change travels this path:
+Each server folder follows its own GitHub branch: `staging` → `/var/www/uphsl-staging`,
+`production` → `/var/www/uphsl-production`. A change goes `main` → `staging` (test it) →
+`production`, as explained in [02 — Environments, branches and deploying](02-environments.md).
 
-```
-laptop ──git push──> GitHub ──deploy──> staging ──test──> deploy ──> production
-```
+### 15.1 Install the deploy command (once)
 
-### 15.1 Create the deploy command (once)
-
-As `ubuntu` (safe to paste whole):
+The deploy command is part of the repository (`scripts/server/uphsl-deploy`). As `ubuntu`:
 
 ```bash
-sudo tee /usr/local/bin/uphsl-deploy > /dev/null <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-ENV="${1:-}"
-case "$ENV" in staging|production) ;; *) echo "Usage: uphsl-deploy staging|production" >&2; exit 1 ;; esac
-DIR="/var/www/uphsl-$ENV"
-run() { sudo -u www-data -H bash -c "cd $DIR && $*"; }
-
-if [ "$ENV" = production ]; then
-  SHA=$(sudo -u www-data git -C /var/www/uphsl-staging rev-parse HEAD)
-  run "git fetch origin && git merge --ff-only $SHA"
-  run "composer install --no-dev --optimize-autoloader --no-interaction"
-else
-  run "git pull --ff-only"
-  run "composer install --no-dev --optimize-autoloader --no-interaction"
-fi
-run "npm ci && npm run build"
-run "php artisan migrate --force"
-run "php artisan optimize"
-run "php artisan queue:restart"
-echo "Done: $ENV is now at $(run 'git log -1 --oneline')"
-EOF
-sudo chmod +x /usr/local/bin/uphsl-deploy
+sudo install -m 755 /var/www/uphsl-staging/scripts/server/uphsl-deploy /usr/local/bin/uphsl-deploy
 ```
 
-- `set -euo pipefail` stops at the first error.
-- **Production never pulls from GitHub directly.** It takes the exact commit staging is running,
-  so only tested code reaches real users.
+`install` copies the file and makes it executable (`-m 755`). Run the same line again whenever
+that script changes in the repository.
+
+For the chosen environment, `uphsl-deploy` fetches GitHub, switches the folder to its branch,
+installs packages, builds the assets, runs the migrations, caches the settings and restarts the
+queue workers. It stops at the first error.
+
+- **Production only takes what staging is running.** If the `production` branch has commits that
+  staging hasn't deployed yet, it stops with *"Deploy staging first"*.
 - `queue:restart` makes the workers load the new code. Without it, they keep running the old
   code from memory.
 
 ### 15.2 Use it
 
+From your own computer, double-click `scripts/deploy-staging.sh` (Ubuntu) or
+`scripts\deploy-staging.bat` (Windows), and the `deploy-production` ones for production. The
+one-time SSH setup is in [02 — Environments](02-environments.md#one-click-deploy).
+
+Or on the server, as `ubuntu`:
+
 ```bash
 uphsl-deploy staging        # then test the change on the staging site
 uphsl-deploy production
 ```
-
-From your laptop, with the SSH shortcut from step 3: `ssh uphsl uphsl-deploy staging`.
 
 **Run the tests (`composer qa`) on your laptop before pushing, not on the server.** They use
 their own `uphsl_credential_tracker_testing` database, which the server doesn't have, and
