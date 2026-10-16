@@ -13,7 +13,7 @@ For setting up the server itself, see [01 — Deploying on AWS Lightsail](01-dep
 | **Purpose** | Building and trying changes on your own computer | Testing a change on the real server before users see it; demos | The live system used by students, offices and the registrar |
 | **Where** | Your computer, `composer dev` | Server folder `/var/www/uphsl-staging` | Server folder `/var/www/uphsl-production` |
 | **Address** | http://localhost:8000 | https://staging.18-139-77-227.sslip.io | https://18-139-77-227.sslip.io |
-| **Git branch** | any (usually `main`) | `staging` | `production` |
+| **Git branch** | your feature branch | `staging` | `production` (the default branch) |
 | **`APP_ENV`** | `local` | `staging` | `production` |
 | **Database** | `uphsl_credential_tracker_local` | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
 | **Data** | Base data + demo accounts and requests | Base data + demo accounts and requests | Base data + real data only |
@@ -72,24 +72,27 @@ Any derived value can still be overridden by adding it to `.env` (for example `A
 ## Branches: how a change reaches users
 
 ```
- feature work                         test on staging                 release
-──────────────►  main  ──── PR ────►  staging  ──── PR ────►  production
-                  │                     │                        │
-           composer qa (CI)      deploy-staging            deploy-production
-                                 → staging server           → production server
+ feature branch ──── PR ────►  staging  ──── PR ────►  production (default)
+       │                         │                        │
+ composer qa (CI)          deploy-staging            deploy-production
+                           → staging server           → production server
 ```
 
 | Branch | Holds | Deployed to |
 |---|---|---|
-| `main` | Day-to-day development; every commit passes `composer qa` | Nowhere (your computer) |
+| `feat/…`, `fix/…` | One change in progress, branched from `staging` | Nowhere (your computer) |
 | `staging` | The version being tested | The staging server |
-| `production` | The version users run | The production server |
+| `production` | The version users run; the repository's default branch | The production server |
+
+There is no `main` branch: `production` is the default, so what you see first on GitHub is exactly
+what users run.
 
 ### Releasing a change, step by step
 
-1. **Finish it on `main`.** Run `composer qa` locally, then push. CI runs the same checks.
-2. **Move it to staging.** On GitHub, open a pull request from `main` into `staging` and merge it.
-   (From the terminal instead: `git push origin main:staging`.)
+1. **Start a branch from `staging`:** `git switch staging && git pull && git switch -c feat/my-change`.
+   Commit your work, run `composer qa`, then `git push -u origin feat/my-change`.
+2. **Move it to staging.** On GitHub, open a pull request from your branch **into `staging`**
+   (GitHub suggests `production`, the default, so change the base) and merge it once CI passes.
 3. **Deploy staging:** run `deploy-staging` (below), then test the change on the staging site.
 4. **Release it.** Open a pull request from `staging` into `production` and merge it.
    (Terminal: `git fetch origin && git push origin origin/staging:production`.)
@@ -185,9 +188,9 @@ sudo install -m 755 /var/www/uphsl-staging/scripts/server/uphsl-deploy /usr/loca
 
 | I want to… | Do this |
 |---|---|
-| Work on a feature | On your computer: `composer dev`, then `composer qa` before pushing to `main` |
+| Work on a feature | Branch from `staging`; `composer dev`, then `composer qa` before pushing |
 | Reload demo data | `php artisan app:reset-demo` (local or staging folder) |
-| Test a change on the server | PR `main` → `staging`, then `deploy-staging` |
+| Test a change on the server | PR your branch → `staging`, then `deploy-staging` |
 | Release to users | PR `staging` → `production`, then `deploy-production` |
 | Change a setting on the server | Edit that folder's `.env` as `www-data`, then `php artisan optimize` |
 | See which version a server runs | `ssh uphsl "sudo -u www-data git -C /var/www/uphsl-production log -1 --oneline"` |
