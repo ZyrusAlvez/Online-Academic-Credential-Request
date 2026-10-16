@@ -72,4 +72,5 @@ APP_ENV=production php artisan migrate    # production
 
 - [Credentials and testing](docs/credentials.md): demo accounts and test steps
 - [Email and receipt storage setup](docs/setup-mail-and-storage.md): Gmail and Cloudflare R2
+- [Deploying on AWS Lightsail](docs/deployment/01-deploy-on-aws-lightsail.md): step-by-step server setup for staging and production
 - [Data dictionary](docs/data-dictionary.md), [design documents](docs/des/), [specifications](docs/specs/00-overview.md)
