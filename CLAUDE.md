@@ -38,8 +38,7 @@ force-push either.
    staging only if it passes. Watch it until it succeeds (if `qa` fails, fix on the branch and merge
    again), then give the user the staging URL to test.
 4. Open a pull request from `staging` into `production` describing what it releases (or update the
-   open one). **Don't merge it and don't approve the deploy.** The user tests staging, merges, and
-   approves production.
+   open one). **Don't merge it.** The user tests staging and merges it, which deploys production.
 
 `gh` isn't installed. Use the GitHub REST API (`api.github.com/repos/ZyrusAlvez/Online-Academic-Credential-Request`)
 with the stored git credential (`printf 'protocol=https\nhost=github.com\n\n' | git credential fill`),
@@ -78,8 +77,8 @@ scripts/deploy-staging.sh      # manual deploy fallback (deploy-production.sh; .
 Branches: feature branches (from `staging`) → `staging` (staging server) → `production` (production
 server, the default branch; there is no `main`). Branches merge into `staging` directly; only
 `staging` → `production` is a pull request. CI (`.github/workflows/ci.yml`, PHP 8.5 + MySQL 8.0) runs on every PR and before every deploy;
-`deploy.yml` deploys on every push to `staging`, and to `production` after a required approval
-(GitHub environment `production`). Deploys SSH in with environment-specific keys whose forced
+`deploy.yml` deploys on every push to `staging` and to `production`, after `qa` passes (no reviewer
+approval). Deploys SSH in with environment-specific keys whose forced
 command is `/usr/local/bin/uphsl-deploy <env>` (from `scripts/server/uphsl-deploy`), which refuses
 a production deploy that staging isn't already running. Never commit straight to `staging` or
 `production`; merge branches into them. Docs: `docs/deployment/02-environments.md`.
