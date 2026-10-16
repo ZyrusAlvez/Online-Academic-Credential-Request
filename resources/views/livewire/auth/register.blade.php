@@ -6,9 +6,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.auth')] class extends Component {
+new #[Layout('components.layouts.auth')] #[Title('Create an account')] class extends Component {
     use \App\Livewire\Concerns\TrimsInput;
 
     public string $first_name = '';
@@ -72,6 +73,8 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 name="password"
                 required
                 autocomplete="new-password"
+                :description="__('At least 8 characters.')"
+                viewable
             />
         </div>
 
@@ -85,6 +88,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 name="password_confirmation"
                 required
                 autocomplete="new-password"
+                viewable
             />
         </div>
 

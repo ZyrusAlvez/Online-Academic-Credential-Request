@@ -2,9 +2,10 @@
 
 use Illuminate\Support\Facades\Password;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.auth')] class extends Component {
+new #[Layout('components.layouts.auth')] #[Title('Forgot password')] class extends Component {
     use \App\Livewire\Concerns\TrimsInput;
 
     public string $email = '';
