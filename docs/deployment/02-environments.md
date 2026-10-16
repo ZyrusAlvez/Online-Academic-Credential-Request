@@ -72,9 +72,9 @@ Any derived value can still be overridden by adding it to `.env` (for example `A
 ## Branches: how a change reaches users
 
 ```
- feature branch ── PR ──►  staging  ────── PR (from staging only) ──────►  production (default)
+ feature branch ─ merge ─► staging  ────── PR (from staging only) ──────►  production (default)
        │                     │                                               │
-   CI checks           CI → deploy to staging                     CI → waits for your Approve
+                       CI → deploy to staging                     CI → waits for your Approve
                        → health check                              → deploy to production
                                                                    → health check
 ```
@@ -91,12 +91,12 @@ what users run.
 ### Releasing a change, step by step
 
 1. **Start a branch from `staging`:** `git switch staging && git pull && git switch -c feat/my-change`.
-   Commit your work, run `composer qa`, then `git push -u origin feat/my-change`.
-2. **Open a pull request into `staging`.** GitHub suggests `production`, the default, so change the
-   base to `staging`. CI runs; merge once the `qa` check is green.
-3. **Staging deploys itself.** The merge starts the *deploy* workflow: CI runs again on the
-   merged code, then the staging server is updated and its `/up` health check is verified. Test
-   the change on the staging site.
+   Commit your work and `git push -u origin feat/my-change`.
+2. **Merge it into `staging`:** `git switch staging && git merge --no-ff feat/my-change && git push`.
+   No pull request is needed for this step.
+3. **Staging deploys itself.** The push starts the *deploy* workflow: CI (`composer qa` and the
+   rest) runs on the merged code, and only if it passes is the staging server updated and its
+   `/up` health check verified. Test the change on the staging site.
 4. **Open a pull request from `staging` into `production`** and merge it once CI is green.
 5. **Approve the release.** The *deploy* workflow runs CI, then pauses at **Waiting for review**.
    Open the run (Actions tab, or the link in the pull request), click **Review deployments**,
@@ -116,10 +116,11 @@ Tests and deploys run on **GitHub Actions**, never on the servers:
 | Push (merge) to `staging` or `production` | `deploy.yml` | Runs `ci.yml` again, then the `deploy` job: SSH to the server → `uphsl-deploy <branch>` → `curl <site>/up` |
 | Actions tab → *deploy* → **Run workflow** | `deploy.yml` | Re-deploys a branch, e.g. after fixing a server setting |
 
-**Branch protection.** `staging` and `production` only accept pull requests whose `qa` and
-`release-source` checks passed, and can't be force-pushed or deleted. Pull requests into `staging`
-must also be up to date with it. `production` doesn't require that, because each release adds a
-merge commit that `staging` never gets. Admins can bypass in an emergency.
+**Branch protection.** `production` only accepts pull requests whose `qa` and `release-source`
+checks passed. It doesn't require them to be up to date, because each release adds a merge commit
+that `staging` never gets. Neither branch can be force-pushed or deleted. Branches are merged into
+`staging` and pushed directly; the account is an admin, so GitHub lets that push past the
+pull-request rule. The safety net is the deploy workflow, which won't deploy code that fails `qa`.
 
 **GitHub Environments.** The deploy job runs in the `staging` or `production` environment.
 Each environment holds its own SSH key secret (`DEPLOY_SSH_KEY`) and only accepts deploys from its
@@ -238,9 +239,9 @@ It stops at the first error, so a failed step never leaves half-cached settings 
 
 | I want to… | Do this |
 |---|---|
-| Work on a feature | Branch from `staging`; `composer dev`, then `composer qa` before pushing |
+| Work on a feature | Branch from `staging`; `composer dev` (`composer qa` is optional, CI runs it) |
 | Reload demo data | `php artisan app:reset-demo` (local or staging folder) |
-| Test a change on the server | PR your branch → `staging`; it deploys after the merge |
+| Test a change on the server | Merge your branch into `staging` and push; it deploys once `qa` passes |
 | Release to users | PR `staging` → `production`, then approve the deploy in the Actions tab |
 | Redeploy without a code change | Actions → *deploy* → **Run workflow** on that branch |
 | Change a setting on the server | Edit that folder's `.env` as `www-data`, then `php artisan optimize` |

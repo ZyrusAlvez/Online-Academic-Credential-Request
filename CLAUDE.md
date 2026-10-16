@@ -24,21 +24,22 @@ If code and spec disagree, fix the spec first (and say why in the commit).
 
 ## Git workflow (every change, every session)
 
-Every change goes through a pull request; never push to `staging` or `production` directly, never
-force-push them, and never bypass branch protection (the account is an admin, so GitHub would
-allow it).
+Work happens on a branch that is merged straight into `staging`; the only pull request is
+`staging` → `production`. Never commit on `staging` itself, never push to `production`, and never
+force-push either.
 
 1. Start from fresh staging: `git switch staging && git pull --ff-only`, then
    `git switch -c <type>/<short-name>` (`feat/`, `fix/`, `docs/`, `ci/`, `chore/`). One feature or
    fix per branch.
-2. Commit on the branch, following the spec-driven loop above. `composer qa` must be green before
-   every push. Push with `git push -u origin <branch>`.
-3. Open a pull request **into `staging`** (GitHub defaults to `production`, so set the base).
-   Wait for the `qa` check. If it fails, fix on the branch and push again.
-4. Once `qa` is green, merge the pull request (merge commit). That deploys staging automatically:
-   watch the `deploy` run until it succeeds, then give the user the staging URL to test.
-5. Open a pull request from `staging` into `production` describing what it releases. **Don't merge
-   it and don't approve the deploy.** The user tests staging, merges, and approves production.
+2. Commit on the branch, following the spec-driven loop above, and push it
+   (`git push -u origin <branch>`). Running `composer qa` locally is optional: CI runs it.
+3. When the branch is done, merge it into `staging` (`git switch staging && git merge --no-ff
+   <branch>`) and push `staging`. That starts the `deploy` run, which runs `qa` first and deploys
+   staging only if it passes. Watch it until it succeeds (if `qa` fails, fix on the branch and merge
+   again), then give the user the staging URL to test.
+4. Open a pull request from `staging` into `production` describing what it releases (or update the
+   open one). **Don't merge it and don't approve the deploy.** The user tests staging, merges, and
+   approves production.
 
 `gh` isn't installed. Use the GitHub REST API (`api.github.com/repos/ZyrusAlvez/Online-Academic-Credential-Request`)
 with the stored git credential (`printf 'protocol=https\nhost=github.com\n\n' | git credential fill`),
@@ -75,12 +76,13 @@ scripts/deploy-staging.sh      # manual deploy fallback (deploy-production.sh; .
 ```
 
 Branches: feature branches (from `staging`) → `staging` (staging server) → `production` (production
-server, the default branch; there is no `main`), promoted by pull request. CI (`.github/workflows/ci.yml`, PHP 8.5 + MySQL 8.0) runs on every PR;
+server, the default branch; there is no `main`). Branches merge into `staging` directly; only
+`staging` → `production` is a pull request. CI (`.github/workflows/ci.yml`, PHP 8.5 + MySQL 8.0) runs on every PR and before every deploy;
 `deploy.yml` deploys on every push to `staging`, and to `production` after a required approval
 (GitHub environment `production`). Deploys SSH in with environment-specific keys whose forced
 command is `/usr/local/bin/uphsl-deploy <env>` (from `scripts/server/uphsl-deploy`), which refuses
 a production deploy that staging isn't already running. Never commit straight to `staging` or
-`production`. Docs: `docs/deployment/02-environments.md`.
+`production`; merge branches into them. Docs: `docs/deployment/02-environments.md`.
 
 ## Environments
 
