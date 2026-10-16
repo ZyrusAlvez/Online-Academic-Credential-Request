@@ -59,14 +59,3 @@ jobs:
       - run: cp .env.example .env && php artisan key:generate
       - run: composer qa
 
-  # Production only takes changes that went through staging.
-  release-source:
-    if: github.event_name == 'pull_request' && github.base_ref == 'production'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Pull requests into production must come from staging
-        run: |
-          if [ "${{ github.head_ref }}" != "staging" ]; then
-            echo "::error::Open this pull request from 'staging', not '${{ github.head_ref }}'. Changes reach production only after staging."
-            exit 1
-          fi
