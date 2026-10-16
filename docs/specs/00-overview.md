@@ -107,12 +107,21 @@ reason required).
 
 ## Environments
 
-Exactly two environments, each with its own database and file storage:
+Exactly three environments (`APP_ENV`), each with its own `.env`, database and file storage.
+Any other value stops the app at startup.
 
 | Environment | Database | Purpose |
 |---|---|---|
-| `staging` | `uphsl_credential_tracker_staging` | Development, demos, automated tests (wiped and re-seeded by tests) |
+| `local` | `uphsl_credential_tracker_local` | A developer's machine; demo data allowed |
+| `staging` | `uphsl_credential_tracker_staging` | The server copy for testing changes and demos; demo data allowed |
 | `production` | `uphsl_credential_tracker` | Real use; never receives demo or test data |
+
+Settings that follow from the environment (database name, debug mode, log level, mailer, secure
+cookies, receipt folder) are defaults in `config/`, so `.env` holds only per-deployment values
+and secrets. Local and staging never send real email.
+
+Automated tests run in Laravel's internal `testing` mode on their own database,
+`uphsl_credential_tracker_testing`, and refuse to run on any other.
 
 ## Feature specs
 
