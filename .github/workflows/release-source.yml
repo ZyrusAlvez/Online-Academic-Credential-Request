@@ -1,0 +1,18 @@
+name: release-source
+
+# Production only takes changes that went through staging. A workflow of its own, so it runs on
+# pull requests into production and nowhere else (no "skipped" check on deploys).
+on:
+  pull_request:
+    branches: [production]
+
+jobs:
+  release-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull requests into production must come from staging
+        run: |
+          if [ "${{ github.head_ref }}" != "staging" ]; then
+            echo "::error::Open this pull request from 'staging', not '${{ github.head_ref }}'. Changes reach production only after staging."
+            exit 1
+          fi

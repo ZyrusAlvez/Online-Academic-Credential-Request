@@ -97,8 +97,8 @@ what users run.
    rest) runs on the merged code, and only if it passes is the staging server updated and its
    `/up` health check verified. Test the change on the staging site.
 4. **Open a pull request from `staging` into `production`** and merge it once CI is green. Merging
-   is the release: the *deploy* workflow runs CI again, then updates production and runs its
-   health check. There is no separate approval step.
+   is the release: the *deploy* workflow runs CI again, then updates production, runs its
+   health check and fast-forwards `staging` to `production`. There is no separate approval step.
 
 The pull requests and the Environments page (Code tab → *Deployments*) keep a record of what was
 released, when, and who merged it.
@@ -110,13 +110,13 @@ Tests and deploys run on **GitHub Actions**, never on the servers:
 | When | Workflow | What it does |
 |---|---|---|
 | Every pull request | `ci.yml` | On a fresh Ubuntu machine with PHP 8.5, MySQL 8.0 (as on the server) and Node 22: `composer validate`, `composer audit` (known vulnerabilities), `npm run build`, then `composer qa` (Pint, PHPStan, all Pest tests) |
-| Pull request into `production` | `ci.yml` | Also `release-source`: fails unless the pull request comes from `staging` |
+| Pull request into `production` | `release-source.yml` | Fails unless the pull request comes from `staging` |
 | Push (merge) to `staging` or `production` | `deploy.yml` | Runs `ci.yml` again, then the `deploy` job: SSH to the server → `uphsl-deploy <branch>` → `curl <site>/up` |
 | Actions tab → *deploy* → **Run workflow** | `deploy.yml` | Re-deploys a branch, e.g. after fixing a server setting |
 
 **Branch protection.** `production` only accepts pull requests whose `qa` and `release-source`
-checks passed. It doesn't require them to be up to date, because each release adds a merge commit
-that `staging` never gets. Neither branch can be force-pushed or deleted. Branches are merged into
+checks passed. Merging adds a merge commit to `production`; once production has deployed, the
+*deploy* workflow fast-forwards `staging` to it, so both branches hold the same commits. Neither branch can be force-pushed or deleted. Branches are merged into
 `staging` and pushed directly; the account is an admin, so GitHub lets that push past the
 pull-request rule. The safety net is the deploy workflow, which won't deploy code that fails `qa`.
 
@@ -152,7 +152,7 @@ swap the public line in `authorized_keys`.
 **Production can only take what staging is running.** The server's deploy command checks that
 the code on the `production` branch is identical to the code deployed on staging. If not, it stops
 with *"Deploy staging first"* and changes nothing. It compares content, not commits, because
-merging the release pull request adds a merge commit that exists only on `production`.
+merging the release pull request adds a merge commit that reaches `staging` only after the deploy.
 
 ## Manual deploy (fallback)
 
