@@ -41,20 +41,20 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'url' => config('app.url').'/storage',
             'visibility' => 'public',
             'throw' => false,
         ],
 
         // Cloudflare R2 (S3-compatible), private bucket. Each environment writes under its own
-        // folder (staging/, production/), mirroring the local disk.
+        // folder (local/, staging/, production/), mirroring the local disk.
         'r2' => [
             'driver' => 's3',
             'key' => env('R2_ACCESS_KEY_ID'),
             'secret' => env('R2_SECRET_ACCESS_KEY'),
             'region' => 'auto',
             'bucket' => env('R2_BUCKET'),
-            'endpoint' => env('R2_ENDPOINT'),
+            'endpoint' => env('R2_ENDPOINT', 'https://'.env('R2_ACCOUNT_ID').'.r2.cloudflarestorage.com'),
             'use_path_style_endpoint' => true,
             'root' => env('APP_ENV', 'production'),
             'visibility' => 'private',

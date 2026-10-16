@@ -20,11 +20,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Only two environments exist. The test runner's internal `testing` mode is allowed
-        // because Laravel's test helpers depend on it; it always uses the staging database.
-        if (! $this->app->environment(['staging', 'production']) && ! $this->app->runningUnitTests()) {
+        // Only three environments exist. The test runner's internal `testing` mode is allowed
+        // because Laravel's test helpers depend on it; it uses its own _testing database.
+        if (! $this->app->environment(['local', 'staging', 'production']) && ! $this->app->runningUnitTests()) {
             throw new RuntimeException(sprintf(
-                'APP_ENV must be "staging" or "production", "%s" given. Check your .env file.',
+                'APP_ENV must be "local", "staging" or "production", "%s" given. Check your .env file.',
                 $this->app->environment(),
             ));
         }

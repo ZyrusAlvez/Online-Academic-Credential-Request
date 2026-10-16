@@ -78,11 +78,6 @@
             "@lint",
             "@stan",
             "@test"
-        ],
-        "prod": [
-            "Composer\\Config::disableProcessTimeout",
-            "npm run build",
-            "npx concurrently -c \"#93c5fd,#c4b5fd\" \"APP_ENV=production php artisan serve --port=8001 --no-reload\" \"APP_ENV=production php artisan queue:listen --tries=1\" --names=server,queue"
         ]
     },
     "extra": {

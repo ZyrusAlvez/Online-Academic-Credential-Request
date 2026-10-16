@@ -33,40 +33,34 @@ Each credential's signing order and fee are set by the registrar and can be chan
 
 ## Environments
 
-There are exactly **two** environments. Both are configured in one `.env` file, and `APP_ENV`
-selects which one runs. Any other value stops the app at startup.
+There are exactly **three** environments, chosen by `APP_ENV` in each deployment's own `.env`.
+Any other value stops the app at startup.
 
-| | Staging | Production |
-|---|---|---|
-| Purpose | Development, demos and automated tests | Real use |
-| Start | `composer dev` | `composer prod` |
-| Address | http://localhost:8000 | http://localhost:8001 |
-| `APP_ENV` | `staging` (the default in `.env`) | `production` (set by `composer prod`) |
-| Database | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
-| Data | Base data plus demo accounts and sample requests | Base data and real data only |
-| Email | Written to `storage/logs/laravel.log` | Sent through Gmail |
-| Receipts | `staging/` folder in the R2 bucket | `production/` folder in the R2 bucket |
-| Debug mode | On | Always off |
+| | Local | Staging | Production |
+|---|---|---|---|
+| Purpose | Development on your own computer | Testing changes and demos on the server | Real use |
+| Runs | `composer dev` → http://localhost:8000 | Server folder `/var/www/uphsl-staging` | Server folder `/var/www/uphsl-production` |
+| Database | `uphsl_credential_tracker_local` | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
+| Data | Base data plus demo accounts and sample requests | Base data plus demo accounts and sample requests | Base data and real data only |
+| Email | Written to `storage/logs/laravel.log` | Written to `storage/logs/laravel.log` | Sent through Gmail |
+| Receipts | `local/` folder | `staging/` folder | `production/` folder |
+| Debug mode | On | Off | Always off |
 
 Base data means the 15 departments, the 7 credential types with their signing workflows, and
 the first registrar account.
 
-### Running commands
-
-Commands run in staging by default. Put `APP_ENV=production` in front to run one in production:
-
-```bash
-php artisan migrate                       # staging
-APP_ENV=production php artisan migrate    # production
-```
+The `.env` file is small: the environment name, the address, the database login, and the
+secrets for email and receipt storage (see `.env.example`). Everything that follows from the
+environment, such as the database name, debug mode and the mailer, is set automatically in
+`config/`.
 
 ### Rules that keep production safe
 
-- Automated tests run only on the staging database. They wipe it and reload the demo data
-  afterwards, and they refuse to start on any database whose name does not end in `_staging`.
-- Demo data and `php artisan app:reset-demo` (reload the demo data) work only in staging.
+- Automated tests run on their own database, `uphsl_credential_tracker_testing`, and refuse to
+  start on any database whose name does not end in `_testing`.
+- Demo data and `php artisan app:reset-demo` (reload the demo data) work only in local and staging.
 - Each environment has its own database and its own receipts folder, so nothing done in
-  staging can change production.
+  local or staging can change production.
 
 ## More documentation
 

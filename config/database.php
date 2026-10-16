@@ -17,7 +17,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'mysql'),
 
     /*
     |--------------------------------------------------------------------------
@@ -48,10 +48,10 @@ return [
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
-            // One .env serves both environments; APP_ENV picks the database.
-            'database' => env('APP_ENV') === 'production'
-                ? env('DB_DATABASE_PRODUCTION', 'uphsl_credential_tracker')
-                : env('DB_DATABASE_STAGING', 'uphsl_credential_tracker_staging'),
+            // uphsl_credential_tracker in production, uphsl_credential_tracker_<env> elsewhere.
+            'database' => env('DB_DATABASE', env('APP_ENV', 'production') === 'production'
+                ? 'uphsl_credential_tracker'
+                : 'uphsl_credential_tracker_'.env('APP_ENV')),
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),

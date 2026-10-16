@@ -139,8 +139,12 @@ Staging uses a **subdomain**, not a path like `/staging`. Browsers keep cookies 
 `staging.` keeps the staging login cookie separate from production's. Laravel also expects to
 own the whole site from `/`.
 
-You can change names later. It means editing the Nginx `server_name`, the `APP_URL_*` in `.env`,
-and running certbot again.
+The app knows its own addresses: they are set per environment in `config/app.php` (`url`). If
+your names differ from the ones there, change them in that file and push, or put
+`APP_URL=https://<your name>` in that deployment's `.env`, which overrides it.
+
+You can change names later. It means editing the Nginx `server_name`, the address in
+`config/app.php` (then deploying), and running certbot again.
 
 ---
 
@@ -409,8 +413,21 @@ of Git. **Secrets never go in Git**, especially in a public repository.
 ### 8.1 What `.env` is
 
 The code is identical in both folders. Each folder's `.env` decides which environment it is and
-holds all its secrets. `config/*.php` reads `.env`; for example `config/database.php` picks the
-database from `APP_ENV`. `.env.example` is the template, committed without secrets.
+holds all its secrets. `config/*.php` reads `.env`. `.env.example` is the template, committed
+without secrets.
+
+The file is deliberately small. Anything that follows from `APP_ENV` is a default in `config/`:
+
+| | Staging | Production |
+|---|---|---|
+| Database | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
+| Debug mode | off | always off |
+| Mailer | always the log file | Gmail SMTP (`smtp.gmail.com:587`) |
+| Receipts folder | `staging/` | `production/` |
+| Address | `https://staging.<…>` from `config/app.php` | `https://<…>` from `config/app.php` |
+| Secure (HTTPS-only) login cookie | on, because the address is `https://` | same |
+
+So `.env` holds only the environment name, the app key, the database login and the secrets.
 
 > **After `php artisan optimize`, Laravel reads its cached copy, not `.env`.** Whenever you edit
 > `.env` later, run `php artisan optimize` again, or the change silently does nothing.
@@ -431,10 +448,11 @@ move, **Ctrl+W** searches, **Ctrl+O** then Enter saves, and **Ctrl+X** exits. Se
 
 ```dotenv
 APP_ENV=production
-APP_URL_PRODUCTION=https://<PROD_NAME>
-INITIAL_REGISTRAR_EMAIL=registrar@uphsl.edu.ph
 INITIAL_REGISTRAR_PASSWORD=<a strong password you choose and remember>
 ```
+
+The first registrar's email is `registrar@uphsl.edu.ph`; add `INITIAL_REGISTRAR_EMAIL=` to use a
+different one.
 
 Staging:
 
@@ -447,21 +465,18 @@ nano .env
 
 ```dotenv
 APP_ENV=staging
-APP_URL_STAGING=https://<STAGING_NAME>
 ```
 
-Both files contain both `APP_URL_STAGING` and `APP_URL_PRODUCTION`. Each environment reads only
-its own, so the other line is ignored, but **make sure you changed the right one**. A staging
-`.env` left at `http://localhost:8000` makes every email link point at the reader's own computer.
+**Check `APP_ENV` in both files.** One left at the template's `local` would use the laptop
+address `http://localhost:8000` in every email link and turn off the secure login cookie.
 
 | Setting | Staging | Production |
 |---|---|---|
 | `APP_ENV` | `staging` | `production` |
-| `APP_URL_*` | `APP_URL_STAGING` | `APP_URL_PRODUCTION` |
 | `APP_KEY` | Leave empty; generated in step 9 | Leave empty; generated in step 9 |
 | `DB_USERNAME` / `DB_PASSWORD` | Written automatically in 8.3 | Written automatically in 8.3 |
 | `INITIAL_REGISTRAR_PASSWORD` | Leave empty (staging always uses `password`) | Required |
-| `MAIL_*` | Leave empty (staging never sends real email) | Step 13 |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | Leave empty (staging never sends real email) | Step 13 |
 | `RECEIPTS_DISK`, `R2_*` | Step 13 | Step 13 |
 
 **Staging gets no production secrets.** If staging's `.env` ever leaked, it would hold no Gmail
@@ -473,7 +488,7 @@ changes, everyone is logged out. Each environment gets its own.
 ### 8.3 Create the app database users
 
 Each environment gets its **own** MySQL user, which can access only its own database. Staging has
-debug mode and demo accounts, so it's the weaker side. If its database password leaked, it still
+demo accounts with the password `password`, so it's the weaker side. If its database password leaked, it still
 couldn't open production. This is the **principle of least privilege**.
 
 These blocks generate a random password, create the user with it, and write the same password
@@ -512,7 +527,7 @@ the `GRANT` line. (`.env` files can be read by `ubuntu` with `sudo grep '^DB_PAS
 ### Check, without printing any secrets
 
 ```bash
-sudo grep -E '^(APP_ENV|APP_URL_|DB_USERNAME)' /var/www/uphsl-*/.env
+sudo grep -E '^(APP_ENV|DB_USERNAME)' /var/www/uphsl-*/.env
 sudo grep -c '^DB_PASSWORD=[0-9a-f]\{40\}$' /var/www/uphsl-*/.env    # both files ":1"
 sudo ls -l /var/www/uphsl-*/.env                                    # both "-rw------- www-data www-data"
 sudo mysql -e "SHOW GRANTS FOR 'uphsl_prod'@'localhost'; SHOW GRANTS FOR 'uphsl_staging'@'localhost';"
@@ -749,22 +764,18 @@ optional. It should end with **"Successfully deployed certificate"**.
   (`# managed by Certbot`): `listen 443 ssl`, the certificate paths, and an HTTP→HTTPS redirect block.
 - `sudo certbot renew --dry-run` reports that all simulated renewals succeeded.
 
-### Send login cookies over HTTPS only
+### Login cookies are HTTPS-only automatically
 
-As `www-data`, one line per environment:
-
-```bash
-cd /var/www/uphsl-production && echo 'SESSION_SECURE_COOKIE=true' >> .env && php artisan optimize
-```
+Because the site's address starts with `https://`, `config/session.php` marks the login cookie **secure**:
+the browser sends it only over HTTPS, so it can never leak over plain HTTP. Nothing to do. Check it
+as `www-data` in each folder:
 
 ```bash
-cd /var/www/uphsl-staging && echo 'SESSION_SECURE_COOKIE=true' >> .env && php artisan optimize
+php artisan config:show session.secure      # true
 ```
 
-`>>` **appends** a line. A single `>` would replace the whole file.
-
-Do this only **after** HTTPS works. Over plain HTTP the browser won't send a secure cookie, and
-logins fail with "419 Page Expired".
+While a site is still on plain HTTP (before this step), logins fail with "419 Page Expired",
+because the browser refuses to send a secure cookie over HTTP. Finishing HTTPS fixes it.
 
 ---
 
@@ -846,12 +857,12 @@ nano .env
 ```
 
 ```dotenv
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
 MAIL_USERNAME=your.account@gmail.com
 MAIL_PASSWORD=<the 16-character App Password, without spaces>
 ```
+
+Production already uses Gmail's SMTP server (`smtp.gmail.com:587`) and sends from `MAIL_USERNAME`;
+those are defaults in `config/mail.php`.
 
 ```bash
 php artisan optimize && php artisan app:test-mail your.own@gmail.com
@@ -859,14 +870,14 @@ php artisan optimize && php artisan app:test-mail your.own@gmail.com
 
 `app:test-mail` sends immediately (not queued), so it tests the Gmail settings alone. Expected:
 `Sent. Check the inbox (and the spam folder).` If it says *"Written to storage/logs/laravel.log"*,
-`MAIL_MAILER` isn't `smtp` or `optimize` wasn't run.
+`APP_ENV` isn't `production` or `optimize` wasn't run.
 
 Lightsail blocks only port 25 for outgoing mail, and Gmail uses 587, so this works.
 
 ### 13.2 Receipts (Cloudflare R2)
 
 Follow [Part B of the mail and storage guide](../setup-mail-and-storage.md) to create the bucket
-and API token, then put the same `RECEIPTS_DISK=r2` and `R2_*` lines into **both** `.env` files
+and API token, then put the same `RECEIPTS_DISK=r2` and four `R2_*` lines into **both** `.env` files
 and run `php artisan optimize` in each. Check with:
 
 ```bash
@@ -877,9 +888,9 @@ Receipts then live in R2, not on the server's disk: they survive the server bein
 fill its disk. Each environment writes to its own folder in the bucket (`staging/` or
 `production/`).
 
-> **Keep your development laptop on `RECEIPTS_DISK=local`.** The laptop also runs as `staging`,
-> so with R2 it would share the bucket's `staging/` folder with the server. Every test run ends
-> with `app:reset-demo`, which deletes the `staging/` receipts the server's staging still uses.
+> A development laptop runs as `local`, so even with the same bucket it writes to its own
+> `local/` folder and can't touch staging's or production's receipts. Keeping laptops on
+> `RECEIPTS_DISK=local` is still simpler: no development files in the shared bucket.
 
 ---
 
@@ -1038,8 +1049,9 @@ uphsl-deploy production
 
 From your laptop, with the SSH shortcut from step 3: `ssh uphsl uphsl-deploy staging`.
 
-**Never run the tests (`composer qa`, `php artisan test`) on the server.** They wipe the staging
-database. Run them on your laptop before pushing.
+**Run the tests (`composer qa`) on your laptop before pushing, not on the server.** They use
+their own `uphsl_credential_tracker_testing` database, which the server doesn't have, and
+production has no test tools installed.
 
 ---
 
@@ -1050,7 +1062,7 @@ These steps go beyond the base setup, but are worth doing before real users arri
 ### 16.1 Put staging behind a password
 
 Both apps run as `www-data`, so a break-in through staging could read production's `.env`. Staging
-is also the weaker side: public, with debug mode on and demo logins using `password`. Nginx basic
+is also the weaker side: public, with demo logins using `password`. Nginx basic
 auth makes the browser ask for a username and password before showing anything on staging:
 
 ```bash
@@ -1105,8 +1117,8 @@ have never restored is a hope, not a backup, so try a restore into a scratch dat
 | `certbot: command not found` | certbot isn't installed | `sudo apt install -y certbot python3-certbot-nginx` |
 | nano shows an empty `.env` | As `ubuntu`, you can't read a file owned by `www-data` with mode 600 | **Ctrl+X** without saving, then `sudo -u www-data nano .env` |
 | Staging login fails with the `.env` registrar password | Staging ignores `INITIAL_REGISTRAR_PASSWORD`. Every staging account uses `password` | Log in as `registrar@uphsl.edu.ph` / `password` (see [credentials](../credentials.md)) |
-| "419 Page Expired" on login | `SESSION_SECURE_COOKIE=true` while the site is still on HTTP | Finish step 11, or remove the line and run `php artisan optimize` |
-| No emails arrive | Staging only logs emails. In production: `MAIL_MAILER` isn't `smtp`, `optimize` wasn't run, or no queue worker is running | Step 13.1 (`app:test-mail`) and step 12 (`supervisorctl status`) |
+| "419 Page Expired" on login | The address is `https://…` (secure cookie) but the site is still on plain HTTP | Finish step 11 (HTTPS) |
+| No emails arrive | Staging only logs emails. In production: `MAIL_USERNAME`/`MAIL_PASSWORD` missing, `optimize` wasn't run, or no queue worker is running | Step 13.1 (`app:test-mail`) and step 12 (`supervisorctl status`) |
 | DBeaver: "Public Key Retrieval is not allowed" | MySQL 8 password exchange without SSL | Driver properties → `allowPublicKeyRetrieval` = `true` |
 | DBeaver: `Access denied for user '<name>'` | Wrong username or password, or the user doesn't exist | `sudo mysql -e "SELECT user, host FROM mysql.user;"`, then test with `mysql -u <name> -p -h 127.0.0.1` |
 | DBeaver can't read the key file | A Snap or Flatpak DBeaver can't read hidden folders like `~/.ssh` | Keep the key in a normal folder such as `~/key/` |

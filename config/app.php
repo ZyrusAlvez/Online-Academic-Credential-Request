@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'UPHSL Credential Tracker'),
 
     /*
     |--------------------------------------------------------------------------
@@ -39,8 +39,9 @@ return [
     |
     */
 
-    // Never on in production; on in staging unless APP_DEBUG says otherwise.
-    'debug' => env('APP_ENV') !== 'production' && (bool) env('APP_DEBUG', true),
+    // Never on in production; on by default only on a developer's machine and in tests.
+    'debug' => env('APP_ENV') !== 'production'
+        && (bool) env('APP_DEBUG', in_array(env('APP_ENV'), ['local', 'testing'], true)),
 
     /*
     |--------------------------------------------------------------------------
@@ -53,10 +54,12 @@ return [
     |
     */
 
-    // One .env serves both environments; APP_ENV picks the URL.
-    'url' => env('APP_ENV') === 'production'
-        ? env('APP_URL_PRODUCTION', 'http://localhost:8001')
-        : env('APP_URL_STAGING', 'http://localhost:8000'),
+    // Each environment's address; APP_URL in .env overrides it.
+    'url' => env('APP_URL', match (env('APP_ENV')) {
+        'production' => 'https://18-139-77-227.sslip.io',
+        'staging' => 'https://staging.18-139-77-227.sslip.io',
+        default => 'http://localhost:8000',
+    }),
 
     /*
     |--------------------------------------------------------------------------
