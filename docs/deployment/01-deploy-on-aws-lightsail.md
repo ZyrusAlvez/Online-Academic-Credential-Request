@@ -1038,9 +1038,13 @@ queue workers. It stops at the first error.
 
 ### 15.2 Use it
 
-From your own computer, double-click `scripts/deploy-staging.sh` (Ubuntu) or
-`scripts\deploy-staging.bat` (Windows), and the `deploy-production` ones for production. The
-one-time SSH setup is in [02 — Environments](02-environments.md#one-click-deploy).
+Normally you don't run it yourself: GitHub Actions runs it after every merge into `staging`, and
+after your approval for `production` (see [02 — Environments](02-environments.md#cicd-what-runs-where)).
+The keys it uses are set up in the server step of that page.
+
+As a fallback, double-click `scripts/deploy-staging.sh` (Ubuntu) or `scripts\deploy-staging.bat`
+(Windows) on your own computer, or the `deploy-production` ones. The one-time SSH setup is in
+[02 — Environments](02-environments.md#manual-deploy-fallback).
 
 Or on the server, as `ubuntu`:
 
