@@ -4,9 +4,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
 
-new class extends Component {
+new #[Title('Password settings')] class extends Component {
     public string $current_password = '';
     public string $password = '';
     public string $password_confirmation = '';
@@ -44,12 +45,13 @@ new class extends Component {
         <form wire:submit="updatePassword" class="mt-6 space-y-6">
             <flux:input
                 wire:model="current_password"
-                id="update_password_current_passwordpassword"
+                id="update_password_current_password"
                 label="{{ __('Current password') }}"
                 type="password"
                 name="current_password"
                 required
                 autocomplete="current-password"
+                viewable
             />
             <flux:input
                 wire:model="password"
@@ -59,15 +61,18 @@ new class extends Component {
                 name="password"
                 required
                 autocomplete="new-password"
+                :description="__('At least 8 characters.')"
+                viewable
             />
             <flux:input
                 wire:model="password_confirmation"
                 id="update_password_password_confirmation"
-                label="{{ __('Confirm Password') }}"
+                label="{{ __('Confirm password') }}"
                 type="password"
                 name="password_confirmation"
                 required
                 autocomplete="new-password"
+                viewable
             />
 
             <div class="flex items-center gap-4">

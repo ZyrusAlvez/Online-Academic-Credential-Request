@@ -72,10 +72,11 @@ Any derived value can still be overridden by adding it to `.env` (for example `A
 ## Branches: how a change reaches users
 
 ```
- feature branch ──── PR ────►  staging  ──── PR ────►  production (default)
-       │                         │                        │
- composer qa (CI)          deploy-staging            deploy-production
-                           → staging server           → production server
+ feature branch ─ merge ─► staging  ────── PR (from staging only) ──────►  production (default)
+       │                     │                                               │
+                       CI → deploy to staging                     CI → waits for your Approve
+                       → health check                              → deploy to production
+                                                                   → health check
 ```
 
 | Branch | Holds | Deployed to |
@@ -90,23 +91,76 @@ what users run.
 ### Releasing a change, step by step
 
 1. **Start a branch from `staging`:** `git switch staging && git pull && git switch -c feat/my-change`.
-   Commit your work, run `composer qa`, then `git push -u origin feat/my-change`.
-2. **Move it to staging.** On GitHub, open a pull request from your branch **into `staging`**
-   (GitHub suggests `production`, the default, so change the base) and merge it once CI passes.
-3. **Deploy staging:** run `deploy-staging` (below), then test the change on the staging site.
-4. **Release it.** Open a pull request from `staging` into `production` and merge it.
-   (Terminal: `git fetch origin && git push origin origin/staging:production`.)
-5. **Deploy production:** run `deploy-production` and type `production` to confirm.
+   Commit your work and `git push -u origin feat/my-change`.
+2. **Merge it into `staging`:** `git switch staging && git merge --no-ff feat/my-change && git push`.
+   No pull request is needed for this step.
+3. **Staging deploys itself.** The push starts the *deploy* workflow: CI (`composer qa` and the
+   rest) runs on the merged code, and only if it passes is the staging server updated and its
+   `/up` health check verified. Test the change on the staging site.
+4. **Open a pull request from `staging` into `production`** and merge it once CI is green.
+5. **Approve the release.** The *deploy* workflow runs CI, then pauses at **Waiting for review**.
+   Open the run (Actions tab, or the link in the pull request), click **Review deployments**,
+   tick `production` and **Approve and deploy**. Production updates and its health check runs.
 
-The pull requests leave a record of what was released and when.
+The pull requests and the Environments page (Code tab → *Deployments*) keep a record of what was
+released, when, and who approved it.
+
+## CI/CD: what runs where
+
+Tests and deploys run on **GitHub Actions**, never on the servers:
+
+| When | Workflow | What it does |
+|---|---|---|
+| Every pull request | `ci.yml` | On a fresh Ubuntu machine with PHP 8.5, MySQL 8.0 (as on the server) and Node 22: `composer validate`, `composer audit` (known vulnerabilities), `npm run build`, then `composer qa` (Pint, PHPStan, all Pest tests) |
+| Pull request into `production` | `ci.yml` | Also `release-source`: fails unless the pull request comes from `staging` |
+| Push (merge) to `staging` or `production` | `deploy.yml` | Runs `ci.yml` again, then the `deploy` job: SSH to the server → `uphsl-deploy <branch>` → `curl <site>/up` |
+| Actions tab → *deploy* → **Run workflow** | `deploy.yml` | Re-deploys a branch, e.g. after fixing a server setting |
+
+**Branch protection.** `production` only accepts pull requests whose `qa` and `release-source`
+checks passed. It doesn't require them to be up to date, because each release adds a merge commit
+that `staging` never gets. Neither branch can be force-pushed or deleted. Branches are merged into
+`staging` and pushed directly; the account is an admin, so GitHub lets that push past the
+pull-request rule. The safety net is the deploy workflow, which won't deploy code that fails `qa`.
+
+**GitHub Environments.** The deploy job runs in the `staging` or `production` environment.
+Each environment holds its own SSH key secret (`DEPLOY_SSH_KEY`) and only accepts deploys from its
+own branch. `production` also requires a reviewer (you) before the job may start. The server
+address and host fingerprints are repository variables (`DEPLOY_HOST`, `DEPLOY_KNOWN_HOSTS`).
+
+**The deploy keys can only deploy.** Each key is listed on the server in
+`~ubuntu/.ssh/authorized_keys` with a forced command:
+
+```
+restrict,command="/usr/local/bin/uphsl-deploy staging" ssh-ed25519 AAAA… github-actions-staging
+```
+
+Whatever the connection asks for, the server runs only that deploy, with no shell and no
+forwarding. A leaked key can do nothing but redeploy the branch that's already on GitHub.
+
+**Server setup (once), as `ubuntu`.** Add each environment's public key with its forced command.
+The private halves live only in the GitHub secrets:
+
+```bash
+cat >> ~/.ssh/authorized_keys <<'EOF'
+restrict,command="/usr/local/bin/uphsl-deploy staging" ssh-ed25519 <staging public key> github-actions-staging
+restrict,command="/usr/local/bin/uphsl-deploy production" ssh-ed25519 <production public key> github-actions-production
+EOF
+```
+
+To replace a key: create a new pair (`ssh-keygen -t ed25519 -N "" -C github-actions-staging -f key`),
+put the private half in the environment's `DEPLOY_SSH_KEY` secret (Settings → Environments), and
+swap the public line in `authorized_keys`.
 
 **Production can only take what staging is running.** The server's deploy command checks that
-every commit on the `production` branch is already deployed on staging. If not, it stops with
-*"Deploy staging first"* and changes nothing.
+the code on the `production` branch is identical to the code deployed on staging. If not, it stops
+with *"Deploy staging first"* and changes nothing. It compares content, not commits, because
+merging the release pull request adds a merge commit that exists only on `production`.
 
-## One-click deploy
+## Manual deploy (fallback)
 
-The `scripts/` folder has a deploy script for each environment, for Ubuntu and for Windows:
+Normally GitHub Actions deploys for you. If Actions is down, or you need to redeploy straight
+from your computer, the `scripts/` folder has a deploy script for each environment, for Ubuntu and
+for Windows:
 
 | | Ubuntu / Linux | Windows |
 |---|---|---|
@@ -169,28 +223,26 @@ established"*. Your computer then remembers the server's fingerprint.
 `uphsl-deploy` lives in the repository at `scripts/server/uphsl-deploy` and is installed on the
 server at `/usr/local/bin/uphsl-deploy`. For the chosen environment it:
 
-1. fetches GitHub and, for production, checks that staging already runs every production commit;
-2. switches the folder to its branch and fast-forwards it;
-3. installs packages (`composer install --no-dev`), builds the CSS/JS, runs the migrations and
+1. stops if the folder's `.env` has no `APP_KEY`, since every page that uses the session would fail
+   with a 500 error (the message shows the command that creates one);
+2. fetches GitHub and, for production, checks that its code is identical to what staging runs;
+3. switches the folder to its branch and fast-forwards it;
+4. installs packages (`composer install --no-dev`), builds the CSS/JS, runs the migrations and
    caches the settings;
-4. restarts the queue workers so they load the new code.
+5. restarts the queue workers so they load the new code;
+6. for staging, installs the newest version of `uphsl-deploy` itself, so changes to the script
+   reach the server with the next staging deploy and are used for the next production release.
 
 It stops at the first error, so a failed step never leaves half-cached settings behind.
-
-When `scripts/server/uphsl-deploy` changes in the repository, reinstall it on the server (as
-`ubuntu`):
-
-```bash
-sudo install -m 755 /var/www/uphsl-staging/scripts/server/uphsl-deploy /usr/local/bin/uphsl-deploy
-```
 
 ## Quick reference
 
 | I want to… | Do this |
 |---|---|
-| Work on a feature | Branch from `staging`; `composer dev`, then `composer qa` before pushing |
+| Work on a feature | Branch from `staging`; `composer dev` (`composer qa` is optional, CI runs it) |
 | Reload demo data | `php artisan app:reset-demo` (local or staging folder) |
-| Test a change on the server | PR your branch → `staging`, then `deploy-staging` |
-| Release to users | PR `staging` → `production`, then `deploy-production` |
+| Test a change on the server | Merge your branch into `staging` and push; it deploys once `qa` passes |
+| Release to users | PR `staging` → `production`, then approve the deploy in the Actions tab |
+| Redeploy without a code change | Actions → *deploy* → **Run workflow** on that branch |
 | Change a setting on the server | Edit that folder's `.env` as `www-data`, then `php artisan optimize` |
 | See which version a server runs | `ssh uphsl "sudo -u www-data git -C /var/www/uphsl-production log -1 --oneline"` |

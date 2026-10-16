@@ -10,7 +10,7 @@ return [
 
     /*
     | Disk for students' payment receipts: "local" (storage/app/private/<env>) or "r2"
-    | (Cloudflare R2, see docs/setup-mail-and-storage.md).
+    | (Cloudflare R2).
     */
     'receipts_disk' => env('RECEIPTS_DISK', 'local'),
 

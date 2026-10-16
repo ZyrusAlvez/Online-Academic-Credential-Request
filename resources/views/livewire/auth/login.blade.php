@@ -7,10 +7,11 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.auth')] class extends Component {
+new #[Layout('components.layouts.auth')] #[Title('Log in')] class extends Component {
     use \App\Livewire\Concerns\TrimsInput;
 
     #[Validate('required|string|email')]
@@ -103,6 +104,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 required
                 autocomplete="current-password"
                 placeholder="Password"
+                viewable
             />
 
             @if (Route::has('password.request'))

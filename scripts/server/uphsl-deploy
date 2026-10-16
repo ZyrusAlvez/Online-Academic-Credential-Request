@@ -1,34 +1,53 @@
 #!/usr/bin/env bash
 # Deploys a GitHub branch into its server folder: `staging` → /var/www/uphsl-staging,
-# `production` → /var/www/uphsl-production. Runs on the server as `ubuntu`. Install or update it with:
+# `production` → /var/www/uphsl-production. Runs on the server as `ubuntu`. Install it once with:
 #   sudo install -m 755 /var/www/uphsl-staging/scripts/server/uphsl-deploy /usr/local/bin/uphsl-deploy
+# After that, every staging deploy installs the newest version of this file automatically.
 set -euo pipefail
 
-ENV="${1:-}"
-case "$ENV" in
-  staging|production) ;;
-  *) echo "Usage: uphsl-deploy staging|production" >&2; exit 1 ;;
-esac
+# Everything runs inside main so bash has read the whole file before the staging deploy replaces it.
+main() {
+  local env="${1:-}"
+  case "$env" in
+    staging|production) ;;
+    *) echo "Usage: uphsl-deploy staging|production" >&2; exit 1 ;;
+  esac
 
-DIR="/var/www/uphsl-$ENV"
-run() { sudo -u www-data -H bash -c "cd $DIR && $*"; }
+  DIR="/var/www/uphsl-$env"
 
-run "git fetch --quiet origin"
-
-# Production only takes code that staging is already running, so nothing reaches real users untested.
-if [ "$ENV" = production ]; then
-  STAGING_SHA=$(sudo -u www-data git -C /var/www/uphsl-staging rev-parse HEAD)
-  if ! run "git merge-base --is-ancestor origin/production $STAGING_SHA"; then
-    echo "The production branch has commits that staging isn't running yet. Deploy staging first." >&2
+  # Without APP_KEY every page that uses the session fails with a 500, so stop before changing anything.
+  if ! run "grep -q '^APP_KEY=base64:' .env"; then
+    echo "$DIR/.env has no APP_KEY. Create one first (as ubuntu):" >&2
+    echo "  cd $DIR && sudo -u www-data php artisan config:clear && sudo -u www-data php artisan key:generate" >&2
     exit 1
   fi
-fi
 
-run "git checkout --quiet $ENV && git merge --ff-only --quiet origin/$ENV"
-run "composer install --no-dev --optimize-autoloader --no-interaction"
-run "npm ci && npm run build"
-run "php artisan migrate --force"
-run "php artisan optimize"
-run "php artisan queue:restart"
+  run "git fetch --quiet origin"
 
-echo "Done: $ENV is now at $(run 'git log -1 --format="%h %s"')"
+  # Production must run exactly the code staging is running, so nothing reaches users untested.
+  if [ "$env" = production ]; then
+    local staging_sha
+    staging_sha=$(sudo -u www-data git -C /var/www/uphsl-staging rev-parse HEAD)
+    if ! run "git diff --quiet $staging_sha origin/production"; then
+      echo "The production branch differs from what staging is running. Deploy staging first, then release it." >&2
+      exit 1
+    fi
+  fi
+
+  run "git checkout --quiet $env && git merge --ff-only --quiet origin/$env"
+  run "composer install --no-dev --optimize-autoloader --no-interaction"
+  run "npm ci && npm run build"
+  run "php artisan migrate --force"
+  run "php artisan optimize"
+  run "php artisan queue:restart"
+
+  if [ "$env" = staging ]; then
+    sudo install -m 755 "$DIR/scripts/server/uphsl-deploy" /usr/local/bin/uphsl-deploy
+  fi
+
+  echo "Done: $env is now at $(run 'git log -1 --format="%h %s"')"
+}
+
+run() { sudo -u www-data -H bash -c "cd $DIR && $*"; }
+
+main "$@"
