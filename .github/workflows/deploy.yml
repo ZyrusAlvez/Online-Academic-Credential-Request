@@ -1,7 +1,7 @@
 name: deploy
 
-# A merge into staging deploys staging; a merge into production deploys production once approved
-# (the production environment requires a reviewer). "Run workflow" re-deploys a branch.
+# A push to staging deploys staging; merging the staging → production pull request deploys
+# production. Both run qa first. "Run workflow" re-deploys a branch.
 on:
   push:
     branches: [staging, production]

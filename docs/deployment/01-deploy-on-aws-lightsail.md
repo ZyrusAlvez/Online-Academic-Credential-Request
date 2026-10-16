@@ -1041,8 +1041,8 @@ queue workers. It stops at the first error.
 
 ### 15.2 Use it
 
-Normally you don't run it yourself: GitHub Actions runs it after every merge into `staging`, and
-after your approval for `production` (see [02 — Environments](02-environments.md#cicd-what-runs-where)).
+Normally you don't run it yourself: GitHub Actions runs it after every push to `staging` and every
+merge into `production` (see [02 — Environments](02-environments.md#cicd-what-runs-where)).
 The keys it uses are set up in the server step of that page.
 
 As a fallback, double-click `scripts/deploy-staging.sh` (Ubuntu) or `scripts\deploy-staging.bat`
