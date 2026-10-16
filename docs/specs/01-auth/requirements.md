@@ -49,4 +49,7 @@
 
 ### Seed
 - **REQ-01-15** THE SYSTEM SHALL provide a database seeder that creates an initial registrar
-  account so the system can be administered on first install.
+  account from `INITIAL_REGISTRAR_EMAIL` and `INITIAL_REGISTRAR_PASSWORD` so the system can be
+  administered on first install. WHEN an account with that email already exists THE SYSTEM SHALL
+  leave it unchanged. IF no password is configured and the account doesn't exist THEN THE SYSTEM
+  SHALL refuse to seed.
