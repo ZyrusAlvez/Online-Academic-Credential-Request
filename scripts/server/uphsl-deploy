@@ -15,6 +15,13 @@ main() {
 
   DIR="/var/www/uphsl-$env"
 
+  # Without APP_KEY every page that uses the session fails with a 500, so stop before changing anything.
+  if ! run "grep -q '^APP_KEY=base64:' .env"; then
+    echo "$DIR/.env has no APP_KEY. Create one first (as ubuntu):" >&2
+    echo "  cd $DIR && sudo -u www-data php artisan config:clear && sudo -u www-data php artisan key:generate" >&2
+    exit 1
+  fi
+
   run "git fetch --quiet origin"
 
   # Production must run exactly the code staging is running, so nothing reaches users untested.
