@@ -116,7 +116,7 @@ Any other value stops the app at startup.
 | `staging` | `uphsl_credential_tracker_staging` | The server copy for testing changes and demos; demo data allowed |
 | `production` | `uphsl_credential_tracker` | Real use; never receives demo or test data |
 
-Settings that follow from the environment (database name, debug mode, log level, mailer, secure
+Settings that follow from the environment (site address, database name, debug mode, log level, mailer, secure
 cookies, receipt folder) are defaults in `config/`, so `.env` holds only per-deployment values
 and secrets. Local and staging never send real email.
 
