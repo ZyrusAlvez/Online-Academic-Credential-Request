@@ -1013,7 +1013,7 @@ Finish, then **Edit Connection → General**: name it `UPHSL Production` and set
 ## 15. Deploy updates
 
 Each server folder follows its own GitHub branch: `staging` → `/var/www/uphsl-staging`,
-`production` → `/var/www/uphsl-production`. A change goes `main` → `staging` (test it) →
+`production` → `/var/www/uphsl-production`. A change goes feature branch → `staging` (test it) →
 `production`, as explained in [02 — Environments, branches and deploying](02-environments.md).
 
 ### 15.1 Install the deploy command (once)

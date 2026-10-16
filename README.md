@@ -59,7 +59,8 @@ settings, any environment writes its emails to `storage/logs/laravel.log` instea
 
 ### Branches and deploying
 
-Code moves `main` → `staging` → `production` through pull requests. The staging server runs the
+Code moves from a feature branch → `staging` → `production` (the default branch) through pull
+requests. The staging server runs the
 `staging` branch and the production server runs the `production` branch. Deploy with one click:
 `scripts/deploy-staging.sh` / `deploy-production.sh` on Ubuntu, or the `.bat` files on Windows.
 Production only accepts code that staging is already running. Details:
