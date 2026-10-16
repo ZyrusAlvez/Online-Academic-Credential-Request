@@ -4,7 +4,13 @@
         <flux:breadcrumbs.item>{{ $request->reference_no }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 
-    <x-page-header :title="$request->credentialType->name" :description="__('Reference no. :ref', ['ref' => $request->reference_no])">
+    <x-page-header :title="$request->credentialType->name">
+        <x-slot:description>
+            <span class="inline-flex items-center gap-1">
+                {{ __('Reference no. :ref', ['ref' => $request->reference_no]) }}
+                <x-copy-button :value="$request->reference_no" :label="__('Copy reference number')" :copied="__('Reference number copied.')" />
+            </span>
+        </x-slot:description>
         <x-slot:actions>
             @can('cancel', $request)
                 <flux:modal.trigger name="cancel-request">

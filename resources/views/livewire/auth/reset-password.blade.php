@@ -8,9 +8,10 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.auth')] class extends Component {
+new #[Layout('components.layouts.auth')] #[Title('Reset password')] class extends Component {
     use \App\Livewire\Concerns\TrimsInput;
 
     #[Locked]
@@ -93,6 +94,8 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 required
                 autocomplete="new-password"
                 placeholder="Password"
+                :description="__('At least 8 characters.')"
+                viewable
             />
         </div>
 
@@ -107,6 +110,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 required
                 autocomplete="new-password"
                 placeholder="Confirm password"
+                viewable
             />
         </div>
 

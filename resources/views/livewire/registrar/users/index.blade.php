@@ -50,7 +50,7 @@
                                         <flux:menu.item icon="pencil-square" wire:click="edit({{ $account->id }})">{{ __('Edit') }}</flux:menu.item>
                                     @endcan
                                     @can('setStatus', $account)
-                                        <flux:menu.item :icon="$account->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $account->id }})">
+                                        <flux:menu.item :icon="$account->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $account->id }})" :wire:confirm="$account->is_active ? __('Deactivate :name? They will be logged out and cannot log in until reactivated.', ['name' => $account->name]) : null">
                                             {{ $account->is_active ? __('Deactivate') : __('Activate') }}
                                         </flux:menu.item>
                                     @endcan
