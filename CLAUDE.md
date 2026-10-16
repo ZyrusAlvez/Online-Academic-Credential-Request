@@ -7,7 +7,7 @@ digitally** (the only upload is the student's proof of payment).
 
 ## Stack
 
-- Laravel 12 / PHP 8.5, MySQL 8.4
+- Laravel 12 / PHP 8.5, MySQL 8.0 (server and CI; 8.4 works locally)
 - Livewire 4 + Flux (free) + Volt (starter-kit auth pages only), Tailwind CSS 4
 - Pest for tests (run against their own `uphsl_credential_tracker_testing` database)
 
@@ -21,6 +21,30 @@ digitally** (the only upload is the student's proof of payment).
 3. Tick `tasks.md`, run `composer qa` → commit (`feat(...): ...`).
 
 If code and spec disagree, fix the spec first (and say why in the commit).
+
+## Git workflow (every change, every session)
+
+Work happens on a branch that is merged straight into `staging`; the only pull request is
+`staging` → `production`. Never commit on `staging` itself, never push to `production`, and never
+force-push either.
+
+1. Start from fresh staging: `git switch staging && git pull --ff-only`, then
+   `git switch -c <type>/<short-name>` (`feat/`, `fix/`, `docs/`, `ci/`, `chore/`). One feature or
+   fix per branch.
+2. Commit on the branch, following the spec-driven loop above, and push it
+   (`git push -u origin <branch>`). Running `composer qa` locally is optional: CI runs it.
+3. When the branch is done, merge it into `staging` (`git switch staging && git merge --no-ff
+   <branch>`) and push `staging`. That starts the `deploy` run, which runs `qa` first and deploys
+   staging only if it passes. Watch it until it succeeds (if `qa` fails, fix on the branch and merge
+   again), then give the user the staging URL to test.
+4. Open a pull request from `staging` into `production` describing what it releases (or update the
+   open one). **Don't merge it and don't approve the deploy.** The user tests staging, merges, and
+   approves production.
+
+`gh` isn't installed. Use the GitHub REST API (`api.github.com/repos/ZyrusAlvez/Online-Academic-Credential-Request`)
+with the stored git credential (`printf 'protocol=https\nhost=github.com\n\n' | git credential fill`),
+and never print the token. Useful calls: `POST /pulls`, `GET /commits/{sha}/check-runs`,
+`PUT /pulls/{n}/merge` (`merge_method: merge`), `GET /actions/runs?branch=staging`.
 
 ## Engineering standards
 
@@ -48,14 +72,17 @@ Gates: `composer qa` green; `laravel-security` checklist for auth, uploads, paym
 composer qa          # pint --test, phpstan (level 6), pest
 composer fix         # apply pint
 composer dev         # server + queue + logs + vite on :8000
-scripts/deploy-staging.sh      # deploy the `staging` branch (deploy-production.sh; .bat on Windows)
+scripts/deploy-staging.sh      # manual deploy fallback (deploy-production.sh; .bat on Windows)
 ```
 
 Branches: feature branches (from `staging`) → `staging` (staging server) → `production` (production
-server, the default branch; there is no `main`), promoted by pull request. The deploy scripts SSH to the `uphsl` host and run
-`scripts/server/uphsl-deploy` (installed at `/usr/local/bin/uphsl-deploy`), which refuses a
-production deploy that staging isn't already running. Never commit straight to `staging` or
-`production`. Docs: `docs/deployment/02-environments.md`.
+server, the default branch; there is no `main`). Branches merge into `staging` directly; only
+`staging` → `production` is a pull request. CI (`.github/workflows/ci.yml`, PHP 8.5 + MySQL 8.0) runs on every PR and before every deploy;
+`deploy.yml` deploys on every push to `staging`, and to `production` after a required approval
+(GitHub environment `production`). Deploys SSH in with environment-specific keys whose forced
+command is `/usr/local/bin/uphsl-deploy <env>` (from `scripts/server/uphsl-deploy`), which refuses
+a production deploy that staging isn't already running. Never commit straight to `staging` or
+`production`; merge branches into them. Docs: `docs/deployment/02-environments.md`.
 
 ## Environments
 
@@ -107,7 +134,7 @@ MySQL needs two databases for the local user: `uphsl_credential_tracker_local` (
   environment; `RegistrarSeeder` creates it only when missing and never changes it afterwards. Receipts use `config('uphsl.receipts_disk')` (`local` or
   Cloudflare `r2`, foldered per environment); use `RequestWorkflow::proofDisk()`, never a disk name.
   `php artisan app:test-mail <email>` and `app:test-storage` check the settings of the environment
-  they run in. Setup steps: `docs/setup-mail-and-storage.md`.
+  they run in. Server setup: section 13 of `docs/deployment/01-deploy-on-aws-lightsail.md`.
 - Notifications are queued (`QUEUE_CONNECTION=database`); run `composer dev` or `php artisan queue:work`.
 - `php artisan db:seed --class=DemoSeeder` creates demo accounts (`@example.com`, password `password`) and requests
   in every status; it runs only in local and staging.

@@ -48,7 +48,7 @@
                             <flux:button size="sm" variant="ghost" icon="ellipsis-horizontal" :aria-label="__('Actions for :name', ['name' => $department->name])" />
                             <flux:menu>
                                 <flux:menu.item icon="pencil-square" wire:click="edit({{ $department->id }})">{{ __('Edit') }}</flux:menu.item>
-                                <flux:menu.item :icon="$department->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $department->id }})">
+                                <flux:menu.item :icon="$department->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $department->id }})" :wire:confirm="$department->is_active ? __('Deactivate :name? It will no longer be offered for new requests or new workflow steps.', ['name' => $department->name]) : null">
                                     {{ $department->is_active ? __('Deactivate') : __('Activate') }}
                                 </flux:menu.item>
                             </flux:menu>

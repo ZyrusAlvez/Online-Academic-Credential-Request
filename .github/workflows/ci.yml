@@ -1,17 +1,18 @@
 name: ci
 
+# Runs on every pull request, and from deploy.yml before every deploy.
 on:
-  push:
-    branches: [staging, production]
   pull_request:
+  workflow_call:
 
 jobs:
   qa:
     runs-on: ubuntu-latest
 
     services:
+      # Same major version as the server's MySQL.
       mysql:
-        image: mysql:8.4
+        image: mysql:8.0
         env:
           MYSQL_DATABASE: uphsl_credential_tracker_testing
           MYSQL_USER: uphsl_tracker
@@ -32,10 +33,40 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '8.5'
           tools: composer:v2
           coverage: none
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - run: composer validate --strict
       - run: composer install --no-interaction --prefer-dist
+      - run: composer audit
+      - run: npm ci && npm run build
       - run: cp .env.example .env && php artisan key:generate
       - run: composer qa
+
+  # Production only takes changes that went through staging.
+  release-source:
+    if: github.event_name == 'pull_request' && github.base_ref == 'production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull requests into production must come from staging
+        run: |
+          if [ "${{ github.head_ref }}" != "staging" ]; then
+            echo "::error::Open this pull request from 'staging', not '${{ github.head_ref }}'. Changes reach production only after staging."
+            exit 1
+          fi

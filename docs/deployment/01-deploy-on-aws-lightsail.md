@@ -861,9 +861,9 @@ Staging sends real email exactly like production, so you can test the real thing
 see it. Until Gmail is configured, an environment writes its emails to
 `storage/logs/laravel.log` instead. Demo accounts use `example.com`, which the app never emails.
 
-Create a Gmail **App Password** by following
-[Part A of the mail and storage guide](../setup-mail-and-storage.md); ideally use a second Gmail
-account for staging. Then, as `www-data`, in each folder:
+Create a Gmail **App Password**: in the Google Account, turn on 2-Step Verification, then open
+*Security → App passwords* and create one (16 characters). Ideally use a second Gmail account for
+staging. Then, as `www-data`, in each folder:
 
 ```bash
 cd /var/www/uphsl-production      # then the same in /var/www/uphsl-staging
@@ -891,8 +891,9 @@ Lightsail blocks only port 25 for outgoing mail, and Gmail uses 587, so this wor
 
 ### 13.2 Receipts (Cloudflare R2)
 
-Follow [Part B of the mail and storage guide](../setup-mail-and-storage.md) to create the bucket
-and API token, then put the same `RECEIPTS_DISK=r2` and four `R2_*` lines into **both** `.env` files
+In the Cloudflare dashboard, create a private R2 bucket and an R2 API token with *Object Read &
+Write* on that bucket; note the Account ID, Access Key ID and Secret Access Key (the secret is shown
+only once). Then put the same `RECEIPTS_DISK=r2` and four `R2_*` lines into **both** `.env` files
 and run `php artisan optimize` in each. Check with:
 
 ```bash
@@ -1024,23 +1025,29 @@ The deploy command is part of the repository (`scripts/server/uphsl-deploy`). As
 sudo install -m 755 /var/www/uphsl-staging/scripts/server/uphsl-deploy /usr/local/bin/uphsl-deploy
 ```
 
-`install` copies the file and makes it executable (`-m 755`). Run the same line again whenever
-that script changes in the repository.
+`install` copies the file and makes it executable (`-m 755`). You only do this once: every
+staging deploy installs the newest version from the repository by itself.
 
 For the chosen environment, `uphsl-deploy` fetches GitHub, switches the folder to its branch,
 installs packages, builds the assets, runs the migrations, caches the settings and restarts the
 queue workers. It stops at the first error.
 
-- **Production only takes what staging is running.** If the `production` branch has commits that
-  staging hasn't deployed yet, it stops with *"Deploy staging first"*.
+- **No deploy without an app key.** If the folder's `.env` has no `APP_KEY`, it stops before
+  changing anything and prints the `key:generate` command to run.
+- **Production only takes what staging is running.** If the code on the `production` branch
+  differs from the code deployed on staging, it stops with *"Deploy staging first"*.
 - `queue:restart` makes the workers load the new code. Without it, they keep running the old
   code from memory.
 
 ### 15.2 Use it
 
-From your own computer, double-click `scripts/deploy-staging.sh` (Ubuntu) or
-`scripts\deploy-staging.bat` (Windows), and the `deploy-production` ones for production. The
-one-time SSH setup is in [02 — Environments](02-environments.md#one-click-deploy).
+Normally you don't run it yourself: GitHub Actions runs it after every merge into `staging`, and
+after your approval for `production` (see [02 — Environments](02-environments.md#cicd-what-runs-where)).
+The keys it uses are set up in the server step of that page.
+
+As a fallback, double-click `scripts/deploy-staging.sh` (Ubuntu) or `scripts\deploy-staging.bat`
+(Windows) on your own computer, or the `deploy-production` ones. The one-time SSH setup is in
+[02 — Environments](02-environments.md#manual-deploy-fallback).
 
 Or on the server, as `ubuntu`:
 

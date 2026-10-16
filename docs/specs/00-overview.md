@@ -148,3 +148,5 @@ Automated tests run in Laravel's internal `testing` mode on their own database,
 | 05 | Department signing, hold, skip & release |
 | 06 | Tracking & notifications |
 | 07 | Registrar console |
+| 08 | Turnaround prediction |
+| 09 | UX polish |
