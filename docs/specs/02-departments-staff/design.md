@@ -1,4 +1,4 @@
-# 02 — Departments & Staff Accounts · Design
+# 02 — Offices & Staff Accounts · Design
 
 ## Data
 
@@ -8,7 +8,7 @@
 |---|---|---|
 | id | bigint | |
 | name | string(150) unique | |
-| code | string(20) unique | upper-case, e.g. `CCS`, `LIB`, `REG` |
+| code | string(20) unique | upper-case, e.g. `CCS`, `VPF`, `REG` |
 | type | string(20) index | `App\Enums\DepartmentType`: `college`, `office` |
 | description | string(255) null | role in the workflow |
 | is_active | boolean default true, index | |
@@ -25,7 +25,11 @@ lets registrar accounts act on its steps.
 - `App\Enums\DepartmentType` (`College`, `Office`) with `label()`.
 - `App\Models\Department` — `hasMany(User::class, 'staff')`, `scopeActive`, `scopeColleges`.
 - `App\Models\User` — `belongsTo(Department)`.
-- `Database\Seeders\DepartmentSeeder` — `updateOrCreate` by code.
+- `Database\Seeders\DepartmentSeeder` — `updateOrCreate` by code; deactivates the retired codes
+  `LIB`, `FIN`, `SAS` if present. Seeded offices: `REG` Office of the Registrar, `VPF` Office of
+  the VP for Finance (documentary stamp), `CHAN` Office of the Chancellor, `PRES` Office of the
+  President, plus the 11 colleges (Dean's review and signature). Deploys run it through the
+  master-list data migration (spec 03).
 - `App\Actions\Staff\SaveStaffAccount` — create/update staff; forces role ∈ {department,
   registrar}, clears `department_id` for registrars, marks new accounts verified.
 - `App\Actions\Staff\SetAccountStatus` — refuses to deactivate the acting registrar.
