@@ -2,6 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Actions\Identity\ReviewIdentityDocument;
+use App\Actions\Identity\SubmitIdentityDocument;
+use App\Enums\AcademicStatus;
 use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
@@ -42,11 +45,20 @@ class DemoSeeder extends Seeder
         $staff = $departments->map(fn (Department $department) => $this->staff($department));
 
         $students = collect([
-            ['student@example.com', 'Juan', 'Santos', 'Dela Cruz'],
-            ['maria@example.com', 'Maria', null, 'Reyes'],
-            ['jose@example.com', 'Jose', 'Lopez', 'Garcia'],
-            ['ana@example.com', 'Ana', null, 'Mendoza'],
-        ])->map(fn (array $s) => $this->student(...$s));
+            ['student@example.com', 'Juan', 'Santos', 'Dela Cruz', 'CCS', 'BS Computer Science'],
+            ['maria@example.com', 'Maria', null, 'Reyes', 'CBA', 'BS Accountancy'],
+            ['jose@example.com', 'Jose', 'Lopez', 'Garcia', 'COE', 'BS Civil Engineering'],
+            ['ana@example.com', 'Ana', null, 'Mendoza', 'COED', 'Bachelor of Secondary Education'],
+        ])->map(fn (array $s) => $this->student($departments[$s[4]], ...array_slice($s, 0, 4), program: $s[5]));
+
+        // Identities: three verified, Ana's ID still waiting for the registrar.
+        $students->each(function (User $student, int $index): void {
+            $document = app(SubmitIdentityDocument::class)->handle($student, 'PhilSys National ID', UploadedFile::fake()->image('national-id.png', 800, 500));
+
+            if ($index < 3) {
+                app(ReviewIdentityDocument::class)->handle($document, $this->registrar, verified: true);
+            }
+        });
 
         $types = CredentialType::pluck('id', 'name');
         $tor = CredentialType::findOrFail($types['Transcript of Records (TOR)']);
@@ -123,11 +135,23 @@ class DemoSeeder extends Seeder
         return $user;
     }
 
-    private function student(string $email, string $first, ?string $middle, string $last): User
+    private function student(Department $college, string $email, string $first, ?string $middle, string $last, string $program): User
     {
         $user = User::firstOrNew(['email' => $email]);
-        $user->fill(['first_name' => $first, 'middle_name' => $middle, 'last_name' => $last, 'password' => 'password']);
-        $user->forceFill(['role' => Role::Student, 'is_active' => true, 'email_verified_at' => now()])->save();
+        $user->fill([
+            'first_name' => $first,
+            'middle_name' => $middle,
+            'last_name' => $last,
+            'password' => 'password',
+            'contact_number' => '0917 '.fake()->numerify('### ####'),
+            'academic_status' => AcademicStatus::Graduate,
+            'college_id' => $college->id,
+            'program' => $program,
+            'student_number' => sprintf('%02d-%04d-%03d', fake()->numberBetween(15, 20), fake()->numberBetween(1, 9999), fake()->numberBetween(1, 999)),
+            'attended_from' => 2020,
+            'attended_to' => 2024,
+        ]);
+        $user->forceFill(['role' => Role::Student, 'is_active' => true, 'email_verified_at' => now(), 'privacy_consented_at' => now()])->save();
 
         return $user;
     }

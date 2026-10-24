@@ -1,4 +1,4 @@
-# 01 — Authentication & Roles · Design
+# 01 — Registration, Identity & Roles · Design
 
 ## Data
 
@@ -15,6 +15,40 @@
 | email_verified_at, password, remember_token, timestamps | | starter kit |
 
 `department_id` is added in spec 02.
+
+Requester profile and identity (added with the redesign):
+
+| Column | Type | Notes |
+|---|---|---|
+| contact_number | string(20) null | required at registration; `+63 917 123 4567`-style, digits, spaces, `+`, `-` |
+| privacy_consented_at | timestamp null | Data Privacy Act consent at registration |
+| academic_status | string(20) null | `App\Enums\AcademicStatus`: `current`, `graduate`, `former` |
+| college_id | FK null → departments | the requester's college (the Dean on routes) |
+| program | string(150) null | program or strand |
+| student_number | string(30) null | optional |
+| attended_from, attended_to | unsigned smallint null | years attended |
+| identity_status | string(20) default `unsubmitted` | `App\Enums\IdentityStatus`: `unsubmitted`, `pending`, `verified`, `rejected`; not mass assignable |
+| identity_verified_at | timestamp null | |
+
+`identity_documents`: `user_id` FK, `id_type` (string 60), `path`, `original_name`, `mime_type`,
+`size`, `status` (`App\Enums\ReviewStatus`: `pending`, `verified`, `rejected`), `reviewed_by` FK
+null, `reviewed_at`, `remarks`, timestamps. Files go to `identity-documents/{user}/` on the private
+receipts disk (`RequestWorkflow::proofDisk()`).
+
+Identity code:
+
+- `App\Actions\Identity\SubmitIdentityDocument` stores the file, adds the row and sets the user
+  `pending` (deleting the file if the transaction fails).
+- `App\Actions\Identity\ReviewIdentityDocument` verifies or rejects the latest pending document
+  (reason required to reject), updates the user and sends `App\Notifications\IdentityReviewed`
+  (database + mail).
+- `IdentityDocumentController@show` streams the file with `no-store`; `IdentityDocumentPolicy`
+  allows the owner and registrars, 404 for everyone else.
+- `App\Http\Middleware\EnsureRequesterProfileComplete` (alias `profile.complete`) on
+  `student.requests.create` redirects to `student.profile` (REQ-01-18).
+- Livewire: `Student\Profile` (`/student/profile`, "My Profile") and `Registrar\Identities\Index`
+  (`/registrar/identities`, "Identity Checks" with a pending-count badge).
+- Registration (Volt) adds the contact number and the consent checkbox.
 
 ## Code
 

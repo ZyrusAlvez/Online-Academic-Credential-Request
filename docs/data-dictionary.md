@@ -24,6 +24,7 @@ erDiagram
     credential_requests ||--o{ request_events : "ledger of"
     users |o--o{ request_events : performs
     users |o--o{ non_working_days : "added"
+    users ||--o{ identity_documents : uploads
 ```
 
 - A **user** (student) has many **credential requests**; a **department staff** user belongs to one **department**.
@@ -46,8 +47,17 @@ Accounts for all three roles.
 | middle_name | varchar(100) | Yes | | | Shown as an initial: "Juan S. Dela Cruz" |
 | last_name | varchar(100) | No | | | |
 | email | varchar(255) | No | UQ | | Login name |
+| contact_number | varchar(20) | Yes | | | Required at registration (requesters) |
+| privacy_consented_at | timestamp | Yes | | | When the requester agreed to the Data Privacy Act notice |
 | role | varchar(20) | No | IX | `student` | `student`, `registrar`, `department` (see [Role](#role)) |
 | department_id | bigint unsigned | Yes | FK → departments | | Only for `department` staff |
+| academic_status | varchar(20) | Yes | | | Requesters: `current`, `graduate`, `former` (see [AcademicStatus](#academicstatus)) |
+| college_id | bigint unsigned | Yes | FK → departments | | Requesters: their college (the Dean on routes) |
+| program | varchar(150) | Yes | | | Requesters: program or strand |
+| student_number | varchar(30) | Yes | | | Requesters: optional |
+| attended_from, attended_to | smallint unsigned | Yes | | | Requesters: years attended |
+| identity_status | varchar(20) | No | IX | `unsubmitted` | See [IdentityStatus](#identitystatus); set by uploads and the registrar's review only |
+| identity_verified_at | timestamp | Yes | | | When the registrar verified the requester's ID |
 | is_active | tinyint(1) | No | | 1 | 0 = deactivated by the registrar; cannot log in |
 | email_verified_at | timestamp | Yes | | | Required before a student can submit a request |
 | password | varchar(255) | No | | | Bcrypt hash |
@@ -205,6 +215,26 @@ Laravel database notifications (the bell). `id` is a UUID.
 | read_at | timestamp | Yes | | Empty = unread |
 | created_at, updated_at | timestamp | Yes | | |
 
+## identity_documents
+
+Requesters' uploaded valid IDs (spec 01). Files live privately on the receipts disk under
+`identity-documents/{user_id}/`; only the owner and registrars can open them. Every upload is kept.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| user_id | bigint unsigned | No | FK → users | | The requester |
+| id_type | varchar(60) | No | | | e.g. "Passport", "PhilSys National ID" |
+| path | varchar(255) | No | | | Path on the private disk |
+| original_name | varchar(255) | No | | | File name as uploaded |
+| mime_type | varchar(100) | No | | | |
+| size | int unsigned | No | | | Bytes |
+| status | varchar(20) | No | IX | | `pending`, `verified`, `rejected` (see [ReviewStatus](#reviewstatus)) |
+| reviewed_by | bigint unsigned | Yes | FK → users | | Registrar who reviewed it |
+| reviewed_at | timestamp | Yes | | | |
+| remarks | varchar(500) | Yes | | | Reason for a rejection, shown to the requester |
+| created_at, updated_at | timestamp | Yes | | | |
+
 ## non_working_days
 
 The working calendar (spec 10): holidays and closures that due dates and time per office skip.
@@ -315,3 +345,28 @@ Stored as strings; defined in `app/Enums`.
 | `prepare` | Verify records and prepare the credential (the Registrar) |
 | `sign` | Review and affix a signature (Dean, Chancellor, President) |
 | `documentary_stamp` | Process the documentary stamp; no signature (VP Finance) |
+
+### AcademicStatus
+
+| Value | Meaning |
+|---|---|
+| `current` | Current student |
+| `graduate` | Graduate |
+| `former` | Former student (did not graduate) |
+
+### IdentityStatus
+
+| Value | Meaning |
+|---|---|
+| `unsubmitted` | No valid ID uploaded yet |
+| `pending` | ID uploaded, awaiting the registrar |
+| `verified` | The registrar verified the ID |
+| `rejected` | The registrar rejected the latest ID; the requester may upload another |
+
+### ReviewStatus
+
+| Value | Meaning |
+|---|---|
+| `pending` | Uploaded, for verification |
+| `verified` | Verified by the registrar |
+| `rejected` | Rejected, with a reason |
