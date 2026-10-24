@@ -11,8 +11,7 @@
 ## Acceptance criteria
 
 ### Due dates & overdue
-- **REQ-07-01** WHEN a request is routed THE SYSTEM SHALL set its due date to the routing date
-  plus the credential type's processing days, counting weekdays only.
+- **REQ-07-01** *(Replaced by REQ-10-04: due dates count working days from the working calendar.)*
 - **REQ-07-02** WHILE a request is `in_progress` past its due date THE SYSTEM SHALL flag it as
   overdue in the registrar's request list and request page, and offer an "Overdue" filter.
 
