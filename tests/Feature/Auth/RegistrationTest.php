@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\IdentityStatus;
 use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -15,8 +16,10 @@ function registerForm(array $overrides = []): Testable
         'middle_name' => 'Dizon',
         'last_name' => 'Dela Cruz',
         'email' => 'juan@example.com',
+        'contact_number' => '0917 123 4567',
         'password' => 'password123',
         'password_confirmation' => 'password123',
+        'privacy_consent' => true,
     ], $overrides);
 
     $component = Volt::test('auth.register');
@@ -32,13 +35,16 @@ test('registration screen can be rendered', function () {
     $this->get('/register')->assertOk()->assertSee('First name')->assertSee('Middle name');
 });
 
-test('REQ-01-01 a guest can register with first, middle and last name', function () {
+test('REQ-01-01 a guest can register with names, contact number and privacy consent', function () {
     registerForm()->assertHasNoErrors()->assertRedirect(route('dashboard', absolute: false));
 
     $user = User::sole();
     expect($user->first_name)->toBe('Juan')
         ->and($user->middle_name)->toBe('Dizon')
-        ->and($user->last_name)->toBe('Dela Cruz');
+        ->and($user->last_name)->toBe('Dela Cruz')
+        ->and($user->contact_number)->toBe('0917 123 4567')
+        ->and($user->privacy_consented_at)->not->toBeNull()
+        ->and($user->identity_status)->toBe(IdentityStatus::Unsubmitted);
 });
 
 test('REQ-01-01 middle name is optional', function () {
@@ -71,6 +77,14 @@ test('REQ-01-03 registration is rejected for a duplicate email', function () {
 test('REQ-01-03 registration is rejected when the password is unconfirmed or too short', function () {
     registerForm(['password_confirmation' => 'different123'])->assertHasErrors(['password']);
     registerForm(['password' => 'short', 'password_confirmation' => 'short'])->assertHasErrors(['password']);
+
+    expect(User::count())->toBe(0);
+});
+
+test('REQ-01-03 registration is rejected without consent or with an invalid contact number', function () {
+    registerForm(['privacy_consent' => false])->assertHasErrors(['privacy_consent' => 'accepted']);
+    registerForm(['contact_number' => 'call me'])->assertHasErrors(['contact_number' => 'regex']);
+    registerForm(['contact_number' => ''])->assertHasErrors(['contact_number' => 'required']);
 
     expect(User::count())->toBe(0);
 });
