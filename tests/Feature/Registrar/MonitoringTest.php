@@ -127,8 +127,9 @@ test('REQ-07-09 the demo seeder creates accounts and requests in every status', 
     $this->seed(DemoSeeder::class);
 
     expect(User::where('email', 'student@example.com')->exists())->toBeTrue()
-        ->and(User::where('email', 'lib@example.com')->value('department_id'))->not->toBeNull()
+        ->and(User::where('email', 'vpf@example.com')->value('department_id'))->not->toBeNull()
+        // Every master-list credential is paid, so none goes to registrar_review (free requests only).
         ->and(CredentialRequest::distinct()->pluck('status')->map->value->sort()->values()->all())
-        ->toBe(collect(RequestStatus::cases())->map->value->sort()->values()->all())
+        ->toBe(collect(RequestStatus::cases())->reject(RequestStatus::RegistrarReview)->map->value->sort()->values()->all())
         ->and(CredentialRequest::overdue()->count())->toBeGreaterThan(0);
 });

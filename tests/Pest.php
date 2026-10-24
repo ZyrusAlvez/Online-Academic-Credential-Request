@@ -18,7 +18,7 @@ pest()->extend(TestCase::class)
 
 /**
  * A small organisation: Library, Cashier, Registrar office and two colleges, plus a
- * TOR-like credential type with Library → Cashier → Student's College → Registrar.
+ * TOR-like credential type with Library → Cashier → Dean (student's college) → Registrar.
  *
  * @return object{library: Department, cashier: Department, registrarOffice: Department, ccs: Department, cba: Department, tor: CredentialType, free: CredentialType}
  */

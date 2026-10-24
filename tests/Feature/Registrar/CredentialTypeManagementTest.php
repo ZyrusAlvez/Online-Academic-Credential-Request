@@ -1,7 +1,9 @@
 <?php
 
+use App\Enums\RouteTask;
 use App\Livewire\Registrar\CredentialTypes\Index;
 use App\Models\CredentialType;
+use App\Models\Department;
 use App\Models\User;
 use Database\Seeders\CredentialTypeSeeder;
 use Database\Seeders\DepartmentSeeder;
@@ -11,45 +13,77 @@ beforeEach(function () {
     $this->registrar = User::factory()->registrar()->create();
 });
 
-test('REQ-03-01 the seeder creates default credential types with workflows', function () {
+test('REQ-03-01 the seeder creates the 17-type master list with fees, periods and routes', function () {
     $this->seed([DepartmentSeeder::class, CredentialTypeSeeder::class]);
 
-    $tor = CredentialType::where('name', 'Transcript of Records')->sole();
-    expect(CredentialType::count())->toBe(7)
-        ->and($tor->requires_payment)->toBeTrue()
-        ->and($tor->steps()->with('department')->get()->map->label()->all())
-        ->toBe(['Library', 'Cashier / Finance Office', "Student's College", 'Office of the Registrar']);
+    $tor = CredentialType::where('name', 'Transcript of Records (TOR)')->with('steps.department')->sole();
+    $authentication = CredentialType::where('name', 'Authentication')->with('steps.department')->sole();
+    $transfer = CredentialType::where('name', 'TOR for Transfer Credentials')->sole();
+
+    expect(CredentialType::count())->toBe(17)
+        ->and($tor->fee)->toBe('530.00')
+        ->and($tor->processing_days)->toBe(7)
+        ->and($tor->routeSummary())->toBe('REG → Dean → VPF → CHAN')
+        ->and($tor->steps->map->task->all())->toBe([RouteTask::Prepare, RouteTask::Sign, RouteTask::DocumentaryStamp, RouteTask::Sign])
+        ->and($tor->requirements)->toContain('PSA-authenticated birth certificate')
+        ->and($authentication->fee)->toBe('50.00')
+        ->and($authentication->routeSummary())->toBe('REG')
+        ->and(CredentialType::where('name', 'Diploma / Certificate for Non-Degree Programs')->with('steps.department')->sole()->routeSummary())->toBe('REG → CHAN → PRES')
+        ->and($transfer->requires_receiving_institution)->toBeTrue()
+        ->and($tor->requires_receiving_institution)->toBeFalse();
 });
 
-test('REQ-03-01 re-seeding does not duplicate types or overwrite edited workflows', function () {
+test('REQ-03-01 re-seeding does not duplicate types or overwrite edited routes', function () {
     $this->seed([DepartmentSeeder::class, CredentialTypeSeeder::class]);
-    $tor = CredentialType::where('name', 'Transcript of Records')->sole();
+    $tor = CredentialType::where('name', 'Transcript of Records (TOR)')->sole();
     $tor->steps()->first()->delete();
+    $tor->update(['fee' => '600.00']);
 
     $this->seed(CredentialTypeSeeder::class);
 
-    expect(CredentialType::count())->toBe(7)
-        ->and($tor->steps()->count())->toBe(3);
+    expect(CredentialType::count())->toBe(17)
+        ->and($tor->steps()->count())->toBe(3)
+        ->and($tor->fresh()->fee)->toBe('600.00');
 });
 
-test('REQ-03-02 the registrar sees credential types with payment, processing and step count', function () {
-    CredentialType::factory()->paid('250.00')->withSteps(['college'])->create(['name' => 'Transcript of Records', 'processing_days' => 10]);
+test('REQ-03-12 installing the master list replaces the placeholder types and routes', function () {
+    $library = Department::factory()->create(['name' => 'Library', 'code' => 'LIB']);
+    $this->seed(DepartmentSeeder::class);
+    $old = CredentialType::factory()->withSteps([$library])->create(['name' => 'Good Moral Certificate']);
+    $tor = CredentialType::factory()->withSteps([$library, 'college'])->create(['name' => 'Transcript of Records (TOR)', 'processing_days' => 10]);
+
+    (new CredentialTypeSeeder)->install();
+    (new CredentialTypeSeeder)->install();
+
+    expect($old->fresh()->is_active)->toBeFalse()
+        ->and($old->steps()->count())->toBe(1)
+        ->and(CredentialType::active()->count())->toBe(17)
+        ->and($tor->fresh()->processing_days)->toBe(7)
+        ->and($tor->fresh()->load('steps.department')->routeSummary())->toBe('REG → Dean → VPF → CHAN');
+});
+
+test('REQ-03-02 the registrar sees credential types with fee, processing period and route', function () {
+    $registrarOffice = Department::factory()->registrarOffice()->create();
+    CredentialType::factory()->paid('250.00')->withSteps([$registrarOffice, 'college'])->create(['name' => 'Transcript of Records', 'processing_days' => 10]);
 
     $this->actingAs($this->registrar)->get(route('registrar.credential-types'))
         ->assertOk()
         ->assertSee('Transcript of Records')
         ->assertSee('₱250.00')
         ->assertSee('10 working days')
-        ->assertSee('1 step');
+        ->assertSee('REG → Dean');
 });
 
-test('REQ-03-03 the registrar can create a paid credential type and is sent to its workflow', function () {
+test('REQ-03-03 the registrar can create a paid credential type with requirements and is sent to its route', function () {
     Livewire::actingAs($this->registrar)->test(Index::class)
         ->call('create')
         ->set('form.name', 'Certificate of Units Earned')
         ->set('form.requires_payment', true)
         ->set('form.fee', '120.50')
         ->set('form.processing_days', 4)
+        ->set('form.requirements', "Completed clearance\n\n  PSA-authenticated birth certificate  ")
+        ->set('form.special_conditions', 'Name the receiving school.')
+        ->set('form.requires_receiving_institution', true)
         ->call('save')
         ->assertHasNoErrors()
         ->assertRedirect(route('registrar.credential-types.workflow', CredentialType::sole()));
@@ -57,7 +91,10 @@ test('REQ-03-03 the registrar can create a paid credential type and is sent to i
     expect(CredentialType::sole())
         ->requires_payment->toBeTrue()
         ->fee->toBe('120.50')
-        ->processing_days->toBe(4);
+        ->processing_days->toBe(4)
+        ->requirements->toBe(['Completed clearance', 'PSA-authenticated birth certificate'])
+        ->special_conditions->toBe('Name the receiving school.')
+        ->requires_receiving_institution->toBeTrue();
 });
 
 test('REQ-03-03 fee is dropped when payment is not required and inputs are validated', function () {
@@ -95,7 +132,7 @@ test('REQ-03-05 credential types without steps are flagged and not requestable',
     $ready = CredentialType::factory()->withSteps(['college'])->create();
     CredentialType::factory()->inactive()->withSteps(['college'])->create();
 
-    $this->actingAs($this->registrar)->get(route('registrar.credential-types'))->assertSee('No workflow');
+    $this->actingAs($this->registrar)->get(route('registrar.credential-types'))->assertSee('No route');
 
     expect(CredentialType::requestable()->pluck('id')->all())->toBe([$ready->id]);
 });
