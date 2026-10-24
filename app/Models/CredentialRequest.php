@@ -142,14 +142,6 @@ class CredentialRequest extends Model
     }
 
     /**
-     * @return HasOne<TurnaroundPrediction, $this>
-     */
-    public function prediction(): HasOne
-    {
-        return $this->hasOne(TurnaroundPrediction::class);
-    }
-
-    /**
      * @return HasMany<RequestEvent, $this>
      */
     public function events(): HasMany

@@ -830,8 +830,7 @@ sudo mysql -e "SELECT COUNT(*) FROM uphsl_credential_tracker.jobs;"    # drops t
 
 ### 12.1 Start the scheduler
 
-The app also has **scheduled tasks**, listed in `routes/console.php`; for example, expired
-registrar API tokens are removed daily. Laravel needs **one** cron entry per environment, which
+The app can also have **scheduled tasks**, listed in `routes/console.php`. Laravel needs **one** cron entry per environment, which
 runs `schedule:run` every minute; Laravel then decides which tasks are due. Never add separate
 cron entries for individual commands, or tasks run twice.
 
@@ -846,10 +845,6 @@ EOF
 
 Files in `/etc/cron.d` include a user column (`www-data`), so the tasks run as the app's user.
 Check the task list with `sudo -u www-data php /var/www/uphsl-production/artisan schedule:list`.
-
-The turnaround predictions need no extra software. They are calculated in PHP from the trained
-model file committed at `resources/ml/turnaround-model.json`, so Python is only needed on the
-machine where the model is retrained (`ml/`), not on the server.
 
 ---
 

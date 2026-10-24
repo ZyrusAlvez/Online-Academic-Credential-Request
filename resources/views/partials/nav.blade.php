@@ -10,7 +10,6 @@
         <flux:navlist.group :heading="__('Registrar')" class="grid">
             <flux:navlist.item icon="home" :href="route('registrar.dashboard')" :current="request()->routeIs('registrar.dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
             <flux:navlist.item icon="inbox" :href="route('registrar.requests')" :current="request()->routeIs('registrar.requests*')" wire:navigate>{{ __('Requests') }}</flux:navlist.item>
-            <flux:navlist.item icon="chart-bar" :href="route('registrar.predictions')" :current="request()->routeIs('registrar.predictions')" wire:navigate>{{ __('Predictions') }}</flux:navlist.item>
         </flux:navlist.group>
         <flux:navlist.group :heading="__('Administration')" class="grid">
             <flux:navlist.item icon="document-duplicate" :href="route('registrar.credential-types')" :current="request()->routeIs('registrar.credential-types*')" wire:navigate>{{ __('Credential Types') }}</flux:navlist.item>
