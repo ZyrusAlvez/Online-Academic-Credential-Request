@@ -1,10 +1,10 @@
 <?php
 
 use App\Enums\RequestStatus;
-use App\Http\Controllers\RequestsCsvController;
 use App\Livewire\Registrar\Requests\Index;
 use App\Models\CredentialRequest;
 use App\Models\User;
+use App\Support\Csv;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -44,25 +44,14 @@ test('REQ-07-02 requests being processed past their due date are overdue and fil
     $this->actingAs($this->registrar)->get(route('registrar.requests.show', $late))->assertSee('Overdue since');
 });
 
-test('REQ-07-03 the dashboard shows status counts and this month\'s totals', function () {
+test('REQ-07-03 the dashboard shows the work-queue counts', function () {
     submitRequest($this->owner, $this->org->free);                          // needs the Registrar
     evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar); // awaiting payment
     acceptedAt('2026-01-05 09:00:00');                                      // overdue
 
     $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
         ->assertOk()
-        ->assertSeeInOrder(['Needs the Registrar', '1', 'Pending compliance', '0', 'Awaiting payment', '1', 'Being processed', '1', 'Ready for release', '0', 'Overdue', '1'])
-        ->assertSeeInOrder(['Submitted this month', '2']);
-});
-
-test('REQ-07-04 the average processing time covers releases in the last 30 days', function () {
-    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))->assertSee('—');
-
-    CredentialRequest::factory()->status(RequestStatus::Released)->create(['released_at' => now()->subDays(2), 'processing_working_days' => 4]);
-    CredentialRequest::factory()->status(RequestStatus::Released)->create(['released_at' => now()->subDays(3), 'processing_working_days' => 6]);
-    CredentialRequest::factory()->status(RequestStatus::Released)->create(['released_at' => now()->subDays(40), 'processing_working_days' => 30]);
-
-    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))->assertSee('5 working days');
+        ->assertSeeInOrder(['Needs the Registrar', '1', 'Pending compliance', '0', 'Awaiting payment', '1', 'Being processed', '1', 'Ready for release', '0', 'Overdue', '1']);
 });
 
 test('REQ-07-05 the dashboard shows which offices hold documents, largest first', function () {
@@ -111,8 +100,8 @@ test('REQ-07-08 the filtered list downloads as CSV and is registrar-only', funct
 });
 
 test('REQ-07-08 CSV cells cannot inject spreadsheet formulas', function () {
-    expect(RequestsCsvController::safeCell('=HYPERLINK("x")'))->toBe("'=HYPERLINK(\"x\")")
-        ->and(RequestsCsvController::safeCell('Juan'))->toBe('Juan');
+    expect(Csv::safeCell('=HYPERLINK("x")'))->toBe("'=HYPERLINK(\"x\")")
+        ->and(Csv::safeCell('Juan'))->toBe('Juan');
 });
 
 test('REQ-07-09 the demo seeder creates accounts and requests in every status', function () {

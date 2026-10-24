@@ -23,20 +23,72 @@
             </a>
         </div>
 
-        <dl class="mt-3 grid gap-3 sm:grid-cols-3">
+    </section>
+
+    <section aria-labelledby="performance-heading" class="space-y-4">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+                <h2 id="performance-heading" class="text-lg font-semibold text-primary">{{ __('Performance') }}</h2>
+                <p class="text-sm text-zinc-600">{{ __('On-time and overdue rates count accepted requests due in the period (and not after today).') }}</p>
+            </div>
+            <div class="flex flex-wrap items-end gap-2">
+                <flux:input wire:model.live="from" type="date" size="sm" :label="__('From')" />
+                <flux:input wire:model.live="to" type="date" size="sm" :label="__('To')" />
+                <flux:button size="sm" icon="chart-bar" :href="$reportsUrl" wire:navigate>{{ __('Reports') }}</flux:button>
+            </div>
+        </div>
+
+        <dl class="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <div class="rounded-xl bg-primary-50 p-4">
-                <dt class="text-sm text-zinc-600">{{ __('Submitted this month') }}</dt>
-                <dd class="text-2xl font-bold text-primary tabular-nums">{{ $submittedThisMonth }}</dd>
+                <dt class="text-sm text-zinc-600">{{ __('Total requests') }}</dt>
+                <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->received }}</dd>
+                <dd class="text-xs text-zinc-600">{{ __('Received in the period') }}</dd>
             </div>
             <div class="rounded-xl bg-primary-50 p-4">
-                <dt class="text-sm text-zinc-600">{{ __('Released this month') }}</dt>
-                <dd class="text-2xl font-bold text-primary tabular-nums">{{ $releasedThisMonth }}</dd>
+                <dt class="text-sm text-zinc-600">{{ __('Released on time') }}</dt>
+                <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->onTime }} <span class="text-base font-semibold">/ {{ $metrics->onTimeRate() === null ? '—' : $metrics->onTimeRate().'%' }}</span></dd>
+                <dd class="text-xs text-zinc-600">{{ trans_choice('of :count request due|of :count requests due', $metrics->eligible) }}</dd>
             </div>
             <div class="rounded-xl bg-primary-50 p-4">
-                <dt class="text-sm text-zinc-600">{{ __('Average processing time (released, last 30 days)') }}</dt>
-                <dd class="text-2xl font-bold text-primary tabular-nums">{{ $avgProcessingDays === null ? '—' : trans_choice(':count working day|:count working days', $avgProcessingDays) }}</dd>
+                <dt class="text-sm text-zinc-600">{{ __('Overdue') }}</dt>
+                <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->overdue }} <span class="text-base font-semibold">/ {{ $metrics->overdueRate() === null ? '—' : $metrics->overdueRate().'%' }}</span></dd>
+                <dd class="text-xs text-zinc-600">{{ __('Not released by the due date') }}</dd>
+            </div>
+            <div class="rounded-xl bg-primary-50 p-4">
+                <dt class="text-sm text-zinc-600">{{ __('Average processing time') }}</dt>
+                <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->avgProcessingDays === null ? '—' : trans_choice(':count working day|:count working days', $metrics->avgProcessingDays) }}</dd>
+                <dd class="text-xs text-zinc-600">{{ __('Acceptance to release') }}</dd>
             </div>
         </dl>
+        <dl class="grid grid-cols-2 gap-3 text-sm lg:grid-cols-4">
+            <div class="rounded-xl border border-secondary/50 p-3"><dt class="text-zinc-600">{{ __('Overdue workload (open now)') }}</dt><dd class="text-lg font-semibold text-ink tabular-nums">{{ $metrics->overdueWorkload }}</dd></div>
+            <div class="rounded-xl border border-secondary/50 p-3"><dt class="text-zinc-600">{{ __('Returned for correction') }}</dt><dd class="text-lg font-semibold text-ink tabular-nums">{{ $metrics->returns }}{{ $metrics->returnRate() === null ? '' : ' ('.$metrics->returnRate().'% of office visits)' }}</dd></div>
+            <div class="rounded-xl border border-secondary/50 p-3"><dt class="text-zinc-600">{{ __('Average time per office visit') }}</dt><dd class="text-lg font-semibold text-ink tabular-nums">{{ $metrics->avgOfficeDays === null ? '—' : trans_choice(':count working day|:count working days', $metrics->avgOfficeDays) }}</dd></div>
+            <div class="rounded-xl border border-secondary/50 p-3"><dt class="text-zinc-600">{{ __('Average initial evaluation time') }}</dt><dd class="text-lg font-semibold text-ink tabular-nums">{{ $metrics->avgInitialEvaluationHours === null ? '—' : trans_choice(':count hour|:count hours', $metrics->avgInitialEvaluationHours) }}</dd></div>
+        </dl>
+
+        <div class="space-y-3">
+            <div>
+                <h3 class="font-semibold text-primary">{{ __('Processing time by office') }}</h3>
+                <p class="text-sm text-zinc-600">{{ __('Average working days per completed visit in the period, longest first. Review the transaction history of the slowest office to find the cause.') }}</p>
+            </div>
+            @if ($metrics->byOffice->isEmpty())
+                <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No office visits were completed in this period.') }}</p>
+            @else
+                @php($maxDays = max(1, $metrics->byOffice->max('days')))
+                <ul class="space-y-2.5">
+                    @foreach ($metrics->byOffice as $row)
+                        <li class="grid grid-cols-[minmax(0,10rem)_1fr_7rem] items-center gap-3 sm:grid-cols-[minmax(0,15rem)_1fr_8rem]">
+                            <span class="truncate text-sm text-ink">{{ $row['name'] }}</span>
+                            <span class="h-3 rounded-e bg-primary/10" aria-hidden="true">
+                                <span @class(['block h-3 rounded-e', 'bg-amber-600' => $loop->first && $metrics->byOffice->count() > 1, 'bg-primary' => ! ($loop->first && $metrics->byOffice->count() > 1)]) style="width: {{ round($row['days'] / $maxDays * 100, 1) }}%"></span>
+                            </span>
+                            <span class="text-end text-sm font-semibold text-ink tabular-nums">{{ trans_choice(':count working day|:count working days', $row['days']) }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
     </section>
 
     <div class="grid gap-8 xl:grid-cols-2">

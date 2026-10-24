@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ReportKind;
 use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\User;
@@ -28,6 +29,12 @@ test('every request page renders in every status for each role that can see it',
 
     foreach (['registrar.dashboard', 'registrar.requests', 'registrar.identities'] as $page) {
         $this->actingAs($registrar)->get(route($page))->assertOk();
+    }
+
+    foreach (ReportKind::cases() as $kind) {
+        $period = ['from' => now()->subDays(60)->format('Y-m-d'), 'to' => now()->format('Y-m-d')];
+        $this->actingAs($registrar)->get(route('registrar.reports', ['report' => $kind->value, ...$period]))->assertOk();
+        expect($this->actingAs($registrar)->get(route('registrar.reports.export', ['report' => $kind->value, ...$period]))->assertOk()->streamedContent())->toContain(',');
     }
 
     $this->actingAs(User::where('email', 'vpf@example.com')->firstOrFail())->get(route('department.dashboard'))->assertOk();

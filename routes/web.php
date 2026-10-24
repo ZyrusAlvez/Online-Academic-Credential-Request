@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\IdentityDocumentController;
 use App\Http\Controllers\PaymentProofController;
+use App\Http\Controllers\ReportsCsvController;
 use App\Http\Controllers\RequestDocumentController;
 use App\Http\Controllers\RequestsCsvController;
 use App\Livewire\Department;
@@ -29,6 +30,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('requests', Registrar\Requests\Index::class)->name('requests');
         Route::get('requests/export', RequestsCsvController::class)->name('requests.export');
         Route::get('requests/{credentialRequest}', Registrar\Requests\Show::class)->name('requests.show');
+        Route::get('reports', Registrar\Reports\Index::class)->name('reports');
+        Route::get('reports/{report}/export', ReportsCsvController::class)->name('reports.export');
         Route::get('departments', Registrar\Departments\Index::class)->name('departments');
         Route::get('users', Registrar\Users\Index::class)->name('users');
         Route::get('calendar', Registrar\Calendar\Index::class)->name('calendar');
