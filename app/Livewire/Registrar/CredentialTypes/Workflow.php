@@ -51,7 +51,7 @@ class Workflow extends Component
 
         $this->validate([
             'newStep' => ['required', 'string'],
-            'newTask' => ['required', Rule::enum(RouteTask::class)],
+            'newTask' => ['required', Rule::enum(RouteTask::class)->only(RouteTask::configurable())],
             'newInstructions' => ['nullable', 'string', 'max:255'],
         ], ['newStep.required' => 'Choose an office or the Dean.']);
 
@@ -97,7 +97,7 @@ class Workflow extends Component
         $this->authorize('update', $this->credentialType);
 
         $this->validate([
-            'editingTask' => ['required', Rule::enum(RouteTask::class)],
+            'editingTask' => ['required', Rule::enum(RouteTask::class)->only(RouteTask::configurable())],
             'editingInstructions' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -128,7 +128,7 @@ class Workflow extends Component
         return view('livewire.registrar.credential-types.workflow', [
             'steps' => $steps,
             'hasCollegeStep' => $steps->contains('is_student_college', true),
-            'tasks' => RouteTask::cases(),
+            'tasks' => RouteTask::configurable(),
             'availableDepartments' => Department::active()
                 ->whereNotIn('id', $steps->pluck('department_id')->filter())
                 ->orderBy('type')

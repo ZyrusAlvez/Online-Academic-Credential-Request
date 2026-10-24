@@ -2,10 +2,14 @@
 
 @php
     $icons = [
-        'submitted' => 'paper-airplane', 'payment_submitted' => 'arrow-up-tray', 'payment_rejected' => 'x-circle',
-        'payment_accepted' => 'banknotes', 'college_changed' => 'pencil-square', 'routed' => 'arrows-right-left',
-        'step_signed' => 'check-circle', 'step_held' => 'pause-circle', 'step_resumed' => 'play-circle',
-        'step_skipped' => 'forward', 'ready_for_release' => 'gift', 'released' => 'hand-raised', 'cancelled' => 'no-symbol',
+        'submitted' => 'paper-airplane', 'evaluation_started' => 'magnifying-glass', 'compliance_requested' => 'exclamation-triangle',
+        'deficiency_resolved' => 'check', 'customer_action_requested' => 'chat-bubble-left-ellipsis', 'customer_responded' => 'chat-bubble-left-right',
+        'requirements_completed' => 'clipboard-document-check', 'declined' => 'x-circle', 'college_changed' => 'pencil-square',
+        'payment_submitted' => 'arrow-up-tray', 'payment_rejected' => 'x-circle', 'payment_verified' => 'banknotes', 'accepted' => 'play-circle',
+        'document_forwarded' => 'arrow-right', 'receipt_accepted' => 'inbox-arrow-down', 'step_completed' => 'check-circle',
+        'document_returned' => 'arrow-uturn-left', 'document_resubmitted' => 'arrow-path', 'delay_recorded' => 'clock', 'step_bypassed' => 'forward',
+        'ready_for_release' => 'gift', 'representative_declared' => 'user-plus', 'representative_verified' => 'shield-check',
+        'representative_rejected' => 'shield-exclamation', 'released' => 'hand-raised', 'cancelled' => 'no-symbol',
     ];
 @endphp
 

@@ -18,7 +18,7 @@ class Dashboard extends Component
     {
         $requests = CredentialRequest::query()
             ->whereBelongsTo(Auth::user(), 'student')
-            ->with(['credentialType:id,name', 'currentStep.department:id,name'])
+            ->with(['credentialType:id,name', 'openVisit.department:id,name'])
             ->latest('id')
             ->paginate(10);
 

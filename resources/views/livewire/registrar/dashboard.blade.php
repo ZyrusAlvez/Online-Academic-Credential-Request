@@ -3,7 +3,7 @@
 
     <section aria-labelledby="status-heading">
         <h2 id="status-heading" class="sr-only">{{ __('Requests by status') }}</h2>
-        <div class="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
             @foreach ($tiles as $tile)
                 <a href="{{ $tile['href'] }}" wire:navigate class="rounded-xl border border-secondary/50 p-4 hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight">
                     <p class="text-sm text-zinc-600">{{ $tile['label'] }}</p>
@@ -12,7 +12,7 @@
             @endforeach
             <a href="{{ route('registrar.requests', ['status' => 'overdue']) }}" wire:navigate
                 @class([
-                    'col-span-2 rounded-xl border p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight lg:col-span-1',
+                    'rounded-xl border p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight',
                     'border-red-700 bg-red-50 hover:bg-red-100' => $overdueCount > 0,
                     'border-secondary/50 hover:border-primary' => $overdueCount === 0,
                 ])>
@@ -33,8 +33,8 @@
                 <dd class="text-2xl font-bold text-primary tabular-nums">{{ $releasedThisMonth }}</dd>
             </div>
             <div class="rounded-xl bg-primary-50 p-4">
-                <dt class="text-sm text-zinc-600">{{ __('Average turnaround (last 30 days)') }}</dt>
-                <dd class="text-2xl font-bold text-primary tabular-nums">{{ $avgTurnaroundDays === null ? '—' : trans_choice(':count day|:count days', $avgTurnaroundDays) }}</dd>
+                <dt class="text-sm text-zinc-600">{{ __('Average processing time (released, last 30 days)') }}</dt>
+                <dd class="text-2xl font-bold text-primary tabular-nums">{{ $avgProcessingDays === null ? '—' : trans_choice(':count working day|:count working days', $avgProcessingDays) }}</dd>
             </div>
         </dl>
     </section>
@@ -43,23 +43,23 @@
         <section aria-labelledby="waiting-heading" class="space-y-3">
             <div>
                 <h2 id="waiting-heading" class="text-lg font-semibold text-primary">{{ __('Where requests are waiting') }}</h2>
-                <p class="text-sm text-zinc-600">{{ __('In-progress requests currently held by each office.') }}</p>
+                <p class="text-sm text-zinc-600">{{ __('Documents each office holds now, including those forwarded but not yet received.') }}</p>
             </div>
 
             @if ($waitingByOffice->isEmpty())
-                <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No requests are in progress.') }}</p>
+                <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No requests are being processed.') }}</p>
             @else
                 @php($max = max(1, $waitingByOffice->max('waiting')))
                 <ul class="space-y-2.5">
                     @foreach ($waitingByOffice as $row)
                         <li>
-                            <a href="{{ route('registrar.requests', ['status' => 'open', 'office' => $row['id']]) }}" wire:navigate
+                            <a href="{{ route('registrar.requests', ['status' => 'processing', 'office' => $row['id']]) }}" wire:navigate
                                 class="group grid grid-cols-[minmax(0,10rem)_1fr_2.5rem] items-center gap-3 rounded-md p-1 hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-highlight sm:grid-cols-[minmax(0,15rem)_1fr_2.5rem]"
-                                title="{{ trans_choice(':count request|:count requests', $row['waiting']) }}{{ $row['onHold'] ? ' · '.__(':n on hold', ['n' => $row['onHold']]) : '' }}">
+                                title="{{ trans_choice(':count request|:count requests', $row['waiting']) }}{{ $row['inTransit'] ? ' · '.__(':n not yet received', ['n' => $row['inTransit']]) : '' }}">
                                 <span class="min-w-0">
                                     <span class="block truncate text-sm text-ink">{{ $row['name'] }}</span>
-                                    @if ($row['onHold'])
-                                        <span class="block text-xs text-amber-800">{{ __(':n on hold', ['n' => $row['onHold']]) }}</span>
+                                    @if ($row['inTransit'])
+                                        <span class="block text-xs text-sky-800">{{ __(':n not yet received', ['n' => $row['inTransit']]) }}</span>
                                     @endif
                                 </span>
                                 <span class="h-3 rounded-e bg-primary/10" aria-hidden="true">
@@ -76,7 +76,7 @@
         <section aria-labelledby="overdue-heading" class="space-y-3">
             <div>
                 <h2 id="overdue-heading" class="text-lg font-semibold text-primary">{{ __('Most overdue') }}</h2>
-                <p class="text-sm text-zinc-600">{{ __('Past their target processing days.') }}</p>
+                <p class="text-sm text-zinc-600">{{ __('Being processed past their (adjusted) due date.') }}</p>
             </div>
             @if ($mostOverdue->isEmpty())
                 <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('Nothing is overdue.') }}</p>
@@ -88,7 +88,7 @@
                                 <a href="{{ route('registrar.requests.show', $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $request->reference_no }}</a>
                                 <p class="text-xs text-zinc-600">{{ $request->credentialType->name }} · {{ __('at :office', ['office' => $request->whereabouts()]) }}</p>
                             </div>
-                            <flux:badge size="sm" color="red" icon="clock">{{ __('Due :date', ['date' => $request->due_at->format('M j')]) }}</flux:badge>
+                            <flux:badge size="sm" color="red" icon="clock">{{ __('Due :date', ['date' => $request->effective_due_at->format('M j')]) }}</flux:badge>
                         </li>
                     @endforeach
                 </ul>
@@ -99,8 +99,8 @@
     <section aria-labelledby="office-queue-heading" class="space-y-3">
         <div>
             <h2 id="office-queue-heading" class="text-lg font-semibold text-primary">{{ __('Office of the Registrar queue') }}</h2>
-            <p class="text-sm text-zinc-600">{{ __('Requests whose current step is the final records verification by your office.') }}</p>
+            <p class="text-sm text-zinc-600">{{ __('Documents sent to your office for preparation, correction or the final quality check.') }}</p>
         </div>
-        <x-step-queue :steps="$officeQueue" link-route="registrar.requests.show" :empty="__('Nothing waiting for the Office of the Registrar.')" />
+        <x-visit-queue :visits="$officeQueue" link-route="registrar.requests.show" :empty="__('Nothing waiting for the Office of the Registrar.')" />
     </section>
 </div>
