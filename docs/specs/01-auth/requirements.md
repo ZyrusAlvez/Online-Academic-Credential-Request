@@ -70,8 +70,8 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   requester SHALL be notified of the result and MAY upload another ID after a rejection.
 - **REQ-01-20** THE SYSTEM SHALL let only the ID's owner and registrars open an uploaded ID
   (others get 404), without letting browsers cache it.
-- **REQ-01-21** WHEN a requester opens the new-request form THE SYSTEM SHALL pre-fill their
-  academic details from their profile.
+- **REQ-01-21** WHEN a requester submits a request THE SYSTEM SHALL take its academic details
+  from their profile, shown on the new-request form and edited in My Profile.
 
 ### Seed
 - **REQ-01-15** THE SYSTEM SHALL provide a database seeder that creates an initial registrar

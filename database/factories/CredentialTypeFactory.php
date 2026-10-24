@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\RouteTask;
 use App\Models\CredentialType;
 use App\Models\Department;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -42,19 +43,22 @@ class CredentialTypeFactory extends Factory
     }
 
     /**
-     * Attach workflow steps in order. Pass Department models, or the string 'college'
-     * for a Student's College step.
+     * Attach route steps in order. Pass Department models, [Department, RouteTask] pairs, or the
+     * string 'college' for the Dean step. Tasks default to sign.
      *
-     * @param  list<Department|string>  $steps
+     * @param  list<Department|string|array{Department, RouteTask}>  $steps
      */
     public function withSteps(array $steps): static
     {
         return $this->afterCreating(function (CredentialType $type) use ($steps): void {
             foreach ($steps as $index => $step) {
+                [$department, $task] = is_array($step) ? $step : [$step, RouteTask::Sign];
+
                 $type->steps()->create([
                     'position' => $index + 1,
-                    'department_id' => $step instanceof Department ? $step->id : null,
-                    'is_student_college' => $step === 'college',
+                    'department_id' => $department instanceof Department ? $department->id : null,
+                    'is_student_college' => $department === 'college',
+                    'task' => $task,
                 ]);
             }
         });

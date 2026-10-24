@@ -1,47 +1,78 @@
 <?php
 
+use App\Livewire\Department\Requests\Show as OfficeShow;
+use App\Livewire\Registrar\Requests\Show;
+use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\User;
-use App\Services\RequestWorkflow;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 
 beforeEach(function () {
+    Storage::fake('local');
     $this->org = organisation();
-    $this->workflow = app(RequestWorkflow::class);
-    $this->student = User::factory()->student()->create();
-    $this->registrar = User::factory()->registrar()->create(['first_name' => 'Regina', 'middle_name' => null, 'last_name' => 'Registrar']);
-    $this->librarian = User::factory()->departmentStaff($this->org->library)->create(['first_name' => 'Lina', 'middle_name' => null, 'last_name' => 'Librarian']);
-
-    $this->request = submitRequest($this->student, $this->org->free, $this->org->ccs);
-    $this->request->forceFill(['credential_type_id' => $this->org->tor->id])->save();
-    $this->workflow->approve($this->request, $this->registrar);
-    $step = $this->request->currentStep()->firstOrFail();
-    $this->workflow->hold($step, $this->librarian, 'Unreturned book');
-    $this->workflow->sign($step->fresh(), $this->librarian, 'Book returned');
+    $this->owner = requester($this->org->ccs);
+    $this->registrar = User::factory()->registrar()->create(['first_name' => 'Rhea', 'last_name' => 'Registrar']);
+    $this->dean = User::factory()->departmentStaff($this->org->ccs)->create(['first_name' => 'Dina', 'last_name' => 'Dean']);
+    $this->vpf = User::factory()->departmentStaff($this->org->vpf)->create();
 });
 
-test('REQ-06-01 the student sees a tracking history, newest first, with offices and remarks', function () {
-    $this->actingAs($this->student)->get(route('student.requests.show', $this->request))
-        ->assertOk()
-        ->assertSee('Tracking history')
-        ->assertSeeInOrder(['Signed by Library', 'Book returned', 'On hold at Library', 'Unreturned book', 'Approved and sent to the signing offices', 'Request submitted']);
+afterEach(fn () => Carbon::setTestNow());
+
+test('REQ-06-01 the requester sees the tracker, the holding office and the expected release date', function () {
+    $request = submitRequest($this->owner, $this->org->tor);
+
+    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])
+        ->assertSee('Request submitted and evaluated')
+        ->assertSee('Payment verified')
+        ->assertSee('Final approval and quality check')
+        ->assertSee('7 working days')
+        ->assertSee('Set on acceptance');
+
+    Carbon::setTestNow('2026-10-09 10:00:00');
+    acceptRequest($request, $this->registrar);
+    passOffice($request, $this->registrar);
+
+    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])
+        ->assertSee('College of Computer Studies')
+        ->assertSee('Saturday, Oct 17, 2026');
 });
 
-test('REQ-06-02 the student history shows offices, not staff names', function () {
-    $this->actingAs($this->student)->get(route('student.requests.show', $this->request))
-        ->assertDontSee('Lina Librarian')
-        ->assertDontSee('Regina Registrar');
+test('REQ-06-02 the requester history names offices, never staff, and hides internal entries', function () {
+    $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    passOffice($request, $this->registrar);
+    passOffice($request, $this->dean);
+    workflow()->acceptReceipt(openVisit($request), $this->vpf);
+    workflow()->returnVisit(openVisit($request), $this->vpf, $this->org->ccs, 'Missing signature', 'Sign page 2');
+
+    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])
+        ->assertSee('Received by College of Computer Studies')
+        ->assertSee('Signed by College of Computer Studies')
+        ->assertSee('In progress')
+        ->assertDontSee('Returned for correction')
+        ->assertDontSee('Forwarded to')
+        ->assertDontSee('Missing signature')
+        ->assertDontSee('Dina Dean')
+        ->assertDontSee('Rhea Registrar');
 });
 
-test('REQ-06-03 the registrar sees the full ledger with actors', function () {
-    $this->actingAs($this->registrar)->get(route('registrar.requests.show', $this->request))
-        ->assertOk()
-        ->assertSee('History')
-        ->assertSee('Lina Librarian (Department Staff)')
-        ->assertSee('Regina Registrar (Registrar)')
-        ->assertSee('Signed by Library');
+test('REQ-06-03 the registrar sees the full ledger with actors and the office visits table', function () {
+    $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    passOffice($request, $this->registrar);
+    workflow()->acceptReceipt(openVisit($request), $this->dean);
+
+    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])
+        ->assertSee('Rhea Registrar (Registrar)')
+        ->assertSee('Forwarded to College of Computer Studies')
+        ->assertSeeInOrder(['Office visits', 'Office of the Registrar', 'Same day', 'Completed', 'College of Computer Studies', 'In progress', 'In office']);
 });
 
-test('REQ-06-04 department staff see the request history', function () {
-    $this->actingAs($this->librarian)->get(route('department.requests.show', $this->request))
-        ->assertOk()
-        ->assertSeeInOrder(['Signed by Library', 'On hold at Library']);
+test('REQ-06-04 office staff see the visits and history on their request page', function () {
+    $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    passOffice($request, $this->registrar);
+
+    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request])
+        ->assertSee('Office visits')
+        ->assertSee('Prepared by Office of the Registrar')
+        ->assertSee('Accept receipt');
 });

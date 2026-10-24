@@ -32,23 +32,16 @@ test('text input is trimmed before it is validated and stored', function () {
 test('request form text is trimmed', function () {
     $org = organisation();
 
-    Livewire::actingAs(User::factory()->student()->create())->test(Create::class)
+    Livewire::actingAs(requester($org->ccs))->test(Create::class)
         ->set([
             'form.credential_type_id' => $org->free->id,
             'form.copies' => 1,
             'form.purpose' => '  Employment  ',
-            'form.student_number' => ' 19-0001-123 ',
-            'form.college_id' => $org->ccs->id,
-            'form.program' => ' BS Computer Science ',
-            'form.student_status' => 'alumni',
-            'form.last_school_year' => ' 2023-2024 ',
+            'form.receiving_institution' => '  Ateneo de Manila University ',
         ])
         ->call('submit')
         ->assertHasNoErrors();
 
     expect(CredentialRequest::sole())
-        ->purpose->toBe('Employment')
-        ->student_number->toBe('19-0001-123')
-        ->program->toBe('BS Computer Science')
-        ->last_school_year->toBe('2023-2024');
+        ->purpose->toBe('Employment');
 });

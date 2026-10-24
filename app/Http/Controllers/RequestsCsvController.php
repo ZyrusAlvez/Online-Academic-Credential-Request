@@ -16,13 +16,13 @@ class RequestsCsvController extends Controller
 
         $query = RegistrarRequestFilter::fromArray($request->only(['search', 'status', 'type', 'office']))
             ->query()
-            ->with(['student', 'credentialType', 'college', 'currentStep.department']);
+            ->with(['student', 'credentialType', 'college', 'openVisit.department']);
 
         $filename = 'credential-requests-'.now()->format('Y-m-d-His').'.csv';
 
         return response()->streamDownload(function () use ($query): void {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Reference', 'Credential', 'Copies', 'Student', 'Student number', 'College', 'Status', 'Currently at', 'Submitted', 'Due', 'Released']);
+            fputcsv($out, ['Tracking no.', 'Credential', 'Copies', 'Requester', 'Student number', 'College', 'Status', 'Currently at', 'Submitted', 'Accepted', 'Due', 'Adjusted due', 'Released', 'Processing working days']);
 
             foreach ($query->lazyById(200) as $row) {
                 /** @var CredentialRequest $row */
@@ -31,13 +31,16 @@ class RequestsCsvController extends Controller
                     $row->credentialType->name,
                     (string) $row->copies,
                     $row->student->name,
-                    $row->student_number,
+                    $row->student_number ?? '',
                     $row->college->name,
                     $row->status->label(),
                     $row->whereabouts(),
-                    $row->created_at->format('Y-m-d H:i'),
+                    $row->submitted_at?->format('Y-m-d H:i') ?? '',
+                    $row->accepted_at?->format('Y-m-d H:i') ?? '',
                     $row->due_at?->format('Y-m-d') ?? '',
+                    $row->adjusted_due_at?->format('Y-m-d') ?? '',
                     $row->released_at?->format('Y-m-d H:i') ?? '',
+                    $row->processing_working_days !== null ? (string) $row->processing_working_days : '',
                 ]));
             }
 
