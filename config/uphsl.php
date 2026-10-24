@@ -15,6 +15,12 @@ return [
     'receipts_disk' => env('RECEIPTS_DISK', 'local'),
 
     /*
+    | Days of the week the offices work (ISO numbers, 1 = Monday … 7 = Sunday). Holidays and
+    | closures come from the working calendar (non_working_days). Spec 10.
+    */
+    'work_week' => [1, 2, 3, 4, 5, 6],
+
+    /*
     | The first registrar account, created by `db:seed` when no account with this email exists,
     | so that someone can log in and create every other account. The seeder never changes an
     | existing account, so editing these later does not change its password.

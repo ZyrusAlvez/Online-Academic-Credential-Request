@@ -14,7 +14,7 @@ one-line change.
 
 ```php
 isWorkingDay(CarbonInterface $day): bool
-addWorkingDays(CarbonInterface $from, int $days): CarbonImmutable   // end of day of the nth working day after $from's date
+addWorkingDays(CarbonInterface $from, int $days): Carbon   // end of day of the nth working day after $from's date
 workingDaysBetween(CarbonInterface $start, CarbonInterface $end): int // working days in (start date, end date]
 ```
 

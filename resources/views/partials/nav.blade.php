@@ -15,6 +15,7 @@
             <flux:navlist.item icon="document-duplicate" :href="route('registrar.credential-types')" :current="request()->routeIs('registrar.credential-types*')" wire:navigate>{{ __('Credential Types') }}</flux:navlist.item>
             <flux:navlist.item icon="building-office-2" :href="route('registrar.departments')" :current="request()->routeIs('registrar.departments')" wire:navigate>{{ __('Departments') }}</flux:navlist.item>
             <flux:navlist.item icon="users" :href="route('registrar.users')" :current="request()->routeIs('registrar.users')" wire:navigate>{{ __('Accounts') }}</flux:navlist.item>
+            <flux:navlist.item icon="calendar-days" :href="route('registrar.calendar')" :current="request()->routeIs('registrar.calendar')" wire:navigate>{{ __('Working Calendar') }}</flux:navlist.item>
         </flux:navlist.group>
     @else
         <flux:navlist.group :heading="auth()->user()->department?->code ?? __('Department')" class="grid">

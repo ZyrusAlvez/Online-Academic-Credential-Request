@@ -32,15 +32,6 @@ function routeAt(string $date, $type = null): CredentialRequest
     return $request->fresh();
 }
 
-test('REQ-07-01 the due date counts weekdays only', function () {
-    $this->org->tor->update(['processing_days' => 3]);
-
-    // Friday 2026-10-09 10:00 + 3 weekdays = Wednesday 2026-10-14 10:00
-    $request = routeAt('2026-10-09 10:00:00', $this->org->tor);
-
-    expect($request->due_at->toDateTimeString())->toBe('2026-10-14 10:00:00');
-});
-
 test('REQ-07-02 in-progress requests past their due date are overdue and filterable', function () {
     $late = routeAt('2026-01-05 09:00:00');
     $onTime = routeAt(now()->toDateTimeString());

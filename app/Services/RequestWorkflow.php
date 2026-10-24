@@ -31,6 +31,8 @@ use Throwable;
  */
 class RequestWorkflow
 {
+    public function __construct(private readonly WorkingCalendar $calendar) {}
+
     /** Disk holding payment receipts: local or Cloudflare R2 (config uphsl.receipts_disk). */
     public static function proofDisk(): string
     {
@@ -147,7 +149,7 @@ class RequestWorkflow
             }
 
             $locked->routed_at = now();
-            $locked->due_at = now()->addWeekdays($locked->credentialType()->firstOrFail()->processing_days);
+            $locked->due_at = $this->calendar->addWorkingDays(now(), $locked->credentialType()->firstOrFail()->processing_days);
             $this->transition($locked, $request, RequestStatus::InProgress, $registrar, RequestEventType::Routed, $remarks);
         });
     }
