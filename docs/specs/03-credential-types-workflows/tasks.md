@@ -1,10 +1,11 @@
-# 03 — Credential Types & Workflow Builder · Tasks
+# 03 — Credential Master List & Routes · Tasks
 
-- [x] Migrations, CredentialType + WorkflowStep models, factories
-- [x] Seeder with default types and workflows (REQ-03-01)
-- [x] Credential types page: list, create/edit modal, activate/deactivate (REQ-03-02..05)
-- [x] Workflow actions: add, move, remove, edit instructions (REQ-03-06..09)
-- [x] Workflow builder page
-- [x] Policy + navigation
-- [x] Pest tests for REQ-03-01..11 (REQ-03-10 covered again in spec 05)
-- [x] `composer qa` green
+- [ ] Migration: `requirements`, `special_conditions`, `requires_receiving_institution` on
+      credential types; `task` on workflow steps; `RouteTask` enum
+- [ ] Seeders: offices (REQ-02-01, 13) and the 17-type master list with `install()` (REQ-03-01, 12)
+- [ ] Data migration installing the master list on deploy
+- [ ] Credential types page: fee, period, route, new fields (REQ-03-02..05)
+- [ ] Route builder: task on add and edit, Dean label (REQ-03-06..09)
+- [ ] Demo seeder and seed-dependent tests updated to the new offices and types
+- [ ] Pest tests for every changed criterion; data dictionary updated
+- [ ] `composer qa` green (CI, deploy run on staging)

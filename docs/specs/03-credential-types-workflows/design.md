@@ -1,4 +1,4 @@
-# 03 — Credential Types & Workflow Builder · Design
+# 03 — Credential Master List & Routes · Design
 
 ## Data
 
@@ -7,53 +7,59 @@
 | Column | Type | Notes |
 |---|---|---|
 | name | string(150) unique | |
-| description | text null | shown to students |
+| description | text null | shown to requesters |
 | requires_payment | boolean default false | |
-| fee | decimal(10,2) null | informational; payment happens on the UPHSL portal |
-| processing_days | unsigned tinyint default 5 | target turnaround, used for overdue flags (spec 07) |
+| fee | decimal(10,2) null | per copy; payment happens on the UPHSL portal |
+| processing_days | unsigned tinyint default 5 | processing period in **working days** (spec 10) |
+| requirements | json null | list of documentary requirements shown before submitting and used by the evaluator (spec 04) |
+| special_conditions | text null | shown before submitting |
+| requires_receiving_institution | boolean default false | transfer credentials: the receiving school's complete name is required (spec 04) |
 | is_active | boolean default true, index | |
 
-`workflow_steps` (the template)
+`workflow_steps` (the route template)
 
 | Column | Type | Notes |
 |---|---|---|
 | credential_type_id | FK cascade | |
 | position | unsigned smallint | 1-based, contiguous; index (credential_type_id, position) |
-| department_id | FK null, restrict | null ⇔ `is_student_college` |
-| is_student_college | boolean default false | resolves to the request's college at routing |
+| department_id | FK null, restrict | null ⇔ `is_student_college` (the Dean step) |
+| is_student_college | boolean default false | resolves to the requester's college at routing |
+| task | string(20) default `sign` | `App\Enums\RouteTask`: `prepare`, `sign`, `documentary_stamp` |
 | instructions | string(255) null | |
 
-No unique index on position: reordering swaps two rows inside a transaction instead.
+The Registrar's final quality check is not a configurable step: spec 05 appends it to every
+request's route, so no route can miss it. Until spec 05 lands, routes end at their last step.
 
 ## Code
 
-- `App\Models\CredentialType` — `hasMany(WorkflowStep)->orderBy('position')`, `scopeActive`,
-  `scopeRequestable` (active + has steps).
-- `App\Models\WorkflowStep` — `belongsTo(CredentialType, Department)`, `label()` returns the
-  department name or "Student's College".
-- Actions (`app/Actions/Workflow`): `AddWorkflowStep`, `MoveWorkflowStep` (up/down swap),
-  `RemoveWorkflowStep` (then resequence). Editing instructions is a plain validated update. Duplicate and
-  multiple-college checks raise `ValidationException` so the UI shows a field error.
-- `App\Policies\CredentialTypePolicy` — registrar only.
-- Livewire: `Registrar\CredentialTypes\Index` (table + modal form, status toggle) and
-  `Registrar\CredentialTypes\Workflow` (ordered list with ↑ ↓ ✕ buttons, add-step form,
-  inline instructions edit). Up/down buttons instead of drag-and-drop for keyboard access.
-- `Database\Seeders\CredentialTypeSeeder` — `firstOrCreate` by name; steps only created when
-  the type is new.
+- `App\Enums\RouteTask` with `label()` (Prepare, Sign, Documentary stamp) and `doneLabel()`.
+- `App\Models\CredentialType` — `requirements` cast to array; `routeSummary()` ("Registrar →
+  Dean → VP Finance → Chancellor") for lists and the request form.
+- `App\Models\WorkflowStep` — `label()` returns the office name or "Dean (student's college)".
+- Actions (`app/Actions/Workflow`): `AddWorkflowStep` (now takes a task), `MoveWorkflowStep`,
+  `RemoveWorkflowStep`. Editing a step's task and instructions is a validated update.
+- Livewire: `Registrar\CredentialTypes\Index` (table + modal form) and
+  `Registrar\CredentialTypes\Workflow` (route builder).
 
-### Default workflows (editable)
+## Seed: the master list (editable)
 
-| Credential | Paid | Steps |
-|---|---|---|
-| Transcript of Records | yes | Library → Cashier/Finance → Student's College → Registrar |
-| Certificate of Enrollment | no | Registrar |
-| Certificate of Grades | no | Student's College → Registrar |
-| Good Moral Certificate | no | Student Affairs → Registrar |
-| Honorable Dismissal / Transfer Credentials | yes | Library → Cashier/Finance → Student Affairs → Student's College → Registrar |
-| Diploma – Certified True Copy | yes | Cashier/Finance → Registrar |
-| CAV – Certification, Authentication and Verification | yes | Student's College → Registrar |
+`Database\Seeders\CredentialTypeSeeder::run()` uses `firstOrCreate` (never overwrites);
+`install()` replaces the 17 types and their routes and deactivates every other type. The data
+migration `install_credential_master_list` runs `DepartmentSeeder` then `install()` on deploy
+(skipped under the test runner).
 
-Fees are left empty in the seed; the registrar fills them in.
+| Credential | Fee | Days | Route (task) |
+|---|---|---|---|
+| Authentication | ₱50 | 1 | REG prepare |
+| Certification, Authentication, Verification (CAV) | ₱500 | 2 | REG prepare |
+| Certification (general); of Graduation; of Enrollment; of Units Earned; Course Description; Medium of Instruction; Copy of Grades; Notice of Acceptance; Letter for the BI Commissioner; Permit to Cross-Enroll; Transfer Certificate; Copy of Grades for Transfer Credentials | ₱230 | 6 | REG prepare → VPF documentary stamp → CHAN sign |
+| Diploma / Certificate for Non-Degree Programs | ₱800 | 6 | REG prepare → CHAN sign → PRES sign |
+| Transcript of Records (TOR); TOR for Transfer Credentials | ₱530 | 7 | REG prepare → Dean sign → VPF documentary stamp → CHAN sign |
+
+Requirements (initial, for the Registrar to validate, *Proposed Workflow* XIV): every type
+lists "Completed clearance"; the TOR, diploma, graduation and transfer types also list the
+admission requirements (Form 137 or the UPHSL copy of the previous TOR, and a PSA-authenticated
+birth certificate). Transfer types require the receiving school's name.
 
 ## Routes
 
