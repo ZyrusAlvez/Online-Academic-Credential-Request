@@ -9,18 +9,31 @@ use App\Models\Department;
 use App\Models\OfficeVisit;
 use App\Queries\RegistrarRequestFilter;
 use App\Queries\VisitQueue;
+use App\Reports\PerformanceMetrics;
+use App\Reports\ReportFilter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 #[Title('Registrar Dashboard')]
 class Dashboard extends Component
 {
+    /** Period of the performance indicators (REQ-07-04); this month by default. */
+    #[Url(except: '')]
+    public string $from = '';
+
+    #[Url(except: '')]
+    public string $to = '';
+
     public function mount(): void
     {
         $this->authorize('viewAny', CredentialRequest::class);
+
+        $this->from = $this->from !== '' ? $this->from : now()->startOfMonth()->format('Y-m-d');
+        $this->to = $this->to !== '' ? $this->to : now()->endOfMonth()->format('Y-m-d');
     }
 
     public function render(): View
@@ -36,10 +49,7 @@ class Dashboard extends Component
 
         $count = fn (RequestStatus ...$statuses): int => array_sum(array_map(fn (RequestStatus $s) => (int) ($byStatus[$s->value] ?? 0), $statuses));
 
-        $avgDays = CredentialRequest::query()
-            ->where('released_at', '>=', now()->subDays(30))
-            ->whereNotNull('processing_working_days')
-            ->avg('processing_working_days');
+        $period = new ReportFilter($this->from, $this->to);
 
         return view('livewire.registrar.dashboard', [
             'tiles' => [
@@ -50,9 +60,8 @@ class Dashboard extends Component
                 ['label' => __('Ready for release'), 'value' => $count(RequestStatus::ReadyForRelease), 'href' => route('registrar.requests', ['status' => RequestStatus::ReadyForRelease->value])],
             ],
             'overdueCount' => CredentialRequest::overdue()->count(),
-            'submittedThisMonth' => CredentialRequest::where('submitted_at', '>=', now()->startOfMonth())->count(),
-            'releasedThisMonth' => CredentialRequest::where('released_at', '>=', now()->startOfMonth())->count(),
-            'avgProcessingDays' => $avgDays === null ? null : round((float) $avgDays, 1),
+            'metrics' => PerformanceMetrics::for($period),
+            'reportsUrl' => route('registrar.reports', ['report' => 'monthly', ...$period->toArray()]),
             'waitingByOffice' => $this->waitingByOffice(),
             'mostOverdue' => CredentialRequest::overdue()
                 ->with(['credentialType:id,name', 'openVisit.department:id,name'])

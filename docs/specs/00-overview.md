@@ -246,19 +246,18 @@ Automated tests run in Laravel's internal `testing` mode on their own database,
 
 ## Feature specs
 
-The specs are being rewritten to this model in phases. Until a spec's phase lands, its
-requirements describe the system as it currently runs.
+All feature specs describe this model.
 
 | # | Feature | Phase |
 |---|---|---|
-| 01 | Registration, identity & roles | 3 (rewrite) |
-| 02 | Offices & staff accounts | 2 (rewrite) |
-| 03 | Credential master list & routes | 2 (rewrite) |
-| 04 | Submission, evaluation, compliance, payment & acceptance | 4 (rewrite) |
-| 05 | Office routing: receipt, release, returns & final check | 4 (rewrite) |
-| 06 | Tracking, notifications & reminders | 4–5 (rewrite) |
-| 07 | Performance dashboard & reports | 6 (rewrite) |
+| 01 | Registration, identity & roles | done |
+| 02 | Offices & staff accounts | done |
+| 03 | Credential master list & routes | done |
+| 04 | Submission, evaluation, compliance, payment & acceptance | done |
+| 05 | Office routing: receipt, release, returns & final check | done |
+| 06 | Tracking, notifications & reminders | done |
+| 07 | Performance dashboard & reports | done |
 | 08 | ~~Turnaround prediction~~ (removed; the system makes no predictions) | — |
 | 09 | UX polish | done |
-| 10 | Working calendar & due dates | 1 (new) |
-| 11 | Representatives & release | 4 (new) |
+| 10 | Working calendar & due dates | done |
+| 11 | Representatives & release | done |
