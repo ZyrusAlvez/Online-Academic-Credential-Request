@@ -23,6 +23,7 @@ erDiagram
     credential_requests ||--o{ payment_proofs : has
     credential_requests ||--o{ request_events : "ledger of"
     users |o--o{ request_events : performs
+    users |o--o{ non_working_days : "added"
 ```
 
 - A **user** (student) has many **credential requests**; a **department staff** user belongs to one **department**.
@@ -119,7 +120,7 @@ A student's request for a credential.
 | fee | decimal(10,2) | Yes | | | Copy of the fee at submission |
 | status | varchar(30) | No | IX | | See [RequestStatus](#requeststatus) |
 | routed_at | timestamp | Yes | | | When the registrar approved and routed it |
-| due_at | timestamp | Yes | IX (with status) | | `routed_at` + `processing_days` weekdays; past due while in progress = overdue |
+| due_at | timestamp | Yes | IX (with status) | | End of the working day `processing_days` working days after `routed_at` (spec 10); past due while in progress = overdue |
 | ready_at | timestamp | Yes | | | When the last office signed |
 | released_at | timestamp | Yes | | | When the student claimed it |
 | cancelled_at | timestamp | Yes | | | |
@@ -199,6 +200,20 @@ Laravel database notifications (the bell). `id` is a UUID.
 | data | text | No | | JSON: `request_id`, `reference_no`, `event_type`, `title`, `message`, `url` |
 | read_at | timestamp | Yes | | Empty = unread |
 | created_at, updated_at | timestamp | Yes | | |
+
+## non_working_days
+
+The working calendar (spec 10): holidays and closures that due dates and time per office skip.
+Working days are the `uphsl.work_week` days (Monday–Saturday) not listed here.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| date | date | No | UQ | | The non-working day |
+| name | varchar(150) | No | | | e.g. "Rizal Day", "Typhoon closure" |
+| kind | varchar(20) | No | | | `holiday`, `special` or `closure` (see [NonWorkingDayKind](#nonworkingdaykind)) |
+| created_by | bigint unsigned | Yes | FK → users | | Registrar who added it; empty for seeded holidays |
+| created_at, updated_at | timestamp | Yes | | | |
 
 ## Framework tables
 
@@ -280,3 +295,11 @@ Stored as strings; defined in `app/Enums`.
 | `ready_for_release` | Last office signed |
 | `released` | Registrar marks it claimed |
 | `cancelled` | Request cancelled |
+
+### NonWorkingDayKind
+
+| Value | Meaning |
+|---|---|
+| `holiday` | Regular holiday |
+| `special` | Special non-working day |
+| `closure` | Office closure (e.g. typhoon, university event) |

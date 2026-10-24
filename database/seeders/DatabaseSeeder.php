@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             DepartmentSeeder::class,
             CredentialTypeSeeder::class,
             RegistrarSeeder::class,
+            NonWorkingDaySeeder::class,
         ]);
     }
 }
