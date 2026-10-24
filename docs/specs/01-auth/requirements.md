@@ -1,9 +1,16 @@
-# 01 — Authentication & Roles · Requirements
+# 01 — Registration, Identity & Roles · Requirements
+
+Source: *Proposed Workflow*, section III-A (registration and identity verification), IV
+(identity of the document owner) and X (secure document storage).
 
 ## User stories
 
-- **US-01-1** As a student or alumnus, I want to create an account with my name, email and
-  password, so that I can request credentials online.
+- **US-01-1** As a student, graduate or former student, I want to create an account with my name,
+  email, contact number and password, so that I can request credentials online.
+- **US-01-5** As a requester, I want to give my academic information and upload a valid ID once,
+  so that the Registrar can confirm the account is really mine.
+- **US-01-6** As the registrar, I want to review each requester's valid ID, so that credentials
+  are only processed for their real owner.
 - **US-01-2** As any user, I want to log in with only my email and password.
 - **US-01-3** As the registrar, I want only verified, active accounts to use the system, so
   that requests and notifications reach real people.
@@ -13,12 +20,13 @@
 
 ### Registration
 - **REQ-01-01** THE SYSTEM SHALL let a guest register with first name, middle name (optional),
-  last name, email, password and password confirmation.
+  last name, email, contact number, password and password confirmation, and SHALL require and
+  record their consent to the processing of their personal data (Data Privacy Act of 2012).
 - **REQ-01-02** WHEN a guest registers THE SYSTEM SHALL create the account with role `student`,
   regardless of any role value submitted.
-- **REQ-01-03** IF the email is already registered, or the password is not confirmed or fails
-  the password rules (min. 8 characters) THEN THE SYSTEM SHALL reject the registration with a
-  field error.
+- **REQ-01-03** IF the email is already registered, the contact number is not a valid phone
+  number, consent is not given, or the password is not confirmed or fails the password rules
+  (min. 8 characters) THEN THE SYSTEM SHALL reject the registration with a field error.
 - **REQ-01-04** WHEN a student registers THE SYSTEM SHALL send an email verification link and
   log the student in.
 
@@ -46,6 +54,24 @@
   permanent ledger; the registrar deactivates accounts instead).
 - **REQ-01-14** WHEN a user's name is displayed THE SYSTEM SHALL format it as
   "First M. Last" (middle initial only when a middle name exists).
+
+### Requester profile and identity
+- **REQ-01-16** THE SYSTEM SHALL let a requester keep a profile with their contact number and
+  academic information: status (current student, graduate or former student), college, program or
+  strand, student number (optional) and years attended (from and to, not before 1950 nor after the
+  current year, from ≤ to).
+- **REQ-01-17** THE SYSTEM SHALL let a requester upload a valid ID (type of ID and an image or PDF
+  file of at most 5 MB), store it privately and mark their identity as pending verification;
+  earlier uploads are kept.
+- **REQ-01-18** WHILE a requester's academic information is incomplete or no ID awaits or has
+  passed verification THE SYSTEM SHALL send them to their profile instead of the new-request form.
+- **REQ-01-19** THE SYSTEM SHALL let the registrar list requesters by identity status (pending
+  first, oldest upload first), open the uploaded ID, and verify it or reject it with a reason; the
+  requester SHALL be notified of the result and MAY upload another ID after a rejection.
+- **REQ-01-20** THE SYSTEM SHALL let only the ID's owner and registrars open an uploaded ID
+  (others get 404), without letting browsers cache it.
+- **REQ-01-21** WHEN a requester opens the new-request form THE SYSTEM SHALL pre-fill their
+  academic details from their profile.
 
 ### Seed
 - **REQ-01-15** THE SYSTEM SHALL provide a database seeder that creates an initial registrar
