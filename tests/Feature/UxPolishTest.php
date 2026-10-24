@@ -6,7 +6,7 @@ use App\Livewire\Registrar\Users\Index as UsersIndex;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\User;
-use App\Services\RequestWorkflow;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 const VISIBILITY_TOGGLE = 'Toggle password visibility';
@@ -75,25 +75,24 @@ test('REQ-09-04 every page has its own browser tab title', function () {
         ->get(route('verification.notice'))->assertSee($title('Verify email'), false);
 });
 
-test('REQ-09-05 request pages offer a copy-reference-number button', function () {
+test('REQ-09-05 request pages offer a copy-tracking-number button', function () {
+    Storage::fake('local');
     $org = organisation();
-    $student = User::factory()->student()->create();
+    $owner = requester($org->ccs);
     $registrar = User::factory()->registrar()->create();
-    // Route through the TOR workflow (Library first) without going through payment.
-    $request = submitRequest($student, $org->free, $org->ccs);
-    $request->forceFill(['credential_type_id' => $org->tor->id])->save();
-    app(RequestWorkflow::class)->approve($request, $registrar);
+    $request = acceptRequest(submitRequest($owner, $org->tor), $registrar);
+    passOffice($request, $registrar);   // now forwarded to the Dean
     $copy = 'data-copy="'.$request->reference_no.'"';
 
-    $this->actingAs($student)->get(route('student.requests.show', $request))
-        ->assertOk()->assertSee('Copy reference number')->assertSee($copy, false);
+    $this->actingAs($owner)->get(route('student.requests.show', $request))
+        ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 
     $this->actingAs($registrar)->get(route('registrar.requests.show', $request))
-        ->assertOk()->assertSee('Copy reference number')->assertSee($copy, false);
+        ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 
-    $this->actingAs(User::factory()->departmentStaff($org->library)->create())
+    $this->actingAs(User::factory()->departmentStaff($org->ccs)->create())
         ->get(route('department.requests.show', $request))
-        ->assertOk()->assertSee('Copy reference number')->assertSee($copy, false);
+        ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 });
 
 test('REQ-09-06 deactivating an account asks for confirmation; activating does not', function () {

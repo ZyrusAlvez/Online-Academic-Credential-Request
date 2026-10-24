@@ -13,24 +13,33 @@ the app timezone **Asia/Manila**. Every table has an auto-increment `id` primary
 ```mermaid
 erDiagram
     departments ||--o{ users : "employs (staff)"
-    users ||--o{ credential_requests : submits
-    credential_types ||--o{ workflow_steps : "has ordered"
-    departments |o--o{ workflow_steps : "signs at"
+    departments |o--o{ users : "is college of (requesters)"
+    users ||--o{ identity_documents : uploads
+    users ||--o{ credential_requests : "owns"
+    credential_types ||--o{ workflow_steps : "has route"
+    departments |o--o{ workflow_steps : "acts at"
     credential_types ||--o{ credential_requests : "requested as"
-    departments ||--o{ credential_requests : "is college of"
-    credential_requests ||--o{ request_steps : "routed through"
-    departments ||--o{ request_steps : signs
+    credential_requests ||--o{ request_deficiencies : "missing"
     credential_requests ||--o{ payment_proofs : has
+    credential_requests ||--o{ request_steps : "routed through"
+    request_steps ||--o{ office_visits : "visited as"
+    departments ||--o{ office_visits : receives
+    credential_requests ||--o{ delay_notes : "delayed by"
+    credential_requests ||--o{ due_date_pauses : "paused by"
+    credential_requests ||--o{ request_representatives : "authorizes"
+    request_representatives ||--o{ request_documents : "proves"
+    credential_requests ||--o| releases : "released as"
     credential_requests ||--o{ request_events : "ledger of"
     users |o--o{ request_events : performs
     users |o--o{ non_working_days : "added"
-    users ||--o{ identity_documents : uploads
 ```
 
-- A **user** (student) has many **credential requests**; a **department staff** user belongs to one **department**.
-- A **credential type** has an ordered **workflow** (`workflow_steps`) of departments.
-- When a request is routed, the workflow is copied into **request_steps** (one per signing office).
-- **payment_proofs** and **request_events** (the ledger) belong to a request.
+- A **requester** owns **credential requests**, uploads **identity documents**; a **department staff** user belongs to one **office**.
+- A **credential type** has an ordered **route** (`workflow_steps`) of offices with tasks.
+- On acceptance the route is copied into **request_steps** (plus the Registrar's final check);
+  each physical stay at an office is an **office_visit**.
+- Deficiencies, payment proofs, delay notes, pauses, representatives (with their documents), the
+  release record and the **request_events** ledger all belong to a request.
 
 Nothing that belongs to a request can be deleted: all request foreign keys are `RESTRICT`.
 
@@ -115,92 +124,210 @@ Rules: at most one Dean step per route; an office appears at most once.
 
 ## credential_requests
 
-A student's request for a credential.
+One row per request (specs 04, 05, 11). Status changes only through `RequestWorkflow`.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
-| reference_no | varchar(20) | Yes | UQ | | `CR-<year>-<6-digit id>`, e.g. `CR-2026-000042`; set right after insert; used in URLs |
-| user_id | bigint unsigned | No | FK → users, IX | | The requesting student |
+| reference_no | varchar(20) | Yes | UQ | | Tracking number `CR-YYYY-NNNNNN` (set right after insert) |
+| user_id | bigint unsigned | No | FK → users, IX (with created_at) | | The document owner (requester) |
 | credential_type_id | bigint unsigned | No | FK → credential_types | | |
-| college_id | bigint unsigned | No | FK → departments | | The student's college (decides which Dean signs) |
-| student_number | varchar(30) | No | | | Letters, digits and dashes |
-| program | varchar(150) | No | | | e.g. "BS Computer Science" |
-| student_status | varchar(10) | No | | | `current` or `alumni` (see [StudentStatus](#studentstatus)) |
-| last_school_year | varchar(9) | No | | | `YYYY-YYYY`, consecutive years |
-| purpose | varchar(500) | No | | | e.g. "Employment" |
 | copies | tinyint unsigned | No | | 1 | 1–10 |
-| requires_payment | tinyint(1) | No | | | Copy of the credential type's setting at submission |
-| fee | decimal(10,2) | Yes | | | Copy of the fee at submission |
+| purpose | varchar(500) | No | | | |
+| receiving_institution | varchar(255) | Yes | | | Receiving school (required for transfer credentials) |
+| college_id | bigint unsigned | No | FK → departments | | Snapshot of the requester's college; resolves the Dean step |
+| academic_status | varchar(20) | No | | | Snapshot (see [AcademicStatus](#academicstatus)) |
+| program | varchar(150) | No | | | Snapshot: program or strand |
+| student_number | varchar(30) | Yes | | | Snapshot |
+| attended_from, attended_to | smallint unsigned | No | | | Snapshot: years attended |
+| requester_mode | varchar(20) | No | | personal | `personal` or `representative` (see [RequesterMode](#requestermode)) |
+| requires_payment | tinyint(1) | No | | 0 | Snapshot of the credential type |
+| fee | decimal(10,2) | Yes | | | Snapshot: fee per copy |
+| amount_due | decimal(10,2) | Yes | | | fee × copies |
 | status | varchar(30) | No | IX | | See [RequestStatus](#requeststatus) |
-| routed_at | timestamp | Yes | | | When the registrar approved and routed it |
-| due_at | timestamp | Yes | IX (with status) | | End of the working day `processing_days` working days after `routed_at` (spec 10); past due while in progress = overdue |
-| ready_at | timestamp | Yes | | | When the last office signed |
-| released_at | timestamp | Yes | | | When the student claimed it |
-| cancelled_at | timestamp | Yes | | | |
-| cancel_reason | varchar(500) | Yes | | | |
-| created_at | timestamp | Yes | IX | | Submission time |
-| updated_at | timestamp | Yes | | | |
+| submitted_at | timestamp | Yes | IX (with status) | | |
+| evaluation_started_at | timestamp | Yes | | | When an evaluator took it up |
+| evaluated_by | bigint unsigned | Yes | FK → users, IX | | The evaluator (evaluator performance report) |
+| requirements_completed_at | timestamp | Yes | | | |
+| declined_at, decline_reason | timestamp, varchar(500) | Yes | | | Not eligible |
+| accepted_at | timestamp | Yes | IX | | Processing clock starts |
+| accepted_by | bigint unsigned | Yes | FK → users | | |
+| due_at | timestamp | Yes | | | End of the last working day of the processing period; never changed |
+| adjusted_due_at | timestamp | Yes | | | `due_at` moved by closed due-date pauses |
+| effective_due_at | timestamp | Yes | IX (with status) | | Stored generated column: `COALESCE(adjusted_due_at, due_at)`; overdue = being processed and past it |
+| ready_at | timestamp | Yes | | | Final quality check done |
+| released_at | timestamp | Yes | IX | | |
+| processing_working_days | smallint unsigned | Yes | | | Working days from acceptance to release, frozen at release |
+| cancelled_at, cancel_reason | timestamp, varchar(500) | Yes | | | |
+| created_at, updated_at | timestamp | Yes | | | |
 
-Indexes: `(status, created_at)`, `(status, due_at)`, `(user_id, created_at)`.
+## request_deficiencies
 
-## request_steps
-
-The request's own copy of the workflow: one row per office that must sign.
-
-| Column | Type | Null | Key | Default | Description |
-|---|---|---|---|---|---|
-| id | bigint unsigned | No | PK | | |
-| credential_request_id | bigint unsigned | No | FK → credential_requests, IX | | |
-| position | smallint unsigned | No | IX (with request) | | Signing order |
-| department_id | bigint unsigned | No | FK → departments, IX (with status) | | The actual office (Student's College already resolved) |
-| instructions | varchar(255) | Yes | | | Copied from the workflow step |
-| status | varchar(20) | No | IX (with department) | | See [StepStatus](#stepstatus) |
-| acted_by | bigint unsigned | Yes | FK → users | | Who signed / held / skipped (not shown to students) |
-| acted_at | timestamp | Yes | | | |
-| remarks | varchar(500) | Yes | | | Signing remarks, hold reason or skip reason |
-| created_at, updated_at | timestamp | Yes | | | `updated_at` = when it became the current step |
-
-Only one step per request is `pending` or `on_hold` at a time (sequential flow).
-
-## payment_proofs
-
-Receipts uploaded by students for paid credentials. Earlier (rejected) uploads are kept.
+Missing requirements found during evaluation (spec 04).
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
 | credential_request_id | bigint unsigned | No | FK → credential_requests | | |
-| uploaded_by | bigint unsigned | No | FK → users | | The student |
-| path | varchar(255) | No | | | Private storage path `payment-proofs/{request id}/{uuid}.{ext}` |
-| original_name | varchar(255) | No | | | File name as uploaded |
-| mime_type | varchar(100) | No | | | `image/jpeg`, `image/png`, `image/webp` or `application/pdf` |
-| size | int unsigned | No | | | Bytes (max 5 MB) |
-| reference_no | varchar(100) | Yes | | | Payment reference entered by the student |
-| amount | decimal(10,2) | Yes | | | Amount paid, entered by the student |
+| description | varchar(255) | No | | | e.g. "PSA-authenticated birth certificate" |
+| recorded_by | bigint unsigned | No | FK → users | | Evaluator |
+| resolved_at | timestamp | Yes | | | When compliance was recorded |
+| resolved_by | bigint unsigned | Yes | FK → users | | Staff member who verified it |
+| resolution | varchar(500) | Yes | | | What was received / clearance status |
+| created_at, updated_at | timestamp | Yes | | | |
+
+## request_steps
+
+A request's route, copied from its credential type at acceptance, with the Registrar's final
+quality check appended (spec 05).
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| credential_request_id | bigint unsigned | No | FK → credential_requests, UQ (with position) | | |
+| position | smallint unsigned | No | | | 1, 2, 3 … |
+| department_id | bigint unsigned | No | FK → departments | | The office (Dean step already resolved) |
+| task | varchar(20) | No | | | See [RouteTask](#routetask) |
+| instructions | varchar(255) | Yes | | | Copied from the route template |
+| status | varchar(20) | No | | | See [StepStatus](#stepstatus) |
+| completed_at | timestamp | Yes | | | |
+| created_at, updated_at | timestamp | Yes | | | |
+
+## office_visits
+
+One row per physical stay of the document at an office; a return and re-send create new rows
+and earlier rows are never overwritten (spec 05).
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| credential_request_id | bigint unsigned | No | FK → credential_requests, IX (with id) | | |
+| request_step_id | bigint unsigned | No | FK → request_steps | | The route step the visit serves |
+| department_id | bigint unsigned | No | FK → departments, IX (with status), IX (with completed_at) | | The office |
+| visit_no | smallint unsigned | No | | | 1, 2 … per request and office |
+| purpose | varchar(20) | No | | | See [VisitPurpose](#visitpurpose) |
+| status | varchar(20) | No | | | See [VisitStatus](#visitstatus) |
+| from_department_id | bigint unsigned | Yes | FK → departments | | Office it came from |
+| forwarded_at, forwarded_by | timestamp, bigint unsigned | No | FK → users | | Dispatch |
+| received_at, received_by | timestamp, bigint unsigned | Yes | FK → users | | Accept receipt |
+| completed_at, completed_by | timestamp, bigint unsigned | Yes | FK → users | | Approved, returned or bypassed |
+| returned_to_department_id | bigint unsigned | Yes | FK → departments | | Where it was returned for correction |
+| return_reason, corrective_action, remarks | varchar(500) | Yes | | | |
+| working_days | smallint unsigned | Yes | | | Working days from receipt to completion, frozen when the visit closes |
+| created_at, updated_at | timestamp | Yes | | | |
+
+## delay_notes
+
+Recorded reasons for delays (spec 05). Append-only.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| credential_request_id | bigint unsigned | No | FK → credential_requests | | |
+| office_visit_id | bigint unsigned | Yes | FK → office_visits | | The visit holding the document then |
+| department_id | bigint unsigned | Yes | FK → departments | | The office holding it (not necessarily the cause) |
+| category | varchar(30) | No | IX | | See [DelayCategory](#delaycategory) |
+| reason, corrective_action | varchar(500) | No / Yes | | | |
+| recorded_by | bigint unsigned | No | FK → users | | |
+| created_at | timestamp | No | | CURRENT_TIMESTAMP | |
+
+## due_date_pauses
+
+Approved pauses of the processing period while the customer acts (spec 05).
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| credential_request_id | bigint unsigned | No | FK → credential_requests | | |
+| reason | varchar(500) | No | | | Message to the customer |
+| resume_status | varchar(30) | No | | | Status to return to |
+| started_at, started_by | timestamp, bigint unsigned | No | FK → users | | |
+| ended_at, ended_by | timestamp, bigint unsigned | Yes | FK → users | | |
+| working_days | smallint unsigned | Yes | | | Working days paused; added to the adjusted due date |
+| created_at, updated_at | timestamp | Yes | | | |
+
+## payment_proofs
+
+Proofs of payment uploaded by the requester (private files on the receipts disk).
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| credential_request_id | bigint unsigned | No | FK → credential_requests | | |
+| uploaded_by | bigint unsigned | No | FK → users | | |
+| path, original_name, mime_type, size | | No | | | File on the private disk |
+| reference_no | varchar(100) | Yes | | | Payment reference given by the requester |
+| amount | decimal(10,2) | Yes | | | Amount paid, as given |
+| paid_on | date | Yes | | | Date paid, as given |
 | status | varchar(20) | No | IX | | See [PaymentStatus](#paymentstatus) |
-| reviewed_by | bigint unsigned | Yes | FK → users | | Registrar who accepted/rejected |
-| reviewed_at | timestamp | Yes | | | |
-| remarks | varchar(500) | Yes | | | Rejection reason |
+| official_receipt_no | varchar(50) | Yes | | | Recorded by the registrar on verification |
+| reviewed_by, reviewed_at, remarks | | Yes | | | |
+| created_at, updated_at | timestamp | Yes | | | |
+
+## request_representatives
+
+Authorized representatives, recorded apart from the owner's account (spec 11).
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| credential_request_id | bigint unsigned | No | FK → credential_requests | | |
+| full_name | varchar(150) | No | | | |
+| relationship | varchar(100) | Yes | | | |
+| contact_number | varchar(20) | Yes | | | |
+| status | varchar(20) | No | | | See [ReviewStatus](#reviewstatus) |
+| declared_by | bigint unsigned | No | FK → users | | Owner or registrar |
+| reviewed_by, reviewed_at, remarks | | Yes | | | Verification of the SPA and IDs |
+| created_at, updated_at | timestamp | Yes | | | |
+
+## request_documents
+
+A representative's SPA and valid ID (private files under `request-documents/{request}/`).
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| credential_request_id | bigint unsigned | No | FK → credential_requests | | |
+| request_representative_id | bigint unsigned | Yes | FK → request_representatives | | |
+| kind | varchar(30) | No | | | See [DocumentKind](#documentkind) |
+| path, original_name, mime_type, size | | No | | | |
+| uploaded_by | bigint unsigned | No | FK → users | | |
+| created_at, updated_at | timestamp | Yes | | | |
+
+## releases
+
+The release acknowledgment, one per released request (spec 11).
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| credential_request_id | bigint unsigned | No | FK → credential_requests, UQ | | |
+| recipient_type | varchar(20) | No | | | See [RecipientType](#recipienttype) |
+| request_representative_id | bigint unsigned | Yes | FK → request_representatives | | Verified representative who claimed it |
+| recipient_name | varchar(150) | No | | | |
+| id_presented | varchar(100) | No | | | |
+| acknowledged | tinyint(1) | No | | | Recipient acknowledged receipt |
+| released_by | bigint unsigned | No | FK → users | | |
+| released_at | timestamp | No | | | |
+| remarks | varchar(500) | Yes | | | |
 | created_at, updated_at | timestamp | Yes | | | |
 
 ## request_events
 
-The **ledger**: an append-only history of everything that happened to a request. The
-application refuses to update or delete these rows.
+The append-only ledger: every action on a request. Rows are never updated or deleted.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
-| id | bigint unsigned | No | PK | | Also the order of events |
+| id | bigint unsigned | No | PK | | |
 | credential_request_id | bigint unsigned | No | FK → credential_requests, IX (with id) | | |
 | actor_id | bigint unsigned | Yes | FK → users | | Who did it |
-| type | varchar(30) | No | | | See [RequestEventType](#requesteventtype) |
-| from_status | varchar(30) | Yes | | | Request status before (empty if unchanged) |
-| to_status | varchar(30) | Yes | | | Request status after (empty if unchanged) |
-| request_step_id | bigint unsigned | Yes | FK → request_steps | | For step events |
-| department_id | bigint unsigned | Yes | FK → departments | | Office involved, for step events |
-| remarks | text | Yes | | | Remarks / reasons |
-| created_at | timestamp | No | | CURRENT_TIMESTAMP | When it happened (no `updated_at`) |
+| type | varchar(40) | No | IX (with created_at) | | See [RequestEventType](#requesteventtype) |
+| from_status, to_status | varchar(30) | Yes | | | Set when the request status changed |
+| request_step_id | bigint unsigned | Yes | FK → request_steps | | |
+| office_visit_id | bigint unsigned | Yes | FK → office_visits | | |
+| department_id | bigint unsigned | Yes | FK → departments | | Office involved |
+| remarks | text | Yes | | | |
+| created_at | timestamp | No | | CURRENT_TIMESTAMP | |
 
 ## notifications
 
@@ -280,55 +407,88 @@ Stored as strings; defined in `app/Enums`.
 | `college` | College (academic verification and Dean's approval) |
 | `office` | Office (Library, Cashier, Student Affairs, Registrar, …) |
 
-### StudentStatus
-| Value | Label |
-|---|---|
-| `current` | Current student |
-| `alumni` | Alumnus / Alumna |
-
 ### RequestStatus
-| Value | Label | Meaning |
-|---|---|---|
-| `awaiting_payment` | Awaiting payment | Paid credential; no accepted receipt yet |
-| `payment_review` | Payment under review | Receipt uploaded; registrar is checking it |
-| `registrar_review` | Under review | Free credential; registrar is checking the details |
-| `in_progress` | In progress | Moving through the signing offices |
-| `ready_for_release` | Ready for release | All offices signed; claim at the Registrar |
-| `released` | Released | Claimed by the student (final) |
-| `cancelled` | Cancelled | Stopped by the student or registrar (final) |
+
+| Value | Meaning |
+|---|---|
+| `submitted` | Online request received |
+| `under_evaluation` | Records and requirements being reviewed |
+| `pending_compliance` | Requester must submit missing documents or complete clearance |
+| `returned_for_customer_action` | Requester must clarify or act (pauses the clock after acceptance) |
+| `awaiting_payment` | Requirements complete; payment instructions given |
+| `payment_verification` | Proof of payment awaiting verification |
+| `accepted_for_processing` | Accepted; processing period started |
+| `in_progress` | With the processing offices |
+| `returned_for_correction` | Returned by an office to an earlier office (requesters see "In progress") |
+| `for_final_approval` | At the Registrar for the final quality check |
+| `ready_for_release` | Available for claiming |
+| `released` | Released to the owner or an authorized representative |
+| `declined` | Not eligible |
+| `cancelled` | Cancelled |
 
 ### StepStatus
-| Value | Label | Meaning |
-|---|---|---|
-| `waiting` | Waiting | Not reached yet |
-| `pending` | For signature | Current step, waiting for the office |
-| `on_hold` | On hold | Current step; office needs something settled (see remarks) |
-| `signed` | Signed | Done |
-| `skipped` | Skipped | Passed over by the registrar (reason in remarks) |
+
+| Value | Meaning |
+|---|---|
+| `waiting` | Not reached yet |
+| `current` | The step being worked on |
+| `completed` | Done |
+| `bypassed` | Passed over by the registrar, with a reason |
+
+### VisitStatus
+
+| Value | Meaning |
+|---|---|
+| `in_transit` | Forwarded, not yet received |
+| `received` | In the office |
+| `completed` | Approved and released to the next office |
+| `returned` | Returned to an earlier office for correction |
+| `bypassed` | Closed by a registrar bypass or cancellation |
+
+### VisitPurpose
+
+| Value | Meaning |
+|---|---|
+| `route` | The office's own step |
+| `correction` | Returned to this office to be corrected |
+| `resubmission` | Corrected and sent back to the office that returned it |
 
 ### PaymentStatus
-| Value | Label |
+
+| Value | Meaning |
 |---|---|
 | `submitted` | For verification |
-| `accepted` | Accepted |
-| `rejected` | Rejected |
+| `verified` | Verified against the official record |
+| `rejected` | Rejected, with remarks |
 
 ### RequestEventType
-| Value | Recorded when |
-|---|---|
-| `submitted` | Student submits a request |
-| `payment_submitted` | Student uploads a receipt |
-| `payment_rejected` | Registrar rejects a receipt |
-| `payment_accepted` | Registrar accepts a receipt |
-| `college_changed` | Registrar corrects the college |
-| `routed` | Registrar approves; steps are created |
-| `step_signed` | An office signs |
-| `step_held` | An office puts the request on hold |
-| `step_resumed` | An office lifts a hold |
-| `step_skipped` | Registrar skips a step |
-| `ready_for_release` | Last office signed |
-| `released` | Registrar marks it claimed |
-| `cancelled` | Request cancelled |
+
+Submission and evaluation: `submitted`, `evaluation_started`, `compliance_requested`,
+`deficiency_resolved`, `customer_action_requested`, `customer_responded`, `requirements_completed`,
+`declined`, `college_changed`. Payment and acceptance: `payment_submitted`, `payment_rejected`,
+`payment_verified`, `accepted`. Routing: `document_forwarded`, `receipt_accepted`,
+`step_completed`, `document_returned`, `document_resubmitted`, `delay_recorded`, `step_bypassed`,
+`ready_for_release`. Representatives and release: `representative_declared`,
+`representative_verified`, `representative_rejected`, `released`. And `cancelled`. Internal
+entries hidden from requesters: forwarding, returns, resubmissions, delay notes, bypasses.
+
+### DelayCategory
+
+`registrar_evaluation`, `customer_compliance`, `payment_verification`, `academic_department`,
+`documentary_stamp`, `pending_signature`, `document_correction`, `system_issue`, `other` (the
+client's delay categories, *Proposed Workflow* IX-D).
+
+### RequesterMode
+
+`personal`, `representative`.
+
+### DocumentKind
+
+`spa` (Special Power of Attorney), `representative_id`.
+
+### RecipientType
+
+`owner`, `representative`.
 
 ### NonWorkingDayKind
 
@@ -345,6 +505,7 @@ Stored as strings; defined in `app/Enums`.
 | `prepare` | Verify records and prepare the credential (the Registrar) |
 | `sign` | Review and affix a signature (Dean, Chancellor, President) |
 | `documentary_stamp` | Process the documentary stamp; no signature (VP Finance) |
+| `final_check` | The Registrar's final quality check, appended to every request's route |
 
 ### AcademicStatus
 

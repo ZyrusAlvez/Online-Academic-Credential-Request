@@ -28,6 +28,7 @@ class RequestEvent extends Model
         'from_status',
         'to_status',
         'request_step_id',
+        'office_visit_id',
         'department_id',
         'remarks',
     ];
@@ -52,26 +53,41 @@ class RequestEvent extends Model
     }
 
     /**
-     * One-line description used by the timeline, notifications and emails.
-     * Expects `department` to be loaded for step events.
+     * One-line description used by the timeline, notifications and emails; names offices, never
+     * staff. Expects `department` to be loaded for office events.
      */
     public function summary(): string
     {
         $office = $this->department->name ?? 'an office';
 
         return match ($this->type) {
-            RequestEventType::Submitted => 'Request submitted',
-            RequestEventType::PaymentSubmitted => 'Proof of payment uploaded',
-            RequestEventType::PaymentRejected => 'Payment not accepted – please upload a new receipt',
-            RequestEventType::PaymentAccepted => 'Payment verified by the Registrar',
+            RequestEventType::Submitted => 'Request received for evaluation',
+            RequestEventType::EvaluationStarted => 'Evaluation started by the Office of the Registrar',
+            RequestEventType::ComplianceRequested => 'Requirements incomplete – please comply in person',
+            RequestEventType::DeficiencyResolved => 'Requirement complied with',
+            RequestEventType::CustomerActionRequested => 'Your action is needed',
+            RequestEventType::CustomerResponded => 'Customer action completed',
+            RequestEventType::RequirementsCompleted => 'Requirements complete',
+            RequestEventType::Declined => 'Request declined',
             RequestEventType::CollegeChanged => 'College corrected by the Registrar',
-            RequestEventType::Routed => 'Approved and sent to the signing offices',
-            RequestEventType::StepSigned => "Signed by {$office}",
-            RequestEventType::StepHeld => "On hold at {$office}",
-            RequestEventType::StepResumed => "Hold lifted at {$office}",
-            RequestEventType::StepSkipped => "{$office} step skipped by the Registrar",
+            RequestEventType::PaymentSubmitted => 'Proof of payment uploaded',
+            RequestEventType::PaymentRejected => 'Payment not accepted – please upload a valid proof',
+            RequestEventType::PaymentVerified => 'Payment verified',
+            RequestEventType::Accepted => 'Accepted for processing',
+            RequestEventType::DocumentForwarded => "Forwarded to {$office}",
+            RequestEventType::ReceiptAccepted => "Received by {$office}",
+            RequestEventType::StepCompleted => $this->step !== null
+                ? "{$this->step->task->doneLabel()} by {$office}"
+                : "Completed by {$office}",
+            RequestEventType::DocumentReturned => "Returned for correction by {$office}",
+            RequestEventType::DocumentResubmitted => "Corrected and sent back by {$office}",
+            RequestEventType::DelayRecorded => "Delay recorded at {$office}",
+            RequestEventType::StepBypassed => "{$office} step bypassed by the Registrar",
             RequestEventType::ReadyForRelease => 'Ready for release at the Office of the Registrar',
-            RequestEventType::Released => 'Released to the student',
+            RequestEventType::RepresentativeDeclared => 'Authorized representative declared',
+            RequestEventType::RepresentativeVerified => 'Authorized representative verified',
+            RequestEventType::RepresentativeRejected => 'Authorized representative not accepted',
+            RequestEventType::Released => 'Released',
             RequestEventType::Cancelled => 'Request cancelled',
         };
     }
@@ -106,5 +122,13 @@ class RequestEvent extends Model
     public function step(): BelongsTo
     {
         return $this->belongsTo(RequestStep::class, 'request_step_id');
+    }
+
+    /**
+     * @return BelongsTo<OfficeVisit, $this>
+     */
+    public function visit(): BelongsTo
+    {
+        return $this->belongsTo(OfficeVisit::class, 'office_visit_id');
     }
 }

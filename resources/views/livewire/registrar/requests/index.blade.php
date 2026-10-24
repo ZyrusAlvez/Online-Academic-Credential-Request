@@ -1,14 +1,15 @@
 <div class="space-y-6">
-    <x-page-header title="Requests" description="Review new requests and receipts, and follow every request through the offices.">
+    <x-page-header title="Requests" description="Evaluate new requests, verify payments, and follow every request through the offices.">
         <x-slot:actions>
             <flux:button icon="arrow-down-tray" :href="$exportUrl">{{ __('Export CSV') }}</flux:button>
         </x-slot:actions>
     </x-page-header>
 
     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" label:sr-only :placeholder="__('Reference, student name or number')" clearable />
+        <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" label:sr-only :placeholder="__('Tracking no., name or student number')" clearable />
         <flux:select wire:model.live="status" :label="__('Status')" label:sr-only>
-            <flux:select.option value="review">{{ __('Needs review (:count)', ['count' => $reviewCount]) }}</flux:select.option>
+            <flux:select.option value="review">{{ __('Needs the Registrar (:count)', ['count' => $reviewCount]) }}</flux:select.option>
+            <flux:select.option value="processing">{{ __('Being processed') }}</flux:select.option>
             <flux:select.option value="overdue">{{ __('Overdue (:count)', ['count' => $overdueCount]) }}</flux:select.option>
             <flux:select.option value="open">{{ __('All open') }}</flux:select.option>
             <flux:select.option value="">{{ __('All statuses') }}</flux:select.option>
@@ -33,7 +34,7 @@
     <flux:table :paginate="$requests">
         <flux:table.columns>
             <flux:table.column>{{ __('Request') }}</flux:table.column>
-            <flux:table.column class="max-md:hidden">{{ __('Student') }}</flux:table.column>
+            <flux:table.column class="max-md:hidden">{{ __('Requester') }}</flux:table.column>
             <flux:table.column class="max-lg:hidden">{{ __('Currently at') }}</flux:table.column>
             <flux:table.column>{{ __('Status') }}</flux:table.column>
             <flux:table.column class="max-sm:hidden">{{ __('Submitted') }}</flux:table.column>
@@ -59,7 +60,7 @@
                             @endif
                         </div>
                     </flux:table.cell>
-                    <flux:table.cell class="max-sm:hidden text-zinc-600">{{ $request->created_at->format('M j, Y') }}</flux:table.cell>
+                    <flux:table.cell class="max-sm:hidden text-zinc-600">{{ $request->submitted_at?->format('M j, Y') }}</flux:table.cell>
                 </flux:table.row>
             @empty
                 <flux:table.row>

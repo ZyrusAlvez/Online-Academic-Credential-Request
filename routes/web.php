@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\IdentityDocumentController;
 use App\Http\Controllers\PaymentProofController;
+use App\Http\Controllers\RequestDocumentController;
 use App\Http\Controllers\RequestsCsvController;
 use App\Livewire\Department;
 use App\Livewire\Notifications;
@@ -45,6 +46,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('payment-proofs/{paymentProof}', [PaymentProofController::class, 'show'])->name('payment-proofs.show');
     Route::get('identity-documents/{identityDocument}', [IdentityDocumentController::class, 'show'])->name('identity-documents.show');
+    Route::get('request-documents/{requestDocument}', [RequestDocumentController::class, 'show'])->name('request-documents.show');
     Route::get('notifications', Notifications\Index::class)->name('notifications');
 });
 
