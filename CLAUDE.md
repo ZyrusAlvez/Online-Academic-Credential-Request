@@ -1,9 +1,15 @@
 # UPHSL Credential Tracker
 
 Online Academic Credential Request, Tracking & Monitoring for the UPHSL Office of the
-Registrar. Students request credentials; departments sign them in sequence; the registrar
-controls the flow. **It is a digital ledger only — no credential documents are transferred
-digitally** (the only upload is the student's proof of payment).
+Registrar. Requesters (students, graduates, former students) request credentials; the
+Registrar's Office evaluates, verifies payment and accepts them; offices (Registrar, Dean,
+VP Finance, Chancellor, President) receive, process and release the document in sequence.
+**It is a digital ledger only — no credential documents are transferred digitally.** The only
+uploads are the requester's valid ID, a representative's SPA and IDs, and the proof of payment,
+all private and staff-only.
+
+The client's `docs/Proposed-Workflow-and-Process-Flow-for-the-Capstone-System.docx` defines the
+target workflow; `docs/specs/00-overview.md` restates it (statuses, offices, assumptions).
 
 ## Stack
 
