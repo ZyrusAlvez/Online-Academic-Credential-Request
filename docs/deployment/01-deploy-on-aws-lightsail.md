@@ -830,7 +830,8 @@ sudo mysql -e "SELECT COUNT(*) FROM uphsl_credential_tracker.jobs;"    # drops t
 
 ### 12.1 Start the scheduler
 
-The app can also have **scheduled tasks**, listed in `routes/console.php`. Laravel needs **one** cron entry per environment, which
+The app has **scheduled tasks**, listed in `routes/console.php`; for example, the due-date
+reminders (`app:send-due-reminders`) go out every working day at 07:00. Laravel needs **one** cron entry per environment, which
 runs `schedule:run` every minute; Laravel then decides which tasks are due. Never add separate
 cron entries for individual commands, or tasks run twice.
 
