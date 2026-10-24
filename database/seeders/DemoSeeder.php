@@ -38,7 +38,7 @@ class DemoSeeder extends Seeder
         $this->workflow = $workflow;
         $this->registrar = User::where('role', Role::Registrar)->orderBy('id')->firstOrFail();
 
-        $departments = Department::all()->keyBy('code');
+        $departments = Department::active()->get()->keyBy('code');
         $staff = $departments->map(fn (Department $department) => $this->staff($department));
 
         $students = collect([
@@ -49,12 +49,12 @@ class DemoSeeder extends Seeder
         ])->map(fn (array $s) => $this->student(...$s));
 
         $types = CredentialType::pluck('id', 'name');
-        $tor = CredentialType::findOrFail($types['Transcript of Records']);
-        $enrollment = CredentialType::findOrFail($types['Certificate of Enrollment']);
-        $goodMoral = CredentialType::findOrFail($types['Good Moral Certificate']);
-        $grades = CredentialType::findOrFail($types['Certificate of Grades']);
+        $tor = CredentialType::findOrFail($types['Transcript of Records (TOR)']);
+        $enrollment = CredentialType::findOrFail($types['Certification of Enrollment']);
+        $grades = CredentialType::findOrFail($types['Copy of Grades']);
+        $courses = CredentialType::findOrFail($types['Course Description']);
 
-        DB::transaction(function () use ($students, $departments, $staff, $tor, $enrollment, $goodMoral, $grades): void {
+        DB::transaction(function () use ($students, $departments, $staff, $tor, $enrollment, $grades, $courses): void {
             [$juan, $maria, $jose, $ana] = $students->all();
 
             // Awaiting payment (fresh).
@@ -66,29 +66,32 @@ class DemoSeeder extends Seeder
                 $this->pay($request, $maria);
             });
 
-            // Free request under registrar review.
-            $this->at(1, fn () => $this->submit($ana, $enrollment, $departments['COED']));
-
-            // In progress at the Library, on hold.
-            $this->at(4, function () use ($jose, $tor, $departments, $staff) {
-                $request = $this->routed($jose, $tor, $departments['COE']);
-                $this->workflow->hold($request->currentStep()->firstOrFail(), $staff['LIB'], 'Unreturned book: Engineering Mechanics (Hibbeler).');
+            $this->at(1, function () use ($ana, $grades, $departments) {
+                $request = $this->submit($ana, $grades, $departments['COED']);
+                $this->pay($request, $ana);
             });
 
-            // In progress at the student's college.
+            // In progress at VP Finance, on hold.
+            $this->at(4, function () use ($jose, $tor, $departments, $staff) {
+                $request = $this->routed($jose, $tor, $departments['COE']);
+                $this->signUntil($request, 'VPF', $staff);
+                $this->workflow->hold($request->currentStep()->firstOrFail(), $staff['VPF'], 'Documentary stamps are out of stock; new supply expected this week.');
+            });
+
+            // In progress at the requester's college (Dean).
             $this->at(6, function () use ($juan, $tor, $departments, $staff) {
                 $request = $this->routed($juan, $tor, $departments['CCS']);
                 $this->signUntil($request, 'CCS', $staff);
             });
 
-            // Overdue: routed three weeks ago, stuck at the Cashier.
+            // Overdue: routed three weeks ago, waiting for the Chancellor's signature.
             $this->at(21, function () use ($ana, $tor, $departments, $staff) {
                 $request = $this->routed($ana, $tor, $departments['COED']);
-                $this->signUntil($request, 'FIN', $staff);
+                $this->signUntil($request, 'CHAN', $staff);
             });
 
-            // At Student Affairs.
-            $this->at(2, fn () => $this->routed($maria, $goodMoral, $departments['CBA']));
+            // At the Registrar, being prepared.
+            $this->at(2, fn () => $this->routed($maria, $enrollment, $departments['CBA']));
 
             // Ready for release.
             $this->at(9, function () use ($jose, $grades, $departments, $staff) {
@@ -100,12 +103,12 @@ class DemoSeeder extends Seeder
             $this->at(14, function () use ($maria, $enrollment, $departments, $staff) {
                 $request = $this->routed($maria, $enrollment, $departments['CBA']);
                 $this->signUntil($request, null, $staff);
-                $this->workflow->release($request, $this->registrar, 'Claimed by the student.');
+                $this->workflow->release($request, $this->registrar, 'Claimed by the requester.');
             });
 
-            // Cancelled by the student.
-            $this->at(3, function () use ($ana, $goodMoral, $departments) {
-                $request = $this->submit($ana, $goodMoral, $departments['COED']);
+            // Cancelled by the requester.
+            $this->at(3, function () use ($ana, $courses, $departments) {
+                $request = $this->submit($ana, $courses, $departments['COED']);
                 $this->workflow->cancel($request, $ana, 'Requested the wrong document.');
             });
         });
@@ -145,7 +148,8 @@ class DemoSeeder extends Seeder
 
     private function pay(CredentialRequest $request, User $student): void
     {
-        $this->workflow->submitPaymentProof($request, $student, UploadedFile::fake()->image('receipt.png', 600, 800), 'OR-'.fake()->numerify('########'), '300.00');
+        $amount = number_format((float) $request->fee * $request->copies, 2, '.', '');
+        $this->workflow->submitPaymentProof($request, $student, UploadedFile::fake()->image('receipt.png', 600, 800), 'OR-'.fake()->numerify('########'), $amount);
     }
 
     private function routed(User $student, CredentialType $type, Department $college): CredentialRequest

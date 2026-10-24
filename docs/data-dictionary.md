@@ -56,36 +56,39 @@ Accounts for all three roles.
 
 ## departments
 
-Colleges and offices that can sign requests. Never deleted, only deactivated.
+Offices on credential routes (spec 02): the colleges (as the Dean), Registrar, VP Finance, Chancellor and President. Never deleted, only deactivated.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
 | name | varchar(150) | No | UQ | | e.g. "College of Computer Studies" |
-| code | varchar(20) | No | UQ | | Upper-case short code, e.g. `CCS`, `LIB`; `REG` = Office of the Registrar |
+| code | varchar(20) | No | UQ | | Upper-case short code, e.g. `CCS`, `VPF`; `REG` = Office of the Registrar |
 | type | varchar(20) | No | IX | | `college` or `office` (see [DepartmentType](#departmenttype)) |
-| description | varchar(255) | Yes | | | Role in the workflow, e.g. "Library clearance, if required" |
+| description | varchar(255) | Yes | | | Role in the route, e.g. "Documentary stamp (no signature)" |
 | is_active | tinyint(1) | No | IX | 1 | Inactive departments cannot be chosen for new requests or workflow steps |
 | created_at, updated_at | timestamp | Yes | | | |
 
 ## credential_types
 
-Documents students can request. Never deleted, only deactivated.
+The credential master list (spec 03): documents requesters can ask for. Never deleted, only deactivated.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
-| name | varchar(150) | No | UQ | | e.g. "Transcript of Records" |
-| description | text | Yes | | | Shown to students on the request form |
+| name | varchar(150) | No | UQ | | e.g. "Transcript of Records (TOR)" |
+| description | text | Yes | | | Shown to requesters on the request form |
 | requires_payment | tinyint(1) | No | | 0 | 1 = student must pay on the UPHSL portal and upload a receipt |
-| fee | decimal(10,2) | Yes | | | Fee in pesos (for display); only kept when payment is required |
-| processing_days | tinyint unsigned | No | | 5 | Target turnaround in weekdays, used for the due date |
+| fee | decimal(10,2) | Yes | | | Fee per copy in pesos; only kept when payment is required |
+| processing_days | tinyint unsigned | No | | 5 | Processing period in working days (spec 10), used for the due date |
+| requirements | json | Yes | | | List of documentary requirements, shown before submitting and checked by the evaluator |
+| special_conditions | text | Yes | | | Shown before submitting |
+| requires_receiving_institution | tinyint(1) | No | | 0 | 1 = transfer credential: the receiving school's complete name is required |
 | is_active | tinyint(1) | No | IX | 1 | Inactive types cannot be requested |
 | created_at, updated_at | timestamp | Yes | | | |
 
 ## workflow_steps
 
-The signing order (template) of a credential type, edited by the registrar.
+The route (template) of a credential type: its offices in order and each one's task, edited by the registrar.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
@@ -93,11 +96,12 @@ The signing order (template) of a credential type, edited by the registrar.
 | credential_type_id | bigint unsigned | No | FK → credential_types (cascade), IX | | |
 | position | smallint unsigned | No | IX (with credential_type_id) | | 1, 2, 3 … with no gaps |
 | department_id | bigint unsigned | Yes | FK → departments | | Empty when `is_student_college` = 1 |
-| is_student_college | tinyint(1) | No | | 0 | 1 = "Student's College" placeholder, replaced by the request's college when routed |
+| is_student_college | tinyint(1) | No | | 0 | 1 = Dean placeholder, replaced by the request's college when routed |
+| task | varchar(20) | No | | sign | `prepare`, `sign` or `documentary_stamp` (see [RouteTask](#routetask)) |
 | instructions | varchar(255) | Yes | | | Note for the signing office |
 | created_at, updated_at | timestamp | Yes | | | |
 
-Rules: at most one Student's College step per workflow; a department appears at most once.
+Rules: at most one Dean step per route; an office appears at most once.
 
 ## credential_requests
 
@@ -303,3 +307,11 @@ Stored as strings; defined in `app/Enums`.
 | `holiday` | Regular holiday |
 | `special` | Special non-working day |
 | `closure` | Office closure (e.g. typhoon, university event) |
+
+### RouteTask
+
+| Value | Meaning |
+|---|---|
+| `prepare` | Verify records and prepare the credential (the Registrar) |
+| `sign` | Review and affix a signature (Dean, Chancellor, President) |
+| `documentary_stamp` | Process the documentary stamp; no signature (VP Finance) |

@@ -21,6 +21,17 @@ test('REQ-02-01 the seeder creates the 15 UPHSL departments without duplicates',
         ->and(Department::where('code', Department::REGISTRAR_CODE)->value('name'))->toBe('Office of the Registrar');
 });
 
+test('REQ-02-13 seeding deactivates the retired Library, Cashier and Student Affairs offices', function () {
+    $retired = collect(['LIB', 'FIN', 'SAS'])->map(fn (string $code) => Department::factory()->create(['code' => $code]));
+
+    $this->seed(DepartmentSeeder::class);
+
+    expect($retired->map(fn (Department $d) => $d->fresh()->is_active)->all())->toBe([false, false, false])
+        ->and(Department::active()->count())->toBe(15)
+        ->and(Department::active()->where('type', DepartmentType::Office)->pluck('code')->sort()->values()->all())
+        ->toBe(['CHAN', 'PRES', 'REG', 'VPF']);
+});
+
 test('REQ-02-02 the registrar can list, search and filter departments', function () {
     Department::factory()->college()->create(['name' => 'College of Computer Studies', 'code' => 'CCS']);
     Department::factory()->create(['name' => 'Library', 'code' => 'LIB']);

@@ -8,3 +8,4 @@
 - [x] Registrar navigation links
 - [x] Pest tests for REQ-02-01..12
 - [x] `composer qa` green
+- [x] Master list offices: REG, VPF, CHAN, PRES + colleges; retired LIB/FIN/SAS deactivated (REQ-02-01, 13)
