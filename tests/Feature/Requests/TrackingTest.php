@@ -12,8 +12,8 @@ beforeEach(function () {
     Storage::fake('local');
     $this->org = organisation();
     $this->owner = requester($this->org->ccs);
-    $this->registrar = User::factory()->registrar()->create(['first_name' => 'Rhea', 'last_name' => 'Registrar']);
-    $this->dean = User::factory()->departmentStaff($this->org->ccs)->create(['first_name' => 'Dina', 'last_name' => 'Dean']);
+    $this->registrar = User::factory()->registrar()->create(['first_name' => 'Rhea', 'middle_name' => null, 'last_name' => 'Registrar']);
+    $this->dean = User::factory()->departmentStaff($this->org->ccs)->create(['first_name' => 'Dina', 'middle_name' => null, 'last_name' => 'Dean']);
     $this->vpf = User::factory()->departmentStaff($this->org->vpf)->create();
 });
 

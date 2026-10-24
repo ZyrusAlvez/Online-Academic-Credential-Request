@@ -124,7 +124,7 @@ test('REQ-01-18 a rejected ID sends the requester back to their profile', functi
 test('REQ-01-19 the registrar sees pending IDs first and can verify one', function () {
     Notification::fake();
     $document = uploadId();
-    $verified = User::factory()->withProfile($this->college)->create(['first_name' => 'Already', 'last_name' => 'Verified']);
+    $verified = User::factory()->withProfile($this->college)->create(['first_name' => 'Already', 'middle_name' => null, 'last_name' => 'Verified']);
 
     Livewire::actingAs($this->registrar)->test(Index::class)
         ->assertSee($this->student->name)
