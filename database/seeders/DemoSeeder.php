@@ -31,6 +31,9 @@ use RuntimeException;
  */
 class DemoSeeder extends Seeder
 {
+    /** A 1×1 PNG. */
+    private const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
     private RequestWorkflow $workflow;
 
     private User $registrar;
@@ -62,7 +65,7 @@ class DemoSeeder extends Seeder
         // Identities: three verified, Ana's ID still waiting for the registrar.
         $requesters->each(function (User $requester, int $index): void {
             $this->at(40, function () use ($requester, $index): void {
-                $document = app(SubmitIdentityDocument::class)->handle($requester, 'PhilSys National ID', UploadedFile::fake()->image('national-id.png', 800, 500));
+                $document = app(SubmitIdentityDocument::class)->handle($requester, 'PhilSys National ID', $this->image('national-id.png'));
 
                 if ($index < 3) {
                     app(ReviewIdentityDocument::class)->handle($document, $this->registrar, verified: true);
@@ -145,7 +148,7 @@ class DemoSeeder extends Seeder
             $this->at(9, function () use ($maria, $type): void {
                 $request = $this->accepted($maria, $type('Copy of Grades'), 'Employment');
                 $this->workflow->declareRepresentative($request, $maria, ['full_name' => 'Rosa Reyes', 'relationship' => 'Mother', 'contact_number' => '0918 555 0101'],
-                    UploadedFile::fake()->create('spa.pdf', 120, 'application/pdf'), UploadedFile::fake()->image('rosa-id.png'));
+                    UploadedFile::fake()->create('spa.pdf', 120, 'application/pdf'), $this->image('rosa-id.png'));
                 $this->workflow->reviewRepresentative($request->representatives()->firstOrFail(), $this->registrar, true);
                 $this->advanceUntil($request, null);
             });
@@ -250,7 +253,7 @@ class DemoSeeder extends Seeder
     private function pay(CredentialRequest $request): void
     {
         $this->later(5);
-        $this->workflow->submitPaymentProof($request, $request->student()->firstOrFail(), UploadedFile::fake()->image('receipt.png', 600, 800),
+        $this->workflow->submitPaymentProof($request, $request->student()->firstOrFail(), $this->image('receipt.png'),
             'UPHSL-'.fake()->numerify('########'), (string) $request->amount_due, now()->format('Y-m-d'));
     }
 
@@ -306,6 +309,15 @@ class DemoSeeder extends Seeder
             'identity_checked' => true,
             'acknowledged' => true,
         ]);
+    }
+
+    /**
+     * A placeholder PNG upload. Built from bytes rather than UploadedFile::fake()->image(), which
+     * needs the GD extension that the servers do not have (the app itself never draws images).
+     */
+    private function image(string $name): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent($name, (string) base64_decode(self::PNG));
     }
 
     private function actorFor(string $code): User
