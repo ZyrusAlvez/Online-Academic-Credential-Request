@@ -39,3 +39,18 @@ released, working days spent, status (registrar and office pages).
   `wire:poll.30s`, dropdown with the 8 latest, "Mark all read", "View all".
 - `App\Livewire\Notifications\Index` at `/notifications` — paginated list; `open(id)` marks read
   and redirects to the notification's URL (only URLs on this app are followed).
+
+## Reminders
+
+`app:send-due-reminders` (`App\Console\Commands\SendDueReminders`), scheduled in
+`routes/console.php` daily at 07:00 Asia/Manila; it exits on non-working days (spec 10).
+
+- Due soon: requests being processed whose `effective_due_at` is not past and falls on or before
+  the end of the next working day → `DueReminder` to the holding office (in-app).
+- Overdue: requests being processed past `effective_due_at` → `DueReminder` to the holding office
+  (in-app), and to the requester (in-app + email).
+- Holding office = the open visit's office; registrar accounts for the Office of the Registrar.
+- `reminder_logs` (`kind`, `subject_id`, `credential_request_id`, `created_at`, unique
+  `(kind, subject_id)`): the subject is the office visit for office reminders and the request for
+  the requester's notice. A row is inserted before sending (`insertOrIgnore`), so a rerun sends
+  nothing new. Reminders are not ledger events: they change nothing.
