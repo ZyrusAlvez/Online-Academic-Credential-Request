@@ -11,6 +11,7 @@
         <flux:navlist.group :heading="__('Registrar')" class="grid">
             <flux:navlist.item icon="home" :href="route('registrar.dashboard')" :current="request()->routeIs('registrar.dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
             <flux:navlist.item icon="inbox" :href="route('registrar.requests')" :current="request()->routeIs('registrar.requests*')" wire:navigate>{{ __('Requests') }}</flux:navlist.item>
+            <flux:navlist.item icon="chart-bar" :href="route('registrar.reports')" :current="request()->routeIs('registrar.reports*')" wire:navigate>{{ __('Reports') }}</flux:navlist.item>
             @php($pendingIdentities = \App\Models\User::where('identity_status', \App\Enums\IdentityStatus::Pending)->count())
             <flux:navlist.item icon="identification" :href="route('registrar.identities')" :current="request()->routeIs('registrar.identities')" :badge="$pendingIdentities ?: null" wire:navigate>{{ __('Identity Checks') }}</flux:navlist.item>
         </flux:navlist.group>

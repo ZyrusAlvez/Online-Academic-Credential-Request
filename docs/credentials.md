@@ -128,6 +128,6 @@ logged in as several roles at once.
 | 8 | Registrar, then `ccs@`, `vpf@` | **Accept receipt** → release to the next office; at VP Finance **Return for correction** to the Dean | Each visit appears in **Office visits**; requester still sees *In progress* |
 | 9 | `ccs@`, `vpf@`, `chan@`, Registrar | Correct and send back, receive again, continue; Registrar does the final check | *Ready for release* |
 | 10 | Requester, then Registrar | Add a representative; verify them; **Release** to the representative | Released; the release record shows who received it |
-| 11 | Registrar | **Dashboard**, **Requests → Overdue**, **Export CSV**, **Working Calendar** | Maria's TOR is overdue; CSV downloads |
+| 11 | Registrar | **Dashboard** (period indicators, time per office), **Reports** (each report, filters, CSV), **Requests → Overdue**, **Working Calendar** | Maria's TOR is overdue; the delay analysis shows the Chancellor's recorded reason |
 
 To start over: `php artisan app:reset-demo`.
