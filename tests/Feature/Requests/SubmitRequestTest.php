@@ -81,7 +81,7 @@ test('REQ-04-01 inactive credential types, types without workflow and inactive c
 });
 
 test('REQ-04-01 only verified students can open the request form', function () {
-    $this->actingAs($this->student)->get(route('student.requests.create'))->assertOk()->assertSee('Transcript of Records');
+    $this->actingAs(User::factory()->withProfile($this->org->ccs)->create())->get(route('student.requests.create'))->assertOk()->assertSee('Transcript of Records');
     $this->actingAs(User::factory()->unverified()->create())->get(route('student.requests.create'))->assertRedirect(route('verification.notice'));
     $this->actingAs(User::factory()->registrar()->create())->get(route('student.requests.create'))->assertForbidden();
 });

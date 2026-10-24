@@ -9,11 +9,11 @@
 - [x] Registrar seeder (REQ-01-15)
 - [x] Pest tests for every REQ-01 criterion; starter-kit auth tests ported to Pest
 - [x] `composer qa` green
-- [ ] Registration: contact number and Data Privacy Act consent (REQ-01-01, 03)
-- [ ] Profile columns, `identity_documents`, enums (AcademicStatus, IdentityStatus, ReviewStatus)
-- [ ] My Profile page: academic information and ID upload (REQ-01-16, 17)
-- [ ] Profile gate on the new-request form; form pre-filled from the profile (REQ-01-18, 21)
-- [ ] Identity Checks page, review action, notification, private file route (REQ-01-19, 20)
-- [ ] Demo seeder profiles; `app:reset-demo` clears identity documents
-- [ ] Pest tests for REQ-01-16..21 and the changed REQ-01-01, 03; data dictionary updated
-- [ ] `composer qa` green (CI, deploy run on staging)
+- [x] Registration: contact number and Data Privacy Act consent (REQ-01-01, 03)
+- [x] Profile columns, `identity_documents`, enums (AcademicStatus, IdentityStatus, ReviewStatus)
+- [x] My Profile page: academic information and ID upload (REQ-01-16, 17)
+- [x] Profile gate on the new-request form; form pre-filled from the profile (REQ-01-18, 21)
+- [x] Identity Checks page, review action, notification, private file route (REQ-01-19, 20)
+- [x] Demo seeder profiles; `app:reset-demo` clears identity documents
+- [x] Pest tests for REQ-01-16..21 and the changed REQ-01-01, 03; data dictionary updated
+- [x] `composer qa` green (CI, deploy run on staging)

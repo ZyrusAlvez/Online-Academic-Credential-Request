@@ -24,15 +24,15 @@ class Create extends Component
     public function mount(): void
     {
         $this->authorize('create', CredentialRequest::class);
+
+        $this->form->fillFromProfile($this->student());
     }
 
     public function submit(RequestWorkflow $workflow): void
     {
         $this->authorize('create', CredentialRequest::class);
 
-        /** @var User $student */
-        $student = Auth::user();
-        $request = $workflow->submit($student, $this->form->validated());
+        $request = $workflow->submit($this->student(), $this->form->validated());
 
         session()->flash('notify', "Request {$request->reference_no} submitted.");
         $this->redirectRoute('student.requests.show', $request, navigate: true);
@@ -47,5 +47,11 @@ class Create extends Component
             'selectedType' => $types->firstWhere('id', $this->form->credential_type_id),
             'colleges' => Department::active()->colleges()->orderBy('name')->get(['id', 'name']),
         ]);
+    }
+
+    private function student(): User
+    {
+        /** @var User */
+        return Auth::user();
     }
 }

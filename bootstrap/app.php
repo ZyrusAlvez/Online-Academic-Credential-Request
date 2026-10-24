@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureRequesterProfileComplete;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Foundation\Application;
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
+            'profile.complete' => EnsureRequesterProfileComplete::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
