@@ -13,6 +13,8 @@ test('text input is trimmed before it is validated and stored', function () {
         ->set('middle_name', '   ')
         ->set('last_name', ' Cruz  ')
         ->set('email', '  ana@example.com ')
+        ->set('contact_number', ' 0917 123 4567 ')
+        ->set('privacy_consent', true)
         ->set('password', ' secret-pass ')
         ->set('password_confirmation', ' secret-pass ')
         ->call('register')
@@ -23,6 +25,7 @@ test('text input is trimmed before it is validated and stored', function () {
         ->and($user->middle_name)->toBeNull()
         ->and($user->last_name)->toBe('Cruz')
         ->and($user->email)->toBe('ana@example.com')
+        ->and($user->contact_number)->toBe('0917 123 4567')
         ->and(Hash::check(' secret-pass ', $user->password))->toBeTrue();   // passwords are kept as typed
 });
 

@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Forms;
 
+use App\Enums\AcademicStatus;
 use App\Enums\DepartmentType;
 use App\Enums\StudentStatus;
 use App\Models\CredentialType;
+use App\Models\User;
 use Closure;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
@@ -27,6 +29,26 @@ class CredentialRequestForm extends Form
     public string $student_status = '';
 
     public string $last_school_year = '';
+
+    /**
+     * Start from the requester's profile (REQ-01-21).
+     */
+    public function fillFromProfile(User $user): void
+    {
+        $this->student_number = $user->student_number ?? '';
+        $this->college_id = $user->college_id;
+        $this->program = $user->program ?? '';
+
+        if ($user->academic_status !== null) {
+            $this->student_status = $user->academic_status === AcademicStatus::Current
+                ? StudentStatus::Current->value
+                : StudentStatus::Alumni->value;
+        }
+
+        if ($user->attended_to !== null) {
+            $this->last_school_year = ($user->attended_to - 1).'-'.$user->attended_to;
+        }
+    }
 
     /**
      * @return array<string, mixed>

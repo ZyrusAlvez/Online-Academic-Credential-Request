@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Forms\RequesterProfileForm;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
@@ -16,8 +17,10 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
     public string $middle_name = '';
     public string $last_name = '';
     public string $email = '';
+    public string $contact_number = '';
     public string $password = '';
     public string $password_confirmation = '';
+    public bool $privacy_consent = false;
 
     /**
      * Handle an incoming registration request.
@@ -29,14 +32,22 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'contact_number' => ['required', 'string', 'max:20', RequesterProfileForm::PHONE_RULE],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
+            'privacy_consent' => ['accepted'],
+        ], [
+            'contact_number.regex' => 'Enter a valid phone number, e.g. 0917 123 4567.',
+            'privacy_consent.accepted' => 'You must agree to the processing of your personal data to create an account.',
         ]);
+        unset($validated['privacy_consent']);
 
         $validated['password'] = Hash::make($validated['password']);
         $validated['middle_name'] = filled($validated['middle_name']) ? $validated['middle_name'] : null;
 
         // Self-registered accounts are always students; role is not mass assignable.
-        event(new Registered(($user = User::create($validated))));
+        $user = new User($validated);
+        $user->forceFill(['privacy_consented_at' => now()])->save();
+        event(new Registered($user));
 
         Auth::login($user);
 
@@ -62,6 +73,8 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
         <div class="grid gap-2">
             <flux:input wire:model="email" id="email" label="{{ __('Email address') }}" type="email" name="email" required autocomplete="email" placeholder="email@example.com" />
         </div>
+
+        <flux:input wire:model="contact_number" id="contact_number" label="{{ __('Contact number') }}" type="tel" name="contact_number" required autocomplete="tel" placeholder="0917 123 4567" />
 
         <!-- Password -->
         <div class="grid gap-2">
@@ -91,6 +104,10 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
                 viewable
             />
         </div>
+
+        <flux:checkbox wire:model="privacy_consent" id="privacy_consent" name="privacy_consent"
+            :label="__('I agree to the processing of my personal data')"
+            :description="__('The University of Perpetual Help System Laguna uses your details, academic information and the valid ID you upload only to process your credential requests, in accordance with the Data Privacy Act of 2012 (RA 10173).')" />
 
         <div class="flex items-center justify-end">
             <flux:button type="submit" variant="primary" class="w-full">
