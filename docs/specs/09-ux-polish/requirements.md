@@ -27,8 +27,8 @@
   "<page> · <app name>", including the log in, register, password and settings pages.
 
 ### Reference numbers
-- **REQ-09-05** THE SYSTEM SHALL show a "copy reference number" button next to the reference
-  number on the student, department and registrar request pages; WHEN it is pressed THE SYSTEM
+- **REQ-09-05** THE SYSTEM SHALL show a "copy tracking number" button next to the tracking
+  number on the requester, office and registrar request pages; WHEN it is pressed THE SYSTEM
   SHALL copy the number to the clipboard and confirm with a toast.
 
 ### Confirmations

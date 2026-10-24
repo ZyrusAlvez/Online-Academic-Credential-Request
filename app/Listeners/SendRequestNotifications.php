@@ -3,9 +3,8 @@
 namespace App\Listeners;
 
 use App\Enums\RequestEventType;
-use App\Enums\RequestStatus;
 use App\Enums\Role;
-use App\Enums\StepStatus;
+use App\Enums\VisitPurpose;
 use App\Events\RequestEventRecorded;
 use App\Models\CredentialRequest;
 use App\Models\Department;
@@ -16,76 +15,84 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Notification;
 
 /**
- * Decides who hears about a ledger event: the student, the office the document just
- * reached, and registrars when something needs review.
+ * Decides who hears about a ledger event (spec 06): the requester, the office a document was
+ * just forwarded or returned to, and registrars when something needs them.
  */
 class SendRequestNotifications
 {
-    /** Events that hand the document to the next office. */
-    private const HAND_OFFS = [RequestEventType::Routed, RequestEventType::StepSigned, RequestEventType::StepSkipped];
+    /** Events that need a registrar's attention. */
+    private const FOR_REGISTRARS = [
+        RequestEventType::Submitted,
+        RequestEventType::PaymentSubmitted,
+        RequestEventType::CustomerResponded,
+        RequestEventType::RepresentativeDeclared,
+    ];
 
     public function handle(RequestEventRecorded $recorded): void
     {
-        $event = $recorded->event->loadMissing(['department', 'credentialRequest.student']);
+        $event = $recorded->event->loadMissing(['department', 'step', 'visit', 'credentialRequest.student']);
         /** @var CredentialRequest $request */
         $request = $event->credentialRequest;
 
-        $this->notifyStudent($event, $request);
-        $this->notifyArrivingOffice($event, $request);
-        $this->notifyRegistrarsOfReview($event, $request);
+        $this->notifyRequester($event, $request);
+        $this->notifyOffice($event, $request);
+        $this->notifyRegistrars($event, $request);
     }
 
-    private function notifyStudent(RequestEvent $event, CredentialRequest $request): void
+    private function notifyRequester(RequestEvent $event, CredentialRequest $request): void
     {
-        $student = $request->student;
+        $owner = $request->student;
+        $ownAction = $event->actor_id === $owner->id && $event->type !== RequestEventType::Submitted;
 
-        $internal = in_array($event->type, [RequestEventType::PaymentSubmitted, RequestEventType::PaymentAccepted], true);
-        $ownAction = $event->actor_id === $student->id && $event->type !== RequestEventType::Submitted;
-
-        if ($internal || $ownAction || ! $student->is_active) {
+        if ($event->type->isInternal() || $ownAction || ! $owner->is_active) {
             return;
         }
 
-        $student->notify(new RequestActivity($event, $event->summary()));
+        $owner->notify(new RequestActivity($event, $event->summary()));
     }
 
-    private function notifyArrivingOffice(RequestEvent $event, CredentialRequest $request): void
+    private function notifyOffice(RequestEvent $event, CredentialRequest $request): void
     {
-        if (! in_array($event->type, self::HAND_OFFS, true) || $request->status !== RequestStatus::InProgress) {
+        $visit = $event->visit;
+
+        if ($event->type !== RequestEventType::DocumentForwarded || $visit === null) {
             return;
         }
 
-        $step = $request->steps()->with('department')->where('status', StepStatus::Pending)->first();
-
-        if ($step === null) {
-            return;
-        }
-
+        $office = $event->department;
         $recipients = User::query()
             ->where('is_active', true)
             ->where(fn ($q) => $q
-                ->where(fn ($q) => $q->where('role', Role::Department)->where('department_id', $step->department_id))
+                ->where(fn ($q) => $q->where('role', Role::Department)->where('department_id', $visit->department_id))
                 ->when(
-                    $step->department->code === Department::REGISTRAR_CODE,
+                    $office?->code === Department::REGISTRAR_CODE,
                     fn ($q) => $q->orWhere('role', Role::Registrar),
                 ))
             ->get();
 
-        $this->send($recipients, $event, "{$request->reference_no} is waiting for your signature");
+        $title = match ($visit->purpose) {
+            VisitPurpose::Correction => "{$request->reference_no} was returned to your office for correction",
+            VisitPurpose::Resubmission => "{$request->reference_no} was corrected and sent back to you",
+            VisitPurpose::Route => "{$request->reference_no} was forwarded to your office",
+        };
+
+        $this->send($recipients, $event, $title);
     }
 
-    private function notifyRegistrarsOfReview(RequestEvent $event, CredentialRequest $request): void
+    private function notifyRegistrars(RequestEvent $event, CredentialRequest $request): void
     {
-        $needsReview = $event->type === RequestEventType::PaymentSubmitted
-            || ($event->type === RequestEventType::Submitted && $event->to_status === RequestStatus::RegistrarReview);
+        $byOwner = $event->actor_id === $request->user_id;
 
-        if (! $needsReview) {
+        if (! in_array($event->type, self::FOR_REGISTRARS, true) || ! $byOwner) {
             return;
         }
 
-        $title = $event->type === RequestEventType::PaymentSubmitted
-            ? "Receipt to verify for {$request->reference_no}"
-            : "New request {$request->reference_no} to review";
+        $title = match ($event->type) {
+            RequestEventType::Submitted => "New request {$request->reference_no} to evaluate",
+            RequestEventType::PaymentSubmitted => "Payment to verify for {$request->reference_no}",
+            RequestEventType::CustomerResponded => "The requester replied on {$request->reference_no}",
+            default => "Representative to verify for {$request->reference_no}",
+        };
 
         $this->send(User::where('role', Role::Registrar)->where('is_active', true)->get(), $event, $title);
     }

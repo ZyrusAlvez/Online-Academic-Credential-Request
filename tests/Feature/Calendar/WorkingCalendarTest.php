@@ -4,7 +4,6 @@ use App\Enums\NonWorkingDayKind;
 use App\Livewire\Registrar\Calendar\Index;
 use App\Models\NonWorkingDay;
 use App\Models\User;
-use App\Services\RequestWorkflow;
 use App\Services\WorkingCalendar;
 use Database\Seeders\NonWorkingDaySeeder;
 use Illuminate\Support\Carbon;
@@ -60,10 +59,10 @@ test('REQ-10-04 the due date counts processing days on the working calendar', fu
     $org = organisation();
     $org->free->update(['processing_days' => 3]);
     NonWorkingDay::factory()->create(['date' => '2026-10-12']);
-    $request = submitRequest(User::factory()->student()->create(), $org->free, $org->ccs);
+    $request = submitRequest(requester($org->ccs), $org->free);
 
     Carbon::setTestNow('2026-10-09 10:00:00');
-    app(RequestWorkflow::class)->approve($request, User::factory()->registrar()->create());
+    acceptRequest($request, User::factory()->registrar()->create());
 
     expect($request->fresh()->due_at->toDateTimeString())->toBe('2026-10-14 23:59:59');
 });
@@ -72,15 +71,15 @@ test('REQ-10-05 calendar changes apply to new due dates only', function () {
     $org = organisation();
     $org->free->update(['processing_days' => 3]);
     $registrar = User::factory()->registrar()->create();
-    $student = User::factory()->student()->create();
-    $first = submitRequest($student, $org->free, $org->ccs);
-    $second = submitRequest($student, $org->free, $org->ccs);
+    $owner = requester($org->ccs);
+    $first = submitRequest($owner, $org->free);
+    $second = submitRequest($owner, $org->free);
 
     Carbon::setTestNow('2026-10-09 10:00:00');
-    app(RequestWorkflow::class)->approve($first, $registrar);
+    acceptRequest($first, $registrar);
 
     NonWorkingDay::factory()->create(['date' => '2026-10-13']);
-    app(RequestWorkflow::class)->approve($second, $registrar);
+    acceptRequest($second, $registrar);
 
     expect($first->fresh()->due_at->toDateTimeString())->toBe('2026-10-13 23:59:59')
         ->and($second->fresh()->due_at->toDateTimeString())->toBe('2026-10-14 23:59:59');
@@ -142,7 +141,7 @@ test('REQ-10-07 the seeder adds the Philippine holidays for 2026 and 2027 once',
 });
 
 test('REQ-10-08 only the registrar can open the working calendar', function () {
-    $office = organisation()->library;
+    $office = organisation()->vpf;
 
     $this->actingAs(User::factory()->student()->create())->get(route('registrar.calendar'))->assertForbidden();
     $this->actingAs(User::factory()->departmentStaff($office)->create())->get(route('registrar.calendar'))->assertForbidden();

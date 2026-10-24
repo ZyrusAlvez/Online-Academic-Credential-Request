@@ -184,13 +184,12 @@ test('REQ-01-20 only the owner and registrars can open an ID, and it is not cach
     $this->actingAs(User::factory()->departmentStaff()->create())->get(route('identity-documents.show', $document))->assertNotFound();
 });
 
-test('REQ-01-21 the new-request form is pre-filled from the profile', function () {
-    $student = User::factory()->withProfile($this->college)->create(['student_number' => '19-0001-123', 'program' => 'BS Information Technology', 'attended_to' => 2023]);
+test('REQ-01-21 the new-request form takes the academic details from the profile', function () {
+    $student = User::factory()->withProfile($this->college)->create(['student_number' => '19-0001-123', 'program' => 'BS Information Technology']);
 
     Livewire::actingAs($student)->test(Create::class)
-        ->assertSet('form.college_id', $this->college->id)
-        ->assertSet('form.program', 'BS Information Technology')
-        ->assertSet('form.student_number', '19-0001-123')
-        ->assertSet('form.student_status', 'alumni')
-        ->assertSet('form.last_school_year', '2022-2023');
+        ->assertSee('Taken from your profile')
+        ->assertSee('College of Computer Studies')
+        ->assertSee('BS Information Technology')
+        ->assertSee('19-0001-123');
 });

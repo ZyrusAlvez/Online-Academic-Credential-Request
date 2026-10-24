@@ -19,15 +19,16 @@ class RequestActivity extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    /** Event types students are also emailed about. */
-    public const MAILED_TO_STUDENTS = [
+    /** Event types requesters are also emailed about (REQ-06-05). */
+    public const MAILED_TO_REQUESTERS = [
         RequestEventType::Submitted,
+        RequestEventType::ComplianceRequested,
+        RequestEventType::CustomerActionRequested,
+        RequestEventType::RequirementsCompleted,
         RequestEventType::PaymentRejected,
-        RequestEventType::Routed,
-        RequestEventType::StepSigned,
-        RequestEventType::StepHeld,
-        RequestEventType::StepSkipped,
+        RequestEventType::Accepted,
         RequestEventType::ReadyForRelease,
+        RequestEventType::Declined,
         RequestEventType::Cancelled,
     ];
 
@@ -38,7 +39,7 @@ class RequestActivity extends Notification implements ShouldQueue
      */
     public function via(User $notifiable): array
     {
-        $mail = $notifiable->hasRole(Role::Student) && in_array($this->event->type, self::MAILED_TO_STUDENTS, true);
+        $mail = $notifiable->hasRole(Role::Student) && in_array($this->event->type, self::MAILED_TO_REQUESTERS, true);
 
         return $mail ? ['database', 'mail'] : ['database'];
     }
@@ -54,6 +55,18 @@ class RequestActivity extends Notification implements ShouldQueue
 
         if (filled($this->event->remarks)) {
             $message->line("Remarks: {$this->event->remarks}");
+        }
+
+        if ($this->event->type === RequestEventType::RequirementsCompleted && $request->amount_due !== null) {
+            $message->line('Amount due: ₱'.number_format((float) $request->amount_due, 2).'. Pay on the UPHSL online payment portal, then upload your proof of payment on your request page.');
+        }
+
+        if ($this->event->type === RequestEventType::Accepted && $request->effective_due_at !== null) {
+            $message->line('Expected release date: '.$request->effective_due_at->format('l, F j, Y').'.');
+        }
+
+        if ($this->event->type === RequestEventType::ReadyForRelease) {
+            $message->line('Claim it at the Office of the Registrar with a valid ID. A representative must present a Special Power of Attorney and the valid IDs of both of you.');
         }
 
         return $message
@@ -81,9 +94,9 @@ class RequestActivity extends Notification implements ShouldQueue
 
     private function request(): CredentialRequest
     {
-        $this->event->loadMissing('department');
+        $this->event->loadMissing(['department', 'step']);
 
-        return $this->event->credentialRequest()->with(['credentialType', 'currentStep.department'])->firstOrFail();
+        return $this->event->credentialRequest()->with(['credentialType', 'openVisit.department'])->firstOrFail();
     }
 
     private function url(User $notifiable, CredentialRequest $request): string

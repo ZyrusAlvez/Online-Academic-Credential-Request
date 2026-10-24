@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\AcademicStatus;
 use App\Enums\RequestStatus;
-use App\Enums\StudentStatus;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
@@ -23,21 +23,22 @@ class CredentialRequestFactory extends Factory
      */
     public function definition(): array
     {
-        $year = (int) fake()->numberBetween(2010, 2025);
-
         return [
             'user_id' => User::factory()->student(),
             'credential_type_id' => CredentialType::factory(),
             'college_id' => Department::factory()->college(),
-            'student_number' => fake()->numerify('##-####-###'),
+            'academic_status' => AcademicStatus::Graduate,
             'program' => 'BS '.fake()->words(2, true),
-            'student_status' => fake()->randomElement(StudentStatus::cases()),
-            'last_school_year' => $year.'-'.($year + 1),
+            'student_number' => fake()->numerify('##-####-###'),
+            'attended_from' => 2019,
+            'attended_to' => 2023,
             'purpose' => fake()->sentence(),
             'copies' => 1,
             'requires_payment' => false,
             'fee' => null,
-            'status' => RequestStatus::RegistrarReview,
+            'amount_due' => null,
+            'status' => RequestStatus::Submitted,
+            'submitted_at' => now(),
         ];
     }
 
@@ -53,14 +54,5 @@ class CredentialRequestFactory extends Factory
     public function status(RequestStatus $status): static
     {
         return $this->state(fn (array $attributes) => ['status' => $status]);
-    }
-
-    public function paid(string $fee = '150.00'): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'requires_payment' => true,
-            'fee' => $fee,
-            'status' => RequestStatus::AwaitingPayment,
-        ]);
     }
 }

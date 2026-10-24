@@ -2,22 +2,23 @@
 
 namespace App\Enums;
 
+/**
+ * A route step of a request (spec 05).
+ */
 enum StepStatus: string
 {
     case Waiting = 'waiting';
-    case Pending = 'pending';
-    case OnHold = 'on_hold';
-    case Signed = 'signed';
-    case Skipped = 'skipped';
+    case Current = 'current';
+    case Completed = 'completed';
+    case Bypassed = 'bypassed';
 
     public function label(): string
     {
         return match ($this) {
             self::Waiting => 'Waiting',
-            self::Pending => 'For signature',
-            self::OnHold => 'On hold',
-            self::Signed => 'Signed',
-            self::Skipped => 'Skipped',
+            self::Current => 'Current',
+            self::Completed => 'Completed',
+            self::Bypassed => 'Bypassed',
         };
     }
 
@@ -25,21 +26,14 @@ enum StepStatus: string
     {
         return match ($this) {
             self::Waiting => 'zinc',
-            self::Pending => 'blue',
-            self::OnHold => 'amber',
-            self::Signed => 'green',
-            self::Skipped => 'zinc',
+            self::Current => 'blue',
+            self::Completed => 'green',
+            self::Bypassed => 'zinc',
         };
-    }
-
-    /** The step currently holding the document. */
-    public function isCurrent(): bool
-    {
-        return in_array($this, [self::Pending, self::OnHold], true);
     }
 
     public function isDone(): bool
     {
-        return in_array($this, [self::Signed, self::Skipped], true);
+        return $this === self::Completed || $this === self::Bypassed;
     }
 }

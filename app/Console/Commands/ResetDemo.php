@@ -33,6 +33,7 @@ class ResetDemo extends Command
 
         Storage::disk(RequestWorkflow::proofDisk())->deleteDirectory('payment-proofs');
         Storage::disk(RequestWorkflow::proofDisk())->deleteDirectory('identity-documents');
+        Storage::disk(RequestWorkflow::proofDisk())->deleteDirectory('request-documents');
 
         $this->call('migrate:fresh', ['--seed' => true, '--force' => true]);
         $this->call('db:seed', ['--class' => DemoSeeder::class, '--force' => true]);

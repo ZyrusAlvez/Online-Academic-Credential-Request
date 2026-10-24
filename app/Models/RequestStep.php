@@ -2,25 +2,28 @@
 
 namespace App\Models;
 
+use App\Enums\RouteTask;
 use App\Enums\StepStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * One office's signature on a request: a snapshot of a workflow step at routing time.
+ * One step of a request's route, copied from its credential type at acceptance (spec 05).
  *
  * @property int $position
+ * @property int $department_id
+ * @property RouteTask $task
  * @property StepStatus $status
- * @property ?Carbon $acted_at
- * @property Carbon $updated_at
+ * @property ?Carbon $completed_at
  */
 class RequestStep extends Model
 {
-    /** @var list<string> */
     protected $fillable = [
         'position',
         'department_id',
+        'task',
         'instructions',
         'status',
     ];
@@ -32,8 +35,9 @@ class RequestStep extends Model
     {
         return [
             'position' => 'integer',
+            'task' => RouteTask::class,
             'status' => StepStatus::class,
-            'acted_at' => 'datetime',
+            'completed_at' => 'datetime',
         ];
     }
 
@@ -54,10 +58,10 @@ class RequestStep extends Model
     }
 
     /**
-     * @return BelongsTo<User, $this>
+     * @return HasMany<OfficeVisit, $this>
      */
-    public function actor(): BelongsTo
+    public function visits(): HasMany
     {
-        return $this->belongsTo(User::class, 'acted_by');
+        return $this->hasMany(OfficeVisit::class)->orderBy('id');
     }
 }
