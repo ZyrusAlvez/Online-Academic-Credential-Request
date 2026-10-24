@@ -1,8 +1,6 @@
-# 06 — Tracking & Notifications · Tasks
+# 06 — Tracking, Notifications & Reminders · Tasks
 
-- [x] RequestEvent::summary() wording
-- [x] Timeline component on student, department and registrar request pages (REQ-06-01..04)
-- [x] Notifications table, RequestActivity notification, SendRequestNotifications listener (REQ-06-05..08, 10)
-- [x] Notification bell and notifications page (REQ-06-09)
-- [x] Pest tests for REQ-06-01..10
-- [x] `composer qa` green
+- [ ] Requester tracker and filtered history; registrar ledger and visits table (REQ-06-01..04)
+- [ ] Notification rules for requesters, offices and registrars (REQ-06-05..08)
+- [ ] Bell, notification page, queued delivery kept (REQ-06-09, 10)
+- [ ] Pest tests for every REQ-06 criterion
