@@ -3,7 +3,7 @@
 ## Data
 
 New migration: `credential_requests.due_at` (timestamp null) + index `(status, due_at)`.
-`RequestWorkflow::approve()` sets `due_at = routed_at->addWeekdays(processing_days)`.
+`RequestWorkflow::approve()` sets `due_at` with the working calendar (spec 10).
 `CredentialRequest::isOverdue()` and `scopeOverdue()` (`in_progress` and `due_at < now()`).
 
 ## Dashboard (`Registrar\Dashboard`)
