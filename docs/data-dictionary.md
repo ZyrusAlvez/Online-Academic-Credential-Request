@@ -329,6 +329,18 @@ The append-only ledger: every action on a request. Rows are never updated or del
 | remarks | text | Yes | | | |
 | created_at | timestamp | No | | CURRENT_TIMESTAMP | |
 
+## reminder_logs
+
+Due-date reminders already sent (spec 06), so a rerun never sends them twice.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| kind | varchar(30) | No | UQ (with subject_id) | | `office_due_soon`, `office_overdue` or `requester_overdue` |
+| subject_id | bigint unsigned | No | | | Office visit id for office reminders, request id for the requester's notice |
+| credential_request_id | bigint unsigned | No | FK → credential_requests | | |
+| created_at | timestamp | No | | CURRENT_TIMESTAMP | |
+
 ## notifications
 
 Laravel database notifications (the bell). `id` is a UUID.

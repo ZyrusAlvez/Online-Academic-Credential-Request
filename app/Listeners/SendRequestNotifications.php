@@ -7,10 +7,10 @@ use App\Enums\Role;
 use App\Enums\VisitPurpose;
 use App\Events\RequestEventRecorded;
 use App\Models\CredentialRequest;
-use App\Models\Department;
 use App\Models\RequestEvent;
 use App\Models\User;
 use App\Notifications\RequestActivity;
+use App\Support\OfficeStaff;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Notification;
 
@@ -59,16 +59,7 @@ class SendRequestNotifications
             return;
         }
 
-        $office = $event->department;
-        $recipients = User::query()
-            ->where('is_active', true)
-            ->where(fn ($q) => $q
-                ->where(fn ($q) => $q->where('role', Role::Department)->where('department_id', $visit->department_id))
-                ->when(
-                    $office?->code === Department::REGISTRAR_CODE,
-                    fn ($q) => $q->orWhere('role', Role::Registrar),
-                ))
-            ->get();
+        $recipients = OfficeStaff::of($visit->department()->firstOrFail());
 
         $title = match ($visit->purpose) {
             VisitPurpose::Correction => "{$request->reference_no} was returned to your office for correction",
