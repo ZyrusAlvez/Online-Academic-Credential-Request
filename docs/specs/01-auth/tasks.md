@@ -1,4 +1,4 @@
-# 01 — Authentication & Roles · Tasks
+# 01 — Registration, Identity & Roles · Tasks
 
 - [x] Role enum; users migration (names, role, is_active); User model + factory states
 - [x] Registration with first/middle/last name, always role student (REQ-01-01..04)
@@ -9,3 +9,11 @@
 - [x] Registrar seeder (REQ-01-15)
 - [x] Pest tests for every REQ-01 criterion; starter-kit auth tests ported to Pest
 - [x] `composer qa` green
+- [ ] Registration: contact number and Data Privacy Act consent (REQ-01-01, 03)
+- [ ] Profile columns, `identity_documents`, enums (AcademicStatus, IdentityStatus, ReviewStatus)
+- [ ] My Profile page: academic information and ID upload (REQ-01-16, 17)
+- [ ] Profile gate on the new-request form; form pre-filled from the profile (REQ-01-18, 21)
+- [ ] Identity Checks page, review action, notification, private file route (REQ-01-19, 20)
+- [ ] Demo seeder profiles; `app:reset-demo` clears identity documents
+- [ ] Pest tests for REQ-01-16..21 and the changed REQ-01-01, 03; data dictionary updated
+- [ ] `composer qa` green (CI, deploy run on staging)
