@@ -44,6 +44,16 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
 - **REQ-06-08** WHEN a request is submitted, a proof of payment is uploaded, a requester replies, or
   a representative is declared THE SYSTEM SHALL notify active registrar accounts in-app.
 
+### Reminders
+- **REQ-06-11** WHEN a document's effective due date falls within the next working day THE SYSTEM
+  SHALL remind the staff of the office holding it, once per office visit.
+- **REQ-06-12** WHEN a document becomes overdue THE SYSTEM SHALL alert the staff of the office
+  holding it, once per office visit, so an office that receives an overdue document is alerted too.
+- **REQ-06-13** WHEN a request becomes overdue THE SYSTEM SHALL tell the requester once, in-app and
+  by email.
+- **REQ-06-14** THE SYSTEM SHALL send reminders every working day at 07:00, skip non-working days,
+  and never send the same reminder twice even when run again.
+
 ### Notification centre
 - **REQ-06-09** THE SYSTEM SHALL show a bell with the unread count to every signed-in user, a list
   of recent notifications, and a page with all notifications; opening one marks it read and goes
