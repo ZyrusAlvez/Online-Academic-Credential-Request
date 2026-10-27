@@ -45,6 +45,8 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
     <!-- Session Status -->
     <x-auth-session-status class="text-center" :status="session('status')" />
 
+    <x-google-sign-in :label="__('Sign up with Google')" />
+
     <form wire:submit="register" class="flex flex-col gap-6">
         <!-- Email Address -->
         <flux:input wire:model="email" id="email" label="{{ __('Email address') }}" type="email" name="email" required autofocus autocomplete="email" placeholder="email@example.com" />
