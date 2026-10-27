@@ -6,6 +6,7 @@ use App\Livewire\Registrar\Users\Index as UsersIndex;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\User;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -18,7 +19,7 @@ function toggleCount(string $html): int
 
 test('REQ-09-01 every password field on the sign-in pages has a show/hide toggle', function () {
     expect(toggleCount($this->get(route('login'))->getContent()))->toBe(1)
-        ->and(toggleCount($this->get(route('register'))->getContent()))->toBe(2)
+        ->and(toggleCount($this->get(route('register'))->getContent()))->toBe(1)
         ->and(toggleCount($this->get(route('password.reset', 'token'))->getContent()))->toBe(2);
 
     $this->actingAs(User::factory()->create());
@@ -121,7 +122,8 @@ test('REQ-09-06 deactivating a department or credential type asks for confirmati
         ->assertDontSeeHtml('wire:confirm="Deactivate Retired Form?');
 });
 
-test('REQ-09-07 the verify-email page names the address the link was sent to', function () {
+test('REQ-09-07 the verify-email page names the address the code was sent to', function () {
+    Notification::fake();
     $user = User::factory()->unverified()->create(['email' => 'new.student@example.com']);
 
     $this->actingAs($user)->get(route('verification.notice'))

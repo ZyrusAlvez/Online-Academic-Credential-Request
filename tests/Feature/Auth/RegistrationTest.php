@@ -3,7 +3,7 @@
 use App\Enums\IdentityStatus;
 use App\Enums\Role;
 use App\Models\User;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use App\Notifications\VerificationCode;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Features\SupportTesting\Testable;
@@ -11,20 +11,9 @@ use Livewire\Volt\Volt;
 
 function registerForm(array $overrides = []): Testable
 {
-    $data = array_merge([
-        'first_name' => 'Juan',
-        'middle_name' => 'Dizon',
-        'last_name' => 'Dela Cruz',
-        'email' => 'juan@example.com',
-        'contact_number' => '09171234567',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
-        'privacy_consent' => true,
-    ], $overrides);
-
     $component = Volt::test('auth.register');
 
-    foreach ($data as $field => $value) {
+    foreach (array_merge(['email' => 'juan@example.com', 'password' => 'password123'], $overrides) as $field => $value) {
         $component->set($field, $value);
     }
 
@@ -32,25 +21,24 @@ function registerForm(array $overrides = []): Testable
 }
 
 test('registration screen can be rendered', function () {
-    $this->get('/register')->assertOk()->assertSee('First name')->assertSee('Middle name');
+    $this->get('/register')->assertOk()
+        ->assertSee('Email address')
+        ->assertDontSee('First name')
+        ->assertDontSee('Contact number')
+        ->assertDontSee('Confirm password');
 });
 
-test('REQ-01-01 a guest can register with names, contact number and privacy consent', function () {
-    registerForm()->assertHasNoErrors()->assertRedirect(route('dashboard', absolute: false));
+test('REQ-01-01 a guest can register with only an email and a password', function () {
+    registerForm()->assertHasNoErrors()->assertRedirect(route('verification.notice', absolute: false));
 
     $user = User::sole();
-    expect($user->first_name)->toBe('Juan')
-        ->and($user->middle_name)->toBe('Dizon')
-        ->and($user->last_name)->toBe('Dela Cruz')
-        ->and($user->contact_number)->toBe('09171234567')
-        ->and($user->privacy_consented_at)->not->toBeNull()
-        ->and($user->identity_status)->toBe(IdentityStatus::Unsubmitted);
-});
-
-test('REQ-01-01 middle name is optional', function () {
-    registerForm(['middle_name' => ''])->assertHasNoErrors();
-
-    expect(User::sole()->middle_name)->toBeNull();
+    expect($user->email)->toBe('juan@example.com')
+        ->and($user->first_name)->toBeNull()
+        ->and($user->contact_number)->toBeNull()
+        ->and($user->privacy_consented_at)->toBeNull()
+        ->and($user->identity_status)->toBe(IdentityStatus::Unsubmitted)
+        ->and($user->hasVerifiedEmail())->toBeFalse()
+        ->and($user->name)->toBe('juan@example.com');
 });
 
 test('REQ-01-02 self-registered accounts are always students', function () {
@@ -74,27 +62,18 @@ test('REQ-01-03 registration is rejected for a duplicate email', function () {
     registerForm()->assertHasErrors(['email' => 'unique']);
 });
 
-test('REQ-01-03 registration is rejected when the password is unconfirmed or too short', function () {
-    registerForm(['password_confirmation' => 'different123'])->assertHasErrors(['password']);
-    registerForm(['password' => 'short', 'password_confirmation' => 'short'])->assertHasErrors(['password']);
+test('REQ-01-03 registration is rejected for an invalid email or a too-short password', function () {
+    registerForm(['email' => 'not-an-email'])->assertHasErrors(['email' => 'email']);
+    registerForm(['password' => 'short'])->assertHasErrors(['password']);
 
     expect(User::count())->toBe(0);
 });
 
-test('REQ-01-03 registration is rejected without consent or with an invalid contact number', function () {
-    registerForm(['privacy_consent' => false])->assertHasErrors(['privacy_consent' => 'accepted']);
-    registerForm(['contact_number' => 'call me'])->assertHasErrors(['contact_number' => 'regex']);
-    registerForm(['contact_number' => '0917 123 4567'])->assertHasErrors(['contact_number' => 'regex']);
-    registerForm(['contact_number' => ''])->assertHasErrors(['contact_number' => 'required']);
-
-    expect(User::count())->toBe(0);
-});
-
-test('REQ-01-04 registration sends a verification email and logs the student in', function () {
+test('REQ-01-04 registration emails a verification code and logs the student in', function () {
     Notification::fake();
 
     registerForm()->assertHasNoErrors();
 
     $this->assertAuthenticated();
-    Notification::assertSentTo(User::sole(), VerifyEmail::class);
+    Notification::assertSentTo(User::sole(), VerificationCode::class, fn (VerificationCode $n) => preg_match('/^\d{6}$/', $n->code) === 1);
 });
