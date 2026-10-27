@@ -57,6 +57,7 @@ Accounts for all three roles.
 | middle_name | varchar(100) | Yes | | | Shown as an initial: "Juan S. Dela Cruz" |
 | last_name | varchar(100) | Yes | | | Requesters give it in My Profile after signing up |
 | email | varchar(255) | No | UQ | | Login name |
+| google_id | varchar(64) | Yes | UQ | | Google account ID once the user signs in with Google (REQ-01-24) |
 | contact_number | varchar(20) | Yes | | | Requesters: 11 digits, given in My Profile |
 | privacy_consented_at | timestamp | Yes | | | When the requester agreed to the Data Privacy Act notice (first My Profile save) |
 | role | varchar(20) | No | IX | `student` | `student`, `registrar`, `department` (see [Role](#role)) |
@@ -70,7 +71,7 @@ Accounts for all three roles.
 | identity_verified_at | timestamp | Yes | | | When the registrar verified the requester's ID |
 | is_active | tinyint(1) | No | | 1 | 0 = deactivated by the registrar; cannot log in |
 | email_verified_at | timestamp | Yes | | | Required before a student can submit a request |
-| password | varchar(255) | No | | | Bcrypt hash |
+| password | varchar(255) | Yes | | | Bcrypt hash; empty for accounts made through Google |
 | remember_token | varchar(100) | Yes | | | "Remember me" token |
 | created_at, updated_at | timestamp | Yes | | | |
 
