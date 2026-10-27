@@ -39,6 +39,10 @@
 - **REQ-09-08** THE SYSTEM SHALL show toast notifications at the top centre of the screen on every
   screen size.
 
+### Navigation
+- **REQ-09-09** THE SYSTEM SHALL show the requester's sidebar links without a group heading, in the
+  order New Request, My Requests, My Profile.
+
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the
   other sign-in pages and name the address the code was sent to.
