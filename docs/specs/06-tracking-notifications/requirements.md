@@ -60,3 +60,8 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
   to its page; users can mark all as read.
 - **REQ-06-10** THE SYSTEM SHALL send notifications through the queue so that actions are not slowed
   down by email delivery.
+- **REQ-06-15** THE SYSTEM SHALL style every email like its sign-in pages: the UPHSL crest and app
+  name in UPHSL navy (`primary` #012265) over a pale-blue (`primary-50`) background, the message
+  in a white card with a `secondary` border, navy buttons, and a footer naming the Office of the
+  Registrar and saying that credentials are released in person. The crest is a PNG, since email
+  clients do not reliably show WebP.
