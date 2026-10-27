@@ -23,31 +23,29 @@
         <section aria-labelledby="what-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <h2 id="what-heading" class="text-lg font-semibold text-primary">{{ __('1. What do you need?') }}</h2>
 
-            <flux:radio.group wire:model.live="form.credential_type_id" :label="__('Credential')" variant="cards" class="grid gap-3 sm:grid-cols-2">
+            <flux:select wire:model.live="form.credential_type_id" :label="__('Credential')" :description="__('Choose one to see its fee, requirements and processing time.')" required>
+                <flux:select.option value="">{{ __('Choose a credential…') }}</flux:select.option>
                 @foreach ($types as $type)
-                    <flux:radio :value="$type->id" class="items-start">
-                        <flux:radio.indicator />
-                        <div class="flex-1">
-                            <flux:heading class="leading-5!">{{ $type->name }}</flux:heading>
-                            @if ($type->description)
-                                <flux:text size="sm" class="mt-1">{{ $type->description }}</flux:text>
-                            @endif
-                            <div class="mt-2 flex flex-wrap gap-1">
-                                @if ($type->requires_payment)
-                                    <flux:badge size="sm" color="amber">{{ $type->fee !== null ? __('₱:fee per copy', ['fee' => number_format((float) $type->fee, 2)]) : __('Requires payment') }}</flux:badge>
-                                @else
-                                    <flux:badge size="sm" color="green">{{ __('Free') }}</flux:badge>
-                                @endif
-                                <flux:badge size="sm" color="zinc">{{ trans_choice(':count working day|:count working days', $type->processing_days) }}</flux:badge>
-                            </div>
-                        </div>
-                    </flux:radio>
+                    <flux:select.option :value="$type->id">{{ $type->name }}</flux:select.option>
                 @endforeach
-            </flux:radio.group>
+            </flux:select>
 
             @if ($selectedType)
                 <div class="space-y-4 rounded-lg bg-primary-50 p-4 text-sm" aria-live="polite">
-                    <h3 class="font-semibold text-primary">{{ __('About :name', ['name' => $selectedType->name]) }}</h3>
+                    <div class="space-y-2">
+                        <h3 class="font-semibold text-primary">{{ __('About :name', ['name' => $selectedType->name]) }}</h3>
+                        @if ($selectedType->description)
+                            <p class="text-ink">{{ $selectedType->description }}</p>
+                        @endif
+                        <div class="flex flex-wrap gap-1">
+                            @if ($selectedType->requires_payment)
+                                <flux:badge size="sm" color="amber">{{ $selectedType->fee !== null ? __('₱:fee per copy', ['fee' => number_format((float) $selectedType->fee, 2)]) : __('Requires payment') }}</flux:badge>
+                            @else
+                                <flux:badge size="sm" color="green">{{ __('Free') }}</flux:badge>
+                            @endif
+                            <flux:badge size="sm" color="zinc">{{ trans_choice(':count working day|:count working days', $selectedType->processing_days) }}</flux:badge>
+                        </div>
+                    </div>
                     <dl class="grid gap-4 sm:grid-cols-2">
                         <div>
                             <dt class="text-zinc-600">{{ __('Fee') }}</dt>
