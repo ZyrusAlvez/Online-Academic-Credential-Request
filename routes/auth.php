@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\GoogleController;
 use App\Livewire\Actions\Logout;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
@@ -16,6 +17,14 @@ Route::middleware('guest')->group(function () {
 
     Volt::route('reset-password/{token}', 'auth.reset-password')
         ->name('password.reset');
+
+    Route::get('auth/google/redirect', [GoogleController::class, 'redirect'])
+        ->middleware('throttle:10,1')
+        ->name('auth.google.redirect');
+
+    Route::get('auth/google/callback', [GoogleController::class, 'callback'])
+        ->middleware('throttle:10,1')
+        ->name('auth.google.callback');
 
 });
 

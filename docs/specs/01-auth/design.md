@@ -100,3 +100,15 @@ Identity code:
 - The Volt `auth.verify-email` page holds the code form and the "Send a new code" button with an
   Alpine countdown; the signed-link route `verification.verify` and its controller are gone.
 
+## Google sign-in (REQ-01-24)
+
+- `laravel/socialite`; `config/services.php` `google` reads `GOOGLE_CLIENT_ID` and
+  `GOOGLE_CLIENT_SECRET`, redirect `/auth/google/callback` (register `<APP_URL>/auth/google/callback`
+  as the authorized redirect URI of the Google OAuth client, once per environment).
+- `users.google_id` (nullable, unique); `users.password` nullable for accounts made through Google
+  (they can set one with "Forgot your password?").
+- Guest routes `auth.google.redirect` and `auth.google.callback` (throttled 10/min) on
+  `Auth\GoogleController`, which 404s while the keys are missing; `App\Actions\Auth\SignInWithGoogle`
+  finds by Google ID, then by email, else creates; it trusts only `email_verified === true`.
+- `<x-google-sign-in>` renders the button on the log-in and sign-up pages when configured.
+
