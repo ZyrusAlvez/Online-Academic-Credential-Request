@@ -11,15 +11,14 @@ use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 /**
- * The requester's academic information and valid ID (spec 01).
+ * The requester's personal and academic information, valid ID and privacy consent (spec 01).
  */
 #[Title('My Profile')]
 class Profile extends Component
@@ -29,36 +28,35 @@ class Profile extends Component
 
     public RequesterProfileForm $form;
 
-    public string $idType = '';
-
-    /** @var UploadedFile|null */
-    public $idFile = null;
-
     public function mount(): void
     {
         $this->form->load($this->user());
     }
 
-    public function save(): void
+    /**
+     * One save for the whole profile: personal and academic details, privacy consent and, when
+     * chosen, a new valid ID (REQ-01-22).
+     */
+    public function save(SubmitIdentityDocument $submit): void
     {
-        $this->form->save($this->user());
+        $user = $this->user();
+        $id = $this->form->save($user);
 
-        $this->dispatch('notify', message: 'Profile saved.');
-    }
+        if ($id !== null) {
+            try {
+                $submit->handle($user, $id['type'], $id['file']);
+            } catch (ValidationException $e) {
+                $this->addError('form.id_file', $e->validator->errors()->first());
 
-    public function uploadId(SubmitIdentityDocument $submit): void
-    {
-        $this->validate([
-            'idType' => ['required', Rule::in(IdentityDocument::ID_TYPES)],
-            'idFile' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
-        ], attributes: ['idType' => 'type of ID', 'idFile' => 'valid ID']);
+                return;
+            }
 
-        /** @var UploadedFile $file */
-        $file = $this->idFile;
-        $submit->handle($this->user(), $this->idType, $file);
+            $this->form->reset('id_type', 'id_file');
+        }
 
-        $this->reset('idType', 'idFile');
-        $this->dispatch('notify', message: 'Valid ID uploaded. The Office of the Registrar will verify it.');
+        $this->dispatch('notify', message: $id !== null
+            ? 'Profile saved. The Office of the Registrar will verify your ID.'
+            : 'Profile saved.');
     }
 
     public function render(): View
