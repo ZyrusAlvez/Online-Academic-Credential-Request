@@ -77,6 +77,20 @@ test('REQ-06-05 ready-for-release, declined and cancelled are emailed with the d
     expect(mailedTypes())->toContain(RequestEventType::Declined, RequestEventType::Cancelled);
 });
 
+test('REQ-06-15 emails carry the UPHSL crest, brand colours and the registrar footer', function () {
+    $request = acceptRequest(submitRequest($this->owner, $this->org->free), $this->registrar);
+    $accepted = $request->events()->with(['department', 'step'])->get()->firstWhere('type', RequestEventType::Accepted);
+
+    $html = (string) (new RequestActivity($accepted, 'Accepted'))->toMail($this->owner)->render();
+
+    expect($html)->toContain(asset('images/uphsl-logo-email.png'))
+        ->toContain('background-color: #012265')
+        ->toContain('background-color: #eef3fb')
+        ->toContain(config('mail.from.name'))
+        ->toContain('released in person')
+        ->and(file_exists(public_path('images/uphsl-logo-email.png')))->toBeTrue();
+});
+
 test('REQ-06-06 other milestones are in-app only; internal entries and own actions are not sent', function () {
     Notification::fake();
 
