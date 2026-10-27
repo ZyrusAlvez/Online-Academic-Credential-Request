@@ -44,8 +44,10 @@ Identity code:
   (database + mail).
 - `IdentityDocumentController@show` streams the file with `no-store`; `IdentityDocumentPolicy`
   allows the owner and registrars, 404 for everyone else.
-- `App\Http\Middleware\EnsureRequesterProfileComplete` (alias `profile.complete`) on
-  `student.requests.create` redirects to `student.profile` (REQ-01-18).
+- No middleware guards `student.requests.create`: `<x-profile-required-callout>` shows the red
+  banner (on New Request and My Requests) from `missingProfileItems()`, `Student\Requests\Create`
+  renders sections after the credential picker `inert` with Submit disabled, and `submit()` plus
+  `RequestWorkflow::submit()` refuse an incomplete profile (REQ-01-18).
 - `Student\Profile` saves through `RequesterProfileForm` in one call: name, contact, academic
   details, `privacy_consented_at` (first save only) and an optional new ID, which goes through
   `SubmitIdentityDocument` (REQ-01-22). `User::missingProfileItems()` lists what is still
@@ -57,7 +59,7 @@ Identity code:
 ## Code
 
 - `App\Enums\Role` — `Student`, `Registrar`, `Department` (backed string) with `label()` and
-  `homeRoute()`.
+  `homeRoute()` (students: `student.requests.create`).
 - `App\Models\User` — implements `MustVerifyEmail`; `role` and `is_active` are **not** mass
   assignable; `name` accessor = "First M. Last"; `initials()` from first + last;
   `hasRole(Role ...$roles)`.

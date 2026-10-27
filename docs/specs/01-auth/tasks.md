@@ -26,3 +26,5 @@
 - [x] Pest tests for REQ-01-23 and the changed REQ-01-01, 03, 04, REQ-09-07; data dictionary
 - [x] Google sign-in/sign-up with Socialite; `google_id`, nullable password; Pest tests with a
       mocked provider (REQ-01-05, 24); data dictionary
+- [x] Requesters land on New Request; `profile.complete` middleware replaced by a red banner on
+      New Request and My Requests and a locked form (REQ-01-10, 18, REQ-04-01)
