@@ -135,7 +135,7 @@
                 <flux:input wire:model="form.representative_name" :label="__('Representative\'s full name')" required />
                 <div class="grid gap-6 sm:grid-cols-2">
                     <flux:input wire:model="form.representative_relationship" :label="__('Relationship to you')" badge="Optional" />
-                    <flux:input wire:model="form.representative_contact" type="tel" :label="__('Representative\'s contact number')" badge="Optional" />
+                    <flux:input wire:model="form.representative_contact" type="tel" :label="__('Representative\'s contact number')" badge="Optional" inputmode="numeric" maxlength="11" placeholder="09171234567" />
                 </div>
                 <div class="grid gap-6 sm:grid-cols-2">
                     <flux:input type="file" wire:model="spa" :label="__('SPA')" badge="Optional" accept=".jpg,.jpeg,.png,.webp,.pdf" />

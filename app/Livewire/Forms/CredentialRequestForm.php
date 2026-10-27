@@ -61,6 +61,14 @@ class CredentialRequestForm extends Form
         ];
     }
 
+    /**
+     * @return array<string, string>
+     */
+    protected function messages(): array
+    {
+        return ['representative_contact.regex' => RequesterProfileForm::PHONE_MESSAGE];
+    }
+
     public function selectedType(): ?CredentialType
     {
         return filled($this->credential_type_id) && is_numeric($this->credential_type_id)

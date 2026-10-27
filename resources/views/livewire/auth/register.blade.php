@@ -36,7 +36,7 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
             'privacy_consent' => ['accepted'],
         ], [
-            'contact_number.regex' => 'Enter a valid phone number, e.g. 0917 123 4567.',
+            'contact_number.regex' => RequesterProfileForm::PHONE_MESSAGE,
             'privacy_consent.accepted' => 'You must agree to the processing of your personal data to create an account.',
         ]);
         unset($validated['privacy_consent']);
@@ -74,7 +74,7 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
             <flux:input wire:model="email" id="email" label="{{ __('Email address') }}" type="email" name="email" required autocomplete="email" placeholder="email@example.com" />
         </div>
 
-        <flux:input wire:model="contact_number" id="contact_number" label="{{ __('Contact number') }}" type="tel" name="contact_number" required autocomplete="tel" placeholder="0917 123 4567" />
+        <flux:input wire:model="contact_number" id="contact_number" label="{{ __('Contact number') }}" type="tel" name="contact_number" required autocomplete="tel" inputmode="numeric" maxlength="11" placeholder="09171234567" />
 
         <!-- Password -->
         <div class="grid gap-2">
