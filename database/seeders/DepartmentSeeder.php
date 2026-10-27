@@ -6,9 +6,16 @@ use App\Enums\DepartmentType;
 use App\Models\Department;
 use Illuminate\Database\Seeder;
 
+/**
+ * The offices of the credential master list (spec 02): the colleges acting as the Dean, the
+ * Registrar, VP Finance, Chancellor and President. Safe to run again.
+ */
 class DepartmentSeeder extends Seeder
 {
-    private const DEAN = "Academic verification and Dean's approval";
+    private const DEAN = "Dean's review and signature";
+
+    /** Offices replaced by the evaluator's clearance check (REQ-02-13); kept for history. */
+    public const RETIRED = ['LIB', 'FIN', 'SAS'];
 
     public function run(): void
     {
@@ -24,10 +31,10 @@ class DepartmentSeeder extends Seeder
             ['LAW', 'College of Law', DepartmentType::College, self::DEAN],
             ['GS', 'Graduate School', DepartmentType::College, self::DEAN],
             ['CAA', 'Architecture and Aviation', DepartmentType::College, self::DEAN],
-            ['LIB', 'Library', DepartmentType::Office, 'Library clearance, if required'],
-            ['FIN', 'Cashier / Finance Office', DepartmentType::Office, 'Financial clearance, if required'],
-            ['SAS', 'Student Affairs / Student Personnel Services', DepartmentType::Office, 'Student conduct or clearance verification, if required'],
-            [Department::REGISTRAR_CODE, 'Office of the Registrar', DepartmentType::Office, 'Final records verification, processing, and release'],
+            [Department::REGISTRAR_CODE, 'Office of the Registrar', DepartmentType::Office, 'Verifies records, prepares the credential and does the final quality check'],
+            ['VPF', 'Office of the VP for Finance', DepartmentType::Office, 'Documentary stamp (no signature)'],
+            ['CHAN', 'Office of the Chancellor', DepartmentType::Office, 'Review and signature'],
+            ['PRES', 'Office of the President', DepartmentType::Office, 'Signature on diplomas and certificates'],
         ];
 
         foreach ($departments as [$code, $name, $type, $description]) {
@@ -36,5 +43,7 @@ class DepartmentSeeder extends Seeder
                 ['name' => $name, 'type' => $type, 'description' => $description],
             );
         }
+
+        Department::whereIn('code', self::RETIRED)->update(['is_active' => false]);
     }
 }

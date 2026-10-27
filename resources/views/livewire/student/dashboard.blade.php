@@ -5,6 +5,8 @@
         </x-slot:actions>
     </x-page-header>
 
+    <x-profile-required-callout :user="auth()->user()" />
+
     @if ($requests->isEmpty())
         <div class="rounded-xl border border-dashed border-secondary p-10 text-center">
             <flux:icon.document-text class="mx-auto size-10 text-secondary" />
@@ -20,14 +22,14 @@
                         class="flex flex-col gap-3 rounded-xl border border-secondary/50 bg-white p-4 transition hover:border-primary hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight sm:flex-row sm:items-center sm:justify-between">
                         <div class="min-w-0">
                             <p class="font-semibold text-ink">{{ $request->credentialType->name }}</p>
-                            <p class="text-xs text-zinc-500">{{ $request->reference_no }} · {{ __('Submitted :date', ['date' => $request->created_at->format('M j, Y')]) }}</p>
+                            <p class="text-xs text-zinc-500">{{ $request->reference_no }} · {{ __('Submitted :date', ['date' => $request->submitted_at?->format('M j, Y')]) }}</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-3 sm:justify-end">
                             <span class="flex items-center gap-1 text-sm text-zinc-700">
                                 <flux:icon.map-pin class="size-4 text-secondary" />
                                 {{ $request->whereabouts() }}
                             </span>
-                            <x-request-status :status="$request->status" />
+                            <x-request-status :status="$request->status" customer />
                         </div>
                     </a>
                 </li>

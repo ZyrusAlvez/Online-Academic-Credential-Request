@@ -20,6 +20,13 @@ class CredentialTypeForm extends Form
 
     public int|string|null $processing_days = 5;
 
+    /** One requirement per line. */
+    public string $requirements = '';
+
+    public string $special_conditions = '';
+
+    public bool $requires_receiving_institution = false;
+
     public function edit(CredentialType $credentialType): void
     {
         $this->credentialType = $credentialType;
@@ -28,6 +35,9 @@ class CredentialTypeForm extends Form
         $this->requires_payment = $credentialType->requires_payment;
         $this->fee = $credentialType->fee ?? '';
         $this->processing_days = $credentialType->processing_days;
+        $this->requirements = implode("\n", $credentialType->requirements ?? []);
+        $this->special_conditions = $credentialType->special_conditions ?? '';
+        $this->requires_receiving_institution = $credentialType->requires_receiving_institution;
     }
 
     /**
@@ -41,6 +51,9 @@ class CredentialTypeForm extends Form
             'requires_payment' => ['boolean'],
             'fee' => ['nullable', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'],
             'processing_days' => ['required', 'integer', 'between:1,60'],
+            'requirements' => ['nullable', 'string', 'max:3000'],
+            'special_conditions' => ['nullable', 'string', 'max:1000'],
+            'requires_receiving_institution' => ['boolean'],
         ];
     }
 
@@ -55,10 +68,21 @@ class CredentialTypeForm extends Form
             'requires_payment' => $validated['requires_payment'],
             'fee' => $validated['requires_payment'] && filled($validated['fee']) ? $validated['fee'] : null,
             'processing_days' => (int) $validated['processing_days'],
+            'requirements' => $this->requirementList((string) $validated['requirements']) ?: null,
+            'special_conditions' => filled($validated['special_conditions']) ? $validated['special_conditions'] : null,
+            'requires_receiving_institution' => $validated['requires_receiving_institution'],
         ])->save();
 
         $this->reset();
 
         return $credentialType;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function requirementList(string $text): array
+    {
+        return array_values(array_filter(array_map(trim(...), preg_split('/\R/', $text) ?: [])));
     }
 }

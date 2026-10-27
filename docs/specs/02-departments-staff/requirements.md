@@ -1,9 +1,11 @@
-# 02 — Departments & Staff Accounts · Requirements
+# 02 — Offices & Staff Accounts · Requirements
+
+Source: *Proposed Workflow*, sections VI–VII (offices and signatories).
 
 ## User stories
 
-- **US-02-1** As the registrar, I want to maintain the list of colleges and offices, because
-  the real signing workflow is still being finalised and offices may be added later.
+- **US-02-1** As the registrar, I want to maintain the list of colleges and offices that process
+  credentials, so that routes can name them and offices can be added later.
 - **US-02-2** As the registrar, I want to create accounts for department staff and other
   registrar staff, so that each office can sign requests in the system.
 - **US-02-3** As the registrar, I want to deactivate any account, so that people who leave
@@ -12,9 +14,12 @@
 ## Acceptance criteria
 
 ### Departments
-- **REQ-02-01** THE SYSTEM SHALL seed the 15 UPHSL departments from the overview (11 colleges,
-  4 offices) with a name, short code, type and workflow role description; re-seeding SHALL NOT
-  create duplicates.
+- **REQ-02-01** THE SYSTEM SHALL seed the 15 offices from the overview: the 11 colleges (each
+  acting as the Dean) and the Office of the Registrar, VP Finance, Chancellor and President, with
+  a name, short code, type and role description; re-seeding SHALL NOT create duplicates.
+- **REQ-02-13** WHEN the offices are seeded THE SYSTEM SHALL deactivate the retired Library,
+  Cashier / Finance Office and Student Affairs offices (their clearance is now an evaluation
+  requirement), keeping them for the history of earlier requests.
 - **REQ-02-02** THE SYSTEM SHALL let the registrar list departments with search by name/code and
   a filter by type (college / office) and status.
 - **REQ-02-03** THE SYSTEM SHALL let the registrar create a department with name, code, type and

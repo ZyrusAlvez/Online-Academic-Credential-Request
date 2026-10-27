@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\IdentityDocumentController;
 use App\Http\Controllers\PaymentProofController;
+use App\Http\Controllers\ReportsCsvController;
+use App\Http\Controllers\RequestDocumentController;
 use App\Http\Controllers\RequestsCsvController;
 use App\Livewire\Department;
 use App\Livewire\Notifications;
@@ -17,6 +20,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('student')->name('student.')->middleware('role:student')->group(function () {
         Route::get('/', Student\Dashboard::class)->name('dashboard');
+        Route::get('profile', Student\Profile::class)->name('profile');
         Route::get('requests/new', Student\Requests\Create::class)->name('requests.create');
         Route::get('requests/{credentialRequest}', Student\Requests\Show::class)->name('requests.show');
     });
@@ -26,9 +30,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('requests', Registrar\Requests\Index::class)->name('requests');
         Route::get('requests/export', RequestsCsvController::class)->name('requests.export');
         Route::get('requests/{credentialRequest}', Registrar\Requests\Show::class)->name('requests.show');
-        Route::get('predictions', Registrar\Predictions::class)->name('predictions');
+        Route::get('reports', Registrar\Reports\Index::class)->name('reports');
+        Route::get('reports/{report}/export', ReportsCsvController::class)->name('reports.export');
         Route::get('departments', Registrar\Departments\Index::class)->name('departments');
         Route::get('users', Registrar\Users\Index::class)->name('users');
+        Route::get('calendar', Registrar\Calendar\Index::class)->name('calendar');
+        Route::get('identities', Registrar\Identities\Index::class)->name('identities');
         Route::get('credential-types', Registrar\CredentialTypes\Index::class)->name('credential-types');
         Route::get('credential-types/{credentialType}/workflow', Registrar\CredentialTypes\Workflow::class)->name('credential-types.workflow');
     });
@@ -41,6 +48,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('payment-proofs/{paymentProof}', [PaymentProofController::class, 'show'])->name('payment-proofs.show');
+    Route::get('identity-documents/{identityDocument}', [IdentityDocumentController::class, 'show'])->name('identity-documents.show');
+    Route::get('request-documents/{requestDocument}', [RequestDocumentController::class, 'show'])->name('request-documents.show');
     Route::get('notifications', Notifications\Index::class)->name('notifications');
 });
 

@@ -1,8 +1,8 @@
 <?php
 
+use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
@@ -22,9 +22,9 @@ new #[Title('Profile settings')] class extends Component {
     {
         $user = Auth::user();
 
-        $this->first_name = $user->first_name;
+        $this->first_name = $user->first_name ?? '';
         $this->middle_name = $user->middle_name ?? '';
-        $this->last_name = $user->last_name;
+        $this->last_name = $user->last_name ?? '';
         $this->email = $user->email;
     }
 
@@ -35,11 +35,15 @@ new #[Title('Profile settings')] class extends Component {
     {
         $user = Auth::user();
 
-        $validated = $this->validate([
+        // Requesters keep their name in My Profile (REQ-01-22); staff edit it here.
+        $nameRules = $this->editsName() ? [
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
+        ] : [];
 
+        $validated = $this->validate([
+            ...$nameRules,
             'email' => [
                 'required',
                 'string',
@@ -50,7 +54,9 @@ new #[Title('Profile settings')] class extends Component {
             ],
         ]);
 
-        $validated['middle_name'] = filled($validated['middle_name']) ? $validated['middle_name'] : null;
+        if ($this->editsName()) {
+            $validated['middle_name'] = filled($validated['middle_name']) ? $validated['middle_name'] : null;
+        }
 
         $user->fill($validated);
 
@@ -63,36 +69,30 @@ new #[Title('Profile settings')] class extends Component {
         $this->dispatch('profile-updated', name: $user->name);
     }
 
-    /**
-     * Send an email verification notification to the current user.
-     */
-    public function resendVerificationNotification(): void
+    public function editsName(): bool
     {
-        $user = Auth::user();
-
-        if ($user->hasVerifiedEmail()) {
-            $this->redirectIntended(default: route('dashboard', absolute: false));
-
-            return;
-        }
-
-        $user->sendEmailVerificationNotification();
-
-        Session::flash('status', 'verification-link-sent');
+        return ! Auth::user()->hasRole(Role::Student);
     }
 }; ?>
 
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <x-settings.layout heading="Profile" subheading="Update your name and email address">
+    <x-settings.layout heading="Profile" :subheading="$this->editsName() ? __('Update your name and email address') : __('Update your email address')">
         <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
-            <div class="grid gap-6 sm:grid-cols-2">
-                <flux:input wire:model="first_name" label="{{ __('First name') }}" type="text" name="first_name" required autofocus autocomplete="given-name" />
-                <flux:input wire:model="last_name" label="{{ __('Last name') }}" type="text" name="last_name" required autocomplete="family-name" />
-            </div>
+            @if ($this->editsName())
+                <div class="grid gap-6 sm:grid-cols-2">
+                    <flux:input wire:model="first_name" label="{{ __('First name') }}" type="text" name="first_name" required autofocus autocomplete="given-name" />
+                    <flux:input wire:model="last_name" label="{{ __('Last name') }}" type="text" name="last_name" required autocomplete="family-name" />
+                </div>
 
-            <flux:input wire:model="middle_name" label="{{ __('Middle name') }}" badge="Optional" type="text" name="middle_name" autocomplete="additional-name" />
+                <flux:input wire:model="middle_name" label="{{ __('Middle name') }}" badge="Optional" type="text" name="middle_name" autocomplete="additional-name" />
+            @else
+                <flux:text>
+                    {{ __('Your name and contact number are kept in') }}
+                    <flux:link :href="route('student.profile')" wire:navigate>{{ __('My Profile') }}</flux:link>.
+                </flux:text>
+            @endif
 
             <div>
                 <flux:input wire:model="email" label="{{ __('Email') }}" type="email" name="email" required autocomplete="email" />
@@ -102,19 +102,8 @@ new #[Title('Profile settings')] class extends Component {
                         <p class="mt-2 text-sm text-gray-800">
                             {{ __('Your email address is unverified.') }}
 
-                            <button
-                                wire:click.prevent="resendVerificationNotification"
-                                class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                            >
-                                {{ __('Click here to re-send the verification email.') }}
-                            </button>
+                            <flux:link :href="route('verification.notice')" wire:navigate>{{ __('Verify it with a code.') }}</flux:link>
                         </p>
-
-                        @if (session('status') === 'verification-link-sent')
-                            <p class="mt-2 text-sm font-medium text-green-600">
-                                {{ __('A new verification link has been sent to your email address.') }}
-                            </p>
-                        @endif
                     </div>
                 @endif
             </div>

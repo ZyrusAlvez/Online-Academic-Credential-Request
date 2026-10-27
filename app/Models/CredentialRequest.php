@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\AcademicStatus;
+use App\Enums\RequesterMode;
 use App\Enums\RequestStatus;
-use App\Enums\StepStatus;
-use App\Enums\StudentStatus;
+use App\Enums\VisitStatus;
 use Database\Factories\CredentialRequestFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,40 +16,38 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
- * A student's request for a credential. Status changes only via App\Services\RequestWorkflow.
+ * A requester's request for a credential. Status changes only via App\Services\RequestWorkflow.
  *
  * @property string $reference_no
- * @property RequestStatus $status
- * @property StudentStatus $student_status
+ * @property int $user_id
+ * @property int $college_id
+ * @property int $copies
+ * @property AcademicStatus $academic_status
+ * @property RequesterMode $requester_mode
  * @property bool $requires_payment
  * @property ?string $fee
- * @property int $copies
- * @property ?Carbon $routed_at
+ * @property ?string $amount_due
+ * @property RequestStatus $status
+ * @property ?Carbon $submitted_at
+ * @property ?Carbon $evaluation_started_at
+ * @property ?Carbon $accepted_at
  * @property ?Carbon $due_at
+ * @property ?Carbon $adjusted_due_at
+ * @property ?Carbon $effective_due_at
  * @property ?Carbon $ready_at
  * @property ?Carbon $released_at
- * @property ?Carbon $cancelled_at
- * @property Carbon $created_at
+ * @property ?int $processing_working_days
  */
 class CredentialRequest extends Model
 {
     /** @use HasFactory<CredentialRequestFactory> */
     use HasFactory;
 
-    /**
-     * Only descriptive fields are fillable; status and lifecycle timestamps are set by the workflow.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'credential_type_id',
-        'college_id',
-        'student_number',
-        'program',
-        'student_status',
-        'last_school_year',
-        'purpose',
         'copies',
+        'purpose',
+        'receiving_institution',
     ];
 
     /**
@@ -58,31 +57,43 @@ class CredentialRequest extends Model
     {
         return [
             'status' => RequestStatus::class,
-            'student_status' => StudentStatus::class,
+            'academic_status' => AcademicStatus::class,
+            'requester_mode' => RequesterMode::class,
             'requires_payment' => 'boolean',
             'fee' => 'decimal:2',
+            'amount_due' => 'decimal:2',
             'copies' => 'integer',
-            'routed_at' => 'datetime',
+            'attended_from' => 'integer',
+            'attended_to' => 'integer',
+            'submitted_at' => 'datetime',
+            'evaluation_started_at' => 'datetime',
+            'requirements_completed_at' => 'datetime',
+            'declined_at' => 'datetime',
+            'accepted_at' => 'datetime',
             'due_at' => 'datetime',
+            'adjusted_due_at' => 'datetime',
+            'effective_due_at' => 'datetime',
             'ready_at' => 'datetime',
             'released_at' => 'datetime',
+            'processing_working_days' => 'integer',
             'cancelled_at' => 'datetime',
         ];
     }
 
     /**
-     * In progress past the target turnaround.
+     * Being processed past its (adjusted) due date (REQ-05-12).
      *
      * @param  Builder<CredentialRequest>  $query
      */
     public function scopeOverdue(Builder $query): void
     {
-        $query->where('status', RequestStatus::InProgress)->where('due_at', '<', now());
+        $query->whereIn('status', RequestStatus::processing())->where('effective_due_at', '<', now());
     }
 
     public function isOverdue(): bool
     {
-        return $this->status === RequestStatus::InProgress && $this->due_at?->isPast() === true;
+        return in_array($this->status, RequestStatus::processing(), true)
+            && $this->effective_due_at?->isPast() === true;
     }
 
     public function getRouteKeyName(): string
@@ -91,6 +102,8 @@ class CredentialRequest extends Model
     }
 
     /**
+     * The document owner.
+     *
      * @return BelongsTo<User, $this>
      */
     public function student(): BelongsTo
@@ -115,6 +128,22 @@ class CredentialRequest extends Model
     }
 
     /**
+     * @return BelongsTo<User, $this>
+     */
+    public function evaluator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'evaluated_by');
+    }
+
+    /**
+     * @return HasMany<RequestDeficiency, $this>
+     */
+    public function deficiencies(): HasMany
+    {
+        return $this->hasMany(RequestDeficiency::class)->orderBy('id');
+    }
+
+    /**
      * @return HasMany<RequestStep, $this>
      */
     public function steps(): HasMany
@@ -123,14 +152,23 @@ class CredentialRequest extends Model
     }
 
     /**
-     * The step that currently holds the document (pending or on hold), if any.
-     *
-     * @return HasOne<RequestStep, $this>
+     * @return HasMany<OfficeVisit, $this>
      */
-    public function currentStep(): HasOne
+    public function visits(): HasMany
     {
-        return $this->hasOne(RequestStep::class)
-            ->whereIn('status', [StepStatus::Pending, StepStatus::OnHold]);
+        return $this->hasMany(OfficeVisit::class)->orderBy('id');
+    }
+
+    /**
+     * The visit of the office that has (or is being sent) the document now, if any.
+     *
+     * @return HasOne<OfficeVisit, $this>
+     */
+    public function openVisit(): HasOne
+    {
+        return $this->hasOne(OfficeVisit::class)
+            ->whereIn('status', [VisitStatus::InTransit, VisitStatus::Received])
+            ->latestOfMany();
     }
 
     /**
@@ -142,11 +180,43 @@ class CredentialRequest extends Model
     }
 
     /**
-     * @return HasOne<TurnaroundPrediction, $this>
+     * @return HasMany<DelayNote, $this>
      */
-    public function prediction(): HasOne
+    public function delayNotes(): HasMany
     {
-        return $this->hasOne(TurnaroundPrediction::class);
+        return $this->hasMany(DelayNote::class)->latest('id');
+    }
+
+    /**
+     * @return HasMany<DueDatePause, $this>
+     */
+    public function pauses(): HasMany
+    {
+        return $this->hasMany(DueDatePause::class)->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<RequestRepresentative, $this>
+     */
+    public function representatives(): HasMany
+    {
+        return $this->hasMany(RequestRepresentative::class)->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<RequestDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(RequestDocument::class)->orderBy('id');
+    }
+
+    /**
+     * @return HasOne<Release, $this>
+     */
+    public function release(): HasOne
+    {
+        return $this->hasOne(Release::class);
     }
 
     /**
@@ -158,18 +228,25 @@ class CredentialRequest extends Model
     }
 
     /**
-     * Where the physical document is right now, in words a student understands.
-     * Expects `currentStep.department` to be loaded for in-progress requests.
+     * Where the request is, in words a requester understands (office names only).
+     * Expects `openVisit.department` to be loaded for requests being processed.
      */
     public function whereabouts(): string
     {
+        $office = $this->openVisit?->department->name;
+
         return match ($this->status) {
+            RequestStatus::Submitted => 'Office of the Registrar – received for evaluation',
+            RequestStatus::UnderEvaluation => 'Office of the Registrar – evaluating records and requirements',
+            RequestStatus::PendingCompliance => 'Waiting for you to complete the requirements',
+            RequestStatus::ReturnedForCustomerAction => 'Waiting for your response',
             RequestStatus::AwaitingPayment => 'Waiting for your payment',
-            RequestStatus::PaymentReview => 'Office of the Registrar – verifying payment',
-            RequestStatus::RegistrarReview => 'Office of the Registrar – reviewing request',
-            RequestStatus::InProgress => $this->currentStep?->department->name ?? 'Being routed',
-            RequestStatus::ReadyForRelease => 'Office of the Registrar – ready for pickup',
+            RequestStatus::PaymentVerification => 'Office of the Registrar – verifying payment',
+            RequestStatus::AcceptedForProcessing, RequestStatus::InProgress, RequestStatus::ReturnedForCorrection => $office ?? 'Being processed',
+            RequestStatus::ForFinalApproval => 'Office of the Registrar – final quality check',
+            RequestStatus::ReadyForRelease => 'Office of the Registrar – ready for release',
             RequestStatus::Released => 'Released',
+            RequestStatus::Declined => 'Declined',
             RequestStatus::Cancelled => 'Cancelled',
         };
     }

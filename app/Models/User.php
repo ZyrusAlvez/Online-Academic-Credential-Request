@@ -2,29 +2,41 @@
 
 namespace App\Models;
 
+use App\Actions\Auth\SendVerificationCode;
+use App\Enums\AcademicStatus;
+use App\Enums\IdentityStatus;
 use App\Enums\Role;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\HasApiTokens;
 
 /**
  * @property Role $role
  * @property bool $is_active
+ * @property ?string $contact_number
+ * @property ?AcademicStatus $academic_status
+ * @property ?int $college_id
+ * @property ?string $program
+ * @property ?string $student_number
+ * @property ?int $attended_from
+ * @property ?int $attended_to
+ * @property IdentityStatus $identity_status
  * @property-read string $name
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory, Notifiable;
 
     /**
-     * Role and activation are never mass assignable; they are set explicitly by the registrar.
+     * Role, activation and identity status are never mass assignable; the registrar sets them.
      *
      * @var list<string>
      */
@@ -33,7 +45,14 @@ class User extends Authenticatable implements MustVerifyEmail
         'middle_name',
         'last_name',
         'email',
+        'contact_number',
         'password',
+        'academic_status',
+        'college_id',
+        'program',
+        'student_number',
+        'attended_from',
+        'attended_to',
     ];
 
     /**
@@ -50,6 +69,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $attributes = [
         'role' => 'student',
         'is_active' => true,
+        'identity_status' => 'unsubmitted',
     ];
 
     /**
@@ -62,6 +82,12 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'role' => Role::class,
             'is_active' => 'boolean',
+            'privacy_consented_at' => 'datetime',
+            'academic_status' => AcademicStatus::class,
+            'attended_from' => 'integer',
+            'attended_to' => 'integer',
+            'identity_status' => IdentityStatus::class,
+            'identity_verified_at' => 'datetime',
         ];
     }
 
@@ -77,11 +103,33 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function fullName(): string
     {
+        // Self-registered requesters give their name in My Profile after signing up (REQ-01-01).
+        if (blank($this->first_name) && blank($this->last_name)) {
+            return $this->email;
+        }
+
         $middle = filled($this->middle_name)
             ? Str::upper(Str::substr($this->middle_name, 0, 1)).'. '
             : '';
 
-        return "{$this->first_name} {$middle}{$this->last_name}";
+        return trim("{$this->first_name} {$middle}{$this->last_name}");
+    }
+
+    /**
+     * The opening line of emails: "Hello Juan," or just "Hello," before a name is given.
+     */
+    public function greeting(): string
+    {
+        return filled($this->first_name) ? "Hello {$this->first_name}," : 'Hello,';
+    }
+
+    /**
+     * Email the one-time code that confirms the address (REQ-01-23), on sign-up and after an email
+     * change; replaces Laravel's verification link.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        app(SendVerificationCode::class)->handle($this);
     }
 
     /**
@@ -94,9 +142,73 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(Department::class);
     }
 
+    /**
+     * A requester's college (spec 01).
+     *
+     * @return BelongsTo<Department, $this>
+     */
+    public function college(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'college_id');
+    }
+
+    /**
+     * @return HasMany<IdentityDocument, $this>
+     */
+    public function identityDocuments(): HasMany
+    {
+        return $this->hasMany(IdentityDocument::class)->latest('id');
+    }
+
+    /**
+     * @return HasOne<IdentityDocument, $this>
+     */
+    public function latestIdentityDocument(): HasOne
+    {
+        return $this->hasOne(IdentityDocument::class)->latestOfMany();
+    }
+
+    public function hasAcademicProfile(): bool
+    {
+        return $this->academic_status !== null
+            && $this->college_id !== null
+            && filled($this->program)
+            && $this->attended_from !== null
+            && $this->attended_to !== null;
+    }
+
+    /**
+     * What a requester still has to give before they can request credentials (REQ-01-18).
+     *
+     * @return list<string>
+     */
+    public function missingProfileItems(): array
+    {
+        return array_keys(array_filter([
+            'Full name' => blank($this->first_name) || blank($this->last_name),
+            'Contact number' => blank($this->contact_number),
+            'Academic information' => ! $this->hasAcademicProfile(),
+            'Valid ID' => ! in_array($this->identity_status, [IdentityStatus::Pending, IdentityStatus::Verified], true),
+            'Data privacy consent' => $this->privacy_consented_at === null,
+        ]));
+    }
+
+    /**
+     * Ready to request credentials: profile filled in, privacy consent given and an ID pending or
+     * verified (REQ-01-18).
+     */
+    public function canRequestCredentials(): bool
+    {
+        return $this->missingProfileItems() === [];
+    }
+
     public function initials(): string
     {
-        return Str::upper(Str::substr($this->first_name, 0, 1).Str::substr($this->last_name, 0, 1));
+        if (blank($this->first_name) && blank($this->last_name)) {
+            return Str::upper(Str::substr($this->email, 0, 1));
+        }
+
+        return Str::upper(Str::substr((string) $this->first_name, 0, 1).Str::substr((string) $this->last_name, 0, 1));
     }
 
     public function hasRole(Role ...$roles): bool

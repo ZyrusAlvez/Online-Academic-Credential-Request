@@ -3,23 +3,37 @@
 namespace App\Livewire\Registrar;
 
 use App\Enums\RequestStatus;
-use App\Enums\StepStatus;
+use App\Enums\VisitStatus;
 use App\Models\CredentialRequest;
 use App\Models\Department;
-use App\Models\RequestStep;
-use App\Queries\StepQueue;
+use App\Models\OfficeVisit;
+use App\Queries\RegistrarRequestFilter;
+use App\Queries\VisitQueue;
+use App\Reports\PerformanceMetrics;
+use App\Reports\ReportFilter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 #[Title('Registrar Dashboard')]
 class Dashboard extends Component
 {
+    /** Period of the performance indicators (REQ-07-04); this month by default. */
+    #[Url(except: '')]
+    public string $from = '';
+
+    #[Url(except: '')]
+    public string $to = '';
+
     public function mount(): void
     {
         $this->authorize('viewAny', CredentialRequest::class);
+
+        $this->from = $this->from !== '' ? $this->from : now()->startOfMonth()->format('Y-m-d');
+        $this->to = $this->to !== '' ? $this->to : now()->endOfMonth()->format('Y-m-d');
     }
 
     public function render(): View
@@ -35,47 +49,44 @@ class Dashboard extends Component
 
         $count = fn (RequestStatus ...$statuses): int => array_sum(array_map(fn (RequestStatus $s) => (int) ($byStatus[$s->value] ?? 0), $statuses));
 
-        $avgHours = CredentialRequest::query()
-            ->where('ready_at', '>=', now()->subDays(30))
-            ->whereNotNull('routed_at')
-            ->avg(DB::raw('TIMESTAMPDIFF(HOUR, routed_at, ready_at)'));
+        $period = new ReportFilter($this->from, $this->to);
 
         return view('livewire.registrar.dashboard', [
             'tiles' => [
-                ['label' => __('Needs review'), 'value' => $count(RequestStatus::PaymentReview, RequestStatus::RegistrarReview), 'href' => route('registrar.requests', ['status' => 'review'])],
+                ['label' => __('Needs the Registrar'), 'value' => $count(...RegistrarRequestFilter::needsRegistrar()), 'href' => route('registrar.requests', ['status' => 'review'])],
+                ['label' => __('Pending compliance'), 'value' => $count(RequestStatus::PendingCompliance, RequestStatus::ReturnedForCustomerAction), 'href' => route('registrar.requests', ['status' => RequestStatus::PendingCompliance->value])],
                 ['label' => __('Awaiting payment'), 'value' => $count(RequestStatus::AwaitingPayment), 'href' => route('registrar.requests', ['status' => RequestStatus::AwaitingPayment->value])],
-                ['label' => __('In progress'), 'value' => $count(RequestStatus::InProgress), 'href' => route('registrar.requests', ['status' => RequestStatus::InProgress->value])],
+                ['label' => __('Being processed'), 'value' => $count(...RequestStatus::processing()), 'href' => route('registrar.requests', ['status' => 'processing'])],
                 ['label' => __('Ready for release'), 'value' => $count(RequestStatus::ReadyForRelease), 'href' => route('registrar.requests', ['status' => RequestStatus::ReadyForRelease->value])],
             ],
             'overdueCount' => CredentialRequest::overdue()->count(),
-            'submittedThisMonth' => CredentialRequest::where('created_at', '>=', now()->startOfMonth())->count(),
-            'releasedThisMonth' => CredentialRequest::where('released_at', '>=', now()->startOfMonth())->count(),
-            'avgTurnaroundDays' => $avgHours === null ? null : round(((float) $avgHours) / 24, 1),
+            'metrics' => PerformanceMetrics::for($period),
+            'reportsUrl' => route('registrar.reports', ['report' => 'monthly', ...$period->toArray()]),
             'waitingByOffice' => $this->waitingByOffice(),
             'mostOverdue' => CredentialRequest::overdue()
-                ->with(['credentialType:id,name', 'currentStep.department:id,name'])
-                ->orderBy('due_at')
+                ->with(['credentialType:id,name', 'openVisit.department:id,name'])
+                ->orderBy('effective_due_at')
                 ->limit(5)
                 ->get(),
             'office' => $office,
             'officeQueue' => $office
-                ? StepQueue::waiting($office->id)->get()->concat(StepQueue::waiting($office->id, StepStatus::OnHold)->get())
+                ? VisitQueue::open($office->id, VisitStatus::InTransit)->get()->concat(VisitQueue::open($office->id, VisitStatus::Received)->get())
                 : collect(),
         ]);
     }
 
     /**
-     * Offices currently holding in-progress requests, largest first.
+     * Offices holding documents now (forwarded or received), largest first.
      *
-     * @return Collection<int, array{id: int, name: string, waiting: int, onHold: int}>
+     * @return Collection<int, array{id: int, name: string, waiting: int, inTransit: int}>
      */
     private function waitingByOffice(): Collection
     {
-        $rows = RequestStep::query()
-            ->join('credential_requests', 'credential_requests.id', '=', 'request_steps.credential_request_id')
-            ->join('departments', 'departments.id', '=', 'request_steps.department_id')
-            ->where('credential_requests.status', RequestStatus::InProgress)
-            ->whereIn('request_steps.status', [StepStatus::Pending, StepStatus::OnHold])
+        $rows = OfficeVisit::query()
+            ->join('credential_requests', 'credential_requests.id', '=', 'office_visits.credential_request_id')
+            ->join('departments', 'departments.id', '=', 'office_visits.department_id')
+            ->whereIn('credential_requests.status', RequestStatus::processing())
+            ->whereIn('office_visits.status', [VisitStatus::InTransit, VisitStatus::Received])
             ->groupBy('departments.id', 'departments.name')
             ->orderByDesc(DB::raw('count(*)'))
             ->orderBy('departments.name')
@@ -83,14 +94,14 @@ class Dashboard extends Component
                 'departments.id',
                 'departments.name',
                 DB::raw('count(*) as waiting'),
-                DB::raw("sum(request_steps.status = 'on_hold') as on_hold"),
+                DB::raw("sum(office_visits.status = 'in_transit') as in_transit"),
             ]);
 
         return $rows->map(fn ($row) => [
             'id' => (int) $row->getAttribute('id'),
             'name' => (string) $row->getAttribute('name'),
             'waiting' => (int) $row->getAttribute('waiting'),
-            'onHold' => (int) $row->getAttribute('on_hold'),
+            'inTransit' => (int) $row->getAttribute('in_transit'),
         ]);
     }
 }

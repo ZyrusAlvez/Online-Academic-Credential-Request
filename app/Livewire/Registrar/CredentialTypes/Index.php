@@ -73,7 +73,7 @@ class Index extends Component
     public function render(): View
     {
         return view('livewire.registrar.credential-types.index', [
-            'credentialTypes' => CredentialType::withCount('steps')->orderBy('name')->get(),
+            'credentialTypes' => CredentialType::with('steps.department')->orderBy('name')->get(),
         ]);
     }
 }

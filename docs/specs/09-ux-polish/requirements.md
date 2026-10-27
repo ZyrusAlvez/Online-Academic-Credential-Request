@@ -27,14 +27,22 @@
   "<page> · <app name>", including the log in, register, password and settings pages.
 
 ### Reference numbers
-- **REQ-09-05** THE SYSTEM SHALL show a "copy reference number" button next to the reference
-  number on the student, department and registrar request pages; WHEN it is pressed THE SYSTEM
+- **REQ-09-05** THE SYSTEM SHALL show a "copy tracking number" button next to the tracking
+  number on the requester, office and registrar request pages; WHEN it is pressed THE SYSTEM
   SHALL copy the number to the clipboard and confirm with a toast.
 
 ### Confirmations
 - **REQ-09-06** WHEN the registrar deactivates an account, a department or a credential type THE
   SYSTEM SHALL ask for confirmation first. Activating needs no confirmation.
 
+### Notifications on screen
+- **REQ-09-08** THE SYSTEM SHALL show toast notifications at the top centre of the screen on every
+  screen size.
+
+### Navigation
+- **REQ-09-09** THE SYSTEM SHALL show the requester's sidebar links without a group heading, in the
+  order New Request, My Requests, My Profile.
+
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the
-  other sign-in pages and name the address the link was sent to.
+  other sign-in pages and name the address the code was sent to.

@@ -2,7 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Actions\Identity\ReviewIdentityDocument;
+use App\Actions\Identity\SubmitIdentityDocument;
+use App\Enums\AcademicStatus;
+use App\Enums\DelayCategory;
+use App\Enums\RecipientType;
 use App\Enums\Role;
+use App\Enums\RouteTask;
+use App\Enums\VisitStatus;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
@@ -16,16 +23,23 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * Local and staging only. Demo accounts and requests in every status, driven through the real workflow so the
- * ledger, steps and notifications are realistic. Password for every account: "password".
+ * Local and staging only. Demo accounts and requests in every status of the client's workflow,
+ * driven through the real RequestWorkflow so the ledger, office visits and notifications are
+ * realistic. Password for every account: "password".
  *
  *   php artisan migrate:fresh --seed && php artisan db:seed --class=DemoSeeder
  */
 class DemoSeeder extends Seeder
 {
+    /** A 1×1 PNG. */
+    private const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
     private RequestWorkflow $workflow;
 
     private User $registrar;
+
+    /** @var Collection<string, User> office code => staff account */
+    private Collection $staff;
 
     public function run(RequestWorkflow $workflow): void
     {
@@ -33,85 +47,162 @@ class DemoSeeder extends Seeder
             throw new RuntimeException('The demo seeder only runs in the local and staging environments.');
         }
 
-        $this->call([DepartmentSeeder::class, CredentialTypeSeeder::class, RegistrarSeeder::class]);
+        $this->call([DepartmentSeeder::class, CredentialTypeSeeder::class, RegistrarSeeder::class, NonWorkingDaySeeder::class]);
 
         $this->workflow = $workflow;
         $this->registrar = User::where('role', Role::Registrar)->orderBy('id')->firstOrFail();
 
-        $departments = Department::all()->keyBy('code');
-        $staff = $departments->map(fn (Department $department) => $this->staff($department));
+        $departments = Department::active()->get()->keyBy('code');
+        $this->staff = $departments->map(fn (Department $department) => $this->staffAccount($department));
 
-        $students = collect([
-            ['student@example.com', 'Juan', 'Santos', 'Dela Cruz'],
-            ['maria@example.com', 'Maria', null, 'Reyes'],
-            ['jose@example.com', 'Jose', 'Lopez', 'Garcia'],
-            ['ana@example.com', 'Ana', null, 'Mendoza'],
-        ])->map(fn (array $s) => $this->student(...$s));
+        $requesters = collect([
+            ['student@example.com', 'Juan', 'Santos', 'Dela Cruz', 'CCS', 'BS Computer Science'],
+            ['maria@example.com', 'Maria', null, 'Reyes', 'CBA', 'BS Accountancy'],
+            ['jose@example.com', 'Jose', 'Lopez', 'Garcia', 'COE', 'BS Civil Engineering'],
+            ['ana@example.com', 'Ana', null, 'Mendoza', 'COED', 'Bachelor of Secondary Education'],
+        ])->map(fn (array $r) => $this->requester($departments[$r[4]], ...array_slice($r, 0, 4), program: $r[5]));
 
-        $types = CredentialType::pluck('id', 'name');
-        $tor = CredentialType::findOrFail($types['Transcript of Records']);
-        $enrollment = CredentialType::findOrFail($types['Certificate of Enrollment']);
-        $goodMoral = CredentialType::findOrFail($types['Good Moral Certificate']);
-        $grades = CredentialType::findOrFail($types['Certificate of Grades']);
+        // Identities: three verified, Ana's ID still waiting for the registrar.
+        $requesters->each(function (User $requester, int $index): void {
+            $this->at(40, function () use ($requester, $index): void {
+                $document = app(SubmitIdentityDocument::class)->handle($requester, 'PhilSys National ID', $this->image('national-id.png'));
 
-        DB::transaction(function () use ($students, $departments, $staff, $tor, $enrollment, $goodMoral, $grades): void {
-            [$juan, $maria, $jose, $ana] = $students->all();
+                if ($index < 3) {
+                    app(ReviewIdentityDocument::class)->handle($document, $this->registrar, verified: true);
+                }
+            });
+        });
 
-            // Awaiting payment (fresh).
-            $this->at(0, fn () => $this->submit($juan, $tor, $departments['CCS']));
+        $type = fn (string $name): CredentialType => CredentialType::where('name', $name)->firstOrFail();
 
-            // Payment under review.
-            $this->at(1, function () use ($maria, $tor, $departments) {
-                $request = $this->submit($maria, $tor, $departments['CBA']);
-                $this->pay($request, $maria);
+        DB::transaction(function () use ($requesters, $type): void {
+            [$juan, $maria, $jose, $ana] = $requesters->all();
+            $tor = $type('Transcript of Records (TOR)');
+
+            // Submitted, waiting for an evaluator.
+            $this->at(0, fn () => $this->submit($juan, $tor, 'Employment abroad'));
+
+            // Under evaluation.
+            $this->at(1, function () use ($maria, $type): void {
+                $request = $this->submit($maria, $type('Certification of Enrollment'), 'Scholarship application');
+                $this->workflow->startEvaluation($request, $this->registrar);
             });
 
-            // Free request under registrar review.
-            $this->at(1, fn () => $this->submit($ana, $enrollment, $departments['COED']));
-
-            // In progress at the Library, on hold.
-            $this->at(4, function () use ($jose, $tor, $departments, $staff) {
-                $request = $this->routed($jose, $tor, $departments['COE']);
-                $this->workflow->hold($request->currentStep()->firstOrFail(), $staff['LIB'], 'Unreturned book: Engineering Mechanics (Hibbeler).');
+            // Pending compliance: two missing originals, one already brought in.
+            $this->at(3, function () use ($jose, $tor): void {
+                $request = $this->submit($jose, $tor, 'Board examination');
+                $this->workflow->startEvaluation($request, $this->registrar);
+                $this->workflow->requestCompliance($request, $this->registrar, [
+                    'Form 137 or the UPHSL copy of the previous Transcript of Records',
+                    'PSA-authenticated birth certificate',
+                ], 'Please submit the originals at the Registrar\'s Office.');
+                $this->later(20);
+                $this->workflow->resolveDeficiency($request->deficiencies()->firstOrFail(), $this->registrar, 'Original Form 137 received and verified.');
             });
 
-            // In progress at the student's college.
-            $this->at(6, function () use ($juan, $tor, $departments, $staff) {
-                $request = $this->routed($juan, $tor, $departments['CCS']);
-                $this->signUntil($request, 'CCS', $staff);
+            // Returned for customer action before acceptance (clarification).
+            $this->at(2, function () use ($ana, $type): void {
+                $request = $this->submit($ana, $type('Copy of Grades'), 'Job application');
+                $this->workflow->startEvaluation($request, $this->registrar);
+                $this->workflow->requestCustomerAction($request, $this->registrar, 'Our records show two enrollments under different names. Please confirm the name used in 2021.');
             });
 
-            // Overdue: routed three weeks ago, stuck at the Cashier.
-            $this->at(21, function () use ($ana, $tor, $departments, $staff) {
-                $request = $this->routed($ana, $tor, $departments['COED']);
-                $this->signUntil($request, 'FIN', $staff);
+            // Awaiting payment.
+            $this->at(2, function () use ($maria, $type): void {
+                $request = $this->submit($maria, $type('Course Description'), 'Credit evaluation abroad');
+                $this->evaluate($request);
             });
 
-            // At Student Affairs.
-            $this->at(2, fn () => $this->routed($maria, $goodMoral, $departments['CBA']));
-
-            // Ready for release.
-            $this->at(9, function () use ($jose, $grades, $departments, $staff) {
-                $request = $this->routed($jose, $grades, $departments['COE']);
-                $this->signUntil($request, null, $staff);
+            // Payment verification.
+            $this->at(1, function () use ($juan, $type): void {
+                $request = $this->submit($juan, $type('Certification of Units Earned'), 'Employment');
+                $this->evaluate($request);
+                $this->pay($request);
             });
 
-            // Released.
-            $this->at(14, function () use ($maria, $enrollment, $departments, $staff) {
-                $request = $this->routed($maria, $enrollment, $departments['CBA']);
-                $this->signUntil($request, null, $staff);
-                $this->workflow->release($request, $this->registrar, 'Claimed by the student.');
+            // Accepted for processing, not yet received by the Registrar.
+            $this->at(0, fn () => $this->accepted($jose, $type('Certification of Graduation'), 'Employment'));
+
+            // In progress: received by the Dean of CBA.
+            $this->at(5, function () use ($maria, $tor): void {
+                $request = $this->accepted($maria, $tor, 'Graduate school application');
+                $this->advanceUntil($request, 'CBA', receive: true);
             });
 
-            // Cancelled by the student.
-            $this->at(3, function () use ($ana, $goodMoral, $departments) {
-                $request = $this->submit($ana, $goodMoral, $departments['COED']);
-                $this->workflow->cancel($request, $ana, 'Requested the wrong document.');
+            // Returned for correction: VP Finance sent it back to the Registrar.
+            $this->at(6, function () use ($juan, $tor): void {
+                $request = $this->accepted($juan, $tor, 'Employment');
+                $this->advanceUntil($request, 'VPF', receive: true);
+                $this->later(5);
+                $this->workflow->returnVisit($request->openVisit()->firstOrFail(), $this->staff['VPF'], Department::where('code', Department::REGISTRAR_CODE)->firstOrFail(),
+                    'Name on the TOR does not match the records.', 'Correct the middle name and reprint the TOR.');
+            });
+
+            // For final approval: back at the Registrar for the final quality check.
+            $this->at(7, function () use ($jose, $type): void {
+                $request = $this->accepted($jose, $type('Transfer Certificate'), 'Transfer', 'Polytechnic University of the Philippines');
+                $this->advanceUntil($request, Department::REGISTRAR_CODE, receive: true, finalCheck: true);
+            });
+
+            // Ready for release, to be claimed by a verified representative.
+            $this->at(9, function () use ($maria, $type): void {
+                $request = $this->accepted($maria, $type('Copy of Grades'), 'Employment');
+                $this->workflow->declareRepresentative($request, $maria, ['full_name' => 'Rosa Reyes', 'relationship' => 'Mother', 'contact_number' => '09185550101'],
+                    UploadedFile::fake()->create('spa.pdf', 120, 'application/pdf'), $this->image('rosa-id.png'));
+                $this->workflow->reviewRepresentative($request->representatives()->firstOrFail(), $this->registrar, true);
+                $this->advanceUntil($request, null);
+            });
+
+            // Released on time.
+            $this->at(14, function () use ($juan, $type): void {
+                $request = $this->accepted($juan, $type('Certification of Enrollment'), 'Visa application');
+                $this->advanceUntil($request, null);
+                $this->later(20);
+                $this->release($request, $juan->name);
+            });
+
+            // Released late: the Chancellor's signature took long.
+            $this->at(35, function () use ($jose, $tor): void {
+                $request = $this->accepted($jose, $tor, 'Employment');
+                $this->advanceUntil($request, 'CHAN', receive: true);
+                $this->later(24 * 12);
+                $this->advanceUntil($request, null);
+                $this->later(30);
+                $this->release($request, $jose->name);
+            });
+
+            // Overdue: waiting for the Chancellor's signature, with a delay reason.
+            $this->at(21, function () use ($maria, $tor): void {
+                $request = $this->accepted($maria, $tor, 'Board examination');
+                $this->advanceUntil($request, 'CHAN', receive: true);
+                $this->later(48);
+                $this->workflow->recordDelay($request, $this->staff['CHAN'], DelayCategory::PendingSignature, 'The Chancellor is attending a conference abroad.', 'Signing scheduled on return.');
+            });
+
+            // Paused: returned to the requester after acceptance.
+            $this->at(8, function () use ($juan, $type): void {
+                $request = $this->accepted($juan, $type('Diploma / Certificate for Non-Degree Programs'), 'Personal copy');
+                $this->advanceUntil($request, Department::REGISTRAR_CODE, receive: true);
+                $this->later(4);
+                $this->workflow->requestCustomerAction($request, $this->registrar, 'Please submit an affidavit of loss for the original diploma.');
+            });
+
+            // Declined: not eligible.
+            $this->at(4, function () use ($ana, $type): void {
+                $request = $this->submit($ana, $type('Authentication'), 'Employment abroad');
+                $this->workflow->startEvaluation($request, $this->registrar);
+                $this->workflow->decline($request, $this->registrar, 'The document to be authenticated was not issued by UPHSL.');
+            });
+
+            // Cancelled by the requester.
+            $this->at(3, function () use ($jose, $type): void {
+                $request = $this->submit($jose, $type('Medium of Instruction'), 'Scholarship');
+                $this->workflow->cancel($request, $jose, 'Requested the wrong document.');
             });
         });
     }
 
-    private function staff(Department $department): User
+    private function staffAccount(Department $department): User
     {
         $user = User::firstOrNew(['email' => strtolower($department->code).'@example.com']);
         $user->fill(['first_name' => $department->code, 'middle_name' => null, 'last_name' => 'Staff', 'password' => 'password']);
@@ -120,70 +211,134 @@ class DemoSeeder extends Seeder
         return $user;
     }
 
-    private function student(string $email, string $first, ?string $middle, string $last): User
+    private function requester(Department $college, string $email, string $first, ?string $middle, string $last, string $program): User
     {
         $user = User::firstOrNew(['email' => $email]);
-        $user->fill(['first_name' => $first, 'middle_name' => $middle, 'last_name' => $last, 'password' => 'password']);
-        $user->forceFill(['role' => Role::Student, 'is_active' => true, 'email_verified_at' => now()])->save();
+        $user->fill([
+            'first_name' => $first,
+            'middle_name' => $middle,
+            'last_name' => $last,
+            'password' => 'password',
+            'contact_number' => '0917'.fake()->numerify('#######'),
+            'academic_status' => AcademicStatus::Graduate,
+            'college_id' => $college->id,
+            'program' => $program,
+            'student_number' => sprintf('%02d-%04d-%03d', fake()->numberBetween(15, 20), fake()->numberBetween(1, 9999), fake()->numberBetween(1, 999)),
+            'attended_from' => 2020,
+            'attended_to' => 2024,
+        ]);
+        $user->forceFill(['role' => Role::Student, 'is_active' => true, 'email_verified_at' => now(), 'privacy_consented_at' => now()])->save();
 
         return $user;
     }
 
-    private function submit(User $student, CredentialType $type, Department $college): CredentialRequest
+    private function submit(User $owner, CredentialType $type, string $purpose, ?string $receivingSchool = null): CredentialRequest
     {
-        return $this->workflow->submit($student, [
+        return $this->workflow->submit($owner, [
             'credential_type_id' => $type->id,
-            'college_id' => $college->id,
-            'student_number' => sprintf('%02d-%04d-%03d', fake()->numberBetween(15, 24), fake()->numberBetween(1, 9999), fake()->numberBetween(1, 999)),
-            'program' => fake()->randomElement(['BS Computer Science', 'BS Accountancy', 'BS Civil Engineering', 'Bachelor of Secondary Education']),
-            'student_status' => fake()->randomElement(['current', 'alumni']),
-            'last_school_year' => '2024-2025',
-            'purpose' => fake()->randomElement(['Employment', 'Board examination', 'Transfer to another school', 'Scholarship application']),
-            'copies' => fake()->numberBetween(1, 3),
+            'copies' => fake()->numberBetween(1, 2),
+            'purpose' => $purpose,
+            'receiving_institution' => $receivingSchool,
         ]);
     }
 
-    private function pay(CredentialRequest $request, User $student): void
+    private function evaluate(CredentialRequest $request): void
     {
-        $this->workflow->submitPaymentProof($request, $student, UploadedFile::fake()->image('receipt.png', 600, 800), 'OR-'.fake()->numerify('########'), '300.00');
+        $this->later(2);
+        $this->workflow->startEvaluation($request, $this->registrar);
+        $this->later(3);
+        $this->workflow->completeEvaluation($request, $this->registrar, 'Records and requirements complete.');
     }
 
-    private function routed(User $student, CredentialType $type, Department $college): CredentialRequest
+    private function pay(CredentialRequest $request): void
     {
-        $request = $this->submit($student, $type, $college);
+        $this->later(5);
+        $this->workflow->submitPaymentProof($request, $request->student()->firstOrFail(), $this->image('receipt.png'),
+            'UPHSL-'.fake()->numerify('########'), (string) $request->amount_due, now()->format('Y-m-d'));
+    }
 
+    private function accepted(User $owner, CredentialType $type, string $purpose, ?string $receivingSchool = null): CredentialRequest
+    {
+        $request = $this->submit($owner, $type, $purpose, $receivingSchool);
+        $this->evaluate($request);
+
+        // A free credential is accepted when its evaluation is complete.
         if ($request->requires_payment) {
-            $this->pay($request, $student);
+            $this->pay($request);
+            $this->later(4);
+            $this->workflow->verifyPaymentAndAccept($request, $this->registrar, 'OR-'.fake()->numerify('######'));
         }
 
-        $this->workflow->approve($request, $this->registrar, 'Verified.');
-
-        return $request->fresh() ?? $request;
+        return $request;
     }
 
     /**
-     * Sign steps in order until the step of $stopAt is current (or all steps when null).
-     *
-     * @param  Collection<string, User>  $staff
+     * Receive and complete visits in order until the document reaches $stopAt (and is received
+     * there when $receive), or until it is ready for release when $stopAt is null.
      */
-    private function signUntil(CredentialRequest $request, ?string $stopAt, $staff): void
+    private function advanceUntil(CredentialRequest $request, ?string $stopAt, bool $receive = false, bool $finalCheck = false): void
     {
-        while ($step = $request->currentStep()->with('department')->first()) {
-            if ($step->department->code === $stopAt) {
+        while ($visit = $request->openVisit()->with(['department', 'step'])->first()) {
+            $code = $visit->department->code;
+            $isTarget = $code === $stopAt && (! $finalCheck || $visit->step->task === RouteTask::FinalCheck);
+
+            if ($isTarget && ! $receive) {
                 return;
             }
 
-            Carbon::setTestNow(Carbon::now()->addHours(fake()->numberBetween(3, 20)));
-            $this->workflow->sign($step, $staff[$step->department->code], fake()->optional(0.4)->randomElement(['Cleared.', 'No accountabilities.', 'Verified records.']));
+            if ($visit->status === VisitStatus::InTransit) {
+                $this->later(fake()->numberBetween(2, 20));
+                $this->workflow->acceptReceipt($visit, $this->actorFor($code));
+            }
+
+            if ($isTarget) {
+                return;
+            }
+
+            $this->later(fake()->numberBetween(3, 30));
+            $this->workflow->completeVisit($visit, $this->actorFor($code), fake()->optional(0.3)->randomElement(['Signed.', 'Verified.', 'Stamped.']));
         }
     }
 
+    private function release(CredentialRequest $request, string $recipient): void
+    {
+        $this->workflow->release($request, $this->registrar, [
+            'recipient_type' => RecipientType::Owner,
+            'recipient_name' => $recipient,
+            'id_presented' => 'PhilSys National ID',
+            'identity_checked' => true,
+            'acknowledged' => true,
+        ]);
+    }
+
     /**
-     * Run $callback as if it happened $daysAgo days ago (ledger times follow).
+     * A placeholder PNG upload. Built from bytes rather than UploadedFile::fake()->image(), which
+     * needs the GD extension that the servers do not have (the app itself never draws images).
+     */
+    private function image(string $name): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent($name, (string) base64_decode(self::PNG));
+    }
+
+    private function actorFor(string $code): User
+    {
+        return $code === Department::REGISTRAR_CODE ? $this->registrar : $this->staff[$code];
+    }
+
+    /**
+     * Move the clock forward by some hours (office actions take time).
+     */
+    private function later(int $hours): void
+    {
+        Carbon::setTestNow(Carbon::now()->addHours($hours));
+    }
+
+    /**
+     * Run $callback as if it started $daysAgo days ago (ledger times follow).
      */
     private function at(int $daysAgo, callable $callback): void
     {
-        Carbon::setTestNow(Carbon::now()->subDays($daysAgo)->setTime(fake()->numberBetween(8, 15), fake()->numberBetween(0, 59)));
+        Carbon::setTestNow(Carbon::now()->subDays($daysAgo)->setTime(fake()->numberBetween(8, 10), fake()->numberBetween(0, 59)));
 
         try {
             $callback();
