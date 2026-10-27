@@ -24,3 +24,5 @@
 - [x] Email verification by 6-digit code: table, send/confirm actions, 30 s resend cooldown,
       verify page, link route removed (REQ-01-04, 23)
 - [x] Pest tests for REQ-01-23 and the changed REQ-01-01, 03, 04, REQ-09-07; data dictionary
+- [x] Google sign-in/sign-up with Socialite; `google_id`, nullable password; Pest tests with a
+      mocked provider (REQ-01-05, 24); data dictionary

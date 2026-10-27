@@ -11,7 +11,7 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   so that the Registrar can confirm the account is really mine.
 - **US-01-6** As the registrar, I want to review each requester's valid ID, so that credentials
   are only processed for their real owner.
-- **US-01-2** As any user, I want to log in with only my email and password.
+- **US-01-2** As any user, I want to log in with my email and password, or with my Google account.
 - **US-01-3** As the registrar, I want only verified, active accounts to use the system, so
   that requests and notifications reach real people.
 - **US-01-4** As any user, I want to land on the home screen for my role after logging in.
@@ -36,7 +36,8 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   changing their email).
 
 ### Login & session
-- **REQ-01-05** THE SYSTEM SHALL authenticate users with email and password only.
+- **REQ-01-05** THE SYSTEM SHALL authenticate users with email and password, or with Google
+  (REQ-01-24).
 - **REQ-01-06** IF a user fails to log in 5 times within a minute for the same email and IP THEN
   THE SYSTEM SHALL lock further attempts temporarily.
 - **REQ-01-07** IF a deactivated user submits valid credentials THEN THE SYSTEM SHALL refuse the
@@ -44,6 +45,14 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   Registrar."
 - **REQ-01-08** WHEN an account is deactivated while its user is logged in THE SYSTEM SHALL log
   the user out on their next request.
+
+- **REQ-01-24** WHERE Google sign-in is configured THE SYSTEM SHALL offer "Continue with Google"
+  on the log-in page and "Sign up with Google" on the sign-up page. WHEN Google returns an account
+  with a verified email THE SYSTEM SHALL sign in the account linked to that Google ID or, failing
+  that, the account with that email (linking it), or else create a requester account with the email
+  marked verified, no password and the name pre-filled from Google. IF Google has not verified the
+  email, the account is deactivated, or the sign-in is cancelled THEN THE SYSTEM SHALL return to the
+  log-in page with a message and sign nobody in.
 
 ### Verification & access
 - **REQ-01-09** WHILE a user's email is unverified THE SYSTEM SHALL block access to application
