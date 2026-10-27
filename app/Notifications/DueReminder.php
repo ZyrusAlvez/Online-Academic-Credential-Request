@@ -32,7 +32,7 @@ class DueReminder extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject("{$this->request->reference_no}: {$this->title($notifiable)}")
-            ->greeting("Hello {$notifiable->first_name},")
+            ->greeting($notifiable->greeting())
             ->line($this->message($notifiable))
             ->line('We are sorry for the delay. You can follow your request at any time.')
             ->action('Track your request', route('student.requests.show', $this->request))

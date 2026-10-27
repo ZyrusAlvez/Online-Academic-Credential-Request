@@ -15,6 +15,7 @@ erDiagram
     departments ||--o{ users : "employs (staff)"
     departments |o--o{ users : "is college of (requesters)"
     users ||--o{ identity_documents : uploads
+    users ||--o| email_verification_codes : "is sent"
     users ||--o{ credential_requests : "owns"
     credential_types ||--o{ workflow_steps : "has route"
     departments |o--o{ workflow_steps : "acts at"
@@ -52,12 +53,12 @@ Accounts for all three roles.
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
-| first_name | varchar(100) | No | | | |
+| first_name | varchar(100) | Yes | | | Requesters give it in My Profile after signing up |
 | middle_name | varchar(100) | Yes | | | Shown as an initial: "Juan S. Dela Cruz" |
-| last_name | varchar(100) | No | | | |
+| last_name | varchar(100) | Yes | | | Requesters give it in My Profile after signing up |
 | email | varchar(255) | No | UQ | | Login name |
-| contact_number | varchar(20) | Yes | | | Required at registration (requesters) |
-| privacy_consented_at | timestamp | Yes | | | When the requester agreed to the Data Privacy Act notice |
+| contact_number | varchar(20) | Yes | | | Requesters: 11 digits, given in My Profile |
+| privacy_consented_at | timestamp | Yes | | | When the requester agreed to the Data Privacy Act notice (first My Profile save) |
 | role | varchar(20) | No | IX | `student` | `student`, `registrar`, `department` (see [Role](#role)) |
 | department_id | bigint unsigned | Yes | FK → departments | | Only for `department` staff |
 | academic_status | varchar(20) | Yes | | | Requesters: `current`, `graduate`, `former` (see [AcademicStatus](#academicstatus)) |
@@ -372,6 +373,20 @@ Requesters' uploaded valid IDs (spec 01). Files live privately on the receipts d
 | reviewed_by | bigint unsigned | Yes | FK → users | | Registrar who reviewed it |
 | reviewed_at | timestamp | Yes | | | |
 | remarks | varchar(500) | Yes | | | Reason for a rejection, shown to the requester |
+| created_at, updated_at | timestamp | Yes | | | |
+
+## email_verification_codes
+
+The one-time code that confirms a user's email address (REQ-01-23). One row per user; a new code
+replaces the old one and a successful check deletes it.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| user_id | bigint unsigned | No | FK → users, UQ | | Cascade on delete |
+| code_hash | varchar(255) | No | | | Bcrypt hash of the 6-digit code; the code itself is never stored |
+| expires_at | timestamp | No | | | 10 minutes after sending |
+| attempts | tinyint unsigned | No | | 0 | Wrong tries; the code stops working at 5 |
 | created_at, updated_at | timestamp | Yes | | | |
 
 ## non_working_days

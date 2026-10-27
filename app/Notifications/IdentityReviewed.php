@@ -31,7 +31,7 @@ class IdentityReviewed extends Notification implements ShouldQueue
     {
         $message = (new MailMessage)
             ->subject($this->title())
-            ->greeting("Hello {$notifiable->first_name},")
+            ->greeting($notifiable->greeting())
             ->line($this->message());
 
         if (filled($this->document->remarks)) {
