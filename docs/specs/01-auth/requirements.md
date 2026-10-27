@@ -24,8 +24,8 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   record their consent to the processing of their personal data (Data Privacy Act of 2012).
 - **REQ-01-02** WHEN a guest registers THE SYSTEM SHALL create the account with role `student`,
   regardless of any role value submitted.
-- **REQ-01-03** IF the email is already registered, the contact number is not a valid phone
-  number, consent is not given, or the password is not confirmed or fails the password rules
+- **REQ-01-03** IF the email is already registered, the contact number is not exactly 11 digits
+  (e.g. `09171234567`), consent is not given, or the password is not confirmed or fails the password rules
   (min. 8 characters) THEN THE SYSTEM SHALL reject the registration with a field error.
 - **REQ-01-04** WHEN a student registers THE SYSTEM SHALL send an email verification link and
   log the student in.
@@ -56,8 +56,8 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   "First M. Last" (middle initial only when a middle name exists).
 
 ### Requester profile and identity
-- **REQ-01-16** THE SYSTEM SHALL let a requester keep a profile with their contact number and
-  academic information: status (current student, graduate or former student), college, program or
+- **REQ-01-16** THE SYSTEM SHALL let a requester keep a profile with their contact number (exactly
+  11 digits, e.g. `09171234567`) and academic information: status (current student, graduate or former student), college, program or
   strand, student number (optional) and years attended (from and to, not before 1950 nor after the
   current year, from ≤ to).
 - **REQ-01-17** THE SYSTEM SHALL let a requester upload a valid ID (type of ID and an image or PDF
