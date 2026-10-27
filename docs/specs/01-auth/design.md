@@ -84,3 +84,19 @@ Identity code:
 | GET | /student | student.dashboard | auth, verified, role:student |
 | GET | /registrar | registrar.dashboard | auth, verified, role:registrar |
 | GET | /department | department.dashboard | auth, verified, role:department |
+
+## Email verification by code (REQ-01-01, 04, 23)
+
+- `email_verification_codes`: `user_id` (unique, FK), `code_hash` (bcrypt), `expires_at`,
+  `attempts`. `users.first_name`/`last_name` are nullable because sign-up asks only for email and
+  password; `User::fullName()` and `initials()` fall back to the email, `User::greeting()` to
+  "Hello,".
+- `User::sendEmailVerificationNotification()` calls `App\Actions\Auth\SendVerificationCode`, so
+  Laravel's `Registered` listener sends a code. The action is rate-limited per user (1 per 30 s,
+  `RateLimiter` key `verification-code:{id}`) and sends `App\Notifications\VerificationCode`
+  synchronously (not queued) so the code arrives while the user waits.
+- `App\Actions\Auth\ConfirmVerificationCode` checks expiry, the 5-try cap and the hash under a row
+  lock, then deletes the code, marks the email verified and fires `Verified`.
+- The Volt `auth.verify-email` page holds the code form and the "Send a new code" button with an
+  Alpine countdown; the signed-link route `verification.verify` and its controller are gone.
+
