@@ -23,9 +23,11 @@ period starts only at acceptance.
 - **REQ-04-01** THE SYSTEM SHALL let a requester whose profile is complete (spec 01, REQ-01-18)
   submit a request for an active credential type that has a route, with the number of copies
   (1–10), the purpose, and — when the credential type requires it — the complete name of the receiving school.
-- **REQ-04-02** BEFORE a request is submitted THE SYSTEM SHALL show the credential's documentary
-  requirements, fee per copy and amount due, processing period, offices on its route, special
-  conditions, and the *Incomplete requirements* notice of the client's workflow.
+- **REQ-04-02** BEFORE a request is submitted THE SYSTEM SHALL let the requester choose the
+  credential from a dropdown and, once one is chosen, show its description, documentary
+  requirements, fee per copy and amount due, processing period, offices on its route and special
+  conditions; THE SYSTEM SHALL also show the *Incomplete requirements* notice of the client's
+  workflow.
 - **REQ-04-03** WHEN a request is submitted THE SYSTEM SHALL give it the status `submitted`, a
   unique tracking number `CR-<year>-<6-digit id>`, a snapshot of the requester's academic profile
   and of the fee (amount due = fee × copies), and confirm that it was received for evaluation.
