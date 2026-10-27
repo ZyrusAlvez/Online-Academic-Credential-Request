@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\User;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 const VISIBILITY_TOGGLE = 'Toggle password visibility';
@@ -136,4 +137,16 @@ test('REQ-09-08 toasts appear at the top centre of the screen', function () {
     $this->actingAs(User::factory()->student()->create())->get(route('student.profile'))
         ->assertOk()
         ->assertSeeHtml('class="pointer-events-none fixed inset-x-4 top-4 z-50 flex justify-center"');
+});
+
+test('REQ-09-09 the requester sidebar has no group heading and lists New Request first', function () {
+    $html = $this->actingAs(User::factory()->student()->create())->get(route('student.profile'))
+        ->assertOk()
+        ->getContent();
+
+    $nav = Str::between($html, 'data-flux-navlist>', '</nav>');
+
+    expect($nav)->not->toContain('Student')
+        ->and(strpos($nav, 'New Request'))->toBeLessThan(strpos($nav, 'My Requests'))
+        ->and(strpos($nav, 'My Requests'))->toBeLessThan(strpos($nav, 'My Profile'));
 });
