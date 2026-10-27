@@ -147,7 +147,7 @@ class DemoSeeder extends Seeder
             // Ready for release, to be claimed by a verified representative.
             $this->at(9, function () use ($maria, $type): void {
                 $request = $this->accepted($maria, $type('Copy of Grades'), 'Employment');
-                $this->workflow->declareRepresentative($request, $maria, ['full_name' => 'Rosa Reyes', 'relationship' => 'Mother', 'contact_number' => '0918 555 0101'],
+                $this->workflow->declareRepresentative($request, $maria, ['full_name' => 'Rosa Reyes', 'relationship' => 'Mother', 'contact_number' => '09185550101'],
                     UploadedFile::fake()->create('spa.pdf', 120, 'application/pdf'), $this->image('rosa-id.png'));
                 $this->workflow->reviewRepresentative($request->representatives()->firstOrFail(), $this->registrar, true);
                 $this->advanceUntil($request, null);
@@ -219,7 +219,7 @@ class DemoSeeder extends Seeder
             'middle_name' => $middle,
             'last_name' => $last,
             'password' => 'password',
-            'contact_number' => '0917 '.fake()->numerify('### ####'),
+            'contact_number' => '0917'.fake()->numerify('#######'),
             'academic_status' => AcademicStatus::Graduate,
             'college_id' => $college->id,
             'program' => $program,

@@ -29,7 +29,7 @@ function fillProfile(array $overrides = []): Testable
     $component = Livewire::actingAs(test()->student)->test(Profile::class);
 
     foreach (array_merge([
-        'form.contact_number' => '+63 917 123 4567',
+        'form.contact_number' => '09171234567',
         'form.academic_status' => 'graduate',
         'form.college_id' => test()->college->id,
         'form.program' => 'BS Computer Science',
@@ -64,7 +64,15 @@ test('REQ-01-16 a requester can save their academic information; the student num
         ->student_number->toBeNull()
         ->attended_from->toBe(2019)
         ->attended_to->toBe(2023)
-        ->contact_number->toBe('+63 917 123 4567');
+        ->contact_number->toBe('09171234567');
+});
+
+test('REQ-01-16 the contact number must be exactly 11 digits', function () {
+    foreach (['0917 123 4567', '+639171234567', '0917123456', '091712345678', '0917-123-4567'] as $number) {
+        fillProfile(['form.contact_number' => $number])->assertHasErrors(['form.contact_number' => 'regex']);
+    }
+
+    fillProfile(['form.contact_number' => '09171234567'])->assertHasNoErrors();
 });
 
 test('REQ-01-16 the years attended and college are validated', function () {

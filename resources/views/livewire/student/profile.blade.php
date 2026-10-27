@@ -34,7 +34,7 @@
                 <flux:input wire:model="form.attended_to" type="number" min="1950" :max="now()->year" inputmode="numeric" :label="__('Last year attended')" placeholder="2024" required />
             </div>
 
-            <flux:input wire:model="form.contact_number" type="tel" :label="__('Contact number')" autocomplete="tel" placeholder="0917 123 4567" required />
+            <flux:input wire:model="form.contact_number" type="tel" :label="__('Contact number')" autocomplete="tel" inputmode="numeric" maxlength="11" placeholder="09171234567" required />
 
             <flux:button type="submit" variant="primary">{{ __('Save profile') }}</flux:button>
         </form>
