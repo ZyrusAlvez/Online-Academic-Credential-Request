@@ -20,9 +20,9 @@ period starts only at acceptance.
 ## Acceptance criteria
 
 ### Submission
-- **REQ-04-01** THE SYSTEM SHALL let a requester whose profile is complete (spec 01) submit a
-  request for an active credential type that has a route, with the number of copies (1–10), the
-  purpose, and — when the credential type requires it — the complete name of the receiving school.
+- **REQ-04-01** THE SYSTEM SHALL let a requester whose profile is complete (spec 01, REQ-01-18)
+  submit a request for an active credential type that has a route, with the number of copies
+  (1–10), the purpose, and — when the credential type requires it — the complete name of the receiving school.
 - **REQ-04-02** BEFORE a request is submitted THE SYSTEM SHALL show the credential's documentary
   requirements, fee per copy and amount due, processing period, offices on its route, special
   conditions, and the *Incomplete requirements* notice of the client's workflow.

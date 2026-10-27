@@ -57,8 +57,9 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 ### Verification & access
 - **REQ-01-09** WHILE a user's email is unverified THE SYSTEM SHALL block access to application
   pages and show the verify-email notice.
-- **REQ-01-10** WHEN a user opens `/dashboard` THE SYSTEM SHALL redirect them to their role's
-  home: student → `/student`, registrar → `/registrar`, department → `/department`.
+- **REQ-01-10** WHEN a user opens `/dashboard` or logs in THE SYSTEM SHALL take them to their
+  role's home: student → the new-request page (`/student/requests/new`), registrar →
+  `/registrar`, department → `/department`.
 - **REQ-01-11** IF a user opens a page belonging to another role THEN THE SYSTEM SHALL respond 403.
 
 ### Profile
@@ -79,7 +80,11 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   file of at most 5 MB), store it privately and mark their identity as pending verification;
   earlier uploads are kept.
 - **REQ-01-18** WHILE a requester's name, contact number or academic information is incomplete,
-  they have not given their data privacy consent, or no ID awaits or has passed verification THE SYSTEM SHALL send them to their profile instead of the new-request form.
+  they have not given their data privacy consent, or no ID awaits or has passed verification THE
+  SYSTEM SHALL show a red "Verify your profile before making a request" banner on the new-request
+  page and on My Requests, listing what is missing (and the reason a rejected ID was not accepted)
+  with a link to My Profile, and SHALL show the new-request page with its fields and Submit
+  disabled (the credentials can still be browsed) and refuse a submission.
 - **REQ-01-19** THE SYSTEM SHALL let the registrar list requesters by identity status (pending
   first, oldest upload first), open the uploaded ID, and verify it or reject it with a reason; the
   requester SHALL be notified of the result and MAY upload another ID after a rejection.
