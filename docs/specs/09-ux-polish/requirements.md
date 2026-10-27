@@ -41,4 +41,4 @@
 
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the
-  other sign-in pages and name the address the link was sent to.
+  other sign-in pages and name the address the code was sent to.

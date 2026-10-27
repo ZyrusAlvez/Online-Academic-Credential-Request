@@ -20,3 +20,7 @@
 - [x] My Profile: name fields, data privacy notice and consent, one "Save profile" button that
       also uploads the ID; settings keeps names for staff only (REQ-01-12, 16, 18, 22)
 - [x] Pest tests for REQ-01-22 and the changed REQ-01-12, 16, 17
+- [x] Sign-up with email and password only; names nullable (REQ-01-01, 03)
+- [x] Email verification by 6-digit code: table, send/confirm actions, 30 s resend cooldown,
+      verify page, link route removed (REQ-01-04, 23)
+- [x] Pest tests for REQ-01-23 and the changed REQ-01-01, 03, 04, REQ-09-07; data dictionary
