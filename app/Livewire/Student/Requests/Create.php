@@ -42,6 +42,12 @@ class Create extends Component
     {
         $this->authorize('create', CredentialRequest::class);
 
+        if (! $this->owner()->canRequestCredentials()) {
+            $this->dispatch('notify', message: 'Complete your profile and upload a valid ID before requesting a credential.');
+
+            return;
+        }
+
         $data = $this->form->validatedRequest();
         $representative = $this->form->representative();
         $this->validate([
@@ -68,11 +74,13 @@ class Create extends Component
     public function render(): View
     {
         $types = CredentialType::requestable()->with('steps.department')->orderBy('name')->get();
+        $owner = $this->owner()->loadMissing(['college', 'latestIdentityDocument']);
 
         return view('livewire.student.requests.create', [
             'types' => $types,
             'selectedType' => $types->firstWhere('id', (int) $this->form->credential_type_id),
-            'owner' => $this->owner()->loadMissing('college'),
+            'owner' => $owner,
+            'locked' => ! $owner->canRequestCredentials(),
         ]);
     }
 

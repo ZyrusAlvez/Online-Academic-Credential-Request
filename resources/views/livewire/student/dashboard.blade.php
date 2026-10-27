@@ -5,6 +5,8 @@
         </x-slot:actions>
     </x-page-header>
 
+    <x-profile-required-callout :user="auth()->user()" />
+
     @if ($requests->isEmpty())
         <div class="rounded-xl border border-dashed border-secondary p-10 text-center">
             <flux:icon.document-text class="mx-auto size-10 text-secondary" />

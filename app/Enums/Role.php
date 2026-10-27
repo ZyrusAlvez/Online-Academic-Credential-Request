@@ -17,8 +17,11 @@ enum Role: string
         };
     }
 
+    /**
+     * Where `/dashboard` and logging in lead (REQ-01-10): requesters start on the new-request form.
+     */
     public function homeRoute(): string
     {
-        return $this->value.'.dashboard';
+        return $this === self::Student ? 'student.requests.create' : $this->value.'.dashboard';
     }
 }
