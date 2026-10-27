@@ -3,7 +3,6 @@
 use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
@@ -74,24 +73,6 @@ new #[Title('Profile settings')] class extends Component {
     {
         return ! Auth::user()->hasRole(Role::Student);
     }
-
-    /**
-     * Send an email verification notification to the current user.
-     */
-    public function resendVerificationNotification(): void
-    {
-        $user = Auth::user();
-
-        if ($user->hasVerifiedEmail()) {
-            $this->redirectIntended(default: route('dashboard', absolute: false));
-
-            return;
-        }
-
-        $user->sendEmailVerificationNotification();
-
-        Session::flash('status', 'verification-link-sent');
-    }
 }; ?>
 
 <section class="w-full">
@@ -121,19 +102,8 @@ new #[Title('Profile settings')] class extends Component {
                         <p class="mt-2 text-sm text-gray-800">
                             {{ __('Your email address is unverified.') }}
 
-                            <button
-                                wire:click.prevent="resendVerificationNotification"
-                                class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                            >
-                                {{ __('Click here to re-send the verification email.') }}
-                            </button>
+                            <flux:link :href="route('verification.notice')" wire:navigate>{{ __('Verify it with a code.') }}</flux:link>
                         </p>
-
-                        @if (session('status') === 'verification-link-sent')
-                            <p class="mt-2 text-sm font-medium text-green-600">
-                                {{ __('A new verification link has been sent to your email address.') }}
-                            </p>
-                        @endif
                     </div>
                 @endif
             </div>

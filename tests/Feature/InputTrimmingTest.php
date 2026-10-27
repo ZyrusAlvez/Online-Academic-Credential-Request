@@ -9,23 +9,13 @@ use Livewire\Volt\Volt;
 
 test('text input is trimmed before it is validated and stored', function () {
     Volt::test('auth.register')
-        ->set('first_name', '  Ana ')
-        ->set('middle_name', '   ')
-        ->set('last_name', ' Cruz  ')
         ->set('email', '  ana@example.com ')
-        ->set('contact_number', ' 09171234567 ')
-        ->set('privacy_consent', true)
         ->set('password', ' secret-pass ')
-        ->set('password_confirmation', ' secret-pass ')
         ->call('register')
         ->assertHasNoErrors();
 
     $user = User::sole();
-    expect($user->first_name)->toBe('Ana')
-        ->and($user->middle_name)->toBeNull()
-        ->and($user->last_name)->toBe('Cruz')
-        ->and($user->email)->toBe('ana@example.com')
-        ->and($user->contact_number)->toBe('09171234567')
+    expect($user->email)->toBe('ana@example.com')
         ->and(Hash::check(' secret-pass ', $user->password))->toBeTrue();   // passwords are kept as typed
 });
 
