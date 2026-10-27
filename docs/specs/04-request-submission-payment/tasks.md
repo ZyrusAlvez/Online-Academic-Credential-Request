@@ -6,3 +6,5 @@
 - [x] Requester request page: compliance notice, clarification reply, payment (REQ-04-09, 11, 12)
 - [x] Registrar request page: evaluation, compliance, payment and acceptance panels (REQ-04-05..08, 10, 13..15)
 - [x] Pest tests for every REQ-04 criterion
+- [x] Credential picker is a dropdown; the details panel (with description, fee and period badges)
+      appears once a credential is chosen (REQ-04-02)
