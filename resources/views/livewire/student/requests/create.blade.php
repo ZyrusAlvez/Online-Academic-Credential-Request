@@ -6,6 +6,8 @@
 
     <x-page-header title="Request a credential" description="Choose the credential, check its requirements, and submit. The Office of the Registrar evaluates every request before accepting it." />
 
+    <x-profile-required-callout :user="$owner" />
+
     {{-- The client's portal notice (Proposed Workflow, III-D), shown before every submission. --}}
     <flux:callout icon="exclamation-triangle" color="amber">
         <flux:callout.heading>{{ __('Important notice: incomplete requirements') }}</flux:callout.heading>
@@ -93,6 +95,8 @@
                 </div>
             @endif
 
+            {{-- Until the profile is complete the credentials can be browsed but not requested (REQ-01-18). --}}
+            <div @class(['space-y-6', 'opacity-50' => $locked]) @if ($locked) inert @endif>
             <div class="grid gap-6 sm:grid-cols-[8rem_1fr]">
                 <flux:input wire:model.live.debounce.300ms="form.copies" type="number" min="1" max="10" :label="__('Copies')" required />
                 <flux:input wire:model="form.purpose" :label="__('Purpose')" :placeholder="__('e.g. Employment, board exam, transfer')" required />
@@ -103,7 +107,10 @@
             @else
                 <flux:input wire:model="form.receiving_institution" :label="__('Receiving school, employer or agency')" :description="__('If applicable: the complete name of the institution the credential is for.')" badge="Optional" />
             @endif
+            </div>
         </section>
+
+        <div @class(['space-y-8', 'opacity-50' => $locked]) @if ($locked) inert @endif>
 
         <section aria-labelledby="who-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
@@ -147,7 +154,8 @@
 
         <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <flux:button :href="route('student.dashboard')" variant="ghost" wire:navigate>{{ __('Cancel') }}</flux:button>
-            <flux:button type="submit" variant="primary" icon-trailing="arrow-right" wire:loading.attr="disabled" wire:target="spa,representativeId,submit">{{ __('Submit request') }}</flux:button>
+            <flux:button type="submit" variant="primary" icon-trailing="arrow-right" :disabled="$locked" wire:loading.attr="disabled" wire:target="spa,representativeId,submit">{{ __('Submit request') }}</flux:button>
+        </div>
         </div>
     </form>
 </div>

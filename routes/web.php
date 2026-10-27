@@ -21,7 +21,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('student')->name('student.')->middleware('role:student')->group(function () {
         Route::get('/', Student\Dashboard::class)->name('dashboard');
         Route::get('profile', Student\Profile::class)->name('profile');
-        Route::get('requests/new', Student\Requests\Create::class)->middleware('profile.complete')->name('requests.create');
+        Route::get('requests/new', Student\Requests\Create::class)->name('requests.create');
         Route::get('requests/{credentialRequest}', Student\Requests\Show::class)->name('requests.show');
     });
 
