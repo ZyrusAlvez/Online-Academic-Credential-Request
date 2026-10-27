@@ -13,8 +13,10 @@ use Livewire\Form;
  */
 class RequesterProfileForm extends Form
 {
-    /** Philippine or international phone number: digits with optional +, spaces and dashes. */
-    public const PHONE_RULE = 'regex:/^\+?[0-9][0-9 \-]{6,18}[0-9]$/';
+    /** Philippine mobile number: exactly 11 digits, e.g. 09171234567. */
+    public const PHONE_RULE = 'regex:/^[0-9]{11}$/';
+
+    public const PHONE_MESSAGE = 'Enter an 11-digit mobile number, e.g. 09171234567.';
 
     public string $contact_number = '';
 
@@ -83,7 +85,7 @@ class RequesterProfileForm extends Form
      */
     protected function messages(): array
     {
-        return ['contact_number.regex' => 'Enter a valid phone number, e.g. 0917 123 4567.'];
+        return ['contact_number.regex' => self::PHONE_MESSAGE];
     }
 
     public function save(User $user): void

@@ -20,7 +20,7 @@ Requester profile and identity (added with the redesign):
 
 | Column | Type | Notes |
 |---|---|---|
-| contact_number | string(20) null | required at registration; `+63 917 123 4567`-style, digits, spaces, `+`, `-` |
+| contact_number | string(20) null | required at registration; exactly 11 digits (`09171234567`), `RequesterProfileForm::PHONE_RULE` |
 | privacy_consented_at | timestamp null | Data Privacy Act consent at registration |
 | academic_status | string(20) null | `App\Enums\AcademicStatus`: `current`, `graduate`, `former` |
 | college_id | FK null → departments | the requester's college (the Dean on routes) |

@@ -84,6 +84,21 @@ test('REQ-11-01 the owner can add a representative later, documents optional', f
         ->and($request->events()->get()->last()->type)->toBe(RequestEventType::RepresentativeDeclared);
 });
 
+test('REQ-11-01 a representative\'s contact number, when given, must be exactly 11 digits', function () {
+    $request = submitRequest($this->owner, $this->org->tor);
+
+    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])
+        ->set('representativeName', 'Pedro Santos')
+        ->set('representativeContact', '0918 555 0101')
+        ->call('declareRepresentative')
+        ->assertHasErrors(['representativeContact' => 'regex'])
+        ->set('representativeContact', '09185550101')
+        ->call('declareRepresentative')
+        ->assertHasNoErrors();
+
+    expect($request->representatives()->sole()->contact_number)->toBe('09185550101');
+});
+
 test('REQ-11-02 the representative is recorded apart from the owner and shown with their status', function () {
     $request = submitRequest($this->owner, $this->org->tor);
     workflow()->declareRepresentative($request, $this->owner, ['full_name' => 'Pedro Santos']);

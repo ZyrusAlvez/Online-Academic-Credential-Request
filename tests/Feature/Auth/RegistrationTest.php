@@ -16,7 +16,7 @@ function registerForm(array $overrides = []): Testable
         'middle_name' => 'Dizon',
         'last_name' => 'Dela Cruz',
         'email' => 'juan@example.com',
-        'contact_number' => '0917 123 4567',
+        'contact_number' => '09171234567',
         'password' => 'password123',
         'password_confirmation' => 'password123',
         'privacy_consent' => true,
@@ -42,7 +42,7 @@ test('REQ-01-01 a guest can register with names, contact number and privacy cons
     expect($user->first_name)->toBe('Juan')
         ->and($user->middle_name)->toBe('Dizon')
         ->and($user->last_name)->toBe('Dela Cruz')
-        ->and($user->contact_number)->toBe('0917 123 4567')
+        ->and($user->contact_number)->toBe('09171234567')
         ->and($user->privacy_consented_at)->not->toBeNull()
         ->and($user->identity_status)->toBe(IdentityStatus::Unsubmitted);
 });
@@ -84,6 +84,7 @@ test('REQ-01-03 registration is rejected when the password is unconfirmed or too
 test('REQ-01-03 registration is rejected without consent or with an invalid contact number', function () {
     registerForm(['privacy_consent' => false])->assertHasErrors(['privacy_consent' => 'accepted']);
     registerForm(['contact_number' => 'call me'])->assertHasErrors(['contact_number' => 'regex']);
+    registerForm(['contact_number' => '0917 123 4567'])->assertHasErrors(['contact_number' => 'regex']);
     registerForm(['contact_number' => ''])->assertHasErrors(['contact_number' => 'required']);
 
     expect(User::count())->toBe(0);

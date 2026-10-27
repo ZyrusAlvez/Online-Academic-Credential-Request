@@ -91,7 +91,7 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => Role::Student,
-            'contact_number' => '0917 '.fake()->numerify('### ####'),
+            'contact_number' => '0917'.fake()->numerify('#######'),
             'academic_status' => AcademicStatus::Graduate,
             'college_id' => $college ?? Department::factory()->college(),
             'program' => 'BS Computer Science',

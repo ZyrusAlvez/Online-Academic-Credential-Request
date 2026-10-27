@@ -17,7 +17,7 @@ claiming procedure).
 ### Representatives
 - **REQ-11-01** THE SYSTEM SHALL let the owner declare, when submitting or later while the request
   is open, that they act through an authorized representative, giving the representative's full
-  name, relationship and contact number, and optionally uploading the Special Power of Attorney
+  name, relationship and contact number (exactly 11 digits when given), and optionally uploading the Special Power of Attorney
   (SPA) and the representative's valid ID (images or PDF, max 5 MB each, stored privately).
 - **REQ-11-02** THE SYSTEM SHALL record the representative's identity separately from the owner's
   account and show the owner and the registrar the representative and their verification status.

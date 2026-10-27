@@ -175,7 +175,7 @@
                 <flux:input wire:model="representativeName" :label="__('Full name')" required />
                 <div class="grid gap-4 sm:grid-cols-2">
                     <flux:input wire:model="representativeRelationship" :label="__('Relationship to you')" badge="Optional" />
-                    <flux:input wire:model="representativeContact" type="tel" :label="__('Contact number')" badge="Optional" />
+                    <flux:input wire:model="representativeContact" type="tel" :label="__('Contact number')" badge="Optional" inputmode="numeric" maxlength="11" placeholder="09171234567" />
                 </div>
                 <flux:input type="file" wire:model="spa" :label="__('SPA')" badge="Optional" accept=".jpg,.jpeg,.png,.webp,.pdf" />
                 <flux:input type="file" wire:model="representativeId" :label="__('Representative\'s valid ID')" badge="Optional" accept=".jpg,.jpeg,.png,.webp,.pdf" />
