@@ -35,6 +35,10 @@
 - **REQ-09-06** WHEN the registrar deactivates an account, a department or a credential type THE
   SYSTEM SHALL ask for confirmation first. Activating needs no confirmation.
 
+### Notifications on screen
+- **REQ-09-08** THE SYSTEM SHALL show toast notifications at the top centre of the screen on every
+  screen size.
+
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the
   other sign-in pages and name the address the link was sent to.
