@@ -49,7 +49,7 @@ class RequestActivity extends Notification implements ShouldQueue
         $request = $this->request();
         $message = (new MailMessage)
             ->subject("{$request->reference_no}: {$this->title}")
-            ->greeting("Hello {$notifiable->first_name},")
+            ->greeting($notifiable->greeting())
             ->line("Update on your {$request->credentialType->name} request ({$request->reference_no}):")
             ->line("**{$this->event->summary()}**");
 

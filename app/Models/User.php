@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\Auth\SendVerificationCode;
 use App\Enums\AcademicStatus;
 use App\Enums\IdentityStatus;
 use App\Enums\Role;
@@ -102,11 +103,33 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function fullName(): string
     {
+        // Self-registered requesters give their name in My Profile after signing up (REQ-01-01).
+        if (blank($this->first_name) && blank($this->last_name)) {
+            return $this->email;
+        }
+
         $middle = filled($this->middle_name)
             ? Str::upper(Str::substr($this->middle_name, 0, 1)).'. '
             : '';
 
-        return "{$this->first_name} {$middle}{$this->last_name}";
+        return trim("{$this->first_name} {$middle}{$this->last_name}");
+    }
+
+    /**
+     * The opening line of emails: "Hello Juan," or just "Hello," before a name is given.
+     */
+    public function greeting(): string
+    {
+        return filled($this->first_name) ? "Hello {$this->first_name}," : 'Hello,';
+    }
+
+    /**
+     * Email the one-time code that confirms the address (REQ-01-23), on sign-up and after an email
+     * change; replaces Laravel's verification link.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        app(SendVerificationCode::class)->handle($this);
     }
 
     /**
@@ -181,7 +204,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function initials(): string
     {
-        return Str::upper(Str::substr($this->first_name, 0, 1).Str::substr($this->last_name, 0, 1));
+        if (blank($this->first_name) && blank($this->last_name)) {
+            return Str::upper(Str::substr($this->email, 0, 1));
+        }
+
+        return Str::upper(Str::substr((string) $this->first_name, 0, 1).Str::substr((string) $this->last_name, 0, 1));
     }
 
     public function hasRole(Role ...$roles): bool

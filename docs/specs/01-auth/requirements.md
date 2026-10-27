@@ -5,8 +5,8 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 
 ## User stories
 
-- **US-01-1** As a student, graduate or former student, I want to create an account with my name,
-  email, contact number and password, so that I can request credentials online.
+- **US-01-1** As a student, graduate or former student, I want to create an account with just my
+  email and a password, so that I can start quickly and give my details in my profile.
 - **US-01-5** As a requester, I want to give my academic information and upload a valid ID once,
   so that the Registrar can confirm the account is really mine.
 - **US-01-6** As the registrar, I want to review each requester's valid ID, so that credentials
@@ -19,16 +19,21 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 ## Acceptance criteria
 
 ### Registration
-- **REQ-01-01** THE SYSTEM SHALL let a guest register with first name, middle name (optional),
-  last name, email, contact number, password and password confirmation, and SHALL require and
-  record their consent to the processing of their personal data (Data Privacy Act of 2012).
+- **REQ-01-01** THE SYSTEM SHALL let a guest register with only an email address and a password;
+  the name, contact number, academic information, valid ID and data privacy consent are given in
+  My Profile (REQ-01-22). Until a name is given THE SYSTEM SHALL show the email in its place.
 - **REQ-01-02** WHEN a guest registers THE SYSTEM SHALL create the account with role `student`,
   regardless of any role value submitted.
-- **REQ-01-03** IF the email is already registered, the contact number is not exactly 11 digits
-  (e.g. `09171234567`), consent is not given, or the password is not confirmed or fails the password rules
-  (min. 8 characters) THEN THE SYSTEM SHALL reject the registration with a field error.
-- **REQ-01-04** WHEN a student registers THE SYSTEM SHALL send an email verification link and
-  log the student in.
+- **REQ-01-03** IF the email is invalid or already registered, or the password fails the password
+  rules (min. 8 characters) THEN THE SYSTEM SHALL reject the registration with a field error.
+- **REQ-01-04** WHEN a student registers THE SYSTEM SHALL email them a verification code and log
+  them in.
+- **REQ-01-23** THE SYSTEM SHALL verify an email address with a 6-digit one-time code entered on
+  the verify-email page instead of a link. A code SHALL expire after 10 minutes and stop working
+  after 5 wrong tries; only its hash is stored. THE SYSTEM SHALL let the user ask for a new code,
+  which replaces the old one, at most once every 30 seconds (the page counts down), and SHALL send
+  one automatically when the page opens and the user has no code that still works (e.g. after
+  changing their email).
 
 ### Login & session
 - **REQ-01-05** THE SYSTEM SHALL authenticate users with email and password only.
