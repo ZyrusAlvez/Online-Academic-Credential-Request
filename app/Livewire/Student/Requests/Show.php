@@ -112,7 +112,7 @@ class Show extends Component
             'representativeContact' => ['nullable', 'string', 'max:20', RequesterProfileForm::PHONE_RULE],
             'spa' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
             'representativeId' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
-        ], attributes: ['representativeName' => "representative's full name", 'spa' => 'SPA', 'representativeId' => "representative's ID"]);
+        ], ['representativeContact.regex' => RequesterProfileForm::PHONE_MESSAGE], ['representativeName' => "representative's full name", 'spa' => 'SPA', 'representativeId' => "representative's ID"]);
 
         try {
             $workflow->declareRepresentative($this->credentialRequest, $this->owner(), [
