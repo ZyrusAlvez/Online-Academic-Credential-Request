@@ -2,9 +2,9 @@
 
 <flux:navlist variant="outline">
     @if ($role === \App\Enums\Role::Student)
-        <flux:navlist.group :heading="__('Student')" class="grid">
-            <flux:navlist.item icon="document-text" :href="route('student.dashboard')" :current="request()->routeIs('student.dashboard', 'student.requests.show')" wire:navigate>{{ __('My Requests') }}</flux:navlist.item>
+        <flux:navlist.group class="grid">
             <flux:navlist.item icon="plus-circle" :href="route('student.requests.create')" :current="request()->routeIs('student.requests.create')" wire:navigate>{{ __('New Request') }}</flux:navlist.item>
+            <flux:navlist.item icon="document-text" :href="route('student.dashboard')" :current="request()->routeIs('student.dashboard', 'student.requests.show')" wire:navigate>{{ __('My Requests') }}</flux:navlist.item>
             <flux:navlist.item icon="identification" :href="route('student.profile')" :current="request()->routeIs('student.profile')" wire:navigate>{{ __('My Profile') }}</flux:navlist.item>
         </flux:navlist.group>
     @elseif ($role === \App\Enums\Role::Registrar)
