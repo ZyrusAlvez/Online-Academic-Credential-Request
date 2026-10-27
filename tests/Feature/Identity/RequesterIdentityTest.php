@@ -6,6 +6,7 @@ use App\Enums\ReviewStatus;
 use App\Livewire\Registrar\Identities\Index;
 use App\Livewire\Student\Profile;
 use App\Livewire\Student\Requests\Create;
+use App\Models\CredentialRequest;
 use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\User;
@@ -155,20 +156,58 @@ test('REQ-01-17 the ID must be an image or PDF of at most 5 MB with a known type
     expect(IdentityDocument::count())->toBe(0);
 });
 
-test('REQ-01-18 requesters without a complete profile and an ID are sent to their profile', function () {
-    $this->actingAs($this->student)->get(route('student.requests.create'))->assertRedirect(route('student.profile'));
+test('REQ-01-18 the new-request page shows, locked, with a red banner listing what the profile is missing', function () {
+    $this->student->forceFill(['first_name' => null, 'last_name' => null])->save();
+
+    $this->actingAs($this->student)->get(route('student.requests.create'))
+        ->assertOk()
+        ->assertSee('Verify your profile before making a request')
+        ->assertSeeInOrder(['Full name', 'Contact number', 'Academic information', 'Valid ID', 'Data privacy consent'])
+        ->assertSee('Complete my profile')
+        ->assertSee('Request a credential')
+        ->assertSee(' inert', false);
 
     fillProfile();
-    $this->actingAs($this->student)->get(route('student.requests.create'))->assertRedirect(route('student.profile'));
+    $this->actingAs($this->student->fresh())->get(route('student.requests.create'))
+        ->assertSee('Verify your profile before making a request')
+        ->assertDontSee('Academic information')
+        ->assertSee('Valid ID');
 
     uploadId();
-    $this->actingAs($this->student->fresh())->get(route('student.requests.create'))->assertOk();
+    $this->actingAs($this->student->fresh())->get(route('student.requests.create'))
+        ->assertOk()
+        ->assertDontSee('Verify your profile before making a request')
+        ->assertDontSee(' inert', false);
 });
 
-test('REQ-01-18 a rejected ID sends the requester back to their profile', function () {
-    $student = User::factory()->withProfile($this->college)->create(['identity_status' => IdentityStatus::Rejected]);
+test('REQ-01-18 a requester with an incomplete profile cannot submit a request', function () {
+    Livewire::actingAs($this->student)->test(Create::class)
+        ->set('form.credential_type_id', 1)
+        ->set('form.purpose', 'Employment')
+        ->call('submit')
+        ->assertDispatched('notify');
 
-    $this->actingAs($student)->get(route('student.requests.create'))->assertRedirect(route('student.profile'));
+    expect(CredentialRequest::count())->toBe(0);
+});
+
+test('REQ-01-18 a rejected ID is listed as missing, with the registrar\'s reason', function () {
+    $student = User::factory()->withProfile($this->college)->create(['identity_status' => IdentityStatus::Rejected]);
+    IdentityDocument::factory()->for($student)->create(['status' => ReviewStatus::Rejected, 'remarks' => 'The photo is blurred.']);
+
+    $this->actingAs($student)->get(route('student.requests.create'))
+        ->assertOk()
+        ->assertSee('Verify your profile before making a request')
+        ->assertSee('The photo is blurred.');
+});
+
+test('REQ-01-18 My Requests shows the same red banner until the profile is complete', function () {
+    $this->actingAs($this->student)->get(route('student.dashboard'))->assertSee('Verify your profile before making a request');
+    $this->actingAs(User::factory()->withProfile($this->college)->create())->get(route('student.dashboard'))
+        ->assertDontSee('Verify your profile before making a request');
+});
+
+test('REQ-01-10 requesters land on the new-request page', function () {
+    $this->actingAs($this->student)->get('/dashboard')->assertRedirect(route('student.requests.create'));
 });
 
 test('REQ-01-19 the registrar sees pending IDs first and can verify one', function () {
