@@ -129,3 +129,9 @@ test('REQ-09-07 the verify-email page names the address the link was sent to', f
         ->assertSee('Verify your email')
         ->assertSee('new.student@example.com');
 });
+
+test('REQ-09-08 toasts appear at the top centre of the screen', function () {
+    $this->actingAs(User::factory()->student()->create())->get(route('student.profile'))
+        ->assertOk()
+        ->assertSeeHtml('class="pointer-events-none fixed inset-x-4 top-4 z-50 flex justify-center"');
+});
