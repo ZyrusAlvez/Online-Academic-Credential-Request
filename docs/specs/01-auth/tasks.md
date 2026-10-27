@@ -17,3 +17,6 @@
 - [x] Demo seeder profiles; `app:reset-demo` clears identity documents
 - [x] Pest tests for REQ-01-16..21 and the changed REQ-01-01, 03; data dictionary updated
 - [x] `composer qa` green (CI, deploy run on staging)
+- [x] My Profile: name fields, data privacy notice and consent, one "Save profile" button that
+      also uploads the ID; settings keeps names for staff only (REQ-01-12, 16, 18, 22)
+- [x] Pest tests for REQ-01-22 and the changed REQ-01-12, 16, 17

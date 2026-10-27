@@ -45,6 +45,7 @@ class UserFactory extends Factory
             'attended_to' => null,
             'identity_status' => IdentityStatus::Unsubmitted,
             'identity_verified_at' => null,
+            'privacy_consented_at' => null,
         ];
     }
 
@@ -100,6 +101,7 @@ class UserFactory extends Factory
             'attended_to' => 2024,
             'identity_status' => IdentityStatus::Verified,
             'identity_verified_at' => now(),
+            'privacy_consented_at' => now(),
         ]);
     }
 }

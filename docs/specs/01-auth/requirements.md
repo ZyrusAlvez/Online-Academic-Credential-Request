@@ -48,23 +48,24 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 - **REQ-01-11** IF a user opens a page belonging to another role THEN THE SYSTEM SHALL respond 403.
 
 ### Profile
-- **REQ-01-12** THE SYSTEM SHALL let users update their first, middle and last name and email
-  in settings; changing the email SHALL reset its verification.
+- **REQ-01-12** THE SYSTEM SHALL let users update their email in settings, and staff their first,
+  middle and last name too (requesters edit their name in My Profile, REQ-01-22); changing the
+  email SHALL reset its verification.
 - **REQ-01-13** THE SYSTEM SHALL NOT let users delete their own account (requests form a
   permanent ledger; the registrar deactivates accounts instead).
 - **REQ-01-14** WHEN a user's name is displayed THE SYSTEM SHALL format it as
   "First M. Last" (middle initial only when a middle name exists).
 
 ### Requester profile and identity
-- **REQ-01-16** THE SYSTEM SHALL let a requester keep a profile with their contact number (exactly
-  11 digits, e.g. `09171234567`) and academic information: status (current student, graduate or former student), college, program or
+- **REQ-01-16** THE SYSTEM SHALL let a requester keep a profile with their first, middle (optional)
+  and last name, contact number (exactly 11 digits, e.g. `09171234567`) and academic information: status (current student, graduate or former student), college, program or
   strand, student number (optional) and years attended (from and to, not before 1950 nor after the
   current year, from ≤ to).
 - **REQ-01-17** THE SYSTEM SHALL let a requester upload a valid ID (type of ID and an image or PDF
   file of at most 5 MB), store it privately and mark their identity as pending verification;
   earlier uploads are kept.
-- **REQ-01-18** WHILE a requester's academic information is incomplete or no ID awaits or has
-  passed verification THE SYSTEM SHALL send them to their profile instead of the new-request form.
+- **REQ-01-18** WHILE a requester's name, contact number or academic information is incomplete,
+  they have not given their data privacy consent, or no ID awaits or has passed verification THE SYSTEM SHALL send them to their profile instead of the new-request form.
 - **REQ-01-19** THE SYSTEM SHALL let the registrar list requesters by identity status (pending
   first, oldest upload first), open the uploaded ID, and verify it or reject it with a reason; the
   requester SHALL be notified of the result and MAY upload another ID after a rejection.
@@ -72,6 +73,11 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   (others get 404), without letting browsers cache it.
 - **REQ-01-21** WHEN a requester submits a request THE SYSTEM SHALL take its academic details
   from their profile, shown on the new-request form and edited in My Profile.
+- **REQ-01-22** THE SYSTEM SHALL save the whole My Profile page (name, contact number, academic
+  information and, when one is chosen, a new valid ID) with a single "Save profile" button at the
+  bottom right, and SHALL show the Data Privacy Act (RA 10173) notice there; WHILE the requester
+  has not yet consented THE SYSTEM SHALL require them to tick the consent before saving and SHALL
+  record when they did.
 
 ### Seed
 - **REQ-01-15** THE SYSTEM SHALL provide a database seeder that creates an initial registrar

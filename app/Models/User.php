@@ -151,18 +151,32 @@ class User extends Authenticatable implements MustVerifyEmail
             && $this->college_id !== null
             && filled($this->program)
             && $this->attended_from !== null
-            && $this->attended_to !== null
-            && filled($this->contact_number);
+            && $this->attended_to !== null;
     }
 
     /**
-     * Ready to request credentials: academic profile filled in and an ID pending or verified
-     * (REQ-01-18).
+     * What a requester still has to give before they can request credentials (REQ-01-18).
+     *
+     * @return list<string>
+     */
+    public function missingProfileItems(): array
+    {
+        return array_keys(array_filter([
+            'Full name' => blank($this->first_name) || blank($this->last_name),
+            'Contact number' => blank($this->contact_number),
+            'Academic information' => ! $this->hasAcademicProfile(),
+            'Valid ID' => ! in_array($this->identity_status, [IdentityStatus::Pending, IdentityStatus::Verified], true),
+            'Data privacy consent' => $this->privacy_consented_at === null,
+        ]));
+    }
+
+    /**
+     * Ready to request credentials: profile filled in, privacy consent given and an ID pending or
+     * verified (REQ-01-18).
      */
     public function canRequestCredentials(): bool
     {
-        return $this->hasAcademicProfile()
-            && in_array($this->identity_status, [IdentityStatus::Pending, IdentityStatus::Verified], true);
+        return $this->missingProfileItems() === [];
     }
 
     public function initials(): string

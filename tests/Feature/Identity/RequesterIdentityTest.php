@@ -24,11 +24,14 @@ beforeEach(function () {
     $this->registrar = User::factory()->registrar()->create();
 });
 
-function fillProfile(array $overrides = []): Testable
+function fillProfile(array $overrides = [], ?User $user = null): Testable
 {
-    $component = Livewire::actingAs(test()->student)->test(Profile::class);
+    $component = Livewire::actingAs($user ?? test()->student)->test(Profile::class);
 
     foreach (array_merge([
+        'form.first_name' => 'Juan',
+        'form.middle_name' => '',
+        'form.last_name' => 'Dela Cruz',
         'form.contact_number' => '09171234567',
         'form.academic_status' => 'graduate',
         'form.college_id' => test()->college->id,
@@ -36,6 +39,7 @@ function fillProfile(array $overrides = []): Testable
         'form.student_number' => '',
         'form.attended_from' => 2019,
         'form.attended_to' => 2023,
+        'form.privacy_consent' => true,
     ], $overrides) as $field => $value) {
         $component->set($field, $value);
     }
@@ -45,10 +49,7 @@ function fillProfile(array $overrides = []): Testable
 
 function uploadId(?User $user = null): IdentityDocument
 {
-    Livewire::actingAs($user ?? test()->student)->test(Profile::class)
-        ->set('idType', 'Passport')
-        ->set('idFile', UploadedFile::fake()->image('passport.jpg'))
-        ->call('uploadId')
+    fillProfile(['form.id_type' => 'Passport', 'form.id_file' => UploadedFile::fake()->image('passport.jpg')], $user)
         ->assertHasNoErrors();
 
     return IdentityDocument::latest('id')->firstOrFail();
@@ -84,6 +85,52 @@ test('REQ-01-16 the years attended and college are validated', function () {
     fillProfile(['form.college_id' => $office->id])->assertHasErrors(['form.college_id' => 'exists']);
 });
 
+test('REQ-01-22 one save stores the name, contact, academic information, consent and ID together', function () {
+    $this->student->forceFill(['first_name' => 'Old', 'last_name' => 'Name', 'privacy_consented_at' => null])->save();
+
+    fillProfile([
+        'form.middle_name' => 'Santos',
+        'form.id_type' => 'Passport',
+        'form.id_file' => UploadedFile::fake()->image('passport.jpg'),
+    ])->assertHasNoErrors()->assertDispatched('notify');
+
+    expect($this->student->fresh())
+        ->first_name->toBe('Juan')
+        ->middle_name->toBe('Santos')
+        ->last_name->toBe('Dela Cruz')
+        ->privacy_consented_at->not->toBeNull()
+        ->identity_status->toBe(IdentityStatus::Pending)
+        ->and($this->student->identityDocuments()->count())->toBe(1);
+});
+
+test('REQ-01-22 the first save needs the data privacy consent; later saves do not ask again', function () {
+    $this->student->forceFill(['privacy_consented_at' => null])->save();
+
+    fillProfile(['form.privacy_consent' => false])->assertHasErrors(['form.privacy_consent' => 'accepted']);
+    expect($this->student->fresh()->privacy_consented_at)->toBeNull();
+
+    fillProfile()->assertHasNoErrors();
+    $consentedAt = $this->student->fresh()->privacy_consented_at;
+
+    fillProfile(['form.privacy_consent' => false])->assertHasNoErrors();
+    expect($this->student->fresh()->privacy_consented_at->equalTo($consentedAt))->toBeTrue();
+});
+
+test('REQ-01-22 the profile page has a single save button', function () {
+    $html = $this->actingAs($this->student)->get(route('student.profile'))->assertOk()->getContent();
+
+    expect(substr_count($html, 'wire:submit'))->toBe(1)
+        ->and(substr_count($html, 'Save profile'))->toBe(1)
+        ->and($html)->not->toContain('Upload ID');
+});
+
+test('REQ-01-22 a requester\'s name and ID are required to be complete, but the ID can follow later', function () {
+    fillProfile(['form.first_name' => ''])->assertHasErrors(['form.first_name' => 'required']);
+    fillProfile()->assertHasNoErrors();
+
+    expect($this->student->fresh()->missingProfileItems())->toBe(['Valid ID']);
+});
+
 test('REQ-01-17 a requester can upload a valid ID, stored privately and pending verification', function () {
     $document = uploadId();
 
@@ -98,17 +145,12 @@ test('REQ-01-17 a requester can upload a valid ID, stored privately and pending 
 });
 
 test('REQ-01-17 the ID must be an image or PDF of at most 5 MB with a known type', function () {
-    Livewire::actingAs($this->student)->test(Profile::class)
-        ->set('idType', 'Library card')
-        ->set('idFile', UploadedFile::fake()->create('id.exe', 100))
-        ->call('uploadId')
-        ->assertHasErrors(['idType' => 'in', 'idFile' => 'mimes']);
-
-    Livewire::actingAs($this->student)->test(Profile::class)
-        ->set('idType', 'Passport')
-        ->set('idFile', UploadedFile::fake()->image('big.jpg')->size(6000))
-        ->call('uploadId')
-        ->assertHasErrors(['idFile' => 'max']);
+    fillProfile(['form.id_type' => 'Library card', 'form.id_file' => UploadedFile::fake()->create('id.exe', 100)])
+        ->assertHasErrors(['form.id_type' => 'in', 'form.id_file' => 'mimes']);
+    fillProfile(['form.id_type' => 'Passport', 'form.id_file' => UploadedFile::fake()->image('big.jpg')->size(6000)])
+        ->assertHasErrors(['form.id_file' => 'max']);
+    fillProfile(['form.id_file' => UploadedFile::fake()->image('id.jpg')])
+        ->assertHasErrors(['form.id_type' => 'required_with']);
 
     expect(IdentityDocument::count())->toBe(0);
 });

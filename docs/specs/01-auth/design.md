@@ -46,6 +46,10 @@ Identity code:
   allows the owner and registrars, 404 for everyone else.
 - `App\Http\Middleware\EnsureRequesterProfileComplete` (alias `profile.complete`) on
   `student.requests.create` redirects to `student.profile` (REQ-01-18).
+- `Student\Profile` saves through `RequesterProfileForm` in one call: name, contact, academic
+  details, `privacy_consented_at` (first save only) and an optional new ID, which goes through
+  `SubmitIdentityDocument` (REQ-01-22). `User::missingProfileItems()` lists what is still
+  missing; `canRequestCredentials()` is true when that list is empty.
 - Livewire: `Student\Profile` (`/student/profile`, "My Profile") and `Registrar\Identities\Index`
   (`/registrar/identities`, "Identity Checks" with a pending-count badge).
 - Registration (Volt) adds the contact number and the consent checkbox.

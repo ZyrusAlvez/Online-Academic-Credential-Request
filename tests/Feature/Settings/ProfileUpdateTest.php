@@ -7,8 +7,8 @@ test('profile page is displayed', function () {
     $this->actingAs(User::factory()->create())->get('/settings/profile')->assertOk();
 });
 
-test('REQ-01-12 users can update their name', function () {
-    $user = User::factory()->create();
+test('REQ-01-12 staff can update their name', function () {
+    $user = User::factory()->registrar()->create();
     $this->actingAs($user);
 
     Volt::test('settings.profile')
@@ -53,4 +53,19 @@ test('REQ-01-14 names are displayed as First M. Last', function () {
     expect($withMiddle->name)->toBe('Juan D. Dela Cruz')
         ->and($withoutMiddle->name)->toBe('Ana Reyes')
         ->and($withMiddle->initials())->toBe('JD');
+});
+
+test('REQ-01-22 requesters edit their name in My Profile, not in settings', function () {
+    $user = User::factory()->student()->create(['first_name' => 'Juan', 'last_name' => 'Cruz']);
+    $this->actingAs($user);
+
+    $this->get('/settings/profile')->assertOk()->assertDontSee('First name')->assertSee('My Profile');
+
+    Volt::test('settings.profile')
+        ->set('first_name', 'Pedro')
+        ->set('email', 'juan.cruz@example.com')
+        ->call('updateProfileInformation')
+        ->assertHasNoErrors();
+
+    expect($user->refresh())->first_name->toBe('Juan')->email->toBe('juan.cruz@example.com');
 });
