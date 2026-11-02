@@ -1,14 +1,19 @@
 <div class="space-y-8">
     <x-page-header title="My Profile" description="Your personal and academic information and valid ID. The Office of the Registrar uses them to confirm that requests come from the document owner." />
 
-    @unless ($user->canRequestCredentials())
+    <p id="profile-step" tabindex="-1" class="text-sm font-semibold text-ink outline-none">
+        {{ $reviewing ? __('Step 2 of 2: Review and confirm') : __('Step 1 of 2: Your details') }}
+    </p>
+
+    @unless ($reviewing || $user->canRequestCredentials())
         <flux:callout icon="information-circle" color="sky">
             <flux:callout.heading>{{ __('Before your first request') }}</flux:callout.heading>
-            <flux:callout.text>{{ __('Fill in every section below, upload a valid ID and save. You can request credentials once your profile is complete.') }}</flux:callout.text>
+            <flux:callout.text>{{ __('Fill in every section below, upload a valid ID, then review and confirm. You can request credentials once your profile is complete.') }}</flux:callout.text>
         </flux:callout>
     @endunless
 
-    <form wire:submit="save" class="space-y-8">
+    {{-- Hidden, not removed, on the summary: the file input keeps the chosen ID for "Back to edit". --}}
+    <form wire:submit="review" @class(['space-y-8', 'hidden' => $reviewing])>
         <section aria-labelledby="personal-heading" class="space-y-6 rounded-xl border border-secondary/50 bg-white p-5">
             <h2 id="personal-heading" class="text-lg font-semibold text-primary">{{ __('Personal information') }}</h2>
 
@@ -88,19 +93,61 @@
             @endif
         </section>
 
-        <section aria-labelledby="privacy-heading" class="space-y-4 rounded-xl border border-secondary/50 bg-white p-5">
-            <h2 id="privacy-heading" class="text-lg font-semibold text-primary">{{ __('Data privacy') }}</h2>
-            <p class="text-sm">{{ __('The University of Perpetual Help System uses your details, academic information and the valid ID you upload only to process your credential requests, in accordance with the Data Privacy Act of 2012 (RA 10173).') }}</p>
-
-            @if ($user->privacy_consented_at)
-                <flux:text size="sm">{{ __('You agreed to the processing of your personal data on :date.', ['date' => $user->privacy_consented_at->format('M j, Y')]) }}</flux:text>
-            @else
-                <flux:checkbox wire:model="form.privacy_consent" :label="__('I agree to the processing of my personal data')" />
-            @endif
-        </section>
-
         <div class="flex justify-end">
-            <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:target="form.id_file,save">{{ __('Save profile') }}</flux:button>
+            <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:target="form.id_file,review">{{ __('Review and confirm') }}</flux:button>
         </div>
     </form>
+
+    @if ($reviewing)
+        <div class="space-y-8">
+            <flux:text>{{ __('Check that everything below is correct. The Office of the Registrar uses these details to confirm your identity.') }}</flux:text>
+
+            @foreach ($summary as $heading => $rows)
+                <section aria-labelledby="summary-heading-{{ $loop->index }}" class="space-y-4 rounded-xl border border-secondary/50 bg-white p-5">
+                    <h2 id="summary-heading-{{ $loop->index }}" class="text-lg font-semibold text-primary">{{ __($heading) }}</h2>
+                    <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+                        @foreach ($rows as $label => $value)
+                            <div>
+                                <dt class="text-zinc-500">{{ __($label) }}</dt>
+                                <dd class="font-medium break-words text-ink">{{ __($value) }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
+                </section>
+            @endforeach
+
+            <section aria-labelledby="summary-id-heading" class="space-y-4 rounded-xl border border-secondary/50 bg-white p-5">
+                <h2 id="summary-id-heading" class="text-lg font-semibold text-primary">{{ __('Valid ID') }}</h2>
+
+                @if ($form->id_file)
+                    <dl class="text-sm">
+                        <dt class="text-zinc-500">{{ __('New upload') }}</dt>
+                        <dd class="font-medium break-all text-ink">{{ $form->id_type }}: {{ $form->id_file->getClientOriginalName() }}</dd>
+                    </dl>
+                @elseif (in_array('Valid ID', $user->missingProfileItems(), true))
+                    <flux:callout icon="exclamation-triangle" color="amber">
+                        <flux:callout.text>{{ __('You have no valid ID on file. You can save your details now, but you cannot request credentials until you upload one.') }}</flux:callout.text>
+                    </flux:callout>
+                @else
+                    <x-identity-document-list :documents="$documents->take(1)" />
+                @endif
+            </section>
+
+            <section aria-labelledby="privacy-heading" class="space-y-4 rounded-xl border border-secondary/50 bg-white p-5">
+                <h2 id="privacy-heading" class="text-lg font-semibold text-primary">{{ __('Data privacy') }}</h2>
+                <p class="text-sm">{{ __('The University of Perpetual Help System uses your details, academic information and the valid ID you upload only to process your credential requests, in accordance with the Data Privacy Act of 2012 (RA 10173).') }}</p>
+
+                @if ($user->privacy_consented_at)
+                    <flux:text size="sm">{{ __('You agreed to the processing of your personal data on :date.', ['date' => $user->privacy_consented_at->format('M j, Y')]) }}</flux:text>
+                @else
+                    <flux:checkbox wire:model="form.privacy_consent" :label="__('I agree to the processing of my personal data')" />
+                @endif
+            </section>
+
+            <div class="flex flex-wrap justify-end gap-3">
+                <flux:button wire:click="back" wire:loading.attr="disabled" wire:target="back,save">{{ __('Back to edit') }}</flux:button>
+                <flux:button wire:click="save" variant="primary" wire:loading.attr="disabled" wire:target="back,save">{{ __('Confirm and save') }}</flux:button>
+            </div>
+        </div>
+    @endif
 </div>

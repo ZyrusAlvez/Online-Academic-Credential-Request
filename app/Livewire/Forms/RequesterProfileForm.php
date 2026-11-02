@@ -5,16 +5,18 @@ namespace App\Livewire\Forms;
 use App\Enums\AcademicStatus;
 use App\Enums\DepartmentType;
 use App\Enums\IdentityStatus;
+use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
 /**
- * A requester's name, contact number, academic information, valid ID and privacy consent, saved
- * together (REQ-01-16, REQ-01-17, REQ-01-22).
+ * A requester's name, contact number, academic information, valid ID and privacy consent, checked
+ * first and then saved together from the summary (REQ-01-16, REQ-01-17, REQ-01-22, REQ-01-25).
  */
 class RequesterProfileForm extends Form
 {
@@ -122,6 +124,38 @@ class RequesterProfileForm extends Form
         return [
             'contact_number.regex' => self::PHONE_MESSAGE,
             'privacy_consent.accepted' => 'You must agree to the processing of your personal data to save your profile.',
+        ];
+    }
+
+    /**
+     * Check every entry on the form; the consent comes later, on the summary (REQ-01-22).
+     */
+    public function validateDetails(): void
+    {
+        $this->validate(Arr::except($this->rules(), 'privacy_consent'));
+    }
+
+    /**
+     * The entries as the requester will read them on the summary, by section (REQ-01-25).
+     *
+     * @return array<string, array<string, string>>
+     */
+    public function summary(): array
+    {
+        return [
+            'Personal information' => [
+                'First name' => $this->first_name,
+                'Middle name' => filled($this->middle_name) ? $this->middle_name : 'Not provided',
+                'Last name' => $this->last_name,
+                'Contact number' => $this->contact_number,
+            ],
+            'Academic information' => [
+                'Status' => (string) AcademicStatus::tryFrom($this->academic_status)?->label(),
+                'College' => (string) Department::query()->whereKey($this->college_id)->value('name'),
+                'Program or strand' => $this->program,
+                'Student number' => filled($this->student_number) ? $this->student_number : 'Not provided',
+                'Years attended' => "{$this->attended_from} to {$this->attended_to}",
+            ],
         ];
     }
 

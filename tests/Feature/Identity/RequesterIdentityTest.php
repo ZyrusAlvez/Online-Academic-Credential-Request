@@ -15,6 +15,7 @@ use App\Services\RequestWorkflow;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
@@ -25,7 +26,7 @@ beforeEach(function () {
     $this->registrar = User::factory()->registrar()->create();
 });
 
-function fillProfile(array $overrides = [], ?User $user = null): Testable
+function reviewProfile(array $overrides = [], ?User $user = null): Testable
 {
     $component = Livewire::actingAs($user ?? test()->student)->test(Profile::class);
 
@@ -40,12 +41,19 @@ function fillProfile(array $overrides = [], ?User $user = null): Testable
         'form.student_number' => '',
         'form.attended_from' => 2019,
         'form.attended_to' => 2023,
-        'form.privacy_consent' => true,
     ], $overrides) as $field => $value) {
         $component->set($field, $value);
     }
 
-    return $component->call('save');
+    return $component->call('review');
+}
+
+function fillProfile(array $overrides = [], ?User $user = null): Testable
+{
+    $component = reviewProfile(['form.privacy_consent' => true, ...$overrides], $user);
+
+    // Invalid entries stop at the form, as they do in the browser.
+    return $component->errors()->isEmpty() ? $component->call('save') : $component;
 }
 
 function uploadId(?User $user = null): IdentityDocument
@@ -86,7 +94,7 @@ test('REQ-01-16 the years attended and college are validated', function () {
     fillProfile(['form.college_id' => $office->id])->assertHasErrors(['form.college_id' => 'exists']);
 });
 
-test('REQ-01-22 one save stores the name, contact, academic information, consent and ID together', function () {
+test('REQ-01-25 one save stores the name, contact, academic information, consent and ID together', function () {
     $this->student->forceFill(['first_name' => 'Old', 'last_name' => 'Name', 'privacy_consented_at' => null])->save();
 
     fillProfile([
@@ -104,7 +112,7 @@ test('REQ-01-22 one save stores the name, contact, academic information, consent
         ->and($this->student->identityDocuments()->count())->toBe(1);
 });
 
-test('REQ-01-22 the first save needs the data privacy consent; later saves do not ask again', function () {
+test('REQ-01-25 the first save needs the data privacy consent; later saves do not ask again', function () {
     $this->student->forceFill(['privacy_consented_at' => null])->save();
 
     fillProfile(['form.privacy_consent' => false])->assertHasErrors(['form.privacy_consent' => 'accepted']);
@@ -117,12 +125,119 @@ test('REQ-01-22 the first save needs the data privacy consent; later saves do no
     expect($this->student->fresh()->privacy_consented_at->equalTo($consentedAt))->toBeTrue();
 });
 
-test('REQ-01-22 the profile page has a single save button', function () {
+test('REQ-01-22 the profile form has a single button, which reviews instead of saving', function () {
     $html = $this->actingAs($this->student)->get(route('student.profile'))->assertOk()->getContent();
 
     expect(substr_count($html, 'wire:submit'))->toBe(1)
-        ->and(substr_count($html, 'Save profile'))->toBe(1)
-        ->and($html)->not->toContain('Upload ID');
+        ->and(substr_count($html, 'Review and confirm'))->toBe(1)
+        ->and($html)->not->toContain('Upload ID')
+        ->and($html)->not->toContain('Confirm and save')
+        ->and($html)->not->toContain('Data Privacy Act');
+});
+
+test('REQ-01-22 reviewing saves nothing, and invalid entries stay on the form', function () {
+    $this->student->forceFill(['first_name' => 'Old', 'privacy_consented_at' => null])->save();
+
+    reviewProfile(['form.first_name' => ''])
+        ->assertHasErrors(['form.first_name' => 'required'])
+        ->assertSet('reviewing', false)
+        ->assertDontSee('Confirm and save');
+
+    reviewProfile(['form.id_type' => 'Passport', 'form.id_file' => UploadedFile::fake()->image('passport.jpg')])
+        ->assertHasNoErrors()
+        ->assertSet('reviewing', true);
+
+    expect($this->student->fresh())
+        ->first_name->toBe('Old')
+        ->privacy_consented_at->toBeNull()
+        ->and(IdentityDocument::count())->toBe(0);
+});
+
+test('REQ-01-25 the summary shows everything entered with the data privacy notice', function () {
+    $this->student->forceFill(['privacy_consented_at' => null])->save();
+
+    reviewProfile(['form.student_number' => '19-0001-123', 'form.id_type' => 'Passport', 'form.id_file' => UploadedFile::fake()->image('passport.jpg')])
+        ->assertSee('Step 2 of 2: Review and confirm')
+        ->assertSeeInOrder([
+            'Juan', 'Not provided', 'Dela Cruz', '09171234567',
+            'Graduate', 'College of Computer Studies', 'BS Computer Science', '19-0001-123', '2019 to 2023',
+            'Passport: passport.jpg',
+            'Data Privacy Act of 2012 (RA 10173)', 'I agree to the processing of my personal data',
+            'Confirm and save',
+        ]);
+});
+
+test('REQ-01-25 the summary shows the ID on file, or warns that there is none', function () {
+    reviewProfile()->assertSee('You have no valid ID on file')->assertSee('Confirm and save');
+
+    IdentityDocument::factory()->for($this->student)->create(['id_type' => 'UMID', 'original_name' => 'umid.jpg']);
+    $this->student->forceFill(['identity_status' => IdentityStatus::Pending])->save();
+
+    reviewProfile()->assertSee('UMID: umid.jpg')->assertDontSee('You have no valid ID on file');
+});
+
+test('REQ-01-25 a requester who already consented sees when, and no checkbox', function () {
+    $this->student->forceFill(['privacy_consented_at' => '2026-10-27 09:00:00'])->save();
+
+    reviewProfile()
+        ->assertSee('You agreed to the processing of your personal data on Oct 27, 2026.')
+        ->assertDontSee('I agree to the processing of my personal data');
+});
+
+test('REQ-01-25 going back keeps every entry and the chosen file', function () {
+    $file = UploadedFile::fake()->image('passport.jpg');
+
+    reviewProfile(['form.id_type' => 'Passport', 'form.id_file' => $file, 'form.privacy_consent' => true])
+        ->call('back')
+        ->assertSet('reviewing', false)
+        ->assertSet('form.first_name', 'Juan')
+        ->assertSet('form.id_type', 'Passport')
+        ->call('review')
+        ->assertSee('Passport: passport.jpg')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(IdentityDocument::count())->toBe(1);
+});
+
+test('REQ-01-25 saving is refused unless the requester is on the summary', function () {
+    $component = Livewire::actingAs($this->student)->test(Profile::class)
+        ->set('form.first_name', 'Skipped')
+        ->call('save');
+
+    expect($this->student->fresh()->first_name)->not->toBe('Skipped');
+    $component->assertNotDispatched('notify')->assertSet('reviewing', false);
+});
+
+test('REQ-01-25 the requester cannot jump to the summary from the browser', function () {
+    Livewire::actingAs($this->student)->test(Profile::class)->set('reviewing', true);
+})->throws(CannotUpdateLockedPropertyException::class);
+
+test('REQ-01-25 the missing consent stays on the summary; an entry that fails on saving returns to the form', function () {
+    $this->student->forceFill(['privacy_consented_at' => null])->save();
+
+    $component = reviewProfile()
+        ->call('save')
+        ->assertHasErrors(['form.privacy_consent' => 'accepted'])
+        ->assertSet('reviewing', true);
+
+    $component->set('form.privacy_consent', true)
+        ->set('form.contact_number', '123')
+        ->call('save')
+        ->assertHasErrors(['form.contact_number' => 'regex'])
+        ->assertSet('reviewing', false);
+
+    expect($this->student->fresh()->privacy_consented_at)->toBeNull();
+});
+
+test('REQ-01-25 confirming saves and returns to the form with the chosen ID cleared', function () {
+    reviewProfile(['form.id_type' => 'Passport', 'form.id_file' => UploadedFile::fake()->image('passport.jpg'), 'form.privacy_consent' => true])
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertDispatched('notify')
+        ->assertSet('reviewing', false)
+        ->assertSet('form.id_file', null)
+        ->assertSet('form.id_type', '');
 });
 
 test('REQ-01-22 a requester\'s name and ID are required to be complete, but the ID can follow later', function () {
