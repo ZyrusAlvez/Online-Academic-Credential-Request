@@ -261,3 +261,4 @@ All feature specs describe this model.
 | 09 | UX polish | done |
 | 10 | Working calendar & due dates | done |
 | 11 | Representatives & release | done |
+| 12 | Programs & strands | in progress |
