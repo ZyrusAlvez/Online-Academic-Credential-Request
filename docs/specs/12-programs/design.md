@@ -24,5 +24,19 @@ past requests after a rename; a request must keep what was true when it was made
 
 ## Source
 
-The published list comes from https://uphsl.edu.ph/academic-programs/. The site's college names
-differ from the client's offices, so `ProgramSeeder` maps them to the existing college codes.
+The 34 programs are the list at https://uphsl.edu.ph/academic-programs/, as supplied by the
+project team. The site's college names differ from the client's offices, so `ProgramSeeder` maps
+them to the existing college codes:
+
+| Site | Office |
+|---|---|
+| School of Aviation; BS Architecture | Architecture and Aviation (`CAA`) |
+| Basic Education Department | new office `BED`, needed so K-12 requesters can choose it |
+| College of Business Administration and Accountancy | College of Business and Accountancy (`CBA`) |
+| College of Criminal Justice Education | College of Criminology (`CRIM`) |
+| College of Teacher Education | College of Education (`COED`) |
+| College of Engineering and Architecture (other programs) | College of Engineering (`COE`) |
+| College of Nutrition, Hospitality and Tourism Management | College of International Hospitality Management (`CIHM`) |
+
+The list has nothing for the College of Law, so it starts empty (REQ-12-10); the registrar adds
+its programs.

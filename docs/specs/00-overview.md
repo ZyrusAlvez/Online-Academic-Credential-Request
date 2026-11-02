@@ -84,9 +84,10 @@ at acceptance.
 
 ## Offices and credential master list
 
-Offices: the 11 colleges (each acting as the **Dean**: Arts and Sciences; Business and
+Offices: the 12 colleges (each acting as the **Dean**: Arts and Sciences; Business and
 Accountancy; Computer Studies; Criminology; Education; Engineering; International Hospitality
-Management; Maritime Education; Law; Graduate School; Architecture and Aviation), the **Office of
+Management; Maritime Education; Law; Graduate School; Architecture and Aviation; Basic Education
+Department), the **Office of
 the Registrar**, the **VP Finance** (documentary stamp, no signature), the **Chancellor** and the
 **President**. Library, Cashier and Student Affairs clearance is checked by the evaluator as a
 requirement, not as a routing step.
@@ -261,4 +262,4 @@ All feature specs describe this model.
 | 09 | UX polish | done |
 | 10 | Working calendar & due dates | done |
 | 11 | Representatives & release | done |
-| 12 | Programs & strands | in progress |
+| 12 | Programs & strands | done |
