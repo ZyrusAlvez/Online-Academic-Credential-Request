@@ -9,6 +9,7 @@ use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\RequesterProfileForm;
 use App\Models\Department;
 use App\Models\IdentityDocument;
+use App\Models\Program;
 use App\Models\User;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -37,6 +38,14 @@ class Profile extends Component
     public function mount(): void
     {
         $this->form->load($this->user());
+    }
+
+    /**
+     * Each college has its own programs, so a new college needs a new choice (REQ-12-07).
+     */
+    public function updatedFormCollegeId(): void
+    {
+        $this->form->program = '';
     }
 
     /**
@@ -112,6 +121,9 @@ class Profile extends Component
             'user' => $user,
             'statuses' => AcademicStatus::cases(),
             'colleges' => Department::active()->colleges()->orderBy('name')->get(['id', 'name']),
+            'programs' => filled($this->form->college_id)
+                ? Program::active()->where('department_id', (int) $this->form->college_id)->orderBy('name')->pluck('name')
+                : collect(),
             'idTypes' => IdentityDocument::ID_TYPES,
             'documents' => $user->identityDocuments()->get(),
             'canUpload' => $user->identity_status !== IdentityStatus::Verified,

@@ -33,6 +33,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('reports', Registrar\Reports\Index::class)->name('reports');
         Route::get('reports/{report}/export', ReportsCsvController::class)->name('reports.export');
         Route::get('departments', Registrar\Departments\Index::class)->name('departments');
+        Route::get('programs', Registrar\Programs\Index::class)->name('programs');
         Route::get('users', Registrar\Users\Index::class)->name('users');
         Route::get('calendar', Registrar\Calendar\Index::class)->name('calendar');
         Route::get('identities', Registrar\Identities\Index::class)->name('identities');

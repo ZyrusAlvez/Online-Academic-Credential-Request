@@ -86,7 +86,10 @@ class RequesterProfileForm extends Form
                 'integer',
                 Rule::exists('departments', 'id')->where('type', DepartmentType::College->value)->where('is_active', true),
             ],
-            'program' => ['required', 'string', 'max:150'],
+            'program' => [
+                'required', 'string', 'max:150',
+                Rule::exists('programs', 'name')->where('department_id', (int) $this->college_id)->where('is_active', true),
+            ],
             'student_number' => ['nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9-]+$/'],
             'attended_from' => ['required', 'integer', 'between:1950,'.$thisYear],
             'attended_to' => ['required', 'integer', 'between:1950,'.$thisYear, 'gte:attended_from'],
