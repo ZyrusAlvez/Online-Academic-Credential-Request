@@ -33,3 +33,7 @@
 - [x] Pest tests for REQ-01-25 and the changed REQ-01-22
 - [x] My Profile: "Confirm" button, error modal, digits-only contact number (REQ-01-16, 22, 26)
 - [x] Pest tests for REQ-01-26 and the changed REQ-01-22
+- [x] Valid ID required on My Profile while none is pending or verified (REQ-01-22, 25)
+- [x] Name locked after verification; registrar corrects it on Identity Checks (REQ-01-27, 28)
+- [x] Profile, consent and ID saved in one transaction (REQ-01-29)
+- [x] Pest tests for REQ-01-27..29 and the changed REQ-01-22, 25

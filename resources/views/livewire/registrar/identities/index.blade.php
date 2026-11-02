@@ -58,6 +58,8 @@
                                 <flux:button size="sm" variant="primary" icon="check" wire:click="verify({{ $document->id }})" :wire:confirm="__('Verify the identity of :name?', ['name' => $requester->name])">{{ __('Verify') }}</flux:button>
                                 <flux:button size="sm" variant="ghost" icon="x-mark" wire:click="confirmReject({{ $document->id }})">{{ __('Reject') }}</flux:button>
                             </div>
+                        @elseif ($requester->hasLockedName())
+                            <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="confirmCorrectName({{ $requester->id }})" :aria-label="__('Correct the name of :name', ['name' => $requester->name])">{{ __('Correct name') }}</flux:button>
                         @endif
                     </flux:table.cell>
                 </flux:table.row>
@@ -68,6 +70,22 @@
             @endforelse
         </flux:table.rows>
     </flux:table>
+
+    <flux:modal name="correct-name" class="w-full md:w-[32rem]">
+        <form wire:submit="correctName" class="space-y-6">
+            <flux:heading size="lg">{{ __('Correct name') }}</flux:heading>
+            <flux:text>{{ __('Use the name exactly as it appears on the verified ID. The change is logged.') }}</flux:text>
+            <flux:input wire:model="firstName" :label="__('First name')" required />
+            <flux:input wire:model="middleName" :label="__('Middle name (optional)')" />
+            <flux:input wire:model="lastName" :label="__('Last name')" required />
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
+                </flux:modal.close>
+                <flux:button type="submit" variant="primary">{{ __('Save') }}</flux:button>
+            </div>
+        </form>
+    </flux:modal>
 
     <flux:modal name="reject-id" class="w-full md:w-[32rem]">
         <form wire:submit="reject" class="space-y-6">

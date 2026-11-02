@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Registrar\Identities;
 
+use App\Actions\Identity\CorrectRequesterName;
 use App\Actions\Identity\ReviewIdentityDocument;
 use App\Enums\IdentityStatus;
 use App\Enums\Role;
@@ -36,6 +37,15 @@ class Index extends Component
     public ?int $rejectingId = null;
 
     public string $remarks = '';
+
+    #[Locked]
+    public ?int $correctingId = null;
+
+    public string $firstName = '';
+
+    public string $middleName = '';
+
+    public string $lastName = '';
 
     public function mount(): void
     {
@@ -77,6 +87,40 @@ class Index extends Component
         Flux::modal('reject-id')->close();
         $this->reset('rejectingId', 'remarks');
         $this->dispatch('notify', message: "ID of {$document->user->name} rejected; they have been notified.");
+    }
+
+    public function confirmCorrectName(User $requester): void
+    {
+        $this->authorize('correctName', $requester);
+
+        $this->correctingId = $requester->id;
+        $this->firstName = (string) $requester->first_name;
+        $this->middleName = $requester->middle_name ?? '';
+        $this->lastName = (string) $requester->last_name;
+        $this->resetValidation();
+        Flux::modal('correct-name')->show();
+    }
+
+    public function correctName(CorrectRequesterName $correct): void
+    {
+        $requester = User::findOrFail($this->correctingId);
+        $this->authorize('correctName', $requester);
+
+        $validated = $this->validate([
+            'firstName' => ['required', 'string', 'max:100'],
+            'middleName' => ['nullable', 'string', 'max:100'],
+            'lastName' => ['required', 'string', 'max:100'],
+        ], attributes: ['firstName' => 'first name', 'middleName' => 'middle name', 'lastName' => 'last name']);
+
+        $correct->handle($requester, $this->registrar(), [
+            'first_name' => $validated['firstName'],
+            'middle_name' => $validated['middleName'],
+            'last_name' => $validated['lastName'],
+        ]);
+
+        Flux::modal('correct-name')->close();
+        $this->reset('correctingId', 'firstName', 'middleName', 'lastName');
+        $this->dispatch('notify', message: "Name corrected to {$requester->name}.");
     }
 
     public function render(): View

@@ -93,10 +93,11 @@ class RequesterProfileForm extends Form
             'student_number' => ['nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9-]+$/'],
             'attended_from' => ['required', 'integer', 'between:1950,'.$thisYear],
             'attended_to' => ['required', 'integer', 'between:1950,'.$thisYear, 'gte:attended_from'],
-            // The ID is optional on each save; the profile stays incomplete until one is uploaded.
-            'id_type' => ['nullable', 'required_with:id_file', Rule::in(IdentityDocument::ID_TYPES)],
+            // An ID on file, pending or verified, needs no new one (REQ-01-22).
+            'id_type' => [Rule::requiredIf($user->needsValidId()), 'nullable', 'required_with:id_file', Rule::in(IdentityDocument::ID_TYPES)],
             'id_file' => [
                 Rule::prohibitedIf($user->identity_status === IdentityStatus::Verified),
+                Rule::requiredIf($user->needsValidId()),
                 'nullable', 'required_with:id_type', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120',
             ],
             'privacy_consent' => $user->privacy_consented_at === null ? ['accepted'] : [],
@@ -135,6 +136,8 @@ class RequesterProfileForm extends Form
      */
     public function validateDetails(): void
     {
+        $this->keepLockedName();
+
         $this->validate(Arr::except($this->rules(), 'privacy_consent'));
     }
 
@@ -170,6 +173,8 @@ class RequesterProfileForm extends Form
      */
     public function save(User $user): ?array
     {
+        $this->keepLockedName();
+
         $validated = $this->validate();
 
         $user->fill([
@@ -194,6 +199,20 @@ class RequesterProfileForm extends Form
         return $this->id_file instanceof UploadedFile
             ? ['type' => $this->id_type, 'file' => $this->id_file]
             : null;
+    }
+
+    /**
+     * The inputs are disabled, but a forged request could still send a new name (REQ-01-27).
+     */
+    private function keepLockedName(): void
+    {
+        $user = $this->user();
+
+        if ($user->hasLockedName()) {
+            $this->first_name = (string) $user->first_name;
+            $this->middle_name = $user->middle_name ?? '';
+            $this->last_name = (string) $user->last_name;
+        }
     }
 
     private function user(): User

@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
 use App\Enums\IdentityStatus;
 use App\Enums\ReviewStatus;
@@ -14,8 +15,10 @@ use App\Models\User;
 use App\Notifications\IdentityReviewed;
 use App\Services\RequestWorkflow;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -30,7 +33,13 @@ beforeEach(function () {
 
 function reviewProfile(array $overrides = [], ?User $user = null): Testable
 {
-    $component = Livewire::actingAs($user ?? test()->student)->test(Profile::class);
+    $user ??= test()->student;
+    $component = Livewire::actingAs($user)->test(Profile::class);
+
+    // A requester with no ID pending or verified must give one (REQ-01-22).
+    $id = $user->fresh()->needsValidId()
+        ? ['form.id_type' => 'Passport', 'form.id_file' => UploadedFile::fake()->image('passport.jpg')]
+        : [];
 
     foreach (array_merge([
         'form.first_name' => 'Juan',
@@ -43,7 +52,7 @@ function reviewProfile(array $overrides = [], ?User $user = null): Testable
         'form.student_number' => '',
         'form.attended_from' => 2019,
         'form.attended_to' => 2023,
-    ], $overrides) as $field => $value) {
+    ], $id, $overrides) as $field => $value) {
         $component->set($field, $value);
     }
 
@@ -175,6 +184,8 @@ test('REQ-01-26 the browser\'s own validation does not replace the modal', funct
 });
 
 test('REQ-01-26 a type of ID needs a file, and a file needs a type', function () {
+    $this->student->forceFill(['identity_status' => IdentityStatus::Pending])->save();
+
     reviewProfile(['form.id_type' => 'Passport'])
         ->assertHasErrors(['form.id_file' => 'required_with'])
         ->assertDispatched('modal-show', name: 'profile-errors');
@@ -188,6 +199,100 @@ test('REQ-01-26 an entry that fails on saving returns to the form with the modal
         ->call('save')
         ->assertDispatched('modal-show', name: 'profile-errors')
         ->assertSet('reviewing', false);
+});
+
+test('REQ-01-27 a verified requester\'s name is locked, with a note, and a forged change is ignored', function () {
+    $verified = User::factory()->withProfile($this->college)->create(['first_name' => 'Maria', 'middle_name' => 'Luz', 'last_name' => 'Reyes']);
+
+    $this->actingAs($verified)->get(route('student.profile'))
+        ->assertOk()
+        ->assertSee('Your name is locked because your ID is verified.');
+
+    reviewProfile([
+        'form.first_name' => 'Forged',
+        'form.middle_name' => '',
+        'form.last_name' => 'Name',
+        'form.privacy_consent' => true,
+    ], $verified)
+        ->assertHasNoErrors()
+        ->assertSet('form.first_name', 'Maria')
+        ->assertSee('Maria')
+        ->assertDontSee('Forged')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($verified->fresh())
+        ->first_name->toBe('Maria')
+        ->middle_name->toBe('Luz')
+        ->last_name->toBe('Reyes');
+});
+
+test('REQ-01-27 a name stays editable until the identity is verified', function () {
+    foreach ([IdentityStatus::Unsubmitted, IdentityStatus::Pending, IdentityStatus::Rejected] as $status) {
+        $this->student->forceFill(['identity_status' => $status, 'first_name' => 'Old'])->save();
+
+        expect($this->student->fresh()->hasLockedName())->toBeFalse();
+        fillProfile()->assertHasNoErrors();
+        expect($this->student->fresh()->first_name)->toBe('Juan');
+    }
+});
+
+test('REQ-01-28 a registrar corrects a verified requester\'s name, and it is logged', function () {
+    Log::spy();
+    $verified = User::factory()->withProfile($this->college)->create(['first_name' => 'Mria', 'middle_name' => null, 'last_name' => 'Reyes']);
+
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->set('status', 'verified')
+        ->assertSee('Correct name')
+        ->call('confirmCorrectName', $verified->id)
+        ->assertDispatched('modal-show', name: 'correct-name')
+        ->assertSet('firstName', 'Mria')
+        ->set('firstName', '')
+        ->call('correctName')
+        ->assertHasErrors(['firstName' => 'required'])
+        ->set('firstName', 'Maria')
+        ->set('middleName', 'Luz')
+        ->call('correctName')
+        ->assertHasNoErrors()
+        ->assertDispatched('notify');
+
+    expect($verified->fresh())
+        ->first_name->toBe('Maria')
+        ->middle_name->toBe('Luz')
+        ->identity_status->toBe(IdentityStatus::Verified);
+    Log::shouldHaveReceived('info')->with('Requester name corrected', ['requester_id' => $verified->id, 'registrar_id' => $this->registrar->id]);
+});
+
+test('REQ-01-28 only a verified requester\'s name can be corrected, and only by a registrar', function () {
+    $verified = User::factory()->withProfile($this->college)->create(['first_name' => 'Maria']);
+
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->call('confirmCorrectName', $this->student->id)
+        ->assertForbidden();
+
+    expect($this->student->can('correctName', $verified))->toBeFalse()
+        ->and(User::factory()->departmentStaff()->create()->can('correctName', $verified))->toBeFalse()
+        ->and($this->registrar->can('correctName', $verified))->toBeTrue();
+});
+
+test('REQ-01-29 when the ID cannot be stored nothing is saved and the error shows on the form', function () {
+    $this->student->forceFill(['first_name' => 'Old', 'privacy_consented_at' => null])->save();
+    $this->mock(SubmitIdentityDocument::class, fn ($mock) => $mock->shouldReceive('handle')
+        ->andThrow(ValidationException::withMessages(['idFile' => 'The file could not be saved. Please try again.'])));
+
+    reviewProfile(['form.privacy_consent' => true])
+        ->call('save')
+        ->assertHasErrors('form.id_file')
+        ->assertSee('The file could not be saved. Please try again.')
+        ->assertDispatched('modal-show', name: 'profile-errors')
+        ->assertNotDispatched('notify')
+        ->assertSet('reviewing', false)
+        ->assertSet('form.first_name', 'Juan');
+
+    expect($this->student->fresh())
+        ->first_name->toBe('Old')
+        ->privacy_consented_at->toBeNull()
+        ->identity_status->toBe(IdentityStatus::Unsubmitted);
 });
 
 test('REQ-01-16 the contact number field accepts digits only', function () {
@@ -210,13 +315,11 @@ test('REQ-01-25 the summary shows everything entered with the data privacy notic
         ]);
 });
 
-test('REQ-01-25 the summary shows the ID on file, or warns that there is none', function () {
-    reviewProfile()->assertSee('You have no valid ID on file')->assertSee('Confirm and save');
-
+test('REQ-01-25 the summary shows the ID on file', function () {
     IdentityDocument::factory()->for($this->student)->create(['id_type' => 'UMID', 'original_name' => 'umid.jpg']);
     $this->student->forceFill(['identity_status' => IdentityStatus::Pending])->save();
 
-    reviewProfile()->assertSee('UMID: umid.jpg')->assertDontSee('You have no valid ID on file');
+    reviewProfile()->assertSee('UMID: umid.jpg');
 });
 
 test('REQ-01-25 a requester who already consented sees when, and no checkbox', function () {
@@ -283,11 +386,22 @@ test('REQ-01-25 confirming saves and returns to the form with the chosen ID clea
         ->assertSet('form.id_type', '');
 });
 
-test('REQ-01-22 a requester\'s name and ID are required to be complete, but the ID can follow later', function () {
-    fillProfile(['form.first_name' => ''])->assertHasErrors(['form.first_name' => 'required']);
-    fillProfile()->assertHasNoErrors();
+test('REQ-01-22 a requester with no ID pending or verified must give one to continue', function () {
+    reviewProfile(['form.id_type' => '', 'form.id_file' => null])
+        ->assertHasErrors(['form.id_type' => 'required', 'form.id_file' => 'required'])
+        ->assertDispatched('modal-show', name: 'profile-errors')
+        ->assertSet('reviewing', false);
 
-    expect($this->student->fresh()->missingProfileItems())->toBe(['Valid ID']);
+    $this->student->forceFill(['identity_status' => IdentityStatus::Rejected])->save();
+    reviewProfile(['form.id_type' => '', 'form.id_file' => null])->assertHasErrors(['form.id_file' => 'required']);
+});
+
+test('REQ-01-22 a requester with an ID pending or verified needs no new one', function () {
+    foreach ([IdentityStatus::Pending, IdentityStatus::Verified] as $status) {
+        $this->student->forceFill(['identity_status' => $status])->save();
+
+        reviewProfile()->assertHasNoErrors()->assertSet('reviewing', true);
+    }
 });
 
 test('REQ-01-17 a requester can upload a valid ID, stored privately and pending verification', function () {
@@ -308,8 +422,8 @@ test('REQ-01-17 the ID must be an image or PDF of at most 5 MB with a known type
         ->assertHasErrors(['form.id_type' => 'in', 'form.id_file' => 'mimes']);
     fillProfile(['form.id_type' => 'Passport', 'form.id_file' => UploadedFile::fake()->image('big.jpg')->size(6000)])
         ->assertHasErrors(['form.id_file' => 'max']);
-    fillProfile(['form.id_file' => UploadedFile::fake()->image('id.jpg')])
-        ->assertHasErrors(['form.id_type' => 'required_with']);
+    fillProfile(['form.id_type' => '', 'form.id_file' => UploadedFile::fake()->image('id.jpg')])
+        ->assertHasErrors(['form.id_type' => 'required']);
 
     expect(IdentityDocument::count())->toBe(0);
 });
@@ -380,8 +494,8 @@ test('REQ-01-18 the new-request page shows, locked, with a red banner listing wh
         ->assertSee('Request a credential')
         ->assertSee(' inert', false);
 
-    fillProfile();
-    $this->actingAs($this->student->fresh())->get(route('student.requests.create'))
+    $complete = User::factory()->withProfile($this->college)->create(['identity_status' => IdentityStatus::Unsubmitted]);
+    $this->actingAs($complete)->get(route('student.requests.create'))
         ->assertSee('Verify your profile before making a request')
         ->assertDontSee('Academic information')
         ->assertSee('Valid ID');
