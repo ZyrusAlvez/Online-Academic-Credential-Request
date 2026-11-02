@@ -28,7 +28,7 @@
                 <p class="text-sm text-zinc-600">{{ __('Your name is locked because your ID is verified. To correct it, contact the Office of the Registrar.') }}</p>
             @endif
 
-            <div class="sm:max-w-xs">
+            <div class="grid gap-6 sm:grid-cols-3">
                 <flux:input wire:model="form.contact_number" type="tel" :label="__('Contact number')" autocomplete="tel" inputmode="numeric" maxlength="11" x-mask="99999999999" placeholder="09171234567" required />
             </div>
         </section>
@@ -62,7 +62,7 @@
                 </div>
             </div>
 
-            <div class="grid gap-6 sm:grid-cols-3">
+            <div class="grid gap-6 md:grid-cols-3">
                 <flux:input wire:model="form.student_number" :label="__('Student number (optional)')" autocomplete="off" />
                 <flux:input wire:model="form.attended_from" type="number" min="1950" :max="now()->year" inputmode="numeric" :label="__('First year attended')" placeholder="2020" required />
                 <flux:input wire:model="form.attended_to" type="number" min="1950" :max="now()->year" inputmode="numeric" :label="__('Last year attended')" placeholder="2024" required />
@@ -88,7 +88,7 @@
 
             @if ($canUpload)
                 <p class="text-sm">{{ __('Upload a clear photo or scan of a valid government-issued or school ID (JPG, PNG, WebP or PDF, up to 5 MB). Only the Office of the Registrar can see it.') }}</p>
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid gap-6 sm:grid-cols-2">
                     <flux:select wire:model="form.id_type" :label="__('Type of ID')">
                         <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
                         @foreach ($idTypes as $type)

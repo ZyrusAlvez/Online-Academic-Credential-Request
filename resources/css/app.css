@@ -58,8 +58,9 @@
     }
 }
 
+/* content-start: a field stretched by a taller neighbour keeps its label and input at the top. */
 [data-flux-field] {
-    @apply grid gap-2;
+    @apply grid content-start gap-2;
 }
 
 [data-flux-label] {
