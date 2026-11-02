@@ -8,23 +8,24 @@
     @unless ($reviewing || $user->canRequestCredentials())
         <flux:callout icon="information-circle" color="sky">
             <flux:callout.heading>{{ __('Before your first request') }}</flux:callout.heading>
-            <flux:callout.text>{{ __('Fill in every section below, upload a valid ID, then review and confirm. You can request credentials once your profile is complete.') }}</flux:callout.text>
+            <flux:callout.text>{{ __('Fill in every section below, upload a valid ID, then choose Confirm. You can request credentials once your profile is complete.') }}</flux:callout.text>
         </flux:callout>
     @endunless
 
-    {{-- Hidden, not removed, on the summary: the file input keeps the chosen ID for "Back to edit". --}}
-    <form wire:submit="review" @class(['space-y-8', 'hidden' => $reviewing])>
+    {{-- Hidden, not removed, on the summary: the file input keeps the chosen ID for "Back to edit".
+         novalidate: the browser's popups would stop the submit before the errors modal (REQ-01-26). --}}
+    <form wire:submit="review" novalidate @class(['space-y-8', 'hidden' => $reviewing])>
         <section aria-labelledby="personal-heading" class="space-y-6 rounded-xl border border-secondary/50 bg-white p-5">
             <h2 id="personal-heading" class="text-lg font-semibold text-primary">{{ __('Personal information') }}</h2>
 
             <div class="grid gap-6 sm:grid-cols-3">
                 <flux:input wire:model="form.first_name" :label="__('First name')" autocomplete="given-name" required />
-                <flux:input wire:model="form.middle_name" :label="__('Middle name')" badge="Optional" autocomplete="additional-name" />
+                <flux:input wire:model="form.middle_name" :label="__('Middle name (optional)')" autocomplete="additional-name" />
                 <flux:input wire:model="form.last_name" :label="__('Last name')" autocomplete="family-name" required />
             </div>
 
             <div class="sm:max-w-xs">
-                <flux:input wire:model="form.contact_number" type="tel" :label="__('Contact number')" autocomplete="tel" inputmode="numeric" maxlength="11" placeholder="09171234567" required />
+                <flux:input wire:model="form.contact_number" type="tel" :label="__('Contact number')" autocomplete="tel" inputmode="numeric" maxlength="11" x-mask="99999999999" placeholder="09171234567" required />
             </div>
         </section>
 
@@ -48,7 +49,7 @@
             </div>
 
             <div class="grid gap-6 sm:grid-cols-3">
-                <flux:input wire:model="form.student_number" :label="__('Student number')" badge="Optional" autocomplete="off" />
+                <flux:input wire:model="form.student_number" :label="__('Student number (optional)')" autocomplete="off" />
                 <flux:input wire:model="form.attended_from" type="number" min="1950" :max="now()->year" inputmode="numeric" :label="__('First year attended')" placeholder="2020" required />
                 <flux:input wire:model="form.attended_to" type="number" min="1950" :max="now()->year" inputmode="numeric" :label="__('Last year attended')" placeholder="2024" required />
             </div>
@@ -94,7 +95,7 @@
         </section>
 
         <div class="flex justify-end">
-            <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:target="form.id_file,review">{{ __('Review and confirm') }}</flux:button>
+            <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:target="form.id_file,review">{{ __('Confirm') }}</flux:button>
         </div>
     </form>
 
@@ -150,4 +151,21 @@
             </div>
         </div>
     @endif
+
+    <flux:modal name="profile-errors" class="w-full md:w-[32rem]" x-on:close="document.querySelector('form [data-invalid]')?.focus()">
+        <div class="space-y-5">
+            <flux:heading size="lg">{{ __('Some details need your attention') }}</flux:heading>
+            <flux:text>{{ __('Complete or correct the following. The fields are marked in red on the form.') }}</flux:text>
+            <ul class="list-disc space-y-1 pl-5 text-sm text-ink">
+                @foreach ($errors->all() as $message)
+                    <li>{{ $message }}</li>
+                @endforeach
+            </ul>
+            <div class="flex justify-end">
+                <flux:modal.close>
+                    <flux:button variant="primary">{{ __('OK') }}</flux:button>
+                </flux:modal.close>
+            </div>
+        </div>
+    </flux:modal>
 </div>

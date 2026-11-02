@@ -73,7 +73,7 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 
 ### Requester profile and identity
 - **REQ-01-16** THE SYSTEM SHALL let a requester keep a profile with their first, middle (optional)
-  and last name, contact number (exactly 11 digits, e.g. `09171234567`) and academic information: status (current student, graduate or former student), college, program or
+  and last name, contact number (exactly 11 digits, e.g. `09171234567`; the field accepts digits only) and academic information: status (current student, graduate or former student), college, program or
   strand, student number (optional) and years attended (from and to, not before 1950 nor after the
   current year, from ≤ to).
 - **REQ-01-17** THE SYSTEM SHALL let a requester upload a valid ID (type of ID and an image or PDF
@@ -93,10 +93,9 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 - **REQ-01-21** WHEN a requester submits a request THE SYSTEM SHALL take its academic details
   from their profile, shown on the new-request form and edited in My Profile.
 - **REQ-01-22** THE SYSTEM SHALL take the whole My Profile page (name, contact number, academic
-  information and, when one is chosen, a new valid ID) in one form with a single "Review and
-  confirm" button at the bottom right; the button SHALL check the entries and save nothing
-  (REQ-01-25).
-- **REQ-01-25** WHEN a requester chooses "Review and confirm" and their entries are valid THE
+  information and, when one is chosen, a new valid ID) in one form with a single "Confirm"
+  button at the bottom right; the button SHALL check the entries and save nothing (REQ-01-25).
+- **REQ-01-25** WHEN a requester chooses "Confirm" and their entries are valid THE
   SYSTEM SHALL show a summary of everything they entered (personal and academic information, and
   the chosen ID's type and file name, or the ID on file, or a note that no ID has been uploaded)
   with the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry and
@@ -104,6 +103,11 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   WHILE the requester has not yet consented THE SYSTEM SHALL require them to tick the consent on
   the summary before saving and SHALL record when they did. IF an entry turns out invalid on
   saving THEN THE SYSTEM SHALL return to the form and show the error there.
+- **REQ-01-26** IF a requester chooses "Confirm" and an entry is missing or invalid THEN THE SYSTEM
+  SHALL show a modal listing what needs attention, mark those fields on the form with their
+  errors, and move focus to the first of them when the modal closes. A type of ID without a file,
+  or a file without a type, SHALL count as invalid. The browser's own validation SHALL NOT replace
+  this modal.
 
 ### Seed
 - **REQ-01-15** THE SYSTEM SHALL provide a database seeder that creates an initial registrar

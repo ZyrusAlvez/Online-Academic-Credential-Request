@@ -31,3 +31,5 @@
 - [x] My Profile summary step: review before saving, data privacy notice and consent moved there
       (REQ-01-22, 25)
 - [x] Pest tests for REQ-01-25 and the changed REQ-01-22
+- [x] My Profile: "Confirm" button, error modal, digits-only contact number (REQ-01-16, 22, 26)
+- [x] Pest tests for REQ-01-26 and the changed REQ-01-22

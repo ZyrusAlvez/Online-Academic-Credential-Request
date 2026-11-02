@@ -94,7 +94,7 @@ class RequesterProfileForm extends Form
             'id_type' => ['nullable', 'required_with:id_file', Rule::in(IdentityDocument::ID_TYPES)],
             'id_file' => [
                 Rule::prohibitedIf($user->identity_status === IdentityStatus::Verified),
-                'nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120',
+                'nullable', 'required_with:id_type', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120',
             ],
             'privacy_consent' => $user->privacy_consented_at === null ? ['accepted'] : [],
         ];
