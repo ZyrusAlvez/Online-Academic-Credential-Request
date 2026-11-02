@@ -14,6 +14,7 @@ use App\Models\User;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -71,7 +72,7 @@ class Profile extends Component
 
     /**
      * One save for the whole profile, from the summary: personal and academic details, privacy
-     * consent and, when chosen, a new valid ID (REQ-01-25).
+     * consent and, when chosen, a new valid ID, all or nothing (REQ-01-25, REQ-01-29).
      */
     public function save(SubmitIdentityDocument $submit): void
     {
@@ -82,8 +83,27 @@ class Profile extends Component
         $user = $this->user();
 
         try {
-            $id = $this->form->save($user);
+            $id = DB::transaction(function () use ($user, $submit): ?array {
+                $id = $this->form->save($user);
+
+                if ($id !== null) {
+                    $submit->handle($user, $id['type'], $id['file']);
+                }
+
+                return $id;
+            });
         } catch (ValidationException $e) {
+            // The model still holds what the rolled-back save filled in.
+            $user->refresh();
+
+            if (isset($e->errors()['idFile'])) {
+                $this->addError('form.id_file', $e->validator->errors()->first());
+                $this->showStep(reviewing: false);
+                Flux::modal('profile-errors')->show();
+
+                return;
+            }
+
             // Only the consent can be fixed on the summary; any other error shows on the form.
             if (array_keys($e->errors()) !== ['form.privacy_consent']) {
                 $this->showStep(reviewing: false);
@@ -94,16 +114,6 @@ class Profile extends Component
         }
 
         if ($id !== null) {
-            try {
-                $submit->handle($user, $id['type'], $id['file']);
-            } catch (ValidationException $e) {
-                $this->addError('form.id_file', $e->validator->errors()->first());
-                $this->showStep(reviewing: false);
-                Flux::modal('profile-errors')->show();
-
-                return;
-            }
-
             $this->form->reset('id_type', 'id_file');
         }
 

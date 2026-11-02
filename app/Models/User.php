@@ -188,9 +188,27 @@ class User extends Authenticatable implements MustVerifyEmail
             'Full name' => blank($this->first_name) || blank($this->last_name),
             'Contact number' => blank($this->contact_number),
             'Academic information' => ! $this->hasAcademicProfile(),
-            'Valid ID' => ! in_array($this->identity_status, [IdentityStatus::Pending, IdentityStatus::Verified], true),
+            'Valid ID' => $this->needsValidId(),
             'Data privacy consent' => $this->privacy_consented_at === null,
         ]));
+    }
+
+    /**
+     * No ID awaits or has passed verification, so My Profile asks for one (REQ-01-22).
+     */
+    public function needsValidId(): bool
+    {
+        return ! in_array($this->identity_status, [IdentityStatus::Pending, IdentityStatus::Verified], true);
+    }
+
+    /**
+     * A verified name matches the ID, so only the registrar changes it (REQ-01-27).
+     */
+    public function hasLockedName(): bool
+    {
+        return $this->identity_status === IdentityStatus::Verified
+            && filled($this->first_name)
+            && filled($this->last_name);
     }
 
     /**

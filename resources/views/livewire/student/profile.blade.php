@@ -19,10 +19,14 @@
             <h2 id="personal-heading" class="text-lg font-semibold text-primary">{{ __('Personal information') }}</h2>
 
             <div class="grid gap-6 sm:grid-cols-3">
-                <flux:input wire:model="form.first_name" :label="__('First name')" autocomplete="given-name" required />
-                <flux:input wire:model="form.middle_name" :label="__('Middle name (optional)')" autocomplete="additional-name" />
-                <flux:input wire:model="form.last_name" :label="__('Last name')" autocomplete="family-name" required />
+                <flux:input wire:model="form.first_name" :label="__('First name')" autocomplete="given-name" :disabled="$user->hasLockedName()" required />
+                <flux:input wire:model="form.middle_name" :label="__('Middle name (optional)')" autocomplete="additional-name" :disabled="$user->hasLockedName()" />
+                <flux:input wire:model="form.last_name" :label="__('Last name')" autocomplete="family-name" :disabled="$user->hasLockedName()" required />
             </div>
+
+            @if ($user->hasLockedName())
+                <p class="text-sm text-zinc-600">{{ __('Your name is locked because your ID is verified. To correct it, contact the Office of the Registrar.') }}</p>
+            @endif
 
             <div class="sm:max-w-xs">
                 <flux:input wire:model="form.contact_number" type="tel" :label="__('Contact number')" autocomplete="tel" inputmode="numeric" maxlength="11" x-mask="99999999999" placeholder="09171234567" required />
@@ -135,10 +139,6 @@
                         <dt class="text-zinc-500">{{ __('New upload') }}</dt>
                         <dd class="font-medium break-all text-ink">{{ $form->id_type }}: {{ $form->id_file->getClientOriginalName() }}</dd>
                     </dl>
-                @elseif (in_array('Valid ID', $user->missingProfileItems(), true))
-                    <flux:callout icon="exclamation-triangle" color="amber">
-                        <flux:callout.text>{{ __('You have no valid ID on file. You can save your details now, but you cannot request credentials until you upload one.') }}</flux:callout.text>
-                    </flux:callout>
                 @else
                     <x-identity-document-list :documents="$documents->take(1)" />
                 @endif
