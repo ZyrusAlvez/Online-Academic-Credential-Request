@@ -28,3 +28,6 @@
       mocked provider (REQ-01-05, 24); data dictionary
 - [x] Requesters land on New Request; `profile.complete` middleware replaced by a red banner on
       New Request and My Requests and a locked form (REQ-01-10, 18, REQ-04-01)
+- [x] My Profile summary step: review before saving, data privacy notice and consent moved there
+      (REQ-01-22, 25)
+- [x] Pest tests for REQ-01-25 and the changed REQ-01-22
