@@ -93,12 +93,11 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 - **REQ-01-21** WHEN a requester submits a request THE SYSTEM SHALL take its academic details
   from their profile, shown on the new-request form and edited in My Profile.
 - **REQ-01-22** THE SYSTEM SHALL take the whole My Profile page (name, contact number, academic
-  information and, when one is chosen, a new valid ID) in one form with a single "Confirm"
+  information and a valid ID, required while none awaits or has passed verification) in one form with a single "Confirm"
   button at the bottom right; the button SHALL check the entries and save nothing (REQ-01-25).
 - **REQ-01-25** WHEN a requester chooses "Confirm" and their entries are valid THE
   SYSTEM SHALL show a summary of everything they entered (personal and academic information, and
-  the chosen ID's type and file name, or the ID on file, or a note that no ID has been uploaded)
-  with the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry and
+  the chosen ID's type and file name, or the ID on file) with the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry and
   the chosen file, and a "Confirm and save" button. THE SYSTEM SHALL save only from the summary.
   WHILE the requester has not yet consented THE SYSTEM SHALL require them to tick the consent on
   the summary before saving and SHALL record when they did. IF an entry turns out invalid on
@@ -108,6 +107,13 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   errors, and move focus to the first of them when the modal closes. A type of ID without a file,
   or a file without a type, SHALL count as invalid. The browser's own validation SHALL NOT replace
   this modal.
+- **REQ-01-27** WHILE a requester's identity is verified THE SYSTEM SHALL show their name as locked,
+  say that the Office of the Registrar corrects it, and ignore any change to it from My Profile.
+- **REQ-01-28** THE SYSTEM SHALL let a registrar correct a verified requester's name on Identity
+  Checks, keeping their identity verified, and SHALL log which registrar did it.
+- **REQ-01-29** WHEN a requester saves from the summary THE SYSTEM SHALL save the profile, the
+  consent and a new ID together: IF the ID cannot be stored THEN THE SYSTEM SHALL save nothing and
+  return to the form with the error.
 
 ### Seed
 - **REQ-01-15** THE SYSTEM SHALL provide a database seeder that creates an initial registrar

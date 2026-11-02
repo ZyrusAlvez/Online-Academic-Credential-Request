@@ -54,7 +54,10 @@ Identity code:
   `RequesterProfileForm::summary()`; the form stays in the DOM, hidden, so "Back to edit" keeps
   the chosen file. `save()` runs only from the summary, in one call: name, contact, academic
   details, `privacy_consented_at` (first save only) and an optional new ID, which goes through
-  `SubmitIdentityDocument` (REQ-01-22, REQ-01-25). `User::missingProfileItems()` lists what is still
+  `SubmitIdentityDocument`, all in one transaction (REQ-01-22, 25, 29). `User::hasLockedName()`
+  locks the name of a verified requester: `RequesterProfileForm` puts the saved name back before
+  validating, so a forged change is ignored. A registrar corrects it through
+  `CorrectRequesterName` on Identity Checks (REQ-01-27, 28). `User::missingProfileItems()` lists what is still
   missing; `canRequestCredentials()` is true when that list is empty.
 - Livewire: `Student\Profile` (`/student/profile`, "My Profile") and `Registrar\Identities\Index`
   (`/registrar/identities`, "Identity Checks" with a pending-count badge).
