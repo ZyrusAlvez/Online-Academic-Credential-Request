@@ -21,7 +21,7 @@ Requester profile and identity (added with the redesign):
 | Column | Type | Notes |
 |---|---|---|
 | contact_number | string(20) null | required at registration; exactly 11 digits (`09171234567`), `RequesterProfileForm::PHONE_RULE` |
-| privacy_consented_at | timestamp null | Data Privacy Act consent at registration |
+| privacy_consented_at | timestamp null | Data Privacy Act consent, given on the My Profile summary |
 | academic_status | string(20) null | `App\Enums\AcademicStatus`: `current`, `graduate`, `former` |
 | college_id | FK null → departments | the requester's college (the Dean on routes) |
 | program | string(150) null | program or strand |
@@ -48,9 +48,13 @@ Identity code:
   banner (on New Request and My Requests) from `missingProfileItems()`, `Student\Requests\Create`
   renders sections after the credential picker `inert` with Submit disabled, and `submit()` plus
   `RequestWorkflow::submit()` refuse an incomplete profile (REQ-01-18).
-- `Student\Profile` saves through `RequesterProfileForm` in one call: name, contact, academic
+- `Student\Profile` has two steps on one URL, because a chosen ID is a temporary upload held by
+  the component and would not survive a move to another route. `review()` validates everything
+  except the consent (`RequesterProfileForm::validateDetails()`) and shows the summary built by
+  `RequesterProfileForm::summary()`; the form stays in the DOM, hidden, so "Back to edit" keeps
+  the chosen file. `save()` runs only from the summary, in one call: name, contact, academic
   details, `privacy_consented_at` (first save only) and an optional new ID, which goes through
-  `SubmitIdentityDocument` (REQ-01-22). `User::missingProfileItems()` lists what is still
+  `SubmitIdentityDocument` (REQ-01-22, REQ-01-25). `User::missingProfileItems()` lists what is still
   missing; `canRequestCredentials()` is true when that list is empty.
 - Livewire: `Student\Profile` (`/student/profile`, "My Profile") and `Registrar\Identities\Index`
   (`/registrar/identities`, "Identity Checks" with a pending-count badge).
