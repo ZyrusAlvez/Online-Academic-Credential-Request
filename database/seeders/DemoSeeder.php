@@ -56,7 +56,7 @@ class DemoSeeder extends Seeder
         $this->staff = $departments->map(fn (Department $department) => $this->staffAccount($department));
 
         $requesters = collect([
-            ['student@example.com', 'Juan', 'Santos', 'Dela Cruz', 'CCS', 'BS Computer Science'],
+            ['student@example.com', 'Juan', 'Santos', 'Dela Cruz', 'CCS', 'BS Computer Science, Specialization in Data Science'],
             ['maria@example.com', 'Maria', null, 'Reyes', 'CBA', 'BS Accountancy'],
             ['jose@example.com', 'Jose', 'Lopez', 'Garcia', 'COE', 'BS Civil Engineering'],
             ['ana@example.com', 'Ana', null, 'Mendoza', 'COED', 'Bachelor of Secondary Education'],

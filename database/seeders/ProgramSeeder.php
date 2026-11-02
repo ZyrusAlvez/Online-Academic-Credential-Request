@@ -7,7 +7,8 @@ use App\Models\Program;
 use Illuminate\Database\Seeder;
 
 /**
- * The programs published at https://uphsl.edu.ph/academic-programs/, by college code (spec 12).
+ * UPHSL's 34 published programs, by the college codes of the client's office list (spec 12). The
+ * site names some colleges differently; Architecture sits with Aviation here, as on that list.
  * Only adds what is missing, so running it again keeps the registrar's changes.
  */
 class ProgramSeeder extends Seeder
@@ -15,25 +16,60 @@ class ProgramSeeder extends Seeder
     /** @var array<string, list<string>> */
     public const PROGRAMS = [
         'CAS' => [
-            'Bachelor of Arts in Communication',
-            'Bachelor of Arts in Political Science',
-            'Bachelor of Arts/Science in Psychology',
+            'BA Communication',
+            'BA Political Science',
+            'BA/BS Psychology',
+        ],
+        'CAA' => [
+            'BS Aircraft Maintenance and Technology',
+            'BS Architecture',
+            'BS Aviation Electronics Technology',
+        ],
+        'BED' => [
+            'Basic Education (K–12)',
         ],
         'CBA' => [
-            'Bachelor of Science in Accountancy',
+            'BS Accountancy',
+            'BS Business Administration',
+            'BS Management Accounting',
+            'BS Real Estate Management',
         ],
         'CCS' => [
-            'Bachelor of Information Technology in Cybersecurity and Forensics',
+            'BS Computer Science, Specialization in Data Science',
+            'BS Entertainment and Multimedia Computing',
+            'BS Information Technology in Cybersecurity and Forensics',
+            'BS Information Technology, Specialization in Game Development',
+        ],
+        'CRIM' => [
+            'BS Criminology',
         ],
         'COED' => [
             'Bachelor of Early Childhood Education',
             'Bachelor of Elementary Education',
             'Bachelor of Library and Information Science',
             'Bachelor of Physical Education',
+            'Bachelor of Secondary Education',
+            'Bachelor of Special Needs Education',
         ],
-        'CAA' => [
-            'Bachelor of Science in Aircraft Maintenance and Technology',
-            'Bachelor of Science in Aviation Electronics Technology',
+        'COE' => [
+            'BS Civil Engineering',
+            'BS Computer Engineering',
+            'BS Electrical Engineering',
+            'BS Electronics Engineering',
+            'BS Industrial Engineering',
+            'BS Mechanical Engineering',
+        ],
+        'GS' => [
+            "Graduate School (Master's and Doctoral Programs)",
+        ],
+        'CIHM' => [
+            'BS Hospitality Management',
+            'BS Nutrition and Dietetics',
+            'BS Tourism Management',
+        ],
+        'CME' => [
+            'BS Marine Engineering',
+            'BS Marine Transportation',
         ],
     ];
 

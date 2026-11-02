@@ -31,7 +31,7 @@ test('REQ-12-02 the seeder installs every college\'s programs without duplicates
     $count = Program::count();
     $this->seed(ProgramSeeder::class);
 
-    expect($count)->toBe(collect(ProgramSeeder::PROGRAMS)->flatten()->count())
+    expect($count)->toBe(34)
         ->and(Program::count())->toBe($count)
         ->and(Program::whereDoesntHave('college', fn ($query) => $query->colleges())->count())->toBe(0);
 });
