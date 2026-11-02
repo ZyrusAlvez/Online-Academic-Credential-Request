@@ -14,6 +14,7 @@ the app timezone **Asia/Manila**. Every table has an auto-increment `id` primary
 erDiagram
     departments ||--o{ users : "employs (staff)"
     departments |o--o{ users : "is college of (requesters)"
+    departments ||--o{ programs : offers
     users ||--o{ identity_documents : uploads
     users ||--o| email_verification_codes : "is sent"
     users ||--o{ credential_requests : "owns"
@@ -87,6 +88,18 @@ Offices on credential routes (spec 02): the colleges (as the Dean), Registrar, V
 | type | varchar(20) | No | IX | | `college` or `office` (see [DepartmentType](#departmenttype)) |
 | description | varchar(255) | Yes | | | Role in the route, e.g. "Documentary stamp (no signature)" |
 | is_active | tinyint(1) | No | IX | 1 | Inactive departments cannot be chosen for new requests or workflow steps |
+| created_at, updated_at | timestamp | Yes | | | |
+
+## programs
+
+Programs and strands by college (spec 12), kept by the registrar and offered on My Profile. Never deleted, only deactivated. `users.program` and `credential_requests.program` hold a copy of the name, so a later rename doesn't change past requests.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| department_id | bigint unsigned | No | FK, UQ | | The college (`RESTRICT`) |
+| name | varchar(150) | No | UQ | | e.g. "Bachelor of Science in Accountancy"; unique within the college |
+| is_active | tinyint(1) | No | IX | 1 | Inactive programs are not offered to requesters |
 | created_at, updated_at | timestamp | Yes | | | |
 
 ## credential_types

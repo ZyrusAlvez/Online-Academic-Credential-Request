@@ -31,6 +31,7 @@ class DepartmentSeeder extends Seeder
             ['LAW', 'College of Law', DepartmentType::College, self::DEAN],
             ['GS', 'Graduate School', DepartmentType::College, self::DEAN],
             ['CAA', 'Architecture and Aviation', DepartmentType::College, self::DEAN],
+            ['BED', 'Basic Education Department', DepartmentType::College, self::DEAN],
             [Department::REGISTRAR_CODE, 'Office of the Registrar', DepartmentType::Office, 'Verifies records, prepares the credential and does the final quality check'],
             ['VPF', 'Office of the VP for Finance', DepartmentType::Office, 'Documentary stamp (no signature)'],
             ['CHAN', 'Office of the Chancellor', DepartmentType::Office, 'Review and signature'],

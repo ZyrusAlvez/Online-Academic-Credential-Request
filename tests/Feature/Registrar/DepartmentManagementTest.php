@@ -11,12 +11,12 @@ beforeEach(function () {
     $this->registrar = User::factory()->registrar()->create();
 });
 
-test('REQ-02-01 the seeder creates the 15 UPHSL departments without duplicates', function () {
+test('REQ-02-01 the seeder creates the 16 UPHSL departments without duplicates', function () {
     $this->seed(DepartmentSeeder::class);
     $this->seed(DepartmentSeeder::class);
 
-    expect(Department::count())->toBe(15)
-        ->and(Department::colleges()->count())->toBe(11)
+    expect(Department::count())->toBe(16)
+        ->and(Department::colleges()->count())->toBe(12)
         ->and(Department::where('type', DepartmentType::Office)->count())->toBe(4)
         ->and(Department::where('code', Department::REGISTRAR_CODE)->value('name'))->toBe('Office of the Registrar');
 });
@@ -27,7 +27,7 @@ test('REQ-02-13 seeding deactivates the retired Library, Cashier and Student Aff
     $this->seed(DepartmentSeeder::class);
 
     expect($retired->map(fn (Department $d) => $d->fresh()->is_active)->all())->toBe([false, false, false])
-        ->and(Department::active()->count())->toBe(15)
+        ->and(Department::active()->count())->toBe(16)
         ->and(Department::active()->where('type', DepartmentType::Office)->pluck('code')->sort()->values()->all())
         ->toBe(['CHAN', 'PRES', 'REG', 'VPF']);
 });

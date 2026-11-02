@@ -9,6 +9,7 @@ use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
 use App\Models\Department;
 use App\Models\IdentityDocument;
+use App\Models\Program;
 use App\Models\User;
 use App\Notifications\IdentityReviewed;
 use App\Services\RequestWorkflow;
@@ -22,6 +23,7 @@ use Livewire\Livewire;
 beforeEach(function () {
     Storage::fake(RequestWorkflow::proofDisk());
     $this->college = Department::factory()->college()->create(['name' => 'College of Computer Studies', 'code' => 'CCS']);
+    Program::factory()->for($this->college, 'college')->create(['name' => 'BS Computer Science']);
     $this->student = User::factory()->student()->create();
     $this->registrar = User::factory()->registrar()->create();
 });
@@ -310,6 +312,61 @@ test('REQ-01-17 the ID must be an image or PDF of at most 5 MB with a known type
         ->assertHasErrors(['form.id_type' => 'required_with']);
 
     expect(IdentityDocument::count())->toBe(0);
+});
+
+test('REQ-12-07 the program dropdown lists the chosen college\'s active programs, sorted', function () {
+    Program::factory()->for($this->college, 'college')->create(['name' => 'Another Program']);
+    Program::factory()->for($this->college, 'college')->inactive()->create(['name' => 'Closed Program']);
+    Program::factory()->create(['name' => 'Foreign Program']);
+
+    Livewire::actingAs($this->student)->test(Profile::class)
+        ->assertSee('Choose a college first')
+        ->set('form.college_id', $this->college->id)
+        ->assertSeeInOrder(['Another Program', 'BS Computer Science'])
+        ->assertDontSee('Closed Program')
+        ->assertDontSee('Foreign Program')
+        ->assertDontSee('Choose a college first');
+});
+
+test('REQ-12-07 choosing another college clears the program', function () {
+    $other = Department::factory()->college()->create();
+
+    Livewire::actingAs($this->student)->test(Profile::class)
+        ->set('form.college_id', $this->college->id)
+        ->set('form.program', 'BS Computer Science')
+        ->set('form.college_id', $other->id)
+        ->assertSet('form.program', '');
+});
+
+test('REQ-12-08 only an active program of the chosen college is accepted', function () {
+    $other = Program::factory()->create(['name' => 'Foreign Program']);
+    Program::factory()->for($this->college, 'college')->inactive()->create(['name' => 'Closed Program']);
+
+    reviewProfile(['form.program' => 'Foreign Program'])->assertHasErrors(['form.program' => 'exists']);
+    reviewProfile(['form.program' => 'Closed Program'])->assertHasErrors(['form.program' => 'exists']);
+    reviewProfile(['form.program' => 'Typed by hand'])->assertHasErrors(['form.program' => 'exists']);
+    reviewProfile(['form.college_id' => $other->department_id, 'form.program' => 'Foreign Program'])->assertHasNoErrors();
+});
+
+test('REQ-12-09 a saved program no longer on the list stays on the profile until the next save', function () {
+    $student = User::factory()->withProfile($this->college)->create(['program' => 'Old Program']);
+
+    expect($student->fresh()->missingProfileItems())->not->toContain('Academic information');
+
+    $this->actingAs($student)->get(route('student.requests.create'))->assertSee('Old Program');
+    Livewire::actingAs($student)->test(Profile::class)
+        ->assertSet('form.program', 'Old Program')
+        ->call('review')
+        ->assertHasErrors(['form.program' => 'exists']);
+    expect($student->fresh()->program)->toBe('Old Program');
+});
+
+test('REQ-12-10 a college without programs tells the requester to contact the Registrar', function () {
+    $empty = Department::factory()->college()->create();
+
+    Livewire::actingAs($this->student)->test(Profile::class)
+        ->set('form.college_id', $empty->id)
+        ->assertSee('No programs are listed for this college yet');
 });
 
 test('REQ-01-18 the new-request page shows, locked, with a red banner listing what the profile is missing', function () {

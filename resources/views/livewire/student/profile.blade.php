@@ -39,13 +39,23 @@
             </flux:radio.group>
 
             <div class="grid gap-6 sm:grid-cols-2">
-                <flux:select wire:model="form.college_id" :label="__('College')" required>
+                <flux:select wire:model.live="form.college_id" :label="__('College')" required>
                     <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
                     @foreach ($colleges as $college)
                         <flux:select.option :value="$college->id">{{ $college->name }}</flux:select.option>
                     @endforeach
                 </flux:select>
-                <flux:input wire:model="form.program" :label="__('Program or strand')" :placeholder="__('e.g. BS Computer Science, STEM')" required />
+                <div>
+                    <flux:select wire:model="form.program" :label="__('Program or strand')" :disabled="$programs->isEmpty()" required>
+                        <flux:select.option value="">{{ blank($form->college_id) ? __('Choose a college first') : __('Choose…') }}</flux:select.option>
+                        @foreach ($programs as $program)
+                            <flux:select.option :value="$program">{{ $program }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    @if (filled($form->college_id) && $programs->isEmpty())
+                        <p class="mt-2 text-sm text-zinc-600">{{ __('No programs are listed for this college yet. Please contact the Office of the Registrar.') }}</p>
+                    @endif
+                </div>
             </div>
 
             <div class="grid gap-6 sm:grid-cols-3">

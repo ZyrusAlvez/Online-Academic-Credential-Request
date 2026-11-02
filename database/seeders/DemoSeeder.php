@@ -47,7 +47,7 @@ class DemoSeeder extends Seeder
             throw new RuntimeException('The demo seeder only runs in the local and staging environments.');
         }
 
-        $this->call([DepartmentSeeder::class, CredentialTypeSeeder::class, RegistrarSeeder::class, NonWorkingDaySeeder::class]);
+        $this->call([DepartmentSeeder::class, ProgramSeeder::class, CredentialTypeSeeder::class, RegistrarSeeder::class, NonWorkingDaySeeder::class]);
 
         $this->workflow = $workflow;
         $this->registrar = User::where('role', Role::Registrar)->orderBy('id')->firstOrFail();
@@ -56,7 +56,7 @@ class DemoSeeder extends Seeder
         $this->staff = $departments->map(fn (Department $department) => $this->staffAccount($department));
 
         $requesters = collect([
-            ['student@example.com', 'Juan', 'Santos', 'Dela Cruz', 'CCS', 'BS Computer Science'],
+            ['student@example.com', 'Juan', 'Santos', 'Dela Cruz', 'CCS', 'BS Computer Science, Specialization in Data Science'],
             ['maria@example.com', 'Maria', null, 'Reyes', 'CBA', 'BS Accountancy'],
             ['jose@example.com', 'Jose', 'Lopez', 'Garcia', 'COE', 'BS Civil Engineering'],
             ['ana@example.com', 'Ana', null, 'Mendoza', 'COED', 'Bachelor of Secondary Education'],

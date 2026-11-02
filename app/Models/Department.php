@@ -49,6 +49,14 @@ class Department extends Model
     }
 
     /**
+     * @return HasMany<Program, $this>
+     */
+    public function programs(): HasMany
+    {
+        return $this->hasMany(Program::class);
+    }
+
+    /**
      * @return HasMany<User, $this>
      */
     public function staff(): HasMany

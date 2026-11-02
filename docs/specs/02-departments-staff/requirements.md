@@ -14,7 +14,7 @@ Source: *Proposed Workflow*, sections VI–VII (offices and signatories).
 ## Acceptance criteria
 
 ### Departments
-- **REQ-02-01** THE SYSTEM SHALL seed the 15 offices from the overview: the 11 colleges (each
+- **REQ-02-01** THE SYSTEM SHALL seed the 16 offices from the overview: the 12 colleges (each
   acting as the Dean) and the Office of the Registrar, VP Finance, Chancellor and President, with
   a name, short code, type and role description; re-seeding SHALL NOT create duplicates.
 - **REQ-02-13** WHEN the offices are seeded THE SYSTEM SHALL deactivate the retired Library,
