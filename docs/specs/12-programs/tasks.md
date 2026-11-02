@@ -5,3 +5,4 @@
 - [x] Registrar Programs page and nav item (REQ-12-03..06)
 - [x] My Profile dropdown and validation (REQ-12-07..10)
 - [x] Pest tests for every REQ-12 criterion
+- [ ] Starter Basic Education staff account (REQ-12-11)

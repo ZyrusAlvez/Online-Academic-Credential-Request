@@ -21,6 +21,11 @@ past requests after a rename; a request must keep what was true when it was made
 - `Student\Profile` loads the chosen college's active programs and clears the program when the
   college changes. `RequesterProfileForm` checks the name with an `exists` rule scoped to the
   college and to active programs.
+- `BasicEducationAccountSeeder` gives the office added by the install migration a staff account,
+  so its queue isn't stuck until someone creates one. A migration runs it, because deploys can't
+  run commands on the server. The repo is public, so the address comes from the first registrar's
+  (`name+bed@domain`) and the password is random: the registrar sets it through Forgot Password,
+  then changes the name, email and password in Accounts when a real person takes over.
 
 ## Source
 
