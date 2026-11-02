@@ -10,6 +10,7 @@ use App\Livewire\Forms\RequesterProfileForm;
 use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\User;
+use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -43,7 +44,13 @@ class Profile extends Component
      */
     public function review(): void
     {
-        $this->form->validateDetails();
+        try {
+            $this->form->validateDetails();
+        } catch (ValidationException $e) {
+            Flux::modal('profile-errors')->show();
+
+            throw $e;
+        }
 
         $this->showStep(reviewing: true);
     }
@@ -71,6 +78,7 @@ class Profile extends Component
             // Only the consent can be fixed on the summary; any other error shows on the form.
             if (array_keys($e->errors()) !== ['form.privacy_consent']) {
                 $this->showStep(reviewing: false);
+                Flux::modal('profile-errors')->show();
             }
 
             throw $e;
@@ -82,6 +90,7 @@ class Profile extends Component
             } catch (ValidationException $e) {
                 $this->addError('form.id_file', $e->validator->errors()->first());
                 $this->showStep(reviewing: false);
+                Flux::modal('profile-errors')->show();
 
                 return;
             }

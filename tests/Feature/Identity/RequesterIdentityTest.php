@@ -129,7 +129,8 @@ test('REQ-01-22 the profile form has a single button, which reviews instead of s
     $html = $this->actingAs($this->student)->get(route('student.profile'))->assertOk()->getContent();
 
     expect(substr_count($html, 'wire:submit'))->toBe(1)
-        ->and(substr_count($html, 'Review and confirm'))->toBe(1)
+        ->and($html)->toContain('>Confirm</')
+        ->and($html)->not->toContain('Review and confirm')
         ->and($html)->not->toContain('Upload ID')
         ->and($html)->not->toContain('Confirm and save')
         ->and($html)->not->toContain('Data Privacy Act');
@@ -151,6 +152,46 @@ test('REQ-01-22 reviewing saves nothing, and invalid entries stay on the form', 
         ->first_name->toBe('Old')
         ->privacy_consented_at->toBeNull()
         ->and(IdentityDocument::count())->toBe(0);
+});
+
+test('REQ-01-26 choosing Confirm with invalid entries opens the modal listing them', function () {
+    reviewProfile(['form.first_name' => '', 'form.contact_number' => '123'])
+        ->assertDispatched('modal-show', name: 'profile-errors')
+        ->assertHasErrors(['form.first_name' => 'required', 'form.contact_number' => 'regex'])
+        ->assertSeeInOrder(['Some details need your attention', 'The first name field is required.', 'Enter an 11-digit mobile number'])
+        ->assertSet('reviewing', false);
+});
+
+test('REQ-01-26 valid entries go to the summary without the modal', function () {
+    reviewProfile()->assertNotDispatched('modal-show')->assertSet('reviewing', true);
+});
+
+test('REQ-01-26 the browser\'s own validation does not replace the modal', function () {
+    $this->actingAs($this->student)->get(route('student.profile'))
+        ->assertOk()
+        ->assertSeeHtml('wire:submit="review" novalidate');
+});
+
+test('REQ-01-26 a type of ID needs a file, and a file needs a type', function () {
+    reviewProfile(['form.id_type' => 'Passport'])
+        ->assertHasErrors(['form.id_file' => 'required_with'])
+        ->assertDispatched('modal-show', name: 'profile-errors');
+    reviewProfile(['form.id_file' => UploadedFile::fake()->image('id.jpg')])
+        ->assertHasErrors(['form.id_type' => 'required_with']);
+});
+
+test('REQ-01-26 an entry that fails on saving returns to the form with the modal', function () {
+    reviewProfile(['form.privacy_consent' => true])
+        ->set('form.contact_number', '123')
+        ->call('save')
+        ->assertDispatched('modal-show', name: 'profile-errors')
+        ->assertSet('reviewing', false);
+});
+
+test('REQ-01-16 the contact number field accepts digits only', function () {
+    $this->actingAs($this->student)->get(route('student.profile'))
+        ->assertOk()
+        ->assertSeeHtml('x-mask="99999999999"');
 });
 
 test('REQ-01-25 the summary shows everything entered with the data privacy notice', function () {
