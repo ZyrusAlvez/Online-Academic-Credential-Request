@@ -14,6 +14,9 @@
   college, with a name that is unique within that college.
 - **REQ-12-02** WHEN a deployment migrates THE SYSTEM SHALL install the university's published
   programs without duplicating or overwriting what the registrar has changed.
+- **REQ-12-11** WHEN a deployment migrates AND a registrar exists AND the Basic Education Department
+  has no staff account THE SYSTEM SHALL create one that reaches the first registrar's inbox through
+  a `+bed` address, with a random password that only Forgot Password can replace.
 
 ### Registrar
 - **REQ-12-03** THE SYSTEM SHALL let the registrar list programs, search them by name and filter
