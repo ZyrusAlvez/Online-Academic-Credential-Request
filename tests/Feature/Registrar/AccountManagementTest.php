@@ -14,7 +14,8 @@ beforeEach(function () {
 
 test('REQ-02-07 the registrar can list, search and filter accounts with departments', function () {
     User::factory()->departmentStaff($this->library)->create(['first_name' => 'Lina', 'middle_name' => null, 'last_name' => 'Librarian']);
-    User::factory()->student()->create(['first_name' => 'Sam', 'middle_name' => null, 'last_name' => 'Student']);
+    // A fixed email: the search also looks there, and a random one can contain "lina".
+    User::factory()->student()->create(['first_name' => 'Sam', 'middle_name' => null, 'last_name' => 'Student', 'email' => 'sam@example.com']);
 
     $this->actingAs($this->registrar)->get(route('registrar.users'))
         ->assertOk()->assertSee('Lina Librarian')->assertSee('Library')->assertSee('Sam Student');
