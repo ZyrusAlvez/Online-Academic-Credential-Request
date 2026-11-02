@@ -9,8 +9,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
+ * An entry of the credential master list (spec 03).
+ *
  * @property bool $requires_payment
  * @property ?string $fee
+ * @property ?list<string> $requirements
+ * @property bool $requires_receiving_institution
  * @property bool $is_active
  */
 class CredentialType extends Model
@@ -24,6 +28,9 @@ class CredentialType extends Model
         'requires_payment',
         'fee',
         'processing_days',
+        'requirements',
+        'special_conditions',
+        'requires_receiving_institution',
         'is_active',
     ];
 
@@ -33,6 +40,7 @@ class CredentialType extends Model
     protected $attributes = [
         'requires_payment' => false,
         'processing_days' => 5,
+        'requires_receiving_institution' => false,
         'is_active' => true,
     ];
 
@@ -45,6 +53,8 @@ class CredentialType extends Model
             'requires_payment' => 'boolean',
             'fee' => 'decimal:2',
             'processing_days' => 'integer',
+            'requirements' => 'array',
+            'requires_receiving_institution' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
@@ -73,6 +83,16 @@ class CredentialType extends Model
     public function scopeRequestable(Builder $query): void
     {
         $query->where('is_active', true)->has('steps');
+    }
+
+    /**
+     * The route as office codes, e.g. "REG → Dean → VPF → CHAN". Expects steps.department loaded.
+     */
+    public function routeSummary(): string
+    {
+        return $this->steps
+            ->map(fn (WorkflowStep $step): string => $step->is_student_college ? 'Dean' : (string) $step->department?->code)
+            ->implode(' → ');
     }
 
     /**

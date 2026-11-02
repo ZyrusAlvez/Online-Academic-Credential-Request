@@ -10,6 +10,8 @@ use Illuminate\Support\Carbon;
 /**
  * @property PaymentStatus $status
  * @property ?string $amount
+ * @property ?Carbon $paid_on
+ * @property ?string $official_receipt_no
  * @property int $size
  * @property ?Carbon $reviewed_at
  * @property Carbon $created_at
@@ -25,6 +27,7 @@ class PaymentProof extends Model
         'size',
         'reference_no',
         'amount',
+        'paid_on',
         'status',
     ];
 
@@ -36,6 +39,7 @@ class PaymentProof extends Model
         return [
             'status' => PaymentStatus::class,
             'amount' => 'decimal:2',
+            'paid_on' => 'date',
             'size' => 'integer',
             'reviewed_at' => 'datetime',
         ];

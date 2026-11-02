@@ -8,5 +8,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote')->hourly();
 
-// Remove expired registrar API tokens (spec 08).
-Schedule::command('sanctum:prune-expired --hours=24')->daily();
+// Due-soon and overdue reminders, every working day (spec 06, REQ-06-14).
+Schedule::command('app:send-due-reminders')->dailyAt('07:00')->withoutOverlapping();

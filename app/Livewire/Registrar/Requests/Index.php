@@ -23,7 +23,7 @@ class Index extends Component
     #[Url(except: '')]
     public string $search = '';
 
-    /** 'review', 'open', 'overdue', '' (all) or a RequestStatus value. */
+    /** 'review', 'processing', 'open', 'overdue', '' (all) or a RequestStatus value. */
     #[Url(except: RegistrarRequestFilter::REVIEW)]
     public string $status = RegistrarRequestFilter::REVIEW;
 
@@ -54,7 +54,7 @@ class Index extends Component
     public function render(): View
     {
         $requests = $this->filter()->query()
-            ->with(['student:id,first_name,middle_name,last_name', 'credentialType:id,name', 'currentStep.department:id,name'])
+            ->with(['student:id,first_name,middle_name,last_name', 'credentialType:id,name', 'openVisit.department:id,name'])
             ->paginate(20);
 
         return view('livewire.registrar.requests.index', [
@@ -62,7 +62,7 @@ class Index extends Component
             'statuses' => RequestStatus::cases(),
             'types' => CredentialType::orderBy('name')->get(['id', 'name']),
             'offices' => Department::orderBy('name')->get(['id', 'name']),
-            'reviewCount' => CredentialRequest::whereIn('status', [RequestStatus::PaymentReview, RequestStatus::RegistrarReview])->count(),
+            'reviewCount' => CredentialRequest::whereIn('status', RegistrarRequestFilter::needsRegistrar())->count(),
             'overdueCount' => CredentialRequest::overdue()->count(),
             'exportUrl' => route('registrar.requests.export', $this->filter()->toArray()),
         ]);

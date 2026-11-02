@@ -10,8 +10,10 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             DepartmentSeeder::class,
+            ProgramSeeder::class,
             CredentialTypeSeeder::class,
             RegistrarSeeder::class,
+            NonWorkingDaySeeder::class,
         ]);
     }
 }

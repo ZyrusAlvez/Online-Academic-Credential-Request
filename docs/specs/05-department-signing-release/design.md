@@ -1,39 +1,46 @@
-# 05 — Department Signing, Hold, Skip & Release · Design
+# 05 — Office Routing: Receipt, Release, Returns & Final Check · Design
 
-## Service (`App\Services\RequestWorkflow`)
+## Data
 
-| Method | From | To |
+`request_steps` (route snapshot): `position`, `department_id`, `task` (`RouteTask` + `final_check`),
+`instructions`, `status` (`StepStatus`: `waiting`, `current`, `completed`, `bypassed`),
+`completed_at`. Unique `(credential_request_id, position)`.
+
+`office_visits`: one row per physical stay of the document at an office.
+
+| Column | Notes |
+|---|---|
+| request_step_id, department_id, visit_no | visit_no counts per request and office |
+| purpose | `VisitPurpose`: `route`, `correction`, `resubmission` |
+| status | `VisitStatus`: `in_transit`, `received`, `completed`, `returned`, `bypassed` |
+| from_department_id, forwarded_at, forwarded_by | dispatch |
+| received_at, received_by | Accept receipt |
+| completed_at, completed_by | approve, return or bypass |
+| returned_to_department_id, return_reason, corrective_action, remarks | returns |
+| working_days | frozen when the visit closes: working days from receipt to completion |
+
+At most one open visit (in transit or received) per request, enforced under the request lock.
+Timestamps are written once.
+
+`delay_notes` (append-only): request, visit (nullable), department, `category` (`DelayCategory`:
+the client's nine categories), `reason`, `corrective_action`, `recorded_by`.
+
+`due_date_pauses`: request, `reason`, `resume_status`, `started_at/by`, `ended_at/by`,
+`working_days`.
+
+## Workflow
+
+| Method | Effect | Ledger |
 |---|---|---|
-| `sign(step, actor, ?remarks)` | step `pending`/`on_hold`, request `in_progress` | step `signed`; next `waiting` → `pending`, or request → `ready_for_release` |
-| `hold(step, actor, remarks)` | step `pending` | step `on_hold` |
-| `resume(step, actor)` | step `on_hold` | step `pending` |
-| `skip(step, registrar, reason)` | step `pending`/`on_hold` | step `skipped`; advance as sign |
-| `release(request, registrar)` | request `ready_for_release` | `released` |
+| `accept` (private, spec 04) | steps + REG final check; step 1 current; visit 1 in transit to its office | accepted |
+| `acceptReceipt(visit)` | in_transit → received; request → in_progress / for_final_approval | receipt_accepted |
+| `completeVisit(visit)` | route/resubmission visit: step completed, next visit forwarded, or ready_for_release after the final check; correction visit: forwarded back as a resubmission | step_completed / document_resubmitted, document_forwarded |
+| `returnVisit(visit, office, reason, action)` | visit returned; correction visit forwarded to the earlier office; request → returned_for_correction | document_returned |
+| `recordDelay` | delay note | delay_recorded |
+| `bypassStep(reason)` | open visit and step bypassed; next forwarded | step_bypassed |
+| `requestCustomerAction` (after acceptance) | pause opened, status → returned_for_customer_action | customer_action_requested |
+| `customerResponded` | pause closed, `adjusted_due_at` = effective due + paused working days | customer_responded |
 
-Each locks the request row, then re-reads the step, so concurrent actions serialise and the
-loser sees a non-current step (`InvalidTransition`). Step events carry `request_step_id` and
-`department_id`; request status columns stay null unless the request status changed.
-
-## Authorization
-
-`App\Policies\RequestStepPolicy`
-- `act(user, step)`: step is current, request `in_progress`, and either
-  `user.department_id === step.department_id` or (user is registrar and step department is `REG`).
-- `skip(user, step)`: registrar and step is current.
-
-`CredentialRequestPolicy::view` for department staff already requires a step for their department.
-`CredentialRequestPolicy::release`: registrar and request `ready_for_release`.
-
-## UI
-
-- `Department\Dashboard` — tabs: For signature · On hold · History (paginated). Rows link to
-  `Department\Requests\Show`.
-- `Department\Requests\Show` (`/department/requests/{reference}`) — details, signing route,
-  action panel when the current step is theirs: Sign (optional remarks), Put on hold (remarks
-  required), Lift hold.
-- Shared `App\Livewire\Concerns\ActsOnSteps` trait gives the sign/hold/resume actions to both
-  the department page and the registrar's request page.
-- `Registrar\Requests\Show` adds: act on a current `REG` step, Skip current step (reason),
-  Mark as released.
-- `Registrar\Dashboard` — "Office of the Registrar" queue of current `REG` steps (spec 07
-  adds statistics around it).
+`OfficeVisitPolicy`: `act` for staff of the visit's office, or registrars when it is the Office of
+the Registrar; `bypass` for registrars. `App\Queries\VisitQueue` feeds the office queue (tabs:
+Incoming, In office, History) and the registrar's Office of the Registrar queue.

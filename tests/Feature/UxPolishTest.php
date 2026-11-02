@@ -6,7 +6,9 @@ use App\Livewire\Registrar\Users\Index as UsersIndex;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\User;
-use App\Services\RequestWorkflow;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 const VISIBILITY_TOGGLE = 'Toggle password visibility';
@@ -18,7 +20,7 @@ function toggleCount(string $html): int
 
 test('REQ-09-01 every password field on the sign-in pages has a show/hide toggle', function () {
     expect(toggleCount($this->get(route('login'))->getContent()))->toBe(1)
-        ->and(toggleCount($this->get(route('register'))->getContent()))->toBe(2)
+        ->and(toggleCount($this->get(route('register'))->getContent()))->toBe(1)
         ->and(toggleCount($this->get(route('password.reset', 'token'))->getContent()))->toBe(2);
 
     $this->actingAs(User::factory()->create());
@@ -75,25 +77,24 @@ test('REQ-09-04 every page has its own browser tab title', function () {
         ->get(route('verification.notice'))->assertSee($title('Verify email'), false);
 });
 
-test('REQ-09-05 request pages offer a copy-reference-number button', function () {
+test('REQ-09-05 request pages offer a copy-tracking-number button', function () {
+    Storage::fake('local');
     $org = organisation();
-    $student = User::factory()->student()->create();
+    $owner = requester($org->ccs);
     $registrar = User::factory()->registrar()->create();
-    // Route through the TOR workflow (Library first) without going through payment.
-    $request = submitRequest($student, $org->free, $org->ccs);
-    $request->forceFill(['credential_type_id' => $org->tor->id])->save();
-    app(RequestWorkflow::class)->approve($request, $registrar);
+    $request = acceptRequest(submitRequest($owner, $org->tor), $registrar);
+    passOffice($request, $registrar);   // now forwarded to the Dean
     $copy = 'data-copy="'.$request->reference_no.'"';
 
-    $this->actingAs($student)->get(route('student.requests.show', $request))
-        ->assertOk()->assertSee('Copy reference number')->assertSee($copy, false);
+    $this->actingAs($owner)->get(route('student.requests.show', $request))
+        ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 
     $this->actingAs($registrar)->get(route('registrar.requests.show', $request))
-        ->assertOk()->assertSee('Copy reference number')->assertSee($copy, false);
+        ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 
-    $this->actingAs(User::factory()->departmentStaff($org->library)->create())
+    $this->actingAs(User::factory()->departmentStaff($org->ccs)->create())
         ->get(route('department.requests.show', $request))
-        ->assertOk()->assertSee('Copy reference number')->assertSee($copy, false);
+        ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 });
 
 test('REQ-09-06 deactivating an account asks for confirmation; activating does not', function () {
@@ -122,11 +123,30 @@ test('REQ-09-06 deactivating a department or credential type asks for confirmati
         ->assertDontSeeHtml('wire:confirm="Deactivate Retired Form?');
 });
 
-test('REQ-09-07 the verify-email page names the address the link was sent to', function () {
+test('REQ-09-07 the verify-email page names the address the code was sent to', function () {
+    Notification::fake();
     $user = User::factory()->unverified()->create(['email' => 'new.student@example.com']);
 
     $this->actingAs($user)->get(route('verification.notice'))
         ->assertOk()
         ->assertSee('Verify your email')
         ->assertSee('new.student@example.com');
+});
+
+test('REQ-09-08 toasts appear at the top centre of the screen', function () {
+    $this->actingAs(User::factory()->student()->create())->get(route('student.profile'))
+        ->assertOk()
+        ->assertSeeHtml('class="pointer-events-none fixed inset-x-4 top-4 z-50 flex justify-center"');
+});
+
+test('REQ-09-09 the requester sidebar has no group heading and lists New Request first', function () {
+    $html = $this->actingAs(User::factory()->student()->create())->get(route('student.profile'))
+        ->assertOk()
+        ->getContent();
+
+    $nav = Str::between($html, 'data-flux-navlist>', '</nav>');
+
+    expect($nav)->not->toContain('Student')
+        ->and(strpos($nav, 'New Request'))->toBeLessThan(strpos($nav, 'My Requests'))
+        ->and(strpos($nav, 'My Requests'))->toBeLessThan(strpos($nav, 'My Profile'));
 });

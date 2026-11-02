@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Http\Middleware\EnsureUserHasRole;
-use App\Services\TurnaroundPredictor;
+use App\Services\WorkingCalendar;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
@@ -15,8 +15,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Load the turnaround model file once per process.
-        $this->app->singleton(TurnaroundPredictor::class);
+        // Non-working dates are loaded once per process.
+        $this->app->singleton(WorkingCalendar::class);
     }
 
     public function boot(): void

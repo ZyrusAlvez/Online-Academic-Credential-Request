@@ -1,10 +1,10 @@
-# 04 — Request Submission, Payment & Registrar Review · Tasks
+# 04 — Submission, Evaluation, Compliance, Payment & Acceptance · Tasks
 
-- [x] Enums: RequestStatus, StepStatus, PaymentStatus, StudentStatus, RequestEventType
-- [x] Migrations + models: credential_requests, request_steps, payment_proofs, request_events
-- [x] RequestWorkflow service (submit, submitPaymentProof, rejectPayment, approve, changeCollege, cancel)
-- [x] Policies for requests and proofs; private proof download route
-- [x] Student: new request form, my requests list, request page with payment panel and cancel
-- [x] Registrar: requests list with review filter, review page (proofs, college, approve/reject)
-- [x] Pest tests for REQ-04-01..15
-- [x] `composer qa` green
+- [x] Reset migration: rebuild the request tables; new enums and models
+- [x] `RequestWorkflow`: submit, evaluation outcomes, compliance, customer action, payment, acceptance, cancel (REQ-04-03, 05..17)
+- [x] New-request form with credential details, notice, profile snapshot (REQ-04-01, 02)
+- [x] Requester request page: compliance notice, clarification reply, payment (REQ-04-09, 11, 12)
+- [x] Registrar request page: evaluation, compliance, payment and acceptance panels (REQ-04-05..08, 10, 13..15)
+- [x] Pest tests for every REQ-04 criterion
+- [x] Credential picker is a dropdown; the details panel (with description, fee and period badges)
+      appears once a credential is chosen (REQ-04-02)

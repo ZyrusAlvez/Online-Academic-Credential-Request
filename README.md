@@ -5,31 +5,41 @@ University of Perpetual Help System.
 
 ## What the system is about
 
-Requesting a credential such as a Transcript of Records means a paper document has to be
-signed by several offices before the student can claim it. Until now the student could not
-tell where that document was or why it was taking long.
+Requesting a credential such as a Transcript of Records means the Registrar's Office must check
+the requester's records and requirements, verify the payment, and then pass a paper document
+through several offices (the Dean, VP Finance, the Chancellor, the President) before it can be
+released. Until now the requester could not tell where that document was or why it was taking
+long, and the Registrar could not measure which office caused delays.
 
-This system is a **digital ledger** of that process. It records every request, every
-hand-off between offices and every signature, so anyone involved can see where a document is
-right now. The documents themselves are never sent digitally; the only file uploaded is the
-student's proof of payment.
+This system is a **digital ledger** of that process, following the client's *Proposed Workflow
+and Process Flow* (`docs/`). It records every request, the evaluation of its requirements, the
+payment verification, every receipt, release and return between offices, and the release to the
+owner or an authorized representative. The documents themselves are never sent digitally; the
+only uploads are the requester's valid ID, a representative's SPA and IDs, and the proof of
+payment.
 
 ### Who uses it
 
 | Role | What they do |
 |---|---|
-| **Student** | Requests a credential, pays online for paid ones (e.g. TOR) and uploads the receipt, sees where the document is right now and its full history, and is notified of every update |
-| **Department** (colleges and offices) | Sees the requests waiting for their signature, signs them, or puts them on hold with a reason (e.g. an unreturned library book) |
-| **Registrar** (admin) | Verifies receipts, approves and routes requests, releases finished documents, manages departments and accounts, and decides which offices sign each credential and in what order |
+| **Requester** (students, graduates, former students) | Registers with a valid ID, requests credentials, complies with missing requirements, pays and uploads the proof, declares a representative, follows the request on a progress tracker, and is notified at each key step |
+| **Office staff** (Dean of each college, VP Finance, Chancellor, President) | Accepts receipt of documents sent to their office, approves and releases them to the next office or returns them for correction, and records delay reasons |
+| **Registrar** (Office of the Registrar) | Verifies identities, evaluates requests and records compliance, verifies payments and accepts requests, prepares and finally checks every credential, releases it, and manages the credential master list, offices, working calendar and accounts |
 
 ### How a request moves
 
-1. The student submits a request. Paid credentials wait for the uploaded receipt.
-2. The registrar reviews it and routes it to the signing offices.
-3. The offices sign one after another. Only the student's own college signs, not every college.
-4. When the last office signs, the document is ready for release at the Registrar.
+1. The requester submits a request. It is **received for evaluation**, not yet accepted.
+2. The registrar evaluates it: requirements complete, incomplete (the requester complies in
+   person), needs clarification, or not eligible.
+3. The requester pays; the registrar verifies the payment against the official record and
+   **accepts** the request. The processing period (in working days) starts here.
+4. The document travels the credential's route. Each office accepts receipt, then releases it
+   to the next office or returns it for correction. Every visit and its duration are recorded.
+5. The Registrar's final quality check makes it ready for release; it is released to the owner
+   or a verified representative, and the release is recorded.
 
-Each credential's signing order and fee are set by the registrar and can be changed at any time.
+Fees, routes, processing periods, requirements and the working calendar are set by the registrar
+and can be changed at any time.
 
 ## Environments
 
@@ -46,8 +56,8 @@ Any other value stops the app at startup.
 | Receipts | `local/` folder | `staging/` folder | `production/` folder |
 | Error details (debug mode) | Shown | Shown | Never shown |
 
-Base data means the 15 departments, the 7 credential types with their signing workflows, and
-the first registrar account.
+Base data means the 15 offices, the 17 credential types of the master list with their routes,
+the 2026–2027 holiday calendar, and the first registrar account.
 
 The `.env` file is small: the environment name, the address, the database login, and the
 secrets for email and receipt storage (see `.env.example`). Everything that follows from the

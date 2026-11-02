@@ -8,7 +8,7 @@ test('REQ-01-10 dashboard redirects each role to its home', function (string $st
     $this->actingAs($user)->get('/dashboard')->assertRedirect(route($route));
     $this->get(route($route))->assertOk();
 })->with([
-    'student' => ['student', 'student.dashboard'],
+    'student' => ['student', 'student.requests.create'],
     'registrar' => ['registrar', 'registrar.dashboard'],
     'department' => ['departmentStaff', 'department.dashboard'],
 ]);

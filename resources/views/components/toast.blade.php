@@ -6,7 +6,7 @@
     x-on:notify.window="open($event.detail.message)"
     role="status"
     aria-live="polite"
-    class="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex justify-center sm:inset-x-auto sm:right-6 sm:justify-end"
+    class="pointer-events-none fixed inset-x-4 top-4 z-50 flex justify-center"
 >
     <div
         x-show="show"

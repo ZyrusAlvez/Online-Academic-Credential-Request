@@ -5,14 +5,14 @@ namespace App\Enums;
 enum PaymentStatus: string
 {
     case Submitted = 'submitted';
-    case Accepted = 'accepted';
+    case Verified = 'verified';
     case Rejected = 'rejected';
 
     public function label(): string
     {
         return match ($this) {
             self::Submitted => 'For verification',
-            self::Accepted => 'Accepted',
+            self::Verified => 'Verified',
             self::Rejected => 'Rejected',
         };
     }
@@ -21,7 +21,7 @@ enum PaymentStatus: string
     {
         return match ($this) {
             self::Submitted => 'sky',
-            self::Accepted => 'green',
+            self::Verified => 'green',
             self::Rejected => 'red',
         };
     }

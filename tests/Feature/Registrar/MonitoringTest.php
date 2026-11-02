@@ -1,53 +1,39 @@
 <?php
 
 use App\Enums\RequestStatus;
-use App\Http\Controllers\RequestsCsvController;
 use App\Livewire\Registrar\Requests\Index;
 use App\Models\CredentialRequest;
 use App\Models\User;
-use App\Services\RequestWorkflow;
+use App\Support\Csv;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 beforeEach(function () {
+    Storage::fake('local');
     $this->org = organisation();
-    $this->workflow = app(RequestWorkflow::class);
     $this->registrar = User::factory()->registrar()->create();
-    $this->student = User::factory()->student()->create();
-    $this->librarian = User::factory()->departmentStaff($this->org->library)->create();
+    $this->owner = requester($this->org->ccs);
 });
 
-function routeAt(string $date, $type = null): CredentialRequest
+afterEach(fn () => Carbon::setTestNow());
+
+function acceptedAt(string $date, $type = null): CredentialRequest
 {
     Carbon::setTestNow($date);
-    $request = submitRequest(test()->student, test()->org->free, test()->org->ccs);
-    if ($type) {
-        $request->forceFill(['credential_type_id' => $type->id])->save();
-    }
-    test()->workflow->approve($request, test()->registrar);
+    $request = acceptRequest(submitRequest(test()->owner, $type ?? test()->org->free), test()->registrar);
     Carbon::setTestNow();
 
-    return $request->fresh();
+    return $request;
 }
 
-test('REQ-07-01 the due date counts weekdays only', function () {
-    $this->org->tor->update(['processing_days' => 3]);
-
-    // Friday 2026-10-09 10:00 + 3 weekdays = Wednesday 2026-10-14 10:00
-    $request = routeAt('2026-10-09 10:00:00', $this->org->tor);
-
-    expect($request->due_at->toDateTimeString())->toBe('2026-10-14 10:00:00');
-});
-
-test('REQ-07-02 in-progress requests past their due date are overdue and filterable', function () {
-    $late = routeAt('2026-01-05 09:00:00');
-    $onTime = routeAt(now()->toDateTimeString());
+test('REQ-07-02 requests being processed past their due date are overdue and filterable', function () {
+    $late = acceptedAt('2026-01-05 09:00:00');
+    $onTime = acceptedAt(now()->toDateTimeString());
 
     expect($late->isOverdue())->toBeTrue()
-        ->and($onTime->isOverdue())->toBeFalse()
-        ->and(CredentialRequest::overdue()->pluck('id')->all())->toBe([$late->id]);
+        ->and($onTime->isOverdue())->toBeFalse();
 
     Livewire::actingAs($this->registrar)->test(Index::class)
         ->set('status', 'overdue')
@@ -58,85 +44,73 @@ test('REQ-07-02 in-progress requests past their due date are overdue and filtera
     $this->actingAs($this->registrar)->get(route('registrar.requests.show', $late))->assertSee('Overdue since');
 });
 
-test('REQ-07-03 the dashboard shows status counts and this month\'s totals', function () {
-    submitRequest($this->student, $this->org->free, $this->org->ccs);          // registrar review
-    submitRequest($this->student, $this->org->tor, $this->org->ccs);           // awaiting payment
-    routeAt('2026-01-05 09:00:00');                                            // overdue
+test('REQ-07-03 the dashboard shows the work-queue counts', function () {
+    submitRequest($this->owner, $this->org->free);                          // needs the Registrar
+    evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar); // awaiting payment
+    acceptedAt('2026-01-05 09:00:00');                                      // overdue
 
     $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
         ->assertOk()
-        ->assertSeeInOrder(['Needs review', '1', 'Awaiting payment', '1', 'In progress', '1', 'Ready for release', '0', 'Overdue', '1'])
-        ->assertSeeInOrder(['Submitted this month', '2']);
+        ->assertSeeInOrder(['Needs the Registrar', '1', 'Pending compliance', '0', 'Awaiting payment', '1', 'Being processed', '1', 'Ready for release', '0', 'Overdue', '1']);
 });
 
-test('REQ-07-04 average turnaround covers the last 30 days', function () {
-    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))->assertSee('—');
-
-    $request = routeAt(now()->subDays(3)->toDateTimeString());
-    Carbon::setTestNow(now()->subDay());
-    $this->workflow->sign($request->currentStep()->firstOrFail(), $this->registrar);   // REG step → ready
-    Carbon::setTestNow();
-
-    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))->assertSee('2 days');
-});
-
-test('REQ-07-05 the dashboard shows where requests are waiting, largest first', function () {
-    routeAt(now()->toDateTimeString(), $this->org->tor);
-    routeAt(now()->toDateTimeString(), $this->org->tor);
-    routeAt(now()->toDateTimeString());   // at the Registrar office
+test('REQ-07-05 the dashboard shows which offices hold documents, largest first', function () {
+    acceptedAt(now()->toDateTimeString(), $this->org->tor);
+    acceptedAt(now()->toDateTimeString(), $this->org->tor);
+    $atDean = acceptedAt(now()->toDateTimeString(), $this->org->tor);
+    passOffice($atDean, $this->registrar);
 
     $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
-        ->assertSeeInOrder(['Where requests are waiting', 'Library', '2', 'Office of the Registrar', '1'])
-        ->assertSee(route('registrar.requests', ['status' => 'open', 'office' => $this->org->library->id]));
+        ->assertSeeInOrder(['Where requests are waiting', 'Office of the Registrar', '2', 'College of Computer Studies', '1'])
+        ->assertSee(route('registrar.requests', ['status' => 'processing', 'office' => $this->org->ccs->id]));
 });
 
 test('REQ-07-06 the dashboard lists the most overdue requests', function () {
-    $late = routeAt('2026-01-05 09:00:00');
+    $late = acceptedAt('2026-01-05 09:00:00');
 
     $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
         ->assertSeeInOrder(['Most overdue', $late->reference_no]);
 });
 
-test('REQ-07-07 the request list can be filtered by the current office', function () {
-    $atLibrary = routeAt(now()->toDateTimeString(), $this->org->tor);
-    $atRegistrar = routeAt(now()->toDateTimeString());
+test('REQ-07-07 the request list can be filtered by the office holding the document', function () {
+    $atDean = acceptedAt(now()->toDateTimeString(), $this->org->tor);
+    passOffice($atDean, $this->registrar);
+    $atRegistrar = acceptedAt(now()->toDateTimeString());
 
     Livewire::actingAs($this->registrar)->test(Index::class)
-        ->set('status', 'open')
-        ->set('office', (string) $this->org->library->id)
-        ->assertSee($atLibrary->reference_no)
+        ->set('status', 'processing')
+        ->set('office', (string) $this->org->ccs->id)
+        ->assertSee($atDean->reference_no)
         ->assertDontSee($atRegistrar->reference_no);
 });
 
 test('REQ-07-08 the filtered list downloads as CSV and is registrar-only', function () {
-    $request = routeAt(now()->toDateTimeString(), $this->org->tor);
-    $other = submitRequest($this->student, $this->org->free, $this->org->ccs);
+    $request = acceptedAt(now()->toDateTimeString(), $this->org->tor);
+    $other = submitRequest($this->owner, $this->org->free);
 
-    $response = $this->actingAs($this->registrar)->get(route('registrar.requests.export', ['status' => 'open', 'office' => $this->org->library->id]));
+    $response = $this->actingAs($this->registrar)->get(route('registrar.requests.export', ['status' => 'processing']));
     $response->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
 
-    $csv = $response->streamedContent();
-    expect($csv)->toContain('Reference,Credential,Copies,Student')
+    expect($response->streamedContent())->toContain('"Tracking no.",Credential,Copies,Requester')
+        ->toContain('Accepted,Due,"Adjusted due",Released,"Processing working days"')
         ->toContain($request->reference_no)
-        ->toContain('Library')
         ->not->toContain($other->reference_no);
 
-    $this->actingAs($this->student)->get(route('registrar.requests.export'))->assertForbidden();
+    $this->actingAs($this->owner)->get(route('registrar.requests.export'))->assertForbidden();
 });
 
 test('REQ-07-08 CSV cells cannot inject spreadsheet formulas', function () {
-    expect(RequestsCsvController::safeCell('=HYPERLINK("x")'))->toBe("'=HYPERLINK(\"x\")")
-        ->and(RequestsCsvController::safeCell('Juan'))->toBe('Juan');
+    expect(Csv::safeCell('=HYPERLINK("x")'))->toBe("'=HYPERLINK(\"x\")")
+        ->and(Csv::safeCell('Juan'))->toBe('Juan');
 });
 
 test('REQ-07-09 the demo seeder creates accounts and requests in every status', function () {
-    Storage::fake('local');
     CredentialRequest::query()->delete();
 
     $this->seed(DemoSeeder::class);
 
     expect(User::where('email', 'student@example.com')->exists())->toBeTrue()
-        ->and(User::where('email', 'lib@example.com')->value('department_id'))->not->toBeNull()
+        ->and(User::where('email', 'vpf@example.com')->value('department_id'))->not->toBeNull()
         ->and(CredentialRequest::distinct()->pluck('status')->map->value->sort()->values()->all())
         ->toBe(collect(RequestStatus::cases())->map->value->sort()->values()->all())
         ->and(CredentialRequest::overdue()->count())->toBeGreaterThan(0);

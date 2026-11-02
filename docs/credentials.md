@@ -16,7 +16,7 @@ There are exactly three environments. Any other `APP_ENV` value stops the app at
 | Data | Base data + demo accounts and requests | Base data + demo accounts and requests | Base data + one registrar account; real data only |
 | Email | Sent through Gmail, all redirected to your own inbox | Sent through Gmail | Sent through Gmail |
 
-Base data = the 15 departments, the 7 credential types with their workflows, and the registrar account.
+Base data = the 15 offices, the 17 credential types with their routes, the holiday calendar, and the registrar account.
 
 To reload the demo data (local or staging): `php artisan app:reset-demo`.
 
@@ -31,18 +31,18 @@ Open the local or staging address and log in with an **email and password** belo
 
 The registrar is **your own account** from `.env` (`INITIAL_REGISTRAR_EMAIL` /
 `INITIAL_REGISTRAR_PASSWORD`), the same way production gets its first registrar. The demo
-requests are approved and released by this account.
+requests are evaluated, accepted, prepared, checked and released by this account.
 
-### Students
+### Requesters
 
-Each student already has requests in different states, so every screen has data to show.
+Each requester already has requests in different states, so every screen has data to show.
 
 | Name | Email | Password | Requests to look at |
 |---|---|---|---|
-| Juan S. Dela Cruz | `student@example.com` | `password` | TOR awaiting payment; TOR in progress at College of Computer Studies |
-| Maria Reyes | `maria@example.com` | `password` | TOR with receipt under review; Good Moral at Student Affairs; Certificate of Enrollment released |
-| Jose L. Garcia | `jose@example.com` | `password` | TOR on hold at the Library; Certificate of Grades ready for release |
-| Ana Mendoza | `ana@example.com` | `password` | Certificate of Enrollment under review; TOR **overdue** at the Cashier; Good Moral cancelled |
+| Juan S. Dela Cruz | `student@example.com` | `password` | TOR just submitted; payment to verify; TOR **returned for correction** by VP Finance; Certification of Enrollment released; diploma paused for his action |
+| Maria Reyes | `maria@example.com` | `password` | Certification under evaluation; Course Description awaiting payment; TOR at the Dean of CBA; Copy of Grades ready for release to her verified representative; TOR **overdue** at the Chancellor |
+| Jose L. Garcia | `jose@example.com` | `password` | TOR pending compliance; Certification of Graduation just accepted; Transfer Certificate at the final check; TOR released late; one cancelled |
+| Ana Mendoza | `ana@example.com` | `password` | ID still **awaiting verification** (Identity Checks); Copy of Grades waiting for her clarification; Authentication declined |
 
 ### Department staff
 
@@ -53,28 +53,30 @@ to it, so demo data can't bounce or use up the Gmail sending limit.
 
 | Office | Code | Email |
 |---|---|---|
-| College of Arts and Sciences | CAS | `cas@uphsl.edu.ph` |
-| College of Business and Accountancy | CBA | `cba@uphsl.edu.ph` |
-| College of Computer Studies | CCS | `ccs@uphsl.edu.ph` |
-| College of Criminology | CRIM | `crim@uphsl.edu.ph` |
-| College of Education | COED | `coed@uphsl.edu.ph` |
-| College of Engineering | COE | `coe@uphsl.edu.ph` |
-| College of International Hospitality Management | CIHM | `cihm@uphsl.edu.ph` |
-| College of Maritime Education | CME | `cme@uphsl.edu.ph` |
-| College of Law | LAW | `law@uphsl.edu.ph` |
-| Graduate School | GS | `gs@uphsl.edu.ph` |
-| Architecture and Aviation | CAA | `caa@uphsl.edu.ph` |
-| Library | LIB | `lib@uphsl.edu.ph` |
-| Cashier / Finance Office | FIN | `fin@uphsl.edu.ph` |
-| Student Affairs / Student Personnel Services | SAS | `sas@uphsl.edu.ph` |
-| Office of the Registrar | REG | `reg@uphsl.edu.ph` |
+| College of Arts and Sciences | CAS | `cas@example.com` |
+| College of Business and Accountancy | CBA | `cba@example.com` |
+| College of Computer Studies | CCS | `ccs@example.com` |
+| College of Criminology | CRIM | `crim@example.com` |
+| College of Education | COED | `coed@example.com` |
+| College of Engineering | COE | `coe@example.com` |
+| College of International Hospitality Management | CIHM | `cihm@example.com` |
+| College of Maritime Education | CME | `cme@example.com` |
+| College of Law | LAW | `law@example.com` |
+| Graduate School | GS | `gs@example.com` |
+| Architecture and Aviation | CAA | `caa@example.com` |
+| Office of the VP for Finance | VPF | `vpf@example.com` |
+| Office of the Chancellor | CHAN | `chan@example.com` |
+| Office of the President | PRES | `pres@example.com` |
+| Office of the Registrar | REG | `reg@example.com` |
 
-Registrar accounts can also sign the Office of the Registrar (REG) step.
+Registrar accounts also act on the Office of the Registrar's steps (preparation and the final
+quality check).
 
 ### New accounts
 
-- **Students** register themselves at `/register` with any email address. They must click the
-  verification link before they can submit a request. Locally, every email arrives in your own
+- **Requesters** register themselves at `/register` with any email address, then fill in **My
+  Profile** and upload a valid ID. They must click the verification link before they can submit
+  a request. Locally, every email arrives in your own
   inbox (or in `storage/logs/laravel.log` while Gmail isn't configured).
 - **Staff** accounts are created by the registrar under **Administration → Accounts**. They
   are verified automatically.
@@ -101,33 +103,31 @@ php artisan test --filter=REQ-05-04      # one acceptance criterion
 php artisan test tests/Feature/Requests  # one area
 ```
 
-- Tests run against the **staging** database `uphsl_credential_tracker_staging`. **Each run wipes
-  it**, then the demo data is reloaded automatically when the tests finish (pass or fail). Anything
-  you entered by hand in staging is lost, so don't run the tests while preparing a staging demo.
-- Production is never touched: the tests stop before doing anything if their database name does
-  not end in `_staging`.
-- Reload the staging demo data yourself at any time with `php artisan app:reset-demo`.
-- Each test name starts with the acceptance criterion it proves (e.g. `REQ-04-11 accepting a
-  payment snapshots the workflow…`), so every requirement in `docs/specs/` can be traced to a test.
+- Tests run against their own database, `uphsl_credential_tracker_testing`, which **each run
+  wipes**; they refuse to run on any database whose name does not end in `_testing`, so local,
+  staging and production data are never touched.
+- Each test name starts with the acceptance criterion it proves (e.g. `REQ-04-14 acceptance starts
+  the clock…`), so every requirement in `docs/specs/` can be traced to a test.
 - Uploads use a fake disk and mail/notifications are faked where asserted, so no real files or
   emails are produced.
 
 ## 5. Manual end-to-end test
 
-Run this in **staging** (`composer dev`). Use three browser profiles (or one normal window plus private windows) to stay logged in as
-several roles at once.
+Run this in **local or staging**. Use several browser profiles (or private windows) to stay
+logged in as several roles at once.
 
 | # | As | Do | Expect |
 |---|---|---|---|
-| 1 | Student (new account) | Register with a real address, open the verification email (locally: in your own inbox) | Lands on **My Requests** |
-| 2 | Student | **New Request** → Transcript of Records, college *College of Computer Studies* | Status *Awaiting payment*, **Pay online** button opens the UPHSL payment page |
-| 3 | Student | Upload any JPG/PNG/PDF receipt | Status *Payment under review* |
-| 4 | Registrar | **Requests** → open it → **Reject payment** with a remark | Student sees the remark and can upload again |
-| 5 | Registrar | After a new upload → **Accept payment & route** | Request goes to the Library; `lib@` gets a notification |
-| 6 | `lib@example.com` | **Put on hold** with a reason, then **Sign** | Student's tracking shows *On hold at Library* then *Signed by Library* (office only, no staff name) |
-| 7 | `fin@`, `ccs@` | Sign in turn | `cba@` never sees this request (only the student's college signs) |
-| 8 | Registrar | Sign the Office of the Registrar step → **Mark as released** | Student sees *Ready for release*, then *Released* |
-| 9 | Registrar | **Credential Types** → edit a workflow (add/move/remove a step), set a fee | New requests use the new order; requests already in progress keep theirs |
-| 10 | Registrar | **Dashboard**, **Requests → Overdue**, **Export CSV** | Ana's TOR shows as overdue; CSV downloads |
+| 1 | Requester (new account) | Register with a real address and consent, verify the email, fill in **My Profile** and upload an ID | **New Request** opens only after the profile and ID are done |
+| 2 | Registrar | **Identity Checks** → verify the new ID | The requester is emailed |
+| 3 | Requester | **New Request** → Transcript of Records, 2 copies | Sees requirements, ₱1,060.00 due, offices, the incomplete-requirements notice; status *Submitted* |
+| 4 | Registrar | **Requests** → open it → **Start evaluation** → **Requirements incomplete** (tick the PSA birth certificate) | Requester sees the deficiency and the compliance notice |
+| 5 | Registrar | **Record compliance** → **Requirements complete** | Requester gets payment instructions |
+| 6 | Requester | Upload a proof with reference, amount and date | *Payment verification* |
+| 7 | Registrar | **Verify payment & accept** with an OR number | *Accepted for processing*; expected release date shown to the requester |
+| 8 | Registrar, then `ccs@`, `vpf@` | **Accept receipt** → release to the next office; at VP Finance **Return for correction** to the Dean | Each visit appears in **Office visits**; requester still sees *In progress* |
+| 9 | `ccs@`, `vpf@`, `chan@`, Registrar | Correct and send back, receive again, continue; Registrar does the final check | *Ready for release* |
+| 10 | Requester, then Registrar | Add a representative; verify them; **Release** to the representative | Released; the release record shows who received it |
+| 11 | Registrar | **Dashboard** (period indicators, time per office), **Reports** (each report, filters, CSV), **Requests → Overdue**, **Working Calendar** | Maria's TOR is overdue; the delay analysis shows the Chancellor's recorded reason |
 
 To start over: `php artisan app:reset-demo`.
