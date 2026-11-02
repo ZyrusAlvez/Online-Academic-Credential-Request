@@ -3,7 +3,7 @@
 use Symfony\Component\Finder\Finder;
 
 /*
-| Test names start with the acceptance criterion they prove (CLAUDE.md, spec-driven loop). This
+| Test names start with the acceptance criterion they prove (the spec-driven loop). This
 | fails when a test names a REQ ID that no spec defines, e.g. after a spec was rewritten.
 */
 
