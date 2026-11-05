@@ -76,7 +76,7 @@ Identity code:
 - Login Volt page: after credential check, reject inactive users (logout + validation error),
   still counting the attempt against the rate limiter.
 - Register Volt page: first/middle/last name fields; `User::create()` never receives `role`.
-- Profile Volt page: first/middle/last name; delete-account section removed.
+- No settings Profile page (REQ-01-12): `/settings` opens Password; delete-account section removed.
 - `/dashboard` → closure redirecting to `auth()->user()->role->homeRoute()`.
 - Role homes: `App\Livewire\{Student,Registrar,Department}\Dashboard` at `/student`,
   `/registrar`, `/department` behind `auth`, `verified`, `role:*`. Content comes in later specs.
