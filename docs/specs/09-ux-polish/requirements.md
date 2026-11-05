@@ -43,6 +43,11 @@
 - **REQ-09-09** THE SYSTEM SHALL show the requester's sidebar links without a group heading, in the
   order New Request, My Requests, My Profile.
 
+### New Request
+- **REQ-09-10** THE SYSTEM SHALL show New Request's *Incomplete requirements* notice (REQ-04-02)
+  between "3. Who will transact?" and the Submit button, collapsed to its heading until the
+  requester opens it, and openable even while the form is locked (REQ-01-18).
+
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the
   other sign-in pages and name the address the code was sent to.

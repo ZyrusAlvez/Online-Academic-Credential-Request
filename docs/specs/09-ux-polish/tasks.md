@@ -7,5 +7,6 @@
 - [x] `wire:confirm` on deactivate actions (REQ-09-06)
 - [x] Verify-email page: auth header, brand colors, address shown (REQ-09-07)
 - [x] Requester sidebar: no "Student" heading, New Request first (REQ-09-09)
+- [ ] New Request: incomplete-requirements notice collapsed, above Submit (REQ-09-10)
 - [x] Pest tests for every REQ-09 criterion
 - [x] `composer qa` green (CI, deploy run on staging)
