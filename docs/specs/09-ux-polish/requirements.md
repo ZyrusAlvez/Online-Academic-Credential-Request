@@ -47,6 +47,11 @@
 - **REQ-09-10** THE SYSTEM SHALL show New Request's *Incomplete requirements* notice (REQ-04-02)
   between "3. Who will transact?" and the Submit button, collapsed to its heading until the
   requester opens it, and openable even while the form is locked (REQ-01-18).
+- **REQ-09-11** WHEN a credential is chosen on New Request THE SYSTEM SHALL show its details
+  (REQ-04-02) as a card: the fee and the processing period side by side, then the offices of its
+  route as a numbered list, one office per line with its task (the Dean step names the requester's
+  college), ending with the Office of the Registrar's final quality check, then the documentary
+  requirements as a checklist and the special conditions as a note.
 
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the
