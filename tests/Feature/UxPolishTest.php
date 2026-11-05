@@ -3,6 +3,7 @@
 use App\Livewire\Registrar\CredentialTypes\Index as CredentialTypesIndex;
 use App\Livewire\Registrar\Departments\Index as DepartmentsIndex;
 use App\Livewire\Registrar\Users\Index as UsersIndex;
+use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\User;
@@ -168,4 +169,30 @@ test('REQ-09-10 the incomplete-requirements notice is collapsed between "Who wil
     $locked = $this->actingAs(User::factory()->student()->create())->get(route('student.requests.create'))->assertOk()->getContent();
     expect(Str::before($locked, '<details'))->toContain(' inert')
         ->and(Str::after($locked, '<details'))->not->toContain(' inert');
+});
+
+test('REQ-09-11 the chosen credential shows its offices as a numbered list ending with the final check', function () {
+    $org = organisation();
+
+    $html = Livewire::actingAs(requester($org->ccs))->test(Create::class)
+        ->set('form.credential_type_id', $org->tor->id)
+        ->assertSee(['₱530.00 per copy', '7 working days', 'Offices that process it'])
+        ->html();
+
+    $route = Str::between($html, '<ol role="list"', '</ol>');
+    $stops = collect(explode('</li>', $route))->filter(fn (string $item) => str_contains($item, '<li'))
+        ->map(fn (string $item) => trim(preg_replace('/\s+/', ' ', strip_tags(Str::after($item, '<li')))))
+        ->map(fn (string $item) => Str::after($item, '> '))
+        ->values()->all();
+
+    expect($stops)->toBe([
+        '1 '.$org->registrarOffice->name.' (prepare)',
+        '2 Dean, College of Computer Studies (sign)',
+        '3 Office of the VP for Finance (documentary stamp)',
+        '4 Office of the Chancellor (sign)',
+        '5 '.$org->registrarOffice->name.' (final quality check)',
+    ]);
+
+    // Requirements are a checklist below the route.
+    expect(Str::after($html, '</ol>'))->toContain('Documentary requirements')->toContain('PSA-authenticated birth certificate');
 });

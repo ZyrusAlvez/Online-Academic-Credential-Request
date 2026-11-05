@@ -91,9 +91,8 @@ test('REQ-04-02 the form shows requirements, fee, period, offices, conditions an
         ->assertSee('PSA-authenticated birth certificate')
         ->assertSee('₱530.00 per copy')
         ->assertSee('₱1,060.00 for 2 copies')
-        ->assertSee('7 working days from acceptance')
-        ->assertSee('Office of the VP for Finance (documentary stamp)')
-        ->assertSee('Registrar (final quality check)')
+        ->assertSeeInOrder(['7 working days', 'from acceptance'])
+        ->assertSeeInOrder(['Office of the VP for Finance', '(documentary stamp)', '(final quality check)'])
         ->assertSee('Bring the original diploma.');
 });
 

@@ -20,65 +20,77 @@
             </flux:select>
 
             @if ($selectedType)
-                <div class="space-y-4 rounded-lg bg-primary-50 p-4 text-sm" aria-live="polite">
-                    <div class="space-y-2">
-                        <h3 class="font-semibold text-primary">{{ __('About :name', ['name' => $selectedType->name]) }}</h3>
+                {{-- The chosen credential's details (REQ-04-02), laid out as a card (REQ-09-11). --}}
+                <div class="overflow-hidden rounded-xl border border-secondary/50 bg-white text-sm" aria-live="polite">
+                    <div class="space-y-1 border-b border-secondary/40 bg-primary-50 px-4 py-3 sm:px-5">
+                        <h3 class="text-base font-semibold text-primary">{{ $selectedType->name }}</h3>
                         @if ($selectedType->description)
                             <p class="text-ink">{{ $selectedType->description }}</p>
                         @endif
-                        <div class="flex flex-wrap gap-1">
-                            @if ($selectedType->requires_payment)
-                                <flux:badge size="sm" color="amber">{{ $selectedType->fee !== null ? __('₱:fee per copy', ['fee' => number_format((float) $selectedType->fee, 2)]) : __('Requires payment') }}</flux:badge>
-                            @else
-                                <flux:badge size="sm" color="green">{{ __('Free') }}</flux:badge>
-                            @endif
-                            <flux:badge size="sm" color="zinc">{{ trans_choice(':count working day|:count working days', $selectedType->processing_days) }}</flux:badge>
-                        </div>
                     </div>
-                    <dl class="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <dt class="text-zinc-600">{{ __('Fee') }}</dt>
-                            <dd class="font-medium text-ink">
-                                @if ($selectedType->requires_payment && $selectedType->fee !== null)
-                                    {{ __('₱:fee per copy', ['fee' => number_format((float) $selectedType->fee, 2)]) }}
-                                    @if (is_numeric($form->copies) && (int) $form->copies > 0)
-                                        · {{ __('₱:total for :n', ['total' => number_format((float) $selectedType->fee * (int) $form->copies, 2), 'n' => trans_choice(':count copy|:count copies', (int) $form->copies)]) }}
+
+                    <div class="space-y-6 p-4 sm:p-5">
+                        <dl class="grid gap-3 sm:grid-cols-2">
+                            <div class="flex items-start gap-3 rounded-lg border border-zinc-200 p-3">
+                                <flux:icon.banknotes class="size-5 shrink-0 text-primary" />
+                                <div>
+                                    <dt class="text-xs font-medium uppercase tracking-wide text-zinc-600">{{ __('Fee') }}</dt>
+                                    @if ($selectedType->requires_payment && $selectedType->fee !== null)
+                                        <dd class="mt-0.5 font-semibold text-ink">{{ __('₱:fee per copy', ['fee' => number_format((float) $selectedType->fee, 2)]) }}</dd>
+                                        @if (is_numeric($form->copies) && (int) $form->copies > 0)
+                                            <dd class="text-zinc-600">{{ __('₱:total for :n', ['total' => number_format((float) $selectedType->fee * (int) $form->copies, 2), 'n' => trans_choice(':count copy|:count copies', (int) $form->copies)]) }}</dd>
+                                        @endif
+                                    @else
+                                        <dd class="mt-0.5 font-semibold text-ink">{{ $selectedType->requires_payment ? __('Requires payment') : __('Free') }}</dd>
                                     @endif
-                                @else
-                                    {{ $selectedType->requires_payment ? __('Requires payment') : __('Free') }}
-                                @endif
-                            </dd>
-                        </div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 rounded-lg border border-zinc-200 p-3">
+                                <flux:icon.clock class="size-5 shrink-0 text-primary" />
+                                <div>
+                                    <dt class="text-xs font-medium uppercase tracking-wide text-zinc-600">{{ __('Processing period') }}</dt>
+                                    <dd class="mt-0.5 font-semibold text-ink">{{ trans_choice(':count working day|:count working days', $selectedType->processing_days) }}</dd>
+                                    <dd class="text-zinc-600">{{ __('from acceptance') }}</dd>
+                                </div>
+                            </div>
+                        </dl>
+
                         <div>
-                            <dt class="text-zinc-600">{{ __('Processing period') }}</dt>
-                            <dd class="font-medium text-ink">{{ trans_choice(':count working day|:count working days', $selectedType->processing_days) }} {{ __('from acceptance') }}</dd>
+                            <h4 class="font-semibold text-ink">{{ __('Offices that process it') }}</h4>
+                            <ol role="list" class="mt-3">
+                                @foreach ($route as $stop)
+                                    <li class="relative flex gap-3 pb-4 last:pb-0">
+                                        @unless ($loop->last)
+                                            <span class="absolute top-7 bottom-1 left-3 w-px -translate-x-1/2 bg-secondary" aria-hidden="true"></span>
+                                        @endunless
+                                        <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white" aria-hidden="true">{{ $loop->iteration }}</span>
+                                        <span class="pt-0.5 text-ink"><span class="font-medium">{{ $stop['office'] }}</span> <span class="text-zinc-600">({{ strtolower($stop['task']) }})</span></span>
+                                    </li>
+                                @endforeach
+                            </ol>
                         </div>
-                        <div class="sm:col-span-2">
-                            <dt class="text-zinc-600">{{ __('Offices that process it') }}</dt>
-                            <dd class="font-medium text-ink">
-                                {{ $selectedType->steps->map(fn ($step) => $step->is_student_college ? __('Dean of your college') : $step->department->name.($step->task !== \App\Enums\RouteTask::Prepare ? ' ('.strtolower($step->task->label()).')' : ''))->implode(' → ') }}
-                                → {{ __('Registrar (final quality check)') }}
-                            </dd>
-                        </div>
+
                         @if ($selectedType->requirements)
-                            <div class="sm:col-span-2">
-                                <dt class="text-zinc-600">{{ __('Documentary requirements') }}</dt>
-                                <dd>
-                                    <ul class="mt-1 list-disc space-y-1 ps-5 text-ink">
-                                        @foreach ($selectedType->requirements as $requirement)
-                                            <li>{{ $requirement }}</li>
-                                        @endforeach
-                                    </ul>
-                                </dd>
+                            <div>
+                                <h4 class="font-semibold text-ink">{{ __('Documentary requirements') }}</h4>
+                                <ul role="list" class="mt-2 space-y-2">
+                                    @foreach ($selectedType->requirements as $requirement)
+                                        <li class="flex items-start gap-2 text-ink">
+                                            <flux:icon.check-circle variant="mini" class="mt-0.5 shrink-0 text-primary" />
+                                            <span>{{ $requirement }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
                             </div>
                         @endif
+
                         @if ($selectedType->special_conditions)
-                            <div class="sm:col-span-2">
-                                <dt class="text-zinc-600">{{ __('Special conditions') }}</dt>
-                                <dd class="font-medium text-ink">{{ $selectedType->special_conditions }}</dd>
+                            <div class="flex items-start gap-2 rounded-lg bg-primary-50 p-3 text-ink">
+                                <flux:icon.information-circle variant="mini" class="mt-0.5 shrink-0 text-primary" />
+                                <p><span class="font-semibold">{{ __('Special conditions:') }}</span> {{ $selectedType->special_conditions }}</p>
                             </div>
                         @endif
-                    </dl>
+                    </div>
                 </div>
             @endif
 
