@@ -123,7 +123,7 @@ The credential master list (spec 03): documents requesters can ask for. Never de
 | name | varchar(150) | No | UQ | | e.g. "Transcript of Records (TOR)" |
 | description | text | Yes | | | Shown to requesters on the request form |
 | requires_payment | tinyint(1) | No | | 0 | 1 = student must pay on the UPHSL portal and upload a receipt |
-| fee | decimal(10,2) | Yes | | | Fee per copy in pesos; only kept when payment is required |
+| fee | decimal(10,2) | Yes | | | Fee in pesos for one document; only kept when payment is required |
 | processing_days | tinyint unsigned | No | | 5 | Processing period in working days (spec 10), used for the due date |
 | requirements | json | Yes | | | List of documentary requirements, shown before submitting and checked by the evaluator |
 | special_conditions | text | Yes | | | Shown before submitting |
@@ -158,7 +158,6 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 | reference_no | varchar(20) | Yes | UQ | | Tracking number `CR-YYYY-NNNNNN` (set right after insert) |
 | user_id | bigint unsigned | No | FK → users, IX (with created_at) | | The document owner (requester) |
 | credential_type_id | bigint unsigned | No | FK → credential_types | | |
-| copies | tinyint unsigned | No | | 1 | 1–10 |
 | purpose | varchar(500) | No | | | A copy of the chosen purpose's name (spec 13); older requests keep their free text |
 | receiving_institution | varchar(255) | Yes | | | Receiving school (required for transfer credentials) |
 | college_id | bigint unsigned | No | FK → departments | | Snapshot of the requester's college; resolves the Dean step |
@@ -168,8 +167,8 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 | attended_from, attended_to | smallint unsigned | No | | | Snapshot: years attended |
 | requester_mode | varchar(20) | No | | personal | `personal` or `representative` (see [RequesterMode](#requestermode)) |
 | requires_payment | tinyint(1) | No | | 0 | Snapshot of the credential type |
-| fee | decimal(10,2) | Yes | | | Snapshot: fee per copy |
-| amount_due | decimal(10,2) | Yes | | | fee × copies |
+| fee | decimal(10,2) | Yes | | | Snapshot of the credential's fee |
+| amount_due | decimal(10,2) | Yes | | | The fee (one document per request) |
 | status | varchar(30) | No | IX | | See [RequestStatus](#requeststatus) |
 | submitted_at | timestamp | Yes | IX (with status) | | |
 | evaluation_started_at | timestamp | Yes | | | When an evaluator took it up |

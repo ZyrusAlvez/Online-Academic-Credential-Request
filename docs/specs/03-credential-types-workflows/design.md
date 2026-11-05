@@ -9,7 +9,7 @@
 | name | string(150) unique | |
 | description | text null | shown to requesters |
 | requires_payment | boolean default false | |
-| fee | decimal(10,2) null | per copy; payment happens on the UPHSL portal |
+| fee | decimal(10,2) null | per request (one document); payment happens on the UPHSL portal |
 | processing_days | unsigned tinyint default 5 | processing period in **working days** (spec 10) |
 | requirements | json null | list of documentary requirements shown before submitting and used by the evaluator (spec 04) |
 | special_conditions | text null | shown before submitting |

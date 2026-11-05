@@ -202,7 +202,9 @@ Every office has the same buttons:
 
 Rules the document leaves open, taken as follows until the client says otherwise:
 
-1. The fee is per copy (amount due = fee × copies).
+1. A request is for one document, at the credential's listed fee (amount due = the fee). The
+   document asks for no number of copies, so the app asks for none; a requester who needs more
+   submits another request. (Copies, priced fee × copies, were dropped on 2026-11-05.)
 2. On-time release is measured against the adjusted due date; the original due date is always
    shown alongside.
 3. Requesters see an internal *returned for correction* as "In progress".
