@@ -5,8 +5,10 @@ Views only: no schema, workflow or authorization changes.
 ## Password fields
 
 Flux's `viewable` prop on `<flux:input type="password">` adds the eye button (labelled "Toggle
-password visibility"). New-password fields get `:description="__('At least 8 characters.')"`, which
-matches `Password::defaults()` in `AppServiceProvider`; if that rule changes, change the text.
+password visibility"). New-password fields get `:description="__('At least 8 characters, with an uppercase and a lowercase
+letter, a number and a special character.')"`, which matches `Password::defaults()` in
+`AppServiceProvider` (`min(8)->mixedCase()->numbers()->symbols()`); if that rule changes, change
+the text.
 The confirm-password page used `new-password` by mistake; it is now `current-password`.
 
 ## Page titles

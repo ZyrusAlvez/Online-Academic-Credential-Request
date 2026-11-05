@@ -39,3 +39,6 @@
 - [x] Pest tests for REQ-01-27..29 and the changed REQ-01-22, 25
 - [x] Remove the settings Profile page; `/settings` opens Email notifications (requesters) or Password (staff) (REQ-01-12)
 - [x] Pest tests for the changed REQ-01-12
+- [x] Stronger password rules: `Password::defaults()` = `min(8)->mixedCase()->numbers()->symbols()`;
+      field hints updated (REQ-01-03, REQ-09-02)
+- [x] Pest tests for the changed REQ-01-03 and REQ-09-02

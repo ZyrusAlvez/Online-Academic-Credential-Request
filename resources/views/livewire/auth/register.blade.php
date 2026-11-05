@@ -60,7 +60,7 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
             name="password"
             required
             autocomplete="new-password"
-            :description="__('At least 8 characters.')"
+            :description="__('At least 8 characters, with an uppercase and a lowercase letter, a number and a special character.')"
             viewable
         />
 

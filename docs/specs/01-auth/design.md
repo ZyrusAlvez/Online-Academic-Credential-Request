@@ -121,3 +121,7 @@ Identity code:
   finds by Google ID, then by email, else creates; it trusts only `email_verified === true`.
 - `<x-google-sign-in>` renders the button on the log-in and sign-up pages when configured.
 
+- Password rules (REQ-01-03) live in one place, `Password::defaults()` in `AppServiceProvider`:
+  min. 8 characters, mixed case, a number and a symbol. Register, reset password, change password
+  and the staff account form all use `Password::defaults()`. The rules only apply when a password
+  is chosen, so existing accounts (and demo accounts with `password`) still log in.

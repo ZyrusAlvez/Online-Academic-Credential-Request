@@ -98,7 +98,7 @@
                 autocomplete="new-password"
                 :label="$form->account ? __('New password') : __('Initial password')"
                 :badge="$form->account ? __('Leave blank to keep') : null"
-                :description="__('At least 8 characters. Share it with the staff member; they can change it in Settings.')"
+                :description="__('At least 8 characters, with an uppercase and a lowercase letter, a number and a special character. Share it with the staff member; they can change it in Settings.')"
                 viewable
                 :required="! $form->account"
             />

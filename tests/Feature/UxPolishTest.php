@@ -36,12 +36,14 @@ test('REQ-09-01 the staff account password field has a show/hide toggle', functi
         ->assertSeeHtml('aria-label="'.VISIBILITY_TOGGLE.'"');
 });
 
-test('REQ-09-02 new-password fields state the minimum length', function () {
-    $this->get(route('register'))->assertSee('At least 8 characters.');
-    $this->get(route('password.reset', 'token'))->assertSee('At least 8 characters.');
+test('REQ-09-02 new-password fields state the password rules', function () {
+    $rules = 'At least 8 characters, with an uppercase and a lowercase letter, a number and a special character.';
+
+    $this->get(route('register'))->assertSee($rules);
+    $this->get(route('password.reset', 'token'))->assertSee($rules);
 
     $this->actingAs(User::factory()->create())
-        ->get(route('settings.password'))->assertSee('At least 8 characters.');
+        ->get(route('settings.password'))->assertSee($rules);
 });
 
 test('REQ-09-03 password fields carry the right autocomplete hint', function () {

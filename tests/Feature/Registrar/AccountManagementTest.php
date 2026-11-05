@@ -36,7 +36,7 @@ test('REQ-02-08 the registrar can create a verified department staff account', f
         ->set('form.email', 'lina@uphsl.edu.ph')
         ->set('form.role', 'department')
         ->set('form.department_id', $this->library->id)
-        ->set('form.password', 'secret123')
+        ->set('form.password', 'Secret123!')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -44,7 +44,19 @@ test('REQ-02-08 the registrar can create a verified department staff account', f
     expect($staff->role)->toBe(Role::Department)
         ->and($staff->department_id)->toBe($this->library->id)
         ->and($staff->hasVerifiedEmail())->toBeTrue()
-        ->and(Hash::check('secret123', $staff->password))->toBeTrue();
+        ->and(Hash::check('Secret123!', $staff->password))->toBeTrue();
+});
+
+test('REQ-01-03 a staff account password must meet the password rules', function () {
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->call('create')
+        ->set('form.first_name', 'Lina')->set('form.last_name', 'Librarian')
+        ->set('form.email', 'lina@uphsl.edu.ph')->set('form.role', 'registrar')
+        ->set('form.password', 'secret123')
+        ->call('save')
+        ->assertHasErrors(['form.password']);
+
+    expect(User::where('email', 'lina@uphsl.edu.ph')->exists())->toBeFalse();
 });
 
 test('REQ-02-08 a department is required for department staff and must be active', function () {
@@ -52,7 +64,7 @@ test('REQ-02-08 a department is required for department staff and must be active
 
     $component = Livewire::actingAs($this->registrar)->test(Index::class)
         ->set('form.first_name', 'A')->set('form.last_name', 'B')
-        ->set('form.email', 'ab@uphsl.edu.ph')->set('form.password', 'secret123')
+        ->set('form.email', 'ab@uphsl.edu.ph')->set('form.password', 'Secret123!')
         ->set('form.role', 'department');
 
     $component->call('save')->assertHasErrors(['form.department_id' => 'required']);
@@ -63,7 +75,7 @@ test('REQ-02-08 a department is required for department staff and must be active
 test('REQ-02-08 a registrar account has no department', function () {
     Livewire::actingAs($this->registrar)->test(Index::class)
         ->set('form.first_name', 'New')->set('form.last_name', 'Registrar')
-        ->set('form.email', 'new.registrar@uphsl.edu.ph')->set('form.password', 'secret123')
+        ->set('form.email', 'new.registrar@uphsl.edu.ph')->set('form.password', 'Secret123!')
         ->set('form.role', 'registrar')
         ->set('form.department_id', $this->library->id)
         ->call('save')
@@ -92,10 +104,10 @@ test('REQ-02-09 the registrar can edit a staff account and optionally reset its 
 
     Livewire::actingAs($this->registrar)->test(Index::class)
         ->call('edit', $staff->id)
-        ->set('form.password', 'brand-new-pass')
+        ->set('form.password', 'Brand-new-pass1')
         ->call('save');
 
-    expect(Hash::check('brand-new-pass', $staff->fresh()->password))->toBeTrue();
+    expect(Hash::check('Brand-new-pass1', $staff->fresh()->password))->toBeTrue();
 });
 
 test('REQ-02-10 the registrar can deactivate and reactivate any account', function (string $state) {
@@ -121,7 +133,7 @@ test('REQ-02-11 student accounts cannot be created or edited as staff', function
 
     Livewire::actingAs($this->registrar)->test(Index::class)
         ->set('form.first_name', 'X')->set('form.last_name', 'Y')
-        ->set('form.email', 'xy@example.com')->set('form.password', 'secret123')
+        ->set('form.email', 'xy@example.com')->set('form.password', 'Secret123!')
         ->set('form.role', 'student')
         ->call('save')
         ->assertHasErrors(['form.role' => 'in']);
