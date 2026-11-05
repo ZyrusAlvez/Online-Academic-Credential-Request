@@ -1,7 +1,8 @@
 <div class="space-y-8">
     <x-page-header title="My Profile" description="Your personal and academic information and valid ID. The Office of the Registrar uses them to confirm that requests come from the document owner." />
 
-    <p id="profile-step" tabindex="-1" class="text-sm font-semibold text-ink outline-none">
+    {{-- Shown only on the summary; while editing it stays for screen readers and as the focus target of showStep(). --}}
+    <p id="profile-step" tabindex="-1" @class(['text-sm font-semibold text-ink outline-none', 'sr-only' => ! $reviewing])>
         {{ $reviewing ? __('Step 2 of 2: Review and confirm') : __('Step 1 of 2: Your details') }}
     </p>
 
