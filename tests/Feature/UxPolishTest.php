@@ -176,7 +176,7 @@ test('REQ-09-11 the chosen credential shows its offices as a numbered list endin
 
     $html = Livewire::actingAs(requester($org->ccs))->test(Create::class)
         ->set('form.credential_type_id', $org->tor->id)
-        ->assertSee(['₱530.00 per copy', '7 working days', 'Offices that process it'])
+        ->assertSee(['₱530.00', '7 working days', 'Offices that process it'])
         ->html();
 
     $route = Str::between($html, '<ol role="list"', '</ol>');

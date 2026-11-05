@@ -70,7 +70,6 @@ function submitRequest(User $owner, CredentialType $type, array $overrides = [])
 {
     return workflow()->submit($owner, array_merge([
         'credential_type_id' => $type->id,
-        'copies' => 1,
         'purpose' => 'Employment',
         'receiving_institution' => null,
     ], $overrides));

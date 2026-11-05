@@ -74,7 +74,7 @@
 
             <div class="grid gap-6 sm:grid-cols-2">
                 @if ($form->requires_payment)
-                    <flux:input wire:model="form.fee" type="number" step="0.01" min="0" inputmode="decimal" :label="__('Fee per copy (₱)')" badge="Optional" />
+                    <flux:input wire:model="form.fee" type="number" step="0.01" min="0" inputmode="decimal" :label="__('Fee (₱)')" badge="Optional" />
                 @endif
                 <flux:input wire:model="form.processing_days" type="number" min="1" max="60" :label="__('Processing period')" :description="__('Working days from acceptance')" required />
             </div>

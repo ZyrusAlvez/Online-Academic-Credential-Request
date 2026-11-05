@@ -21,18 +21,18 @@ beforeEach(function () {
     $this->org = organisation();
     $this->owner = requester($this->org->ccs);
     $this->registrar = User::factory()->registrar()->create();
-    $this->request = evaluate(submitRequest($this->owner, $this->org->tor, ['copies' => 2]), $this->registrar);
+    $this->request = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
 });
 
 afterEach(fn () => Carbon::setTestNow());
 
 test('REQ-04-12 the owner sees the amount due and uploads a proof with the transaction details', function () {
     Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $this->request])
-        ->assertSee('Amount due: ₱1,060.00')
+        ->assertSee('Amount due: ₱530.00')
         ->assertSee(config('uphsl.payment_url'))
         ->set('receipt', UploadedFile::fake()->image('receipt.jpg'))
         ->set('paymentReference', 'UPHSL-123')
-        ->set('amountPaid', '1060')
+        ->set('amountPaid', '530')
         ->set('paidOn', now()->format('Y-m-d'))
         ->call('uploadReceipt')
         ->assertHasNoErrors();
@@ -41,7 +41,7 @@ test('REQ-04-12 the owner sees the amount due and uploads a proof with the trans
 
     Storage::disk(RequestWorkflow::proofDisk())->assertExists($proof->path);
     expect($this->request->fresh()->status)->toBe(RequestStatus::PaymentVerification)
-        ->and($proof)->reference_no->toBe('UPHSL-123')->amount->toBe('1060.00')->paid_on->toDateString()->toBe(now()->toDateString());
+        ->and($proof)->reference_no->toBe('UPHSL-123')->amount->toBe('530.00')->paid_on->toDateString()->toBe(now()->toDateString());
 });
 
 test('REQ-04-12 the proof must be an image or PDF of at most 5 MB with its details', function () {

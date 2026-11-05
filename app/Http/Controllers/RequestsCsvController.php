@@ -21,11 +21,10 @@ class RequestsCsvController extends Controller
 
         return Csv::download(
             'credential-requests-'.now()->format('Y-m-d-His').'.csv',
-            ['Tracking no.', 'Credential', 'Copies', 'Requester', 'Student number', 'College', 'Status', 'Currently at', 'Submitted', 'Accepted', 'Due', 'Adjusted due', 'Released', 'Processing working days'],
+            ['Tracking no.', 'Credential', 'Requester', 'Student number', 'College', 'Status', 'Currently at', 'Submitted', 'Accepted', 'Due', 'Adjusted due', 'Released', 'Processing working days'],
             $query->lazyById(200)->map(fn (CredentialRequest $row): array => [
                 $row->reference_no,
                 $row->credentialType->name,
-                $row->copies,
                 $row->student->name,
                 $row->student_number,
                 $row->college->name,
