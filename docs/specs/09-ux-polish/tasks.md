@@ -5,6 +5,8 @@
 - [x] Forward `$title` through the app and auth layouts; `#[Title]` on Volt pages (REQ-09-04)
 - [x] `<x-copy-button>` on the three request pages (REQ-09-05)
 - [x] `wire:confirm` on deactivate actions (REQ-09-06)
+- [ ] `<x-confirm-dialog>` + `directive.init` hook replace the browser dialog; titles, labels and
+      danger variants on every `wire:confirm` (REQ-09-13)
 - [x] Verify-email page: auth header, brand colors, address shown (REQ-09-07)
 - [x] Requester sidebar: no "Student" heading, New Request first (REQ-09-09)
 - [x] New Request: incomplete-requirements notice collapsed, above Submit (REQ-09-10)
