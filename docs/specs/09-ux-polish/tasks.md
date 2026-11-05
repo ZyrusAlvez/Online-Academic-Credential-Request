@@ -9,5 +9,6 @@
 - [x] Requester sidebar: no "Student" heading, New Request first (REQ-09-09)
 - [x] New Request: incomplete-requirements notice collapsed, above Submit (REQ-09-10)
 - [x] New Request: credential details card with a numbered office route (REQ-09-11)
+- [x] Same column and section style on New Request, My Requests and My Profile (REQ-09-12)
 - [x] Pest tests for every REQ-09 criterion
 - [x] `composer qa` green (CI, deploy run on staging)

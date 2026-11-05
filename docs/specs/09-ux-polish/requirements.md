@@ -52,6 +52,9 @@
   route as a numbered list, one office per line with its task (the Dean step names the requester's
   college), ending with the Office of the Registrar's final quality check, then the documentary
   requirements as a checklist and the special conditions as a note.
+- **REQ-09-12** THE SYSTEM SHALL lay out New Request, My Requests and My Profile alike: one centred
+  column of the same width, with the content in bordered sections that share their padding and
+  heading style; My Requests lists the requests inside a "Your requests" section.
 
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the

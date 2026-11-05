@@ -1,4 +1,5 @@
-<div class="space-y-8">
+{{-- Same column and sections as New Request (REQ-09-12). --}}
+<div class="mx-auto max-w-3xl space-y-6">
     <x-page-header title="My Profile" description="Your personal and academic information and valid ID. The Office of the Registrar uses them to confirm that requests come from the document owner." />
 
     {{-- Shown only on the summary; while editing it stays for screen readers and as the focus target of showStep(). --}}
@@ -16,7 +17,7 @@
     {{-- Hidden, not removed, on the summary: the file input keeps the chosen ID for "Back to edit".
          novalidate: the browser's popups would stop the submit before the errors modal (REQ-01-26). --}}
     <form wire:submit="review" novalidate @class(['space-y-8', 'hidden' => $reviewing])>
-        <section aria-labelledby="personal-heading" class="space-y-6 rounded-xl border border-secondary/50 bg-white p-5">
+        <section aria-labelledby="personal-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <h2 id="personal-heading" class="text-lg font-semibold text-primary">{{ __('Personal information') }}</h2>
 
             <div class="grid gap-6 sm:grid-cols-3">
@@ -34,7 +35,7 @@
             </div>
         </section>
 
-        <section aria-labelledby="academic-heading" class="space-y-6 rounded-xl border border-secondary/50 bg-white p-5">
+        <section aria-labelledby="academic-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <h2 id="academic-heading" class="text-lg font-semibold text-primary">{{ __('Academic information') }}</h2>
 
             <flux:radio.group wire:model="form.academic_status" :label="__('Status')">
@@ -70,7 +71,7 @@
             </div>
         </section>
 
-        <section aria-labelledby="identity-heading" class="space-y-5 rounded-xl border border-secondary/50 bg-white p-5">
+        <section aria-labelledby="identity-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <h2 id="identity-heading" class="text-lg font-semibold text-primary">{{ __('Valid ID') }}</h2>
                 <flux:badge :color="$user->identity_status->color()">{{ $user->identity_status->label() }}</flux:badge>
@@ -109,7 +110,7 @@
             @endif
         </section>
 
-        <div class="flex justify-end">
+        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:target="form.id_file,review">{{ __('Confirm') }}</flux:button>
         </div>
     </form>
@@ -119,7 +120,7 @@
             <flux:text>{{ __('Check that everything below is correct. The Office of the Registrar uses these details to confirm your identity.') }}</flux:text>
 
             @foreach ($summary as $heading => $rows)
-                <section aria-labelledby="summary-heading-{{ $loop->index }}" class="space-y-4 rounded-xl border border-secondary/50 bg-white p-5">
+                <section aria-labelledby="summary-heading-{{ $loop->index }}" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
                     <h2 id="summary-heading-{{ $loop->index }}" class="text-lg font-semibold text-primary">{{ __($heading) }}</h2>
                     <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
                         @foreach ($rows as $label => $value)
@@ -132,7 +133,7 @@
                 </section>
             @endforeach
 
-            <section aria-labelledby="summary-id-heading" class="space-y-4 rounded-xl border border-secondary/50 bg-white p-5">
+            <section aria-labelledby="summary-id-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
                 <h2 id="summary-id-heading" class="text-lg font-semibold text-primary">{{ __('Valid ID') }}</h2>
 
                 @if ($form->id_file)
@@ -145,7 +146,7 @@
                 @endif
             </section>
 
-            <section aria-labelledby="privacy-heading" class="space-y-4 rounded-xl border border-secondary/50 bg-white p-5">
+            <section aria-labelledby="privacy-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
                 <h2 id="privacy-heading" class="text-lg font-semibold text-primary">{{ __('Data privacy') }}</h2>
                 <p class="text-sm">{{ __('The University of Perpetual Help System uses your details, academic information and the valid ID you upload only to process your credential requests, in accordance with the Data Privacy Act of 2012 (RA 10173).') }}</p>
 
@@ -156,7 +157,7 @@
                 @endif
             </section>
 
-            <div class="flex flex-wrap justify-end gap-3">
+            <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <flux:button wire:click="back" wire:loading.attr="disabled" wire:target="back,save">{{ __('Back to edit') }}</flux:button>
                 <flux:button wire:click="save" variant="primary" wire:loading.attr="disabled" wire:target="back,save">{{ __('Confirm and save') }}</flux:button>
             </div>

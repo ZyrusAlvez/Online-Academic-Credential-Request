@@ -196,3 +196,22 @@ test('REQ-09-11 the chosen credential shows its offices as a numbered list endin
     // Requirements are a checklist below the route.
     expect(Str::after($html, '</ol>'))->toContain('Documentary requirements')->toContain('PSA-authenticated birth certificate');
 });
+
+test('REQ-09-12 New Request, My Requests and My Profile share one column and one section style', function () {
+    $org = organisation();
+    $owner = requester($org->ccs);
+    submitRequest($owner, $org->free);
+    $this->actingAs($owner);
+
+    foreach (['student.requests.create', 'student.dashboard', 'student.profile'] as $page) {
+        $html = $this->get(route($page))->assertOk()->getContent();
+
+        preg_match_all('/<section[^>]*class="([^"]*)"/', $html, $sections);
+
+        expect($html)->toContain('class="mx-auto max-w-3xl space-y-6"')
+            ->and($sections[1])->not->toBeEmpty()
+            ->and(collect($sections[1])->reject(fn (string $class) => str_contains($class, 'rounded-xl border border-secondary/50 p-5 sm:p-6'))->all())->toBe([]);
+    }
+
+    $this->get(route('student.dashboard'))->assertSeeInOrder(['Your requests', 'Certification of Enrollment']);
+});
