@@ -7,6 +7,7 @@ use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\CredentialRequestForm;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
+use App\Models\Purpose;
 use App\Models\User;
 use App\Services\RequestWorkflow;
 use Illuminate\Contracts\View\View;
@@ -79,6 +80,7 @@ class Create extends Component
         return view('livewire.student.requests.create', [
             'types' => $types,
             'selectedType' => $types->firstWhere('id', (int) $this->form->credential_type_id),
+            'purposes' => Purpose::active()->orderBy('name')->pluck('name'),
             'owner' => $owner,
             'locked' => ! $owner->canRequestCredentials(),
         ]);

@@ -8,7 +8,8 @@ use Illuminate\Validation\Rule;
 use Livewire\Form;
 
 /**
- * A new credential request (REQ-04-01). Academic details come from the requester's profile.
+ * A new credential request (REQ-04-01). Academic details come from the requester's profile; the
+ * purpose is one of the registrar's active purposes (spec 13).
  */
 class CredentialRequestForm extends Form
 {
@@ -39,7 +40,7 @@ class CredentialRequestForm extends Form
         return [
             'credential_type_id' => ['required', 'integer', Rule::in(CredentialType::requestable()->pluck('id')->all())],
             'copies' => ['required', 'integer', 'between:1,10'],
-            'purpose' => ['required', 'string', 'max:500'],
+            'purpose' => ['required', 'string', Rule::exists('purposes', 'name')->where('is_active', true)],
             'receiving_institution' => [Rule::requiredIf(fn (): bool => (bool) $this->selectedType()?->requires_receiving_institution), 'nullable', 'string', 'max:255'],
             'requester_mode' => ['required', Rule::enum(RequesterMode::class)],
             'representative_name' => [Rule::requiredIf($representative), 'nullable', 'string', 'max:150'],
@@ -66,7 +67,10 @@ class CredentialRequestForm extends Form
      */
     protected function messages(): array
     {
-        return ['representative_contact.regex' => RequesterProfileForm::PHONE_MESSAGE];
+        return [
+            'purpose.exists' => 'Choose a purpose from the list.',
+            'representative_contact.regex' => RequesterProfileForm::PHONE_MESSAGE,
+        ];
     }
 
     public function selectedType(): ?CredentialType

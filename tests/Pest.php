@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\OfficeVisit;
 use App\Models\User;
 use App\Services\RequestWorkflow;
+use Database\Seeders\PurposeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
@@ -22,12 +23,14 @@ pest()->extend(TestCase::class)
 /**
  * A small organisation: the Registrar, VP Finance, Chancellor and two colleges, plus a TOR-like
  * credential (Registrar prepare → Dean sign → VP Finance stamp → Chancellor sign) and a free
- * Registrar-only credential.
+ * Registrar-only credential. Also installs the starter purposes (spec 13).
  *
  * @return object{registrarOffice: Department, vpf: Department, chancellor: Department, ccs: Department, cba: Department, tor: CredentialType, free: CredentialType}
  */
 function organisation(): object
 {
+    (new PurposeSeeder)->run();
+
     $registrarOffice = Department::factory()->registrarOffice()->create();
     $vpf = Department::factory()->create(['name' => 'Office of the VP for Finance', 'code' => 'VPF']);
     $chancellor = Department::factory()->create(['name' => 'Office of the Chancellor', 'code' => 'CHAN']);
