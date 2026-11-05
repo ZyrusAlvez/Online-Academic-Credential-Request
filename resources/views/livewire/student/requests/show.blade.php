@@ -134,7 +134,7 @@
 
     <section aria-labelledby="tracker-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="tracker-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Progress') }}</h2>
-        <x-request-tracker :request="$request" />
+        <x-request-tracker :request="$request" :events="$events" />
     </section>
 
     @if ($request->representatives->isNotEmpty() || auth()->user()->can('declareRepresentative', $request))

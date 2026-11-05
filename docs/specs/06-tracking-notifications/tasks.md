@@ -9,5 +9,5 @@
 - [x] `users.email_notifications`, `SetEmailNotifications`, mail channels honour it (REQ-06-16)
 - [x] Settings → Email notifications page for requesters (REQ-06-16)
 - [x] Pest tests for REQ-06-16
-- [ ] Tracker as a step bar with icons, green progress line and milestone dates (REQ-06-01)
-- [ ] Pest tests for the changed REQ-06-01
+- [x] Tracker as a step bar with icons, green progress line and milestone dates (REQ-06-01)
+- [x] Pest tests for the changed REQ-06-01
