@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 use Livewire\Livewire;
 
 const VISIBILITY_TOGGLE = 'Toggle password visibility';
@@ -36,14 +37,44 @@ test('REQ-09-01 the staff account password field has a show/hide toggle', functi
         ->assertSeeHtml('aria-label="'.VISIBILITY_TOGGLE.'"');
 });
 
-test('REQ-09-02 new-password fields state the password rules', function () {
-    $rules = 'At least 8 characters, with an uppercase and a lowercase letter, a number and a special character.';
+const PASSWORD_RULES = [
+    'At least 8 characters', 'Has an uppercase letter (A-Z)', 'Has a lowercase letter (a-z)',
+    'Has a number (0-9)', 'Has a special character (!@#$)',
+];
 
-    $this->get(route('register'))->assertSee($rules);
-    $this->get(route('password.reset', 'token'))->assertSee($rules);
+test('REQ-09-02 new-password fields list the password rules as a live checklist', function () {
+    $checklist = fn (string $html, string $model) => expect($html)
+        ->toContain('data-password-checklist')
+        ->toContain("\$wire.\$get('{$model}')")
+        ->and(substr_count($html, 'data-password-checklist'))->toBe(1);
 
-    $this->actingAs(User::factory()->create())
-        ->get(route('settings.password'))->assertSee($rules);
+    foreach ([route('register'), route('password.reset', 'token')] as $url) {
+        $response = $this->get($url)->assertSeeInOrder(PASSWORD_RULES);
+        $checklist($response->getContent(), 'password');
+    }
+
+    $this->actingAs(User::factory()->create());
+    $response = $this->get(route('settings.password'))->assertSeeInOrder(PASSWORD_RULES);
+    $checklist($response->getContent(), 'password');
+
+    $staffForm = Livewire::actingAs(User::factory()->registrar()->create())->test(UsersIndex::class)
+        ->assertSeeInOrder(PASSWORD_RULES);
+    $checklist($staffForm->html(), 'form.password');
+});
+
+test('REQ-09-02 each rule is ticked by the same test the server applies', function () {
+    $html = (string) $this->blade('<x-password-checklist />');
+
+    // One check per rule in Password::defaults(): min(8), mixedCase(), numbers(), symbols().
+    expect($html)
+        ->toContain('length: [...v].length >= 8')
+        ->toContain('upper: /\p{Lu}/u.test(v)')
+        ->toContain('lower: /\p{Ll}/u.test(v)')
+        ->toContain('number: /\p{N}/u.test(v)')
+        ->toContain('symbol: /\p{Z}|\p{S}|\p{P}/u.test(v)')
+        ->and(Password::defaults()->appliedRules())->toMatchArray([
+            'min' => 8, 'mixedCase' => true, 'numbers' => true, 'symbols' => true,
+        ]);
 });
 
 test('REQ-09-03 password fields carry the right autocomplete hint', function () {

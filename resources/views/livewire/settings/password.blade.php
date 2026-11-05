@@ -61,9 +61,9 @@ new #[Title('Password settings')] class extends Component {
                 name="password"
                 required
                 autocomplete="new-password"
-                :description="__('At least 8 characters, with an uppercase and a lowercase letter, a number and a special character.')"
                 viewable
             />
+            <x-password-checklist model="password" class="-mt-4" />
             <flux:input
                 wire:model="password_confirmation"
                 id="update_password_password_confirmation"

@@ -18,9 +18,11 @@
 - **REQ-09-01** THE SYSTEM SHALL give every password field (log in, register, reset password,
   confirm password, change password, staff account form) a button that shows or hides the typed
   password.
-- **REQ-09-02** WHERE a user chooses a new password THE SYSTEM SHALL state the password rules
-  (min. 8 characters, with an uppercase letter, a lowercase letter, a number and a special
-  character; REQ-01-03) next to the field before the form is submitted.
+- **REQ-09-02** WHERE a user chooses a new password (register, reset password, change password,
+  staff account form) THE SYSTEM SHALL list the password rules under the field as a checklist —
+  at least 8 characters, an uppercase letter (A-Z), a lowercase letter (a-z), a number (0-9) and a
+  special character (REQ-01-03) — and, WHILE the user types, mark each rule the password already
+  meets with a green check, before the form is submitted.
 - **REQ-09-03** THE SYSTEM SHALL mark fields for an existing password `autocomplete="current-password"`
   and fields for a new password `autocomplete="new-password"`, so that password managers fill
   the right one.

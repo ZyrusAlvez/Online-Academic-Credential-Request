@@ -5,10 +5,13 @@ Views only: no schema, workflow or authorization changes.
 ## Password fields
 
 Flux's `viewable` prop on `<flux:input type="password">` adds the eye button (labelled "Toggle
-password visibility"). New-password fields get `:description="__('At least 8 characters, with an uppercase and a lowercase
-letter, a number and a special character.')"`, which matches `Password::defaults()` in
-`AppServiceProvider` (`min(8)->mixedCase()->numbers()->symbols()`); if that rule changes, change
-the text.
+password visibility"). New-password fields are followed by `<x-password-checklist model="...">` (REQ-09-02): one
+line per rule, a grey circle until the typed password meets it, then a green check. It reads the
+field's value from Livewire (`$wire.$get(model)`, which `wire:model` updates as the user types, so
+no request is sent per keystroke) and checks it in Alpine with the same tests as
+`Password::defaults()` in `AppServiceProvider` (`min(8)->mixedCase()->numbers()->symbols()`):
+length in code points, `\p{Lu}`, `\p{Ll}`, `\p{N}`, and `\p{Z}|\p{S}|\p{P}` for a special
+character. The server rule stays the real check; if it changes, change the checklist too.
 The confirm-password page used `new-password` by mistake; it is now `current-password`.
 
 ## Page titles

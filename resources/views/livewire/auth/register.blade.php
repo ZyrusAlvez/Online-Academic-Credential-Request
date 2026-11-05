@@ -60,9 +60,9 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
             name="password"
             required
             autocomplete="new-password"
-            :description="__('At least 8 characters, with an uppercase and a lowercase letter, a number and a special character.')"
             viewable
         />
+        <x-password-checklist model="password" class="-mt-4" />
 
         <flux:button type="submit" variant="primary" class="w-full">
             {{ __('Create account') }}
