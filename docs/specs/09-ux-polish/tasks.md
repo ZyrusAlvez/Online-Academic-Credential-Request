@@ -14,5 +14,5 @@
 - [x] Same column and section style on New Request, My Requests and My Profile (REQ-09-12)
 - [x] Pest tests for every REQ-09 criterion
 - [x] `composer qa` green (CI, deploy run on staging)
-- [ ] `<x-password-checklist>` under every new-password field, ticking rules as the user types (REQ-09-02)
-- [ ] Pest tests for the changed REQ-09-02
+- [x] `<x-password-checklist>` under every new-password field, ticking rules as the user types (REQ-09-02)
+- [x] Pest tests for the changed REQ-09-02
