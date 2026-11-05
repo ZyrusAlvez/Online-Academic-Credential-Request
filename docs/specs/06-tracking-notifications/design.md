@@ -33,6 +33,16 @@ released, working days spent, status (registrar and office pages).
   the key event types. Payload: `request_id`, `reference_no`, `title`, `message`, `url`
   (role-specific request page).
 
+## Email preference (REQ-06-16)
+
+- `users.email_notifications` boolean, default `true` (so existing accounts keep getting email).
+  Not mass assignable; written only by `App\Actions\Account\SetEmailNotifications`.
+- `User::wantsEmailNotifications()` — `RequestActivity`, `DueReminder` and `IdentityReviewed` add
+  `mail` to `via()` only when it is true. `VerificationCode` and password reset ignore it.
+- `App\Livewire\Student\EmailNotifications` at `/settings/notifications`
+  (`settings.notifications`, `role:student`) — one `flux:switch` inside the settings layout, saved
+  as soon as it is flipped. The settings nav shows the link to requesters only.
+
 ## UI
 
 - `App\Livewire\NotificationBell` in the sidebar (desktop) and mobile header: unread count,

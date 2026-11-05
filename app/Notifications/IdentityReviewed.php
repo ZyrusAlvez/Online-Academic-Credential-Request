@@ -24,7 +24,7 @@ class IdentityReviewed extends Notification implements ShouldQueue
      */
     public function via(User $notifiable): array
     {
-        return ['database', 'mail'];
+        return $notifiable->wantsEmailNotifications() ? ['database', 'mail'] : ['database'];
     }
 
     public function toMail(User $notifiable): MailMessage

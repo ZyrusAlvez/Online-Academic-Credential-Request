@@ -34,6 +34,11 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
   when the payment is rejected, when the payment is verified and the request accepted (with the
   expected release date), when the credential is ready for release, and when the request is
   declined or cancelled by the registrar.
+- **REQ-06-16** THE SYSTEM SHALL let a requester turn email notifications on or off in Settings →
+  Email notifications; they are on for every new and existing account. WHILE they are off THE
+  SYSTEM SHALL send no request, reminder or ID-review emails to that requester, and SHALL still
+  notify them in-app. Verification codes and password-reset emails are always sent. Staff, who are
+  notified in-app only, do not see the setting.
 - **REQ-06-06** THE SYSTEM SHALL notify the requester in-app of the other milestones shown in their
   history (evaluation started, compliance recorded, received or completed by an office, representative
   verified), and never about their own actions other than the submission confirmation.

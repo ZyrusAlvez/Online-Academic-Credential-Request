@@ -32,8 +32,8 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   the verify-email page instead of a link. A code SHALL expire after 10 minutes and stop working
   after 5 wrong tries; only its hash is stored. THE SYSTEM SHALL let the user ask for a new code,
   which replaces the old one, at most once every 30 seconds (the page counts down), and SHALL send
-  one automatically when the page opens and the user has no code that still works (e.g. after
-  changing their email).
+  one automatically when the page opens and the user has no code that still works (e.g. right
+  after registering).
 
 ### Login & session
 - **REQ-01-05** THE SYSTEM SHALL authenticate users with email and password, or with Google
@@ -63,9 +63,11 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 - **REQ-01-11** IF a user opens a page belonging to another role THEN THE SYSTEM SHALL respond 403.
 
 ### Profile
-- **REQ-01-12** THE SYSTEM SHALL let users update their email in settings, and staff their first,
-  middle and last name too (requesters edit their name in My Profile, REQ-01-22); changing the
-  email SHALL reset its verification.
+- **REQ-01-12** THE SYSTEM SHALL NOT let users change their own name or email in settings; settings
+  holds only the password and, for requesters, email notifications (REQ-06-16). Requesters edit
+  their name in My Profile (REQ-01-22); the registrar edits staff names and emails in Accounts.
+  (The settings Profile page was removed: an email change took effect at once, with no
+  confirmation, and locked the user out until the new address was verified.)
 - **REQ-01-13** THE SYSTEM SHALL NOT let users delete their own account (requests form a
   permanent ledger; the registrar deactivates accounts instead).
 - **REQ-01-14** WHEN a user's name is displayed THE SYSTEM SHALL format it as

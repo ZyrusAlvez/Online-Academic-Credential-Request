@@ -69,7 +69,7 @@ test('REQ-09-04 every page has its own browser tab title', function () {
     $this->actingAs(User::factory()->student()->create());
 
     $this->get(route('student.dashboard'))->assertSee($title('My Requests'), false);
-    $this->get(route('settings.profile'))->assertSee($title('Profile settings'), false);
+    $this->get(route('settings.notifications'))->assertSee($title('Email notifications'), false);
     $this->get(route('settings.password'))->assertSee($title('Password settings'), false);
     $this->get(route('password.confirm'))->assertSee($title('Confirm password'), false);
 

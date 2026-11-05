@@ -37,3 +37,5 @@
 - [x] Name locked after verification; registrar corrects it on Identity Checks (REQ-01-27, 28)
 - [x] Profile, consent and ID saved in one transaction (REQ-01-29)
 - [x] Pest tests for REQ-01-27..29 and the changed REQ-01-22, 25
+- [x] Remove the settings Profile page; `/settings` opens Email notifications (requesters) or Password (staff) (REQ-01-12)
+- [x] Pest tests for the changed REQ-01-12
