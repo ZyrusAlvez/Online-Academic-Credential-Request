@@ -38,6 +38,38 @@ test('REQ-06-01 the requester sees the tracker, the holding office and the expec
         ->assertSee('Saturday, Oct 17, 2026');
 });
 
+test('REQ-06-01 the tracker is a step bar with the date under each finished milestone', function () {
+    $tracker = fn ($request) => $this->blade('<x-request-tracker :request="$request" :events="$events" />', [
+        'request' => $request->fresh(), 'events' => $request->events()->get(),
+    ]);
+    $request = submitRequest($this->owner, $this->org->free);
+
+    $tracker($request)
+        ->assertSeeInOrder(['Request submitted and evaluated', '(current)', 'Current step', 'Payment verified', '(not yet)'])
+        ->assertSee('aria-current="step"', false)
+        ->assertDontSee('bg-green-600', false);
+
+    Carbon::setTestNow('2026-10-09 10:00:00');
+    acceptRequest($request, $this->registrar);
+    Carbon::setTestNow('2026-10-12 14:30:00');
+    passOffice($request, $this->registrar);
+    workflow()->acceptReceipt(openVisit($request), $this->registrar);
+
+    $tracker($request)
+        ->assertSeeInOrder([
+            'Request submitted and evaluated', '(done)', 'Oct 9, 2026', '10:00 AM',
+            'Payment verified', '(done)', 'Oct 9, 2026',
+            'Processing in progress', '(done)', 'Oct 12, 2026', '2:30 PM',
+            'Final approval and quality check', '(current)', 'Current step',
+            'Ready for release', '(not yet)',
+        ])
+        ->assertSee('bg-green-600', false);
+
+    workflow()->completeVisit(openVisit($request), $this->registrar);
+
+    $tracker($request)->assertSeeInOrder(['Final approval and quality check', '(done)', 'Ready for release', '(current)']);
+});
+
 test('REQ-06-02 the requester history names offices, never staff, and hides internal entries', function () {
     $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
     passOffice($request, $this->registrar);

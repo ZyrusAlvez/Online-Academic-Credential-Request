@@ -17,7 +17,9 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
 - **REQ-06-01** THE SYSTEM SHALL show on the requester's request page a progress tracker (submitted
   and evaluated, payment verified, processing, final approval and quality check, ready for release,
   released), the office currently holding the document, and — once accepted — the processing
-  period and the expected release date.
+  period and the expected release date. The tracker SHALL be a step bar: an icon per milestone,
+  joined by a line that turns green up to the furthest milestone reached, with the date and time
+  under each finished milestone; left to right on wider screens and top to bottom on phones.
 - **REQ-06-02** THE SYSTEM SHALL show the requester a history of their request built from the
   ledger, newest first, naming offices but never individual staff, and leaving out internal
   entries (forwarding, internal returns and delay notes); an internal return SHALL show as
