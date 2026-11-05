@@ -1,7 +1,8 @@
 # 00 — Product Overview
 
 Source of truth: the client's **Proposed Workflow and Process Flow for the Capstone System**
-(`docs/Proposed-Workflow-and-Process-Flow-for-the-Capstone-System.docx`, October 2026). This
+(`docs/Proposed-Workflow-and-Process-Flow-for-the-Capstone-System.docx`, October 2026; Markdown copy
+in [`docs/proposed-workflow.md`](../proposed-workflow.md)). This
 overview restates it as the system's target model; the feature specs below implement it in
 phases. Where the document leaves a rule open, the assumption taken is listed under
 [Assumptions](#assumptions).
