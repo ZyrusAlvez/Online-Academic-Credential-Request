@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Forms\CredentialRequestForm;
 use App\Livewire\Registrar\Purposes\Index;
 use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
@@ -125,7 +126,7 @@ test('REQ-13-07 New Request offers the active purposes in alphabetical order', f
 
     Livewire::actingAs(requester($org->ccs))->test(Create::class)
         ->assertViewHas('purposes', fn ($purposes) => $purposes->all() === PurposeSeeder::PURPOSES)
-        ->assertSeeInOrder(['Board or licensure examination', 'Employment', 'Visa or immigration'])
+        ->assertSeeInOrder(['Board or licensure examination', 'Employment', 'Visa or immigration', 'Others (please specify)'])
         ->assertDontSee('Aardvark studies');
 });
 
@@ -159,10 +160,53 @@ test('REQ-13-09 renaming or deactivating a purpose keeps past requests as they w
     expect($request->fresh()->purpose)->toBe('Employment');
 });
 
-test('REQ-13-10 with no active purpose the requester is told to contact the Registrar', function () {
+test('REQ-13-10 with no active purpose the requester can still choose Others', function () {
     $org = organisation();
     Purpose::query()->update(['is_active' => false]);
 
     Livewire::actingAs(requester($org->ccs))->test(Create::class)
-        ->assertSee('No purposes are listed yet. Please contact the Office of the Registrar.');
+        ->assertViewHas('purposes', fn ($purposes) => $purposes->isEmpty())
+        ->assertSee('Others (please specify)')
+        ->set('form.credential_type_id', $org->free->id)
+        ->set('form.purpose', CredentialRequestForm::OTHER_PURPOSE)
+        ->set('form.purpose_other', 'Embassy requirement')
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    expect(CredentialRequest::sole()->purpose)->toBe('Embassy requirement');
+});
+
+test('REQ-13-11 Others asks for the purpose in a text box and stores what was typed', function () {
+    $org = organisation();
+
+    Livewire::actingAs(requester($org->ccs))->test(Create::class)
+        ->set('form.credential_type_id', $org->free->id)
+        ->assertDontSee('Please specify')
+        ->set('form.purpose', CredentialRequestForm::OTHER_PURPOSE)
+        ->assertSee('Please specify')
+        ->call('submit')
+        ->assertHasErrors(['form.purpose_other' => 'required'])
+        ->set('form.purpose_other', str_repeat('a', 501))
+        ->call('submit')
+        ->assertHasErrors(['form.purpose_other' => 'max'])
+        ->set('form.purpose_other', '  Requirement for a church wedding  ')
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    expect(CredentialRequest::sole()->purpose)->toBe('Requirement for a church wedding');
+});
+
+test('REQ-13-11 text typed under Others is ignored once a listed purpose is chosen', function () {
+    $org = organisation();
+
+    Livewire::actingAs(requester($org->ccs))->test(Create::class)
+        ->set('form.credential_type_id', $org->free->id)
+        ->set('form.purpose', CredentialRequestForm::OTHER_PURPOSE)
+        ->set('form.purpose_other', 'Something else')
+        ->set('form.purpose', 'Employment')
+        ->assertDontSee('Please specify')
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    expect(CredentialRequest::sole()->purpose)->toBe('Employment');
 });
