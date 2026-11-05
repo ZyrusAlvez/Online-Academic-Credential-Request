@@ -20,6 +20,7 @@ use Illuminate\Support\Str;
 /**
  * @property Role $role
  * @property bool $is_active
+ * @property bool $email_notifications
  * @property ?string $contact_number
  * @property ?AcademicStatus $academic_status
  * @property ?int $college_id
@@ -69,6 +70,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $attributes = [
         'role' => 'student',
         'is_active' => true,
+        'email_notifications' => true,
         'identity_status' => 'unsubmitted',
     ];
 
@@ -82,6 +84,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'role' => Role::class,
             'is_active' => 'boolean',
+            'email_notifications' => 'boolean',
             'privacy_consented_at' => 'datetime',
             'academic_status' => AcademicStatus::class,
             'attended_from' => 'integer',
@@ -124,8 +127,17 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Email the one-time code that confirms the address (REQ-01-23), on sign-up and after an email
-     * change; replaces Laravel's verification link.
+     * Whether request, reminder and ID-review emails go out (REQ-06-16). Verification codes and
+     * password resets ignore this.
+     */
+    public function wantsEmailNotifications(): bool
+    {
+        return $this->email_notifications;
+    }
+
+    /**
+     * Email the one-time code that confirms the address (REQ-01-23), sent on sign-up; replaces
+     * Laravel's verification link.
      */
     public function sendEmailVerificationNotification(): void
     {

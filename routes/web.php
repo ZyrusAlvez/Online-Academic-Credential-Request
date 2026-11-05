@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Role;
 use App\Http\Controllers\IdentityDocumentController;
 use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\ReportsCsvController;
@@ -55,10 +56,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    Route::redirect('settings', 'settings/profile');
+    // There is no settings Profile page (REQ-01-12). Requesters land on their email switch.
+    Route::get('settings', fn () => redirect()->route(
+        auth()->user()->hasRole(Role::Student) ? 'settings.notifications' : 'settings.password'
+    ))->name('settings');
 
-    Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
     Volt::route('settings/password', 'settings.password')->name('settings.password');
+    Route::get('settings/notifications', Student\EmailNotifications::class)
+        ->middleware('role:student')->name('settings.notifications');
 });
 
 require __DIR__.'/auth.php';
