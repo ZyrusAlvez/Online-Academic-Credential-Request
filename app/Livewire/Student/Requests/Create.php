@@ -2,13 +2,16 @@
 
 namespace App\Livewire\Student\Requests;
 
+use App\Enums\RouteTask;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\CredentialRequestForm;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
+use App\Models\Department;
 use App\Models\Purpose;
 use App\Models\User;
+use App\Models\WorkflowStep;
 use App\Services\RequestWorkflow;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
@@ -77,13 +80,38 @@ class Create extends Component
         $types = CredentialType::requestable()->with('steps.department')->orderBy('name')->get();
         $owner = $this->owner()->loadMissing(['college', 'latestIdentityDocument']);
 
+        $selectedType = $types->firstWhere('id', (int) $this->form->credential_type_id);
+
         return view('livewire.student.requests.create', [
             'types' => $types,
-            'selectedType' => $types->firstWhere('id', (int) $this->form->credential_type_id),
+            'selectedType' => $selectedType,
+            'route' => $selectedType ? $this->route($selectedType, $owner) : [],
             'purposes' => Purpose::active()->orderBy('name')->pluck('name'),
             'owner' => $owner,
             'locked' => ! $owner->canRequestCredentials(),
         ]);
+    }
+
+    /**
+     * The offices a credential passes through, ending with the Registrar's final check (REQ-09-11).
+     *
+     * @return list<array{office: string, task: string}>
+     */
+    private function route(CredentialType $type, User $owner): array
+    {
+        $route = $type->steps->map(fn (WorkflowStep $step): array => [
+            'office' => $step->is_student_college
+                ? ($owner->college ? __('Dean, :college', ['college' => $owner->college->name]) : __('Dean of your college'))
+                : (string) $step->department?->name,
+            'task' => $step->task->label(),
+        ])->values()->all();
+
+        $route[] = [
+            'office' => Department::where('code', Department::REGISTRAR_CODE)->value('name') ?? __('Office of the Registrar'),
+            'task' => RouteTask::FinalCheck->label(),
+        ];
+
+        return $route;
     }
 
     private function owner(): User
