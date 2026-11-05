@@ -25,7 +25,10 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 - **REQ-01-02** WHEN a guest registers THE SYSTEM SHALL create the account with role `student`,
   regardless of any role value submitted.
 - **REQ-01-03** IF the email is invalid or already registered, or the password fails the password
-  rules (min. 8 characters) THEN THE SYSTEM SHALL reject the registration with a field error.
+  rules (min. 8 characters, with at least one uppercase letter, one lowercase letter, one number
+  and one special character) THEN THE SYSTEM SHALL reject the registration with a field error. The
+  same rules apply wherever a new password is chosen (reset password, change password, staff
+  account form); existing passwords keep working until changed.
 - **REQ-01-04** WHEN a student registers THE SYSTEM SHALL email them a verification code and log
   them in.
 - **REQ-01-23** THE SYSTEM SHALL verify an email address with a 6-digit one-time code entered on
