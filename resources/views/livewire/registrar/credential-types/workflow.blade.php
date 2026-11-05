@@ -59,7 +59,7 @@
                                 <flux:button size="sm" variant="ghost" icon="arrow-up" wire:click="move({{ $step->id }}, -1)" :disabled="$loop->first" :aria-label="__('Move :name up', ['name' => $step->label()])" />
                                 <flux:button size="sm" variant="ghost" icon="arrow-down" wire:click="move({{ $step->id }}, 1)" :disabled="$loop->last" :aria-label="__('Move :name down', ['name' => $step->label()])" />
                                 <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="editStep({{ $step->id }})" :aria-label="__('Edit task and instructions for :name', ['name' => $step->label()])" />
-                                <flux:button size="sm" variant="ghost" icon="trash" class="text-red-700!" wire:click="remove({{ $step->id }})" wire:confirm="{{ __('Remove :name from this route?', ['name' => $step->label()]) }}" :aria-label="__('Remove :name', ['name' => $step->label()])" />
+                                <flux:button size="sm" variant="ghost" icon="trash" class="text-red-700!" wire:click="remove({{ $step->id }})" data-confirm-title="{{ __('Remove office') }}" data-confirm-label="{{ __('Remove') }}" data-confirm-variant="danger" wire:confirm="{{ __('Remove :name from this route?', ['name' => $step->label()]) }}" :aria-label="__('Remove :name', ['name' => $step->label()])" />
                             </div>
                         </li>
                     @endforeach

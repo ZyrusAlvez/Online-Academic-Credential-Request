@@ -44,7 +44,7 @@
                             <flux:button size="sm" variant="ghost" icon="ellipsis-horizontal" :aria-label="__('Actions for :name', ['name' => $program->name])" />
                             <flux:menu>
                                 <flux:menu.item icon="pencil-square" wire:click="edit({{ $program->id }})">{{ __('Edit') }}</flux:menu.item>
-                                <flux:menu.item :icon="$program->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $program->id }})" :wire:confirm="$program->is_active ? __('Deactivate :name? Requesters will no longer be able to choose it.', ['name' => $program->name]) : null">
+                                <flux:menu.item :icon="$program->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $program->id }})" data-confirm-title="{{ __('Deactivate program') }}" data-confirm-label="{{ __('Deactivate') }}" data-confirm-variant="danger" :wire:confirm="$program->is_active ? __('Deactivate :name? Requesters will no longer be able to choose it.', ['name' => $program->name]) : null">
                                     {{ $program->is_active ? __('Deactivate') : __('Activate') }}
                                 </flux:menu.item>
                             </flux:menu>

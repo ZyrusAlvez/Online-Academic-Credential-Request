@@ -7,6 +7,7 @@ use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\User;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -122,6 +123,39 @@ test('REQ-09-06 deactivating a department or credential type asks for confirmati
     Livewire::actingAs($registrar)->test(CredentialTypesIndex::class)
         ->assertSeeHtml('wire:confirm="Deactivate Diploma?')
         ->assertDontSeeHtml('wire:confirm="Deactivate Retired Form?');
+});
+
+test('REQ-09-13 app pages carry the in-app confirm dialog and label each confirmation', function () {
+    Department::factory()->create(['name' => 'Library']);
+
+    $this->actingAs(User::factory()->registrar()->create())
+        ->get(route('registrar.departments'))
+        ->assertOk()
+        ->assertSee('data-confirm-dialog', false)
+        ->assertSee('data-confirm-title="Deactivate department"', false)
+        ->assertSee('data-confirm-label="Deactivate"', false)
+        ->assertSee('data-confirm-variant="danger"', false)
+        ->assertSee('wire:confirm="Deactivate Library?', false);
+});
+
+test('REQ-09-13 every confirmation goes through the app dialog, never the browser box', function () {
+    $views = collect(File::allFiles(resource_path('views')))->filter(fn ($file) => str_ends_with($file->getFilename(), '.blade.php'));
+    $sources = $views->map(fn ($file) => [$file->getRelativePathname(), $file->getContents()])
+        ->push(['js/app.js', File::get(resource_path('js/app.js'))]);
+
+    foreach ($sources as [$name, $source]) {
+        expect($source)->not->toMatch('/(?<![\w.$])(?:window\.)?(confirm|alert|prompt)\s*\(/', "{$name} calls the browser's dialog")
+            ->not->toContain('wire:confirm.prompt');
+
+        foreach (explode("\n", $source) as $line) {
+            if (preg_match('/\s:?wire:confirm=/', $line)) {
+                expect(str_contains($line, 'data-confirm-title=') && str_contains($line, 'data-confirm-label='))
+                    ->toBeTrue("{$name}: wire:confirm needs data-confirm-title and data-confirm-label");
+            }
+        }
+    }
+
+    expect(File::get(resource_path('views/components/layouts/app/sidebar.blade.php')))->toContain('<x-confirm-dialog />');
 });
 
 test('REQ-09-07 the verify-email page names the address the code was sent to', function () {

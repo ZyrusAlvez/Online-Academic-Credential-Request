@@ -35,7 +35,7 @@
                             <flux:button size="sm" variant="ghost" icon="ellipsis-horizontal" :aria-label="__('Actions for :name', ['name' => $day->name])" />
                             <flux:menu>
                                 <flux:menu.item icon="pencil-square" wire:click="edit({{ $day->id }})">{{ __('Edit') }}</flux:menu.item>
-                                <flux:menu.item icon="trash" variant="danger" wire:click="delete({{ $day->id }})" :wire:confirm="__('Remove :name? Due dates already set do not change.', ['name' => $day->name])">{{ __('Remove') }}</flux:menu.item>
+                                <flux:menu.item icon="trash" variant="danger" wire:click="delete({{ $day->id }})" data-confirm-title="{{ __('Remove non-working day') }}" data-confirm-label="{{ __('Remove') }}" data-confirm-variant="danger" :wire:confirm="__('Remove :name? Due dates already set do not change.', ['name' => $day->name])">{{ __('Remove') }}</flux:menu.item>
                             </flux:menu>
                         </flux:dropdown>
                     </flux:table.cell>

@@ -33,7 +33,7 @@
                             <flux:button size="sm" variant="ghost" icon="ellipsis-horizontal" :aria-label="__('Actions for :name', ['name' => $purpose->name])" />
                             <flux:menu>
                                 <flux:menu.item icon="pencil-square" wire:click="edit({{ $purpose->id }})">{{ __('Edit') }}</flux:menu.item>
-                                <flux:menu.item :icon="$purpose->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $purpose->id }})" :wire:confirm="$purpose->is_active ? __('Deactivate :name? Requesters will no longer be able to choose it.', ['name' => $purpose->name]) : null">
+                                <flux:menu.item :icon="$purpose->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $purpose->id }})" data-confirm-title="{{ __('Deactivate purpose') }}" data-confirm-label="{{ __('Deactivate') }}" data-confirm-variant="danger" :wire:confirm="$purpose->is_active ? __('Deactivate :name? Requesters will no longer be able to choose it.', ['name' => $purpose->name]) : null">
                                     {{ $purpose->is_active ? __('Deactivate') : __('Activate') }}
                                 </flux:menu.item>
                             </flux:menu>

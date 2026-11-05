@@ -64,7 +64,7 @@
                     </p>
                     @if ($idDocument->status === \App\Enums\ReviewStatus::Pending)
                         <div class="flex flex-wrap gap-2">
-                            <flux:button size="sm" variant="primary" icon="check" wire:click="verifyIdentity({{ $idDocument->id }})" :wire:confirm="__('Verify the identity of :name?', ['name' => $owner->name])">{{ __('Verify identity') }}</flux:button>
+                            <flux:button size="sm" variant="primary" icon="check" wire:click="verifyIdentity({{ $idDocument->id }})" data-confirm-title="{{ __('Verify identity') }}" data-confirm-label="{{ __('Verify') }}" :wire:confirm="__('Verify the identity of :name?', ['name' => $owner->name])">{{ __('Verify identity') }}</flux:button>
                             <flux:modal.trigger name="reject-identity">
                                 <flux:button size="sm" variant="ghost" icon="x-mark">{{ __('Reject ID') }}</flux:button>
                             </flux:modal.trigger>
