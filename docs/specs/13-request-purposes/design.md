@@ -19,7 +19,12 @@ requests, and requests made before this list existed keep their free-text purpos
   `install_program_list` does).
 - `Student\Requests\Create` passes the active purposes to the view; `CredentialRequestForm` checks
   the name with an `exists` rule scoped to active purposes.
-- There is no free-text "Other": the registrar adds a purpose when one is missing.
+- "Others (please specify)" is fixed in code, not a row: it is always last and can't be
+  deactivated, so a requester is never stuck when the list lacks their purpose (or is empty). It
+  is a sentinel value of the dropdown (`CredentialRequestForm::OTHER_PURPOSE`); choosing it shows a
+  required `purpose_other` text box, and the typed text is stored as `credential_requests.purpose`
+  (the column's 500-character limit). A purpose that comes up often is one the registrar should add
+  to the list.
 
 ## Starter list
 

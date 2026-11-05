@@ -24,10 +24,12 @@
 
 ### Requester
 - **REQ-13-07** THE SYSTEM SHALL show New Request's "Purpose" as a dropdown of the active purposes
-  in alphabetical order.
-- **REQ-13-08** THE SYSTEM SHALL accept only an active purpose, and SHALL store its name on the
-  request.
+  in alphabetical order, followed by "Others (please specify)".
+- **REQ-13-08** THE SYSTEM SHALL accept only an active purpose or "Others (please specify)", and
+  SHALL store the chosen purpose's name on the request.
 - **REQ-13-09** WHEN a purpose is renamed or deactivated THE SYSTEM SHALL keep the purpose already
   stored on past requests.
-- **REQ-13-10** WHILE no purpose is active THE SYSTEM SHALL tell the requester to contact the Office
-  of the Registrar.
+- **REQ-13-10** WHILE no purpose is active THE SYSTEM SHALL still offer "Others (please specify)".
+- **REQ-13-11** WHEN the requester chooses "Others (please specify)" THE SYSTEM SHALL ask for the
+  purpose in a text box (required, at most 500 characters) and SHALL store what they type as the
+  request's purpose.
