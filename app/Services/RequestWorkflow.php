@@ -55,7 +55,7 @@ class RequestWorkflow
     // ── Submission (spec 04) ───────────────────────────────────────────────────────────────
 
     /**
-     * @param  array{credential_type_id: int, copies: int, purpose: string, receiving_institution?: ?string}  $data
+     * @param  array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $data
      */
     public function submit(User $owner, array $data): CredentialRequest
     {
@@ -73,7 +73,6 @@ class RequestWorkflow
 
             $request = new CredentialRequest([
                 'credential_type_id' => $type->id,
-                'copies' => $data['copies'],
                 'purpose' => $data['purpose'],
                 'receiving_institution' => $type->requires_receiving_institution ? $receivingInstitution : null,
             ]);
@@ -89,9 +88,8 @@ class RequestWorkflow
                 'requester_mode' => RequesterMode::Personal,
                 'requires_payment' => $type->requires_payment,
                 'fee' => $type->requires_payment ? $type->fee : null,
-                'amount_due' => $type->requires_payment && $type->fee !== null
-                    ? number_format((float) $type->fee * $data['copies'], 2, '.', '')
-                    : null,
+                // One request is one document, so the amount due is the fee (REQ-04-03).
+                'amount_due' => $type->requires_payment ? $type->fee : null,
                 'status' => RequestStatus::Submitted,
                 'submitted_at' => now(),
             ])->save();

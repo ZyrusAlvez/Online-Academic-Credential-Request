@@ -8,6 +8,7 @@ use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\User;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -20,7 +21,6 @@ beforeEach(function () {
 test('REQ-04-01 a requester with a complete profile can submit a request', function () {
     Livewire::actingAs($this->owner)->test(Create::class)
         ->set('form.credential_type_id', $this->org->tor->id)
-        ->set('form.copies', 2)
         ->set('form.purpose', 'Employment abroad')
         ->call('submit')
         ->assertHasNoErrors()
@@ -28,7 +28,6 @@ test('REQ-04-01 a requester with a complete profile can submit a request', funct
 
     expect(CredentialRequest::sole())
         ->user_id->toBe($this->owner->id)
-        ->copies->toBe(2)
         ->purpose->toBe('Employment abroad');
 });
 
@@ -58,13 +57,12 @@ test('REQ-04-01 invalid details, inactive types and types without a route are re
     }, $input);
 
     Livewire::actingAs($this->owner)->test(Create::class)
-        ->set(array_merge(['form.credential_type_id' => $this->org->tor->id, 'form.copies' => 1, 'form.purpose' => 'Employment'], $input))
+        ->set(array_merge(['form.credential_type_id' => $this->org->tor->id, 'form.purpose' => 'Employment'], $input))
         ->call('submit')
         ->assertHasErrors($error);
 
     expect(CredentialRequest::count())->toBe(0);
 })->with([
-    'too many copies' => [['form.copies' => 11], 'form.copies'],
     'no purpose' => [['form.purpose' => ''], 'form.purpose'],
     'inactive type' => [['form.credential_type_id' => 'inactive'], 'form.credential_type_id'],
     'type without a route' => [['form.credential_type_id' => 'no-route'], 'form.credential_type_id'],
@@ -84,20 +82,20 @@ test('REQ-04-02 the form shows requirements, fee, period, offices, conditions an
         ->assertSee('Submitting an online request does not automatically mean that your request has been accepted for processing.')
         ->assertSee('Choose a credential…')
         ->assertDontSee('Documentary requirements')
-        ->assertDontSee('₱530.00 per copy')
+        ->assertDontSee('₱530.00')
         ->set('form.credential_type_id', $this->org->tor->id)
-        ->set('form.copies', 2)
         ->assertSee('Documentary requirements')
         ->assertSee('PSA-authenticated birth certificate')
-        ->assertSee('₱530.00 per copy')
-        ->assertSee('₱1,060.00 for 2 copies')
+        ->assertSee('₱530.00')
+        ->assertDontSee('Copies')
+        ->assertDontSee('per copy')
         ->assertSeeInOrder(['7 working days', 'from acceptance'])
         ->assertSeeInOrder(['Office of the VP for Finance', '(documentary stamp)', '(final quality check)'])
         ->assertSee('Bring the original diploma.');
 });
 
 test('REQ-04-03 a submitted request gets a tracking number and snapshots of the profile and fee', function () {
-    $request = submitRequest($this->owner, $this->org->tor, ['copies' => 3]);
+    $request = submitRequest($this->owner, $this->org->tor);
 
     expect($request->status)->toBe(RequestStatus::Submitted)
         ->and($request->reference_no)->toBe(sprintf('CR-%s-%06d', now()->year, $request->id))
@@ -105,7 +103,7 @@ test('REQ-04-03 a submitted request gets a tracking number and snapshots of the 
         ->and($request->accepted_at)->toBeNull()
         ->and($request->due_at)->toBeNull()
         ->and($request->fee)->toBe('530.00')
-        ->and($request->amount_due)->toBe('1590.00')
+        ->and($request->amount_due)->toBe('530.00')
         ->and($request->college_id)->toBe($this->org->ccs->id)
         ->and($request->academic_status)->toBe(AcademicStatus::Graduate)
         ->and($request->program)->toBe($this->owner->program)
@@ -132,4 +130,11 @@ test('REQ-04-04 requesters see only their own requests', function () {
     $this->actingAs($this->owner)->get(route('student.dashboard'))
         ->assertSee($mine->reference_no)->assertDontSee($theirs->reference_no);
     $this->actingAs($this->owner)->get(route('student.requests.show', $theirs))->assertNotFound();
+});
+
+test('REQ-04-01 a request is for one document: there is no number of copies', function () {
+    Livewire::actingAs($this->owner)->test(Create::class)
+        ->assertDontSee('form.copies');
+
+    expect(Schema::hasColumn('credential_requests', 'copies'))->toBeFalse();
 });

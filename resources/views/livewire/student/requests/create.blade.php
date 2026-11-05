@@ -36,10 +36,7 @@
                                 <div>
                                     <dt class="text-xs font-medium uppercase tracking-wide text-zinc-600">{{ __('Fee') }}</dt>
                                     @if ($selectedType->requires_payment && $selectedType->fee !== null)
-                                        <dd class="mt-0.5 font-semibold text-ink">{{ __('₱:fee per copy', ['fee' => number_format((float) $selectedType->fee, 2)]) }}</dd>
-                                        @if (is_numeric($form->copies) && (int) $form->copies > 0)
-                                            <dd class="text-zinc-600">{{ __('₱:total for :n', ['total' => number_format((float) $selectedType->fee * (int) $form->copies, 2), 'n' => trans_choice(':count copy|:count copies', (int) $form->copies)]) }}</dd>
-                                        @endif
+                                        <dd class="mt-0.5 font-semibold text-ink">₱{{ number_format((float) $selectedType->fee, 2) }}</dd>
                                     @else
                                         <dd class="mt-0.5 font-semibold text-ink">{{ $selectedType->requires_payment ? __('Requires payment') : __('Free') }}</dd>
                                     @endif
@@ -96,20 +93,17 @@
 
             {{-- Until the profile is complete the credentials can be browsed but not requested (REQ-01-18). --}}
             <div @class(['space-y-6', 'opacity-50' => $locked]) @if ($locked) inert @endif>
-            <div class="grid gap-6 sm:grid-cols-[8rem_1fr]">
-                <flux:input wire:model.live.debounce.300ms="form.copies" type="number" min="1" max="10" :label="__('Copies')" required />
-                <div class="space-y-3">
-                    <flux:select wire:model.live="form.purpose" :label="__('Purpose')" required>
-                        <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
-                        @foreach ($purposes as $purpose)
-                            <flux:select.option :value="$purpose">{{ $purpose }}</flux:select.option>
-                        @endforeach
-                        <flux:select.option :value="\App\Livewire\Forms\CredentialRequestForm::OTHER_PURPOSE">{{ __('Others (please specify)') }}</flux:select.option>
-                    </flux:select>
-                    @if ($form->purpose === \App\Livewire\Forms\CredentialRequestForm::OTHER_PURPOSE)
-                        <flux:input wire:model="form.purpose_other" :label="__('Please specify')" :placeholder="__('Type the purpose of your request')" maxlength="500" required />
-                    @endif
-                </div>
+            <div class="space-y-3">
+                <flux:select wire:model.live="form.purpose" :label="__('Purpose')" required>
+                    <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
+                    @foreach ($purposes as $purpose)
+                        <flux:select.option :value="$purpose">{{ $purpose }}</flux:select.option>
+                    @endforeach
+                    <flux:select.option :value="\App\Livewire\Forms\CredentialRequestForm::OTHER_PURPOSE">{{ __('Others (please specify)') }}</flux:select.option>
+                </flux:select>
+                @if ($form->purpose === \App\Livewire\Forms\CredentialRequestForm::OTHER_PURPOSE)
+                    <flux:input wire:model="form.purpose_other" :label="__('Please specify')" :placeholder="__('Type the purpose of your request')" maxlength="500" required />
+                @endif
             </div>
 
             @if ($selectedType?->requires_receiving_institution)

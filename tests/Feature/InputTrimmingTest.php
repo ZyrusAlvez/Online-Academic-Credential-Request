@@ -25,7 +25,6 @@ test('request form text is trimmed', function () {
     Livewire::actingAs(requester($org->ccs))->test(Create::class)
         ->set([
             'form.credential_type_id' => $org->free->id,
-            'form.copies' => 1,
             'form.purpose' => '  Employment  ',
             'form.receiving_institution' => '  Ateneo de Manila University ',
         ])

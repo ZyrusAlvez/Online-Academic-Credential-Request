@@ -120,7 +120,7 @@ logged in as several roles at once.
 |---|---|---|---|
 | 1 | Requester (new account) | Register with a real address and consent, verify the email, fill in **My Profile** and upload an ID | **New Request** opens only after the profile and ID are done |
 | 2 | Registrar | **Identity Checks** → verify the new ID | The requester is emailed |
-| 3 | Requester | **New Request** → Transcript of Records, 2 copies | Sees requirements, ₱1,060.00 due, offices, the incomplete-requirements notice; status *Submitted* |
+| 3 | Requester | **New Request** → Transcript of Records | Sees requirements, ₱530.00 due, offices, the incomplete-requirements notice; status *Submitted* |
 | 4 | Registrar | **Requests** → open it → **Start evaluation** → **Requirements incomplete** (tick the PSA birth certificate) | Requester sees the deficiency and the compliance notice |
 | 5 | Registrar | **Record compliance** → **Requirements complete** | Requester gets payment instructions |
 | 6 | Requester | Upload a proof with reference, amount and date | *Payment verification* |

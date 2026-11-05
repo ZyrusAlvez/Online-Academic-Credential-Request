@@ -12,10 +12,10 @@ and queued request notifications, and creates the tables below. It never throws;
 |---|---|
 | reference_no | `CR-YYYY-NNNNNN` tracking number |
 | user_id | owner (requester) |
-| credential_type_id, copies, purpose, receiving_institution | |
+| credential_type_id, purpose, receiving_institution | one document per request (no copies) |
 | college_id, academic_status, program, student_number, attended_from, attended_to | snapshot of the profile |
 | requester_mode | `personal` or `representative` (spec 11) |
-| requires_payment, fee, amount_due | snapshot; amount due = fee × copies |
+| requires_payment, fee, amount_due | snapshot; amount due = the fee |
 | status | `App\Enums\RequestStatus` (14 values, see overview) |
 | submitted_at | |
 | evaluation_started_at, evaluated_by | the evaluator who started it |
@@ -59,10 +59,18 @@ for `customerResponded` is kept on the event that opened the request for custome
 ## Screens
 
 - Requester: the new-request form shows each credential's details and the portal notice, takes
-  academic details from the profile (edited in My Profile) and asks for copies, purpose, receiving
+  academic details from the profile (edited in My Profile) and asks for the purpose, receiving
   school and representative (spec 11). The request page shows the tracker (spec 06), the
   compliance notice and deficiencies, the clarification message and reply form, and the payment
   section.
 - Registrar request page: an action panel per status (start evaluation; evaluation outcomes with a
   requirements checklist; record compliance per deficiency; verify payment & accept / reject;
   resume after customer action), the requester's identity with verify/reject, and cancel.
+
+## Dropping copies (2026-11-05)
+
+The client's workflow has no number of copies, so `credential_requests.copies` is dropped. Before
+the column goes, the migration sets `amount_due = fee` on requests that have not reached payment
+yet (`submitted` through `awaiting_payment`), so nobody is asked to pay for copies that will not
+be made. Requests at `payment_verification` or later keep the amount that was paid.
+

@@ -21,7 +21,6 @@ use Illuminate\Support\Carbon;
  * @property string $reference_no
  * @property int $user_id
  * @property int $college_id
- * @property int $copies
  * @property AcademicStatus $academic_status
  * @property RequesterMode $requester_mode
  * @property bool $requires_payment
@@ -45,7 +44,6 @@ class CredentialRequest extends Model
 
     protected $fillable = [
         'credential_type_id',
-        'copies',
         'purpose',
         'receiving_institution',
     ];
@@ -62,7 +60,6 @@ class CredentialRequest extends Model
             'requires_payment' => 'boolean',
             'fee' => 'decimal:2',
             'amount_due' => 'decimal:2',
-            'copies' => 'integer',
             'attended_from' => 'integer',
             'attended_to' => 'integer',
             'submitted_at' => 'datetime',

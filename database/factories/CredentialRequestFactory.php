@@ -33,7 +33,6 @@ class CredentialRequestFactory extends Factory
             'attended_from' => 2019,
             'attended_to' => 2023,
             'purpose' => fake()->sentence(),
-            'copies' => 1,
             'requires_payment' => false,
             'fee' => null,
             'amount_due' => null,

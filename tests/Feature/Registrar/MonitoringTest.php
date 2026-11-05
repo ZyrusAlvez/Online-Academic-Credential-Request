@@ -91,7 +91,7 @@ test('REQ-07-08 the filtered list downloads as CSV and is registrar-only', funct
     $response = $this->actingAs($this->registrar)->get(route('registrar.requests.export', ['status' => 'processing']));
     $response->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
 
-    expect($response->streamedContent())->toContain('"Tracking no.",Credential,Copies,Requester')
+    expect($response->streamedContent())->toContain('"Tracking no.",Credential,Requester')
         ->toContain('Accepted,Due,"Adjusted due",Released,"Processing working days"')
         ->toContain($request->reference_no)
         ->not->toContain($other->reference_no);

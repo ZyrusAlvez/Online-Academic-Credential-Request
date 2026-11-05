@@ -236,7 +236,6 @@ class DemoSeeder extends Seeder
     {
         return $this->workflow->submit($owner, [
             'credential_type_id' => $type->id,
-            'copies' => fake()->numberBetween(1, 2),
             'purpose' => $purpose,
             'receiving_institution' => $receivingSchool,
         ]);

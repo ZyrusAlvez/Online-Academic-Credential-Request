@@ -3,7 +3,7 @@
 <dl {{ $attributes->class('grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2') }}>
     <div>
         <dt class="text-zinc-500">{{ __('Credential') }}</dt>
-        <dd class="font-medium text-ink">{{ $request->credentialType->name }} &times; {{ $request->copies }}</dd>
+        <dd class="font-medium text-ink">{{ $request->credentialType->name }}</dd>
     </div>
     <div>
         <dt class="text-zinc-500">{{ __('Purpose') }}</dt>
@@ -44,9 +44,6 @@
         <dd class="font-medium text-ink">
             @if ($request->requires_payment)
                 {{ $request->amount_due !== null ? '₱'.number_format((float) $request->amount_due, 2) : __('Required') }}
-                @if ($request->fee !== null && $request->copies > 1)
-                    <span class="text-xs text-zinc-500">({{ $request->copies }} &times; ₱{{ number_format((float) $request->fee, 2) }})</span>
-                @endif
             @else
                 {{ __('None required') }}
             @endif
