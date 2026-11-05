@@ -122,6 +122,7 @@
         {{ $slot }}
 
         <x-toast />
+        <x-confirm-dialog />
 
         @fluxScripts
     </body>

@@ -48,7 +48,7 @@
                             <flux:menu>
                                 <flux:menu.item icon="arrows-right-left" :href="route('registrar.credential-types.workflow', $type)" wire:navigate>{{ __('Edit route') }}</flux:menu.item>
                                 <flux:menu.item icon="pencil-square" wire:click="edit({{ $type->id }})">{{ __('Edit details') }}</flux:menu.item>
-                                <flux:menu.item :icon="$type->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $type->id }})" :wire:confirm="$type->is_active ? __('Deactivate :name? Requesters will no longer be able to request it.', ['name' => $type->name]) : null">
+                                <flux:menu.item :icon="$type->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $type->id }})" data-confirm-title="{{ __('Deactivate credential type') }}" data-confirm-label="{{ __('Deactivate') }}" data-confirm-variant="danger" :wire:confirm="$type->is_active ? __('Deactivate :name? Requesters will no longer be able to request it.', ['name' => $type->name]) : null">
                                     {{ $type->is_active ? __('Deactivate') : __('Activate') }}
                                 </flux:menu.item>
                             </flux:menu>

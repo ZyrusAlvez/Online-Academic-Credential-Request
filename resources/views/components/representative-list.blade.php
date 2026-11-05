@@ -31,7 +31,7 @@
             @endif
             @if ($reviewable && $representative->status === \App\Enums\ReviewStatus::Pending)
                 <div class="flex flex-wrap gap-2">
-                    <flux:button size="sm" variant="primary" icon="check" wire:click="verifyRepresentative({{ $representative->id }})" :wire:confirm="__('Confirm that the SPA and the IDs of the owner and :name were checked.', ['name' => $representative->full_name])">{{ __('Verify') }}</flux:button>
+                    <flux:button size="sm" variant="primary" icon="check" wire:click="verifyRepresentative({{ $representative->id }})" data-confirm-title="{{ __('Verify representative') }}" data-confirm-label="{{ __('Verify') }}" :wire:confirm="__('Confirm that the SPA and the IDs of the owner and :name were checked.', ['name' => $representative->full_name])">{{ __('Verify') }}</flux:button>
                     <flux:button size="sm" variant="ghost" icon="x-mark" wire:click="confirmRejectRepresentative({{ $representative->id }})">{{ __('Reject') }}</flux:button>
                 </div>
             @endif

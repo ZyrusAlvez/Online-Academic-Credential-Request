@@ -55,7 +55,7 @@
                     <flux:table.cell align="end">
                         @if ($document && $document->status === \App\Enums\ReviewStatus::Pending)
                             <div class="flex justify-end gap-2">
-                                <flux:button size="sm" variant="primary" icon="check" wire:click="verify({{ $document->id }})" :wire:confirm="__('Verify the identity of :name?', ['name' => $requester->name])">{{ __('Verify') }}</flux:button>
+                                <flux:button size="sm" variant="primary" icon="check" wire:click="verify({{ $document->id }})" data-confirm-title="{{ __('Verify identity') }}" data-confirm-label="{{ __('Verify') }}" :wire:confirm="__('Verify the identity of :name?', ['name' => $requester->name])">{{ __('Verify') }}</flux:button>
                                 <flux:button size="sm" variant="ghost" icon="x-mark" wire:click="confirmReject({{ $document->id }})">{{ __('Reject') }}</flux:button>
                             </div>
                         @elseif ($requester->hasLockedName())

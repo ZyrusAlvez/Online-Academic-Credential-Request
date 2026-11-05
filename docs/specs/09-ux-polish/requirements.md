@@ -9,6 +9,8 @@
   to the registrar or paste it in the payment portal.
 - **US-09-4** As the registrar, I want a second chance before I deactivate something, so that one
   mis-click doesn't lock out a staff member or pull a credential from students.
+- **US-09-5** As the registrar, I want confirmations to look like the rest of the app, so that they
+  don't show the site's address like a browser warning and name the action I'm about to take.
 
 ## Acceptance criteria
 
@@ -34,6 +36,10 @@
 ### Confirmations
 - **REQ-09-06** WHEN the registrar deactivates an account, a department or a credential type THE
   SYSTEM SHALL ask for confirmation first. Activating needs no confirmation.
+- **REQ-09-13** WHEN THE SYSTEM asks for confirmation (deactivating, removing, verifying an
+  identity or a representative) it SHALL do so in its own dialog, in the app's style, with a title,
+  the message, a Cancel button and a confirm button named after the action, and never with the
+  browser's built-in confirm or alert box.
 
 ### Notifications on screen
 - **REQ-09-08** THE SYSTEM SHALL show toast notifications at the top centre of the screen on every

@@ -27,5 +27,20 @@ page's header.
 
 ## Confirmations
 
-Deactivate menu items get `wire:confirm`, the same native dialog already used to remove a
-workflow step and to mark a request released. The confirm text says what deactivation does.
+Deactivate menu items get `wire:confirm`, like removing a workflow step, a non-working day, and
+verifying an identity or a representative. The confirm text says what the action does.
+
+`wire:confirm` keeps the markup, but the browser's dialog is replaced (REQ-09-13). Livewire's
+built-in directive stores `el.__livewire_confirm(action, cancel)` and calls it on click;
+`resources/js/app.js` hooks `directive.init` (which runs after the built-in handler) and replaces it
+with one that dispatches a `confirm-action` window event carrying the message and the `action`
+callback. `<x-confirm-dialog>`, in the app layout next to `<x-toast>`, is a Flux modal that shows
+it and runs `action` only on the confirm button; Cancel, Esc or a click outside does nothing.
+Optional attributes on the same element style it: `data-confirm-title` (default "Please confirm"),
+`data-confirm-label` (default "Confirm") and `data-confirm-variant="danger"` for destructive
+actions. On a page without the dialog the hook leaves Livewire's native handler in place, so a
+confirmation is never skipped. `wire:confirm.prompt` is not used (it would still be native).
+
+The hook relies on `__livewire_confirm`, an internal of Livewire 4 (checked on 4.4.8). If a
+Livewire upgrade renames it, the hook stops matching and confirmations fall back to the native
+dialog; they don't disappear.
