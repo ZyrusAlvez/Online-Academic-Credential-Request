@@ -13,7 +13,7 @@ function registerForm(array $overrides = []): Testable
 {
     $component = Volt::test('auth.register');
 
-    foreach (array_merge(['email' => 'juan@example.com', 'password' => 'password123'], $overrides) as $field => $value) {
+    foreach (array_merge(['email' => 'juan@example.com', 'password' => 'Password123!'], $overrides) as $field => $value) {
         $component->set($field, $value);
     }
 
@@ -50,7 +50,7 @@ test('REQ-01-02 self-registered accounts are always students', function () {
 test('REQ-01-02 role and activation cannot be mass assigned', function () {
     expect(fn () => User::create([
         'first_name' => 'Eve', 'last_name' => 'Mallory', 'email' => 'eve@example.com',
-        'password' => 'password123', 'role' => 'registrar',
+        'password' => 'Password123!', 'role' => 'registrar',
     ]))->toThrow(MassAssignmentException::class);
 
     expect(User::count())->toBe(0);
@@ -62,11 +62,40 @@ test('REQ-01-03 registration is rejected for a duplicate email', function () {
     registerForm()->assertHasErrors(['email' => 'unique']);
 });
 
-test('REQ-01-03 registration is rejected for an invalid email or a too-short password', function () {
+test('REQ-01-03 registration is rejected for an invalid email', function () {
     registerForm(['email' => 'not-an-email'])->assertHasErrors(['email' => 'email']);
-    registerForm(['password' => 'short'])->assertHasErrors(['password']);
 
     expect(User::count())->toBe(0);
+});
+
+test('REQ-01-03 registration is rejected for a weak password', function (string $password) {
+    registerForm(['password' => $password])->assertHasErrors(['password']);
+
+    expect(User::count())->toBe(0);
+})->with([
+    'shorter than 8 characters' => 'Pass1!',
+    'no uppercase letter' => 'password123!',
+    'no lowercase letter' => 'PASSWORD123!',
+    'no number' => 'Password!!',
+    'no special character' => 'Password123',
+]);
+
+test('REQ-01-03 the password rules also apply when changing or resetting a password', function () {
+    $this->actingAs(User::factory()->create());
+
+    Volt::test('settings.password')
+        ->set('current_password', 'password')
+        ->set('password', 'password123')
+        ->set('password_confirmation', 'password123')
+        ->call('updatePassword')
+        ->assertHasErrors(['password']);
+
+    Volt::test('auth.reset-password', ['token' => 'token'])
+        ->set('email', 'juan@example.com')
+        ->set('password', 'password123')
+        ->set('password_confirmation', 'password123')
+        ->call('resetPassword')
+        ->assertHasErrors(['password']);
 });
 
 test('REQ-01-04 registration emails a verification code and logs the student in', function () {
