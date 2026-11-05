@@ -102,6 +102,17 @@ Programs and strands by college (spec 12), kept by the registrar and offered on 
 | is_active | tinyint(1) | No | IX | 1 | Inactive programs are not offered to requesters |
 | created_at, updated_at | timestamp | Yes | | | |
 
+## purposes
+
+Request purposes (spec 13), kept by the registrar and offered on New Request. Never deleted, only deactivated. `credential_requests.purpose` holds a copy of the name, so a later rename doesn't change past requests.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| name | varchar(150) | No | UQ | | e.g. "Employment abroad" |
+| is_active | tinyint(1) | No | IX | 1 | Inactive purposes are not offered to requesters |
+| created_at, updated_at | timestamp | Yes | | | |
+
 ## credential_types
 
 The credential master list (spec 03): documents requesters can ask for. Never deleted, only deactivated.
@@ -148,7 +159,7 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 | user_id | bigint unsigned | No | FK → users, IX (with created_at) | | The document owner (requester) |
 | credential_type_id | bigint unsigned | No | FK → credential_types | | |
 | copies | tinyint unsigned | No | | 1 | 1–10 |
-| purpose | varchar(500) | No | | | |
+| purpose | varchar(500) | No | | | A copy of the chosen purpose's name (spec 13); older requests keep their free text |
 | receiving_institution | varchar(255) | Yes | | | Receiving school (required for transfer credentials) |
 | college_id | bigint unsigned | No | FK → departments | | Snapshot of the requester's college; resolves the Dean step |
 | academic_status | varchar(20) | No | | | Snapshot (see [AcademicStatus](#academicstatus)) |

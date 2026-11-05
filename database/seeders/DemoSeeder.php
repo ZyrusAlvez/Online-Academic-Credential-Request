@@ -47,7 +47,7 @@ class DemoSeeder extends Seeder
             throw new RuntimeException('The demo seeder only runs in the local and staging environments.');
         }
 
-        $this->call([DepartmentSeeder::class, ProgramSeeder::class, CredentialTypeSeeder::class, RegistrarSeeder::class, NonWorkingDaySeeder::class]);
+        $this->call([DepartmentSeeder::class, ProgramSeeder::class, PurposeSeeder::class, CredentialTypeSeeder::class, RegistrarSeeder::class, NonWorkingDaySeeder::class]);
 
         $this->workflow = $workflow;
         $this->registrar = User::where('role', Role::Registrar)->orderBy('id')->firstOrFail();
@@ -90,7 +90,7 @@ class DemoSeeder extends Seeder
 
             // Pending compliance: two missing originals, one already brought in.
             $this->at(3, function () use ($jose, $tor): void {
-                $request = $this->submit($jose, $tor, 'Board examination');
+                $request = $this->submit($jose, $tor, 'Board or licensure examination');
                 $this->workflow->startEvaluation($request, $this->registrar);
                 $this->workflow->requestCompliance($request, $this->registrar, [
                     'Form 137 or the UPHSL copy of the previous Transcript of Records',
@@ -102,14 +102,14 @@ class DemoSeeder extends Seeder
 
             // Returned for customer action before acceptance (clarification).
             $this->at(2, function () use ($ana, $type): void {
-                $request = $this->submit($ana, $type('Copy of Grades'), 'Job application');
+                $request = $this->submit($ana, $type('Copy of Grades'), 'Employment');
                 $this->workflow->startEvaluation($request, $this->registrar);
                 $this->workflow->requestCustomerAction($request, $this->registrar, 'Our records show two enrollments under different names. Please confirm the name used in 2021.');
             });
 
             // Awaiting payment.
             $this->at(2, function () use ($maria, $type): void {
-                $request = $this->submit($maria, $type('Course Description'), 'Credit evaluation abroad');
+                $request = $this->submit($maria, $type('Course Description'), 'Further studies');
                 $this->evaluate($request);
             });
 
@@ -125,7 +125,7 @@ class DemoSeeder extends Seeder
 
             // In progress: received by the Dean of CBA.
             $this->at(5, function () use ($maria, $tor): void {
-                $request = $this->accepted($maria, $tor, 'Graduate school application');
+                $request = $this->accepted($maria, $tor, 'Further studies');
                 $this->advanceUntil($request, 'CBA', receive: true);
             });
 
@@ -140,7 +140,7 @@ class DemoSeeder extends Seeder
 
             // For final approval: back at the Registrar for the final quality check.
             $this->at(7, function () use ($jose, $type): void {
-                $request = $this->accepted($jose, $type('Transfer Certificate'), 'Transfer', 'Polytechnic University of the Philippines');
+                $request = $this->accepted($jose, $type('Transfer Certificate'), 'Transfer to another school', 'Polytechnic University of the Philippines');
                 $this->advanceUntil($request, Department::REGISTRAR_CODE, receive: true, finalCheck: true);
             });
 
@@ -155,7 +155,7 @@ class DemoSeeder extends Seeder
 
             // Released on time.
             $this->at(14, function () use ($juan, $type): void {
-                $request = $this->accepted($juan, $type('Certification of Enrollment'), 'Visa application');
+                $request = $this->accepted($juan, $type('Certification of Enrollment'), 'Visa or immigration');
                 $this->advanceUntil($request, null);
                 $this->later(20);
                 $this->release($request, $juan->name);
@@ -173,7 +173,7 @@ class DemoSeeder extends Seeder
 
             // Overdue: waiting for the Chancellor's signature, with a delay reason.
             $this->at(21, function () use ($maria, $tor): void {
-                $request = $this->accepted($maria, $tor, 'Board examination');
+                $request = $this->accepted($maria, $tor, 'Board or licensure examination');
                 $this->advanceUntil($request, 'CHAN', receive: true);
                 $this->later(48);
                 $this->workflow->recordDelay($request, $this->staff['CHAN'], DelayCategory::PendingSignature, 'The Chancellor is attending a conference abroad.', 'Signing scheduled on return.');
@@ -196,7 +196,7 @@ class DemoSeeder extends Seeder
 
             // Cancelled by the requester.
             $this->at(3, function () use ($jose, $type): void {
-                $request = $this->submit($jose, $type('Medium of Instruction'), 'Scholarship');
+                $request = $this->submit($jose, $type('Medium of Instruction'), 'Scholarship application');
                 $this->workflow->cancel($request, $jose, 'Requested the wrong document.');
             });
         });

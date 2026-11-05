@@ -19,6 +19,7 @@
             <flux:navlist.item icon="document-duplicate" :href="route('registrar.credential-types')" :current="request()->routeIs('registrar.credential-types*')" wire:navigate>{{ __('Credential Types') }}</flux:navlist.item>
             <flux:navlist.item icon="building-office-2" :href="route('registrar.departments')" :current="request()->routeIs('registrar.departments')" wire:navigate>{{ __('Departments') }}</flux:navlist.item>
             <flux:navlist.item icon="academic-cap" :href="route('registrar.programs')" :current="request()->routeIs('registrar.programs')" wire:navigate>{{ __('Programs') }}</flux:navlist.item>
+            <flux:navlist.item icon="clipboard-document-list" :href="route('registrar.purposes')" :current="request()->routeIs('registrar.purposes')" wire:navigate>{{ __('Purposes') }}</flux:navlist.item>
             <flux:navlist.item icon="users" :href="route('registrar.users')" :current="request()->routeIs('registrar.users')" wire:navigate>{{ __('Accounts') }}</flux:navlist.item>
             <flux:navlist.item icon="calendar-days" :href="route('registrar.calendar')" :current="request()->routeIs('registrar.calendar')" wire:navigate>{{ __('Working Calendar') }}</flux:navlist.item>
         </flux:navlist.group>

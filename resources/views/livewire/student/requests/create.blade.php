@@ -97,7 +97,17 @@
             <div @class(['space-y-6', 'opacity-50' => $locked]) @if ($locked) inert @endif>
             <div class="grid gap-6 sm:grid-cols-[8rem_1fr]">
                 <flux:input wire:model.live.debounce.300ms="form.copies" type="number" min="1" max="10" :label="__('Copies')" required />
-                <flux:input wire:model="form.purpose" :label="__('Purpose')" :placeholder="__('e.g. Employment, board exam, transfer')" required />
+                <div>
+                    <flux:select wire:model="form.purpose" :label="__('Purpose')" :disabled="$purposes->isEmpty()" required>
+                        <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
+                        @foreach ($purposes as $purpose)
+                            <flux:select.option :value="$purpose">{{ $purpose }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    @if ($purposes->isEmpty())
+                        <p class="mt-2 text-sm text-zinc-600">{{ __('No purposes are listed yet. Please contact the Office of the Registrar.') }}</p>
+                    @endif
+                </div>
             </div>
 
             @if ($selectedType?->requires_receiving_institution)

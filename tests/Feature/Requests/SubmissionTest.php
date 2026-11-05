@@ -37,7 +37,7 @@ test('REQ-04-01 the receiving school is required when the credential type says s
 
     Livewire::actingAs($this->owner)->test(Create::class)
         ->set('form.credential_type_id', $transfer->id)
-        ->set('form.purpose', 'Transfer')
+        ->set('form.purpose', 'Transfer to another school')
         ->call('submit')
         ->assertHasErrors('form.receiving_institution')
         ->set('form.receiving_institution', 'Polytechnic University of the Philippines')
