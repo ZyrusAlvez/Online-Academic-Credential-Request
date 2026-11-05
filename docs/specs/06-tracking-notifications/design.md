@@ -14,9 +14,16 @@ internal returns and resubmissions, delay notes, bypasses).
 summary, remarks, and (registrar only) the actor's name and role. Requester pages pass only
 non-internal events; only the registrar passes `show-actors`.
 
-`<x-request-tracker :request>` — the requester's progress tracker (*Proposed Workflow*, sample
+`<x-request-tracker :request :events>` — the requester's progress tracker (*Proposed Workflow*, sample
 customer portal): five milestones with done / current / upcoming states, the office holding the
-document, and the processing period and expected release date once accepted.
+document, and the processing period and expected release date once accepted. It is drawn as a
+step bar (like a parcel tracker): an outlined icon circle per milestone (green when done, filled
+primary when current, grey when upcoming), a line between circles that is green once the next
+milestone is reached, and the date under each finished milestone. A row of five on `sm` and up,
+a column below `sm`. Below the bar, a panel describes the current milestone (e.g. "Currently with
+College of Computer Studies"). Dates come from `requirements_completed_at`, `accepted_at`,
+`ready_at` and `released_at`; "Processing in progress" has no column, so its date is the first
+ledger event whose `to_status` is `for_final_approval` (from the `events` the page already loads).
 
 `<x-office-visits :visits>` — the internal monitoring table: office, date received, date
 released, working days spent, status (registrar and office pages).
