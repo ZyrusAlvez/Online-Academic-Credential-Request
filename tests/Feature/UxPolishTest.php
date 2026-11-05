@@ -150,3 +150,22 @@ test('REQ-09-09 the requester sidebar has no group heading and lists New Request
         ->and(strpos($nav, 'New Request'))->toBeLessThan(strpos($nav, 'My Requests'))
         ->and(strpos($nav, 'My Requests'))->toBeLessThan(strpos($nav, 'My Profile'));
 });
+
+test('REQ-09-10 the incomplete-requirements notice is collapsed between "Who will transact?" and Submit', function () {
+    $org = organisation();
+    $heading = 'Important notice: incomplete requirements';
+
+    $unlocked = $this->actingAs(requester($org->ccs))->get(route('student.requests.create'))->assertOk()
+        ->assertSeeInOrder(['3. Who will transact?', $heading, 'Submit request'])
+        ->getContent();
+
+    $notice = Str::between($unlocked, '<details', '</details>');
+    expect(Str::before($notice, '>'))->not->toContain(' open')
+        ->and(Str::between($notice, '<summary', '</summary>'))->toContain($heading)
+        ->and(Str::after($notice, '</summary>'))->toContain('Submitting an online request does not automatically mean');
+
+    // While the profile is incomplete the form is inert, but the notice can still be opened.
+    $locked = $this->actingAs(User::factory()->student()->create())->get(route('student.requests.create'))->assertOk()->getContent();
+    expect(Str::before($locked, '<details'))->toContain(' inert')
+        ->and(Str::after($locked, '<details'))->not->toContain(' inert');
+});

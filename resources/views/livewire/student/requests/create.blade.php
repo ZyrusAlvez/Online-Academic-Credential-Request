@@ -8,17 +8,6 @@
 
     <x-profile-required-callout :user="$owner" />
 
-    {{-- The client's portal notice (Proposed Workflow, III-D), shown before every submission. --}}
-    <flux:callout icon="exclamation-triangle" color="amber">
-        <flux:callout.heading>{{ __('Important notice: incomplete requirements') }}</flux:callout.heading>
-        <flux:callout.text>
-            <span class="block">{{ __('Before submitting your online request for academic credentials, please ensure that your admission requirements and clearance are complete.') }}</span>
-            <span class="mt-2 block">{{ __('If your records indicate that you have lacking admission requirements, such as Form 137, the required UPHSL copy of your previous Transcript of Records, a PSA-authenticated birth certificate, or other applicable documents, you must first submit the original required documents to the Registrar\'s Office of the University of Perpetual Help System Laguna (UPHSL). You will also be required to accomplish the appropriate clearance form and complete the necessary clearance process.') }}</span>
-            <span class="mt-2 block">{{ __('You must visit the University personally or send an authorized representative on your behalf. A representative must present a valid Special Power of Attorney (SPA) authorizing them to act on your behalf, together with the valid IDs of both the document owner and the representative, subject to University verification.') }}</span>
-            <span class="mt-2 block font-medium">{{ __('Your online request will remain pending until the deficiencies have been resolved and verified by the Registrar\'s Office. The prescribed processing period will begin only after all applicable requirements and clearance have been completed, payment has been verified, and the request has been officially accepted. Submitting an online request does not automatically mean that your request has been accepted for processing.') }}</span>
-        </flux:callout.text>
-    </flux:callout>
-
     <form wire:submit="submit" class="space-y-8">
         <section aria-labelledby="what-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <h2 id="what-heading" class="text-lg font-semibold text-primary">{{ __('1. What do you need?') }}</h2>
@@ -160,11 +149,28 @@
                 <div wire:loading wire:target="spa,representativeId" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
             @endif
         </section>
+        </div>
+
+        {{-- The client's portal notice (Proposed Workflow, III-D), shown before every submission (REQ-04-02),
+             collapsed to its heading (REQ-09-10). Outside the locked block so it can always be opened;
+             wire:ignore.self keeps it open across re-renders. --}}
+        <details wire:ignore.self class="group rounded-xl border border-amber-500 bg-amber-50">
+            <summary class="flex cursor-pointer list-none items-center gap-3 rounded-xl p-4 font-medium text-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight [&::-webkit-details-marker]:hidden">
+                <flux:icon.exclamation-triangle variant="mini" class="shrink-0 text-amber-600" />
+                <span class="flex-1">{{ __('Important notice: incomplete requirements') }}</span>
+                <flux:icon.chevron-down variant="mini" class="shrink-0 text-amber-700 transition-transform group-open:rotate-180" />
+            </summary>
+            <div class="space-y-2 px-4 pb-4 text-sm text-amber-950 sm:pl-12">
+                <p>{{ __('Before submitting your online request for academic credentials, please ensure that your admission requirements and clearance are complete.') }}</p>
+                <p>{{ __('If your records indicate that you have lacking admission requirements, such as Form 137, the required UPHSL copy of your previous Transcript of Records, a PSA-authenticated birth certificate, or other applicable documents, you must first submit the original required documents to the Registrar\'s Office of the University of Perpetual Help System Laguna (UPHSL). You will also be required to accomplish the appropriate clearance form and complete the necessary clearance process.') }}</p>
+                <p>{{ __('You must visit the University personally or send an authorized representative on your behalf. A representative must present a valid Special Power of Attorney (SPA) authorizing them to act on your behalf, together with the valid IDs of both the document owner and the representative, subject to University verification.') }}</p>
+                <p class="font-medium">{{ __('Your online request will remain pending until the deficiencies have been resolved and verified by the Registrar\'s Office. The prescribed processing period will begin only after all applicable requirements and clearance have been completed, payment has been verified, and the request has been officially accepted. Submitting an online request does not automatically mean that your request has been accepted for processing.') }}</p>
+            </div>
+        </details>
 
         <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <flux:button :href="route('student.dashboard')" variant="ghost" wire:navigate>{{ __('Cancel') }}</flux:button>
             <flux:button type="submit" variant="primary" icon-trailing="arrow-right" :disabled="$locked" wire:loading.attr="disabled" wire:target="spa,representativeId,submit">{{ __('Submit request') }}</flux:button>
-        </div>
         </div>
     </form>
 </div>
