@@ -609,3 +609,12 @@ test('REQ-01-21 the new-request form takes the academic details from the profile
         ->assertSee('BS Information Technology')
         ->assertSee('19-0001-123');
 });
+
+test('My Profile shows the step label only on the summary; while editing it is for screen readers', function () {
+    Livewire::actingAs($this->student)->test(Profile::class)
+        ->assertSeeHtml('class="text-sm font-semibold text-ink outline-none sr-only"');
+
+    reviewProfile()
+        ->assertSee('Step 2 of 2: Review and confirm')
+        ->assertDontSeeHtml('outline-none sr-only');
+});
