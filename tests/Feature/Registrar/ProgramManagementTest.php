@@ -65,6 +65,19 @@ test('REQ-12-03 the registrar can search and filter programs', function () {
         ->assertDontSee('Bachelor of Arts in Communication');
 });
 
+test('REQ-12-03 the Programs page calls a college a department', function () {
+    Program::factory()->for($this->college, 'college')->create(['name' => 'Bachelor of Arts']);
+
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->assertSee('All departments')
+        ->assertDontSee('All colleges')
+        ->call('create')
+        ->set('form.department_id', $this->college->id)
+        ->set('form.name', 'Bachelor of Arts')
+        ->call('save')
+        ->assertHasErrors(['form.name' => 'This department already has a program with that name.']);
+});
+
 test('REQ-12-04 the registrar can add a program and edit it', function () {
     $component = Livewire::actingAs($this->registrar)->test(Index::class)
         ->call('create')
