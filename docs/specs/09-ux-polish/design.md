@@ -46,6 +46,25 @@ Optional attributes on the same element style it: `data-confirm-title` (default 
 actions. On a page without the dialog the hook leaves Livewire's native handler in place, so a
 confirmation is never skipped. `wire:confirm.prompt` is not used (it would still be native).
 
+## File viewer (REQ-09-14, 15)
+
+- `<x-file-link :href :name :type>` replaces the plain links to uploaded files: ID lists, payment
+  proofs, representative documents, Identity Checks and the registrar's request page. It is still
+  a real link (`target="_blank"`), so it works without JavaScript and with Ctrl, ⌘ or middle click.
+  A plain left click is intercepted by Alpine, which dispatches an `open-file` window event with
+  the URL, the name and the MIME type. It is marked `aria-haspopup="dialog"`.
+- `<x-file-viewer>`, in the app layout next to `<x-confirm-dialog>`, is a Flux modal (Esc,
+  focus trap and focus return come from the native dialog):
+  - an image is fitted to the viewport and toggles to full size, scrolling, with a Zoom button or
+    a click on the image;
+  - a PDF loads in an `<iframe>`, which works because the file routes are same-origin and send no
+    frame-blocking header;
+  - any other type shows a note and the Download button.
+  - The source is cleared on close so the file isn't kept in memory.
+- Downloads: the three file controllers share `ServesPrivateFile::serveFile()`. With `?download=1`
+  it answers `Content-Disposition: attachment`, otherwise `inline`, after the same policy check,
+  with `no-store` caching and `nosniff`.
+
 The hook relies on `__livewire_confirm`, an internal of Livewire 4 (checked on 4.4.8). If a
 Livewire upgrade renames it, the hook stops matching and confirmations fall back to the native
 dialog; they don't disappear.
