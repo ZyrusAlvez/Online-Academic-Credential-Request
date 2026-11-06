@@ -158,7 +158,7 @@ class RequesterProfileForm extends Form
             'Academic information' => [
                 'Status' => (string) AcademicStatus::tryFrom($this->academic_status)?->label(),
                 'College' => (string) Department::query()->whereKey($this->college_id)->value('name'),
-                'Program or strand' => $this->program,
+                'Program' => $this->program,
                 'Student number' => filled($this->student_number) ? $this->student_number : 'Not provided',
                 'Years attended' => "{$this->attended_from} to {$this->attended_to}",
             ],

@@ -88,6 +88,20 @@ function uploadId(?User $user = null): IdentityDocument
     return IdentityDocument::latest('id')->firstOrFail();
 }
 
+test('REQ-12-07 My Profile labels the program dropdown "Program"', function () {
+    $this->actingAs($this->student)->get(route('student.profile'))
+        ->assertOk()->assertSee('Program')->assertDontSee('Program or strand');
+
+    reviewProfile()->assertSee('Program')->assertDontSee('Program or strand');
+});
+
+test('REQ-01-22 the chosen ID file name is a link that previews it in the file viewer', function () {
+    $this->actingAs($this->student)->get(route('student.profile'))
+        ->assertOk()
+        ->assertSee('data-id-preview', false)
+        ->assertSee("\$dispatch('open-file', chosen)", false);
+});
+
 test('REQ-01-16 a requester can save their academic information; the student number is optional', function () {
     fillProfile()->assertHasNoErrors();
 
