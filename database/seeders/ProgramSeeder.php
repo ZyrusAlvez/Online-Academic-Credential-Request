@@ -7,70 +7,93 @@ use App\Models\Program;
 use Illuminate\Database\Seeder;
 
 /**
- * UPHSL's 34 published programs, by the college codes of the client's office list (spec 12). The
- * site names some colleges differently; Architecture sits with Aviation here, as on that list.
- * Only adds what is missing, so running it again keeps the registrar's changes.
+ * The 27 programs of the 2026-11-06 list, by college code (spec 12, REQ-12-12). Only adds what is
+ * missing, so running it again keeps the registrar's changes.
  */
 class ProgramSeeder extends Seeder
 {
     /** @var array<string, list<string>> */
     public const PROGRAMS = [
         'CAS' => [
-            'BA Communication',
-            'BA Political Science',
-            'BA/BS Psychology',
+            'Bachelor of Arts in Communication',
+            'Bachelor of Arts in Political Science',
+            'Bachelor of Arts/Science in Psychology',
         ],
-        'CAA' => [
-            'BS Aircraft Maintenance and Technology',
-            'BS Architecture',
-            'BS Aviation Electronics Technology',
+        'SOA' => [
+            'Bachelor of Science in Aircraft Maintenance and Technology',
+            'Bachelor of Science in Aviation Electronics Technology',
         ],
         'BED' => [
-            'Basic Education (K–12)',
+            'Basic Education',
         ],
-        'CBA' => [
-            'BS Accountancy',
-            'BS Business Administration',
-            'BS Management Accounting',
-            'BS Real Estate Management',
+        'CBAA' => [
+            'Bachelor of Science in Accountancy',
+            'Bachelor of Science in Business Administration',
+            'Bachelor of Science in Real Estate Management',
         ],
         'CCS' => [
-            'BS Computer Science, Specialization in Data Science',
-            'BS Entertainment and Multimedia Computing',
-            'BS Information Technology in Cybersecurity and Forensics',
-            'BS Information Technology, Specialization in Game Development',
+            'Bachelor of Information Technology in Cybersecurity and Forensics',
+            'Bachelor of Science in Computer Science, Specialization in Data Science',
+            'Bachelor of Science in Entertainment and Multimedia Computing',
         ],
-        'CRIM' => [
-            'BS Criminology',
+        'CCJE' => [
+            'Bachelor of Science in Criminology',
         ],
-        'COED' => [
+        'CTE' => [
             'Bachelor of Early Childhood Education',
             'Bachelor of Elementary Education',
             'Bachelor of Library and Information Science',
             'Bachelor of Physical Education',
             'Bachelor of Secondary Education',
-            'Bachelor of Special Needs Education',
         ],
-        'COE' => [
-            'BS Civil Engineering',
-            'BS Computer Engineering',
-            'BS Electrical Engineering',
-            'BS Electronics Engineering',
-            'BS Industrial Engineering',
-            'BS Mechanical Engineering',
+        'CEA' => [
+            'Bachelor of Science in Architecture',
+            'Bachelor of Science in Civil Engineering',
+            'Bachelor of Science in Computer Engineering',
+            'Bachelor of Science in Industrial Engineering',
         ],
         'GS' => [
-            "Graduate School (Master's and Doctoral Programs)",
+            'Graduate School',
         ],
-        'CIHM' => [
-            'BS Hospitality Management',
-            'BS Nutrition and Dietetics',
-            'BS Tourism Management',
+        'CNHTM' => [
+            'Bachelor of Science in Hospitality Management',
+            'Bachelor of Science in Nutrition & Dietetics',
+            'Bachelor of Science in Tourism Management',
         ],
         'CME' => [
-            'BS Marine Engineering',
-            'BS Marine Transportation',
+            'Bachelor of Science in Marine Transportation',
         ],
+    ];
+
+    /**
+     * Programs of the earlier list that continue under a new name, old name => new name, so
+     * requesters' saved programs follow (REQ-12-12). Dropped programs are not listed.
+     *
+     * @var array<string, string>
+     */
+    public const RENAMES = [
+        'BA Communication' => 'Bachelor of Arts in Communication',
+        'BA Political Science' => 'Bachelor of Arts in Political Science',
+        'BA/BS Psychology' => 'Bachelor of Arts/Science in Psychology',
+        'BS Aircraft Maintenance and Technology' => 'Bachelor of Science in Aircraft Maintenance and Technology',
+        'BS Architecture' => 'Bachelor of Science in Architecture',
+        'BS Aviation Electronics Technology' => 'Bachelor of Science in Aviation Electronics Technology',
+        'Basic Education (K–12)' => 'Basic Education',
+        'BS Accountancy' => 'Bachelor of Science in Accountancy',
+        'BS Business Administration' => 'Bachelor of Science in Business Administration',
+        'BS Real Estate Management' => 'Bachelor of Science in Real Estate Management',
+        'BS Computer Science, Specialization in Data Science' => 'Bachelor of Science in Computer Science, Specialization in Data Science',
+        'BS Entertainment and Multimedia Computing' => 'Bachelor of Science in Entertainment and Multimedia Computing',
+        'BS Information Technology in Cybersecurity and Forensics' => 'Bachelor of Information Technology in Cybersecurity and Forensics',
+        'BS Criminology' => 'Bachelor of Science in Criminology',
+        'BS Civil Engineering' => 'Bachelor of Science in Civil Engineering',
+        'BS Computer Engineering' => 'Bachelor of Science in Computer Engineering',
+        'BS Industrial Engineering' => 'Bachelor of Science in Industrial Engineering',
+        "Graduate School (Master's and Doctoral Programs)" => 'Graduate School',
+        'BS Hospitality Management' => 'Bachelor of Science in Hospitality Management',
+        'BS Nutrition and Dietetics' => 'Bachelor of Science in Nutrition & Dietetics',
+        'BS Tourism Management' => 'Bachelor of Science in Tourism Management',
+        'BS Marine Transportation' => 'Bachelor of Science in Marine Transportation',
     ];
 
     public function run(): void
