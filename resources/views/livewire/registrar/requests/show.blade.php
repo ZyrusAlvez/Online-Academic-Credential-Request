@@ -57,9 +57,9 @@
                 </p>
                 @if ($idDocument)
                     <p class="text-sm">
-                        <a href="{{ route('identity-documents.show', $idDocument) }}" target="_blank" rel="noopener" class="text-highlight underline underline-offset-2 hover:no-underline">
-                            {{ __('Open :type', ['type' => $idDocument->id_type]) }}<span class="sr-only"> ({{ __('opens in a new tab') }})</span>
-                        </a>
+                        <x-file-link :href="route('identity-documents.show', $idDocument)" :name="$idDocument->id_type.' – '.$owner->name" :type="$idDocument->mime_type">
+                            {{ __('Open :type', ['type' => $idDocument->id_type]) }}
+                        </x-file-link>
                         <span class="text-zinc-500">· {{ __('uploaded :date', ['date' => $idDocument->created_at->format('M j, Y')]) }}</span>
                     </p>
                     @if ($idDocument->status === \App\Enums\ReviewStatus::Pending)
@@ -105,9 +105,9 @@
                     <h2 id="proofs-heading" class="text-lg font-semibold text-primary">{{ __('Proof of payment') }}</h2>
 
                     @if ($pendingProof && $pendingProof->isImage())
-                        <a href="{{ route('payment-proofs.show', $pendingProof) }}" target="_blank" rel="noopener" class="block">
-                            <img src="{{ route('payment-proofs.show', $pendingProof) }}" alt="{{ __('Proof of payment uploaded by the requester') }}" class="max-h-96 w-auto rounded-lg border border-secondary/50" loading="lazy">
-                        </a>
+                        <x-file-link :href="route('payment-proofs.show', $pendingProof)" :name="__('Proof of payment: :file', ['file' => $pendingProof->original_name])" :type="$pendingProof->mime_type" class="block w-fit cursor-zoom-in">
+                            <img src="{{ route('payment-proofs.show', $pendingProof) }}" alt="{{ __('Proof of payment uploaded by the requester (open larger)') }}" class="max-h-96 w-auto rounded-lg border border-secondary/50" loading="lazy">
+                        </x-file-link>
                     @endif
 
                     @if ($request->paymentProofs->isEmpty())

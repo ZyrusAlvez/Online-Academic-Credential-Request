@@ -16,6 +16,6 @@
 - [x] `composer qa` green (CI, deploy run on staging)
 - [x] `<x-password-checklist>` under every new-password field, ticking rules as the user types (REQ-09-02)
 - [x] Pest tests for the changed REQ-09-02
-- [ ] `<x-file-link>` and `<x-file-viewer>` for every uploaded file (REQ-09-14)
-- [ ] Download through `?download=1` on the three file routes (REQ-09-15)
-- [ ] Pest tests for REQ-09-14, 15
+- [x] `<x-file-link>` and `<x-file-viewer>` for every uploaded file (REQ-09-14)
+- [x] Download through `?download=1` on the three file routes (REQ-09-15)
+- [x] Pest tests for REQ-09-14, 15

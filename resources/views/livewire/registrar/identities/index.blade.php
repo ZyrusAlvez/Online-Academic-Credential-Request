@@ -45,9 +45,9 @@
                         <flux:badge size="sm" :color="$requester->identity_status->color()">{{ $requester->identity_status->label() }}</flux:badge>
                         @if ($document)
                             <div class="mt-1 text-xs">
-                                <a href="{{ route('identity-documents.show', $document) }}" target="_blank" rel="noopener" class="text-highlight underline underline-offset-2 hover:no-underline">
-                                    {{ $document->id_type }}<span class="sr-only"> ({{ __('opens in a new tab') }})</span>
-                                </a>
+                                <x-file-link :href="route('identity-documents.show', $document)" :name="$document->id_type.' – '.$requester->name" :type="$document->mime_type">
+                                    {{ $document->id_type }}
+                                </x-file-link>
                                 <span class="text-zinc-500">· {{ $document->created_at->format('M j, Y') }}</span>
                             </div>
                         @endif
