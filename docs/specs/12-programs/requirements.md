@@ -25,7 +25,9 @@
 
 ### Registrar
 - **REQ-12-03** THE SYSTEM SHALL let the registrar list programs, search them by name and filter
-  them by college and status.
+  them by college and status. The Programs page calls a college a "department" (filter "All
+  departments", column and form field "Department", validation messages), as the Registrar's
+  Office does.
 - **REQ-12-04** THE SYSTEM SHALL let the registrar add a program and edit its name or college.
 - **REQ-12-05** THE SYSTEM SHALL let the registrar deactivate and reactivate a program instead of
   deleting it; an inactive program SHALL NOT be offered to requesters.
