@@ -37,6 +37,9 @@ identity, and My Profile in REQ-09-09/12.
   contact number), academic information (the fields of REQ-01-16), valid ID, and who will transact,
   followed by the *Incomplete requirements* notice; the personal and academic sections SHALL start
   filled in from the requester's saved profile.
+- **REQ-15-15** WHEN a credential is chosen on New Request THE SYSTEM SHALL show its details card
+  (REQ-09-11) and the matching receiving-school field at once, in the browser, without waiting for
+  the server.
 - **REQ-15-04** WHEN the requester has a saved ID THE SYSTEM SHALL show it (type, upload date, a
   link that opens it in the file viewer) and use it, unless they choose a different one (type of ID
   and an image or PDF file of at most 5 MB). WHEN they have none THE SYSTEM SHALL require one.
@@ -47,8 +50,9 @@ identity, and My Profile in REQ-09-09/12.
   REQ-01-26. Otherwise THE SYSTEM SHALL show a "Summary" of the request, the personal and academic
   information and the ID (an image as a picture; the file name opens it, image or PDF, in the file
   viewer), the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry
-  and the chosen file, and a "Submit request" button. WHILE the requester has not yet consented THE
-  SYSTEM SHALL require the consent on the summary and record when it was given.
+  and the chosen file, and a "Submit request" button. THE SYSTEM SHALL show the consent as an
+  unticked checkbox on every summary and SHALL NOT submit (the button stays disabled, and the server
+  refuses) until it is ticked; the first consent's time is recorded on the account.
 - **REQ-15-06** WHEN the requester submits from the summary THE SYSTEM SHALL, all or nothing, save
   the personal and academic information (and a newly chosen ID) to their profile and submit the
   request with a copy of their name, contact number, academic information and the ID used, the ID
@@ -58,8 +62,8 @@ identity, and My Profile in REQ-09-09/12.
 ### Settings → Profile
 - **REQ-15-07** THE SYSTEM SHALL give requesters a Settings → Profile page, the first item of their
   settings and where `/settings` takes them, with the personal and academic information and the
-  valid ID of New Request, a summary step (with the consent while none was given) and a "Confirm
-  and save" button. It SHALL never be locked, and SHALL say that changes apply to future requests
+  valid ID of New Request, a summary step with the consent checkbox of REQ-15-05 (required on every
+  save) and a "Confirm and save" button. It SHALL never be locked, and SHALL say that changes apply to future requests
   while submitted requests keep what they were sent with. Staff SHALL get 403.
 
 ### The request's own copy
