@@ -4,7 +4,6 @@ namespace App\Livewire\Student;
 
 use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
-use App\Enums\IdentityStatus;
 use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\RequesterProfileForm;
 use App\Models\Department;
@@ -136,7 +135,7 @@ class Profile extends Component
                 : collect(),
             'idTypes' => IdentityDocument::ID_TYPES,
             'documents' => $user->identityDocuments()->get(),
-            'canUpload' => $user->identity_status !== IdentityStatus::Verified,
+            'canUpload' => $user->needsValidId(),   // no ID yet, or the last one rejected (REQ-01-17)
             'summary' => $this->reviewing ? $this->form->summary() : [],
         ]);
     }

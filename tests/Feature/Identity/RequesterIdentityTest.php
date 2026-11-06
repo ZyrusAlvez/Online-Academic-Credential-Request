@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Identity\ReviewIdentityDocument;
 use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
 use App\Enums\IdentityStatus;
@@ -305,7 +306,6 @@ test('REQ-01-25 the summary shows everything entered with the data privacy notic
     $this->student->forceFill(['privacy_consented_at' => null])->save();
 
     reviewProfile(['form.student_number' => '19-0001-123', 'form.id_type' => 'Passport', 'form.id_file' => UploadedFile::fake()->image('passport.jpg')])
-        ->assertSee('Step 2 of 2: Review and confirm')
         ->assertSeeInOrder([
             'Juan', 'Not provided', 'Dela Cruz', '09171234567',
             'Graduate', 'College of Computer Studies', 'BS Computer Science', '19-0001-123', '2019 to 2023',
@@ -412,9 +412,36 @@ test('REQ-01-17 a requester can upload a valid ID, stored privately and pending 
         ->and($document->status)->toBe(ReviewStatus::Pending)
         ->and($document->id_type)->toBe('Passport')
         ->and($this->student->fresh()->identity_status)->toBe(IdentityStatus::Pending);
+});
 
+test('REQ-01-17 while an ID is pending or verified the upload is neither offered nor accepted', function (IdentityStatus $status) {
     uploadId();
-    expect($this->student->identityDocuments()->count())->toBe(2);
+    $this->student->forceFill(['identity_status' => $status])->save();
+
+    Livewire::actingAs($this->student)->test(Profile::class)
+        ->assertDontSeeHtml('wire:model="form.id_file"')
+        ->assertDontSeeHtml('wire:model="form.id_type"');
+
+    // A forged upload is refused by the form and by the action behind it.
+    reviewProfile(['form.id_type' => 'Passport', 'form.id_file' => UploadedFile::fake()->image('other.jpg')])
+        ->assertHasErrors(['form.id_file' => 'prohibited']);
+
+    expect(fn () => app(SubmitIdentityDocument::class)->handle($this->student->fresh(), 'Passport', UploadedFile::fake()->image('other.jpg')))
+        ->toThrow(ValidationException::class);
+    expect($this->student->identityDocuments()->count())->toBe(1);
+})->with([IdentityStatus::Pending, IdentityStatus::Verified]);
+
+test('REQ-01-17 after a rejection the requester can upload another ID, and earlier uploads are kept', function () {
+    $first = uploadId();
+    app(ReviewIdentityDocument::class)->handle($first, $this->registrar, verified: false, remarks: 'Blurred.');
+
+    Livewire::actingAs($this->student->fresh())->test(Profile::class)
+        ->assertSeeHtml('wire:model="form.id_file"');
+
+    uploadId($this->student->fresh());
+
+    expect($this->student->identityDocuments()->count())->toBe(2)
+        ->and($this->student->fresh()->identity_status)->toBe(IdentityStatus::Pending);
 });
 
 test('REQ-01-17 the ID must be an image or PDF of at most 5 MB with a known type', function () {
@@ -610,11 +637,13 @@ test('REQ-01-21 the new-request form takes the academic details from the profile
         ->assertSee('19-0001-123');
 });
 
-test('My Profile shows the step label only on the summary; while editing it is for screen readers', function () {
+test('REQ-01-25 My Profile shows no step label; screen readers still hear which step it is', function () {
     Livewire::actingAs($this->student)->test(Profile::class)
-        ->assertSeeHtml('class="text-sm font-semibold text-ink outline-none sr-only"');
+        ->assertDontSee('Step 1 of 2')
+        ->assertSeeHtml('<p id="profile-step" tabindex="-1" class="sr-only">');
 
     reviewProfile()
-        ->assertSee('Step 2 of 2: Review and confirm')
-        ->assertDontSeeHtml('outline-none sr-only');
+        ->assertDontSee('Step 2 of 2')
+        ->assertSee('Review and confirm your details')
+        ->assertSeeHtml('<p id="profile-step" tabindex="-1" class="sr-only">');
 });

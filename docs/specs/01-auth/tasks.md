@@ -42,6 +42,6 @@
 - [x] Stronger password rules: `Password::defaults()` = `min(8)->mixedCase()->numbers()->symbols()`;
       field hints updated (REQ-01-03, REQ-09-02)
 - [x] Pest tests for the changed REQ-01-03 and REQ-09-02
-- [ ] No ID upload while one is pending or verified, only after a rejection (REQ-01-17)
-- [ ] My Profile: drop the visible "Step N of 2" label, keep it for screen readers
-- [ ] Pest tests for the changed REQ-01-17
+- [x] No ID upload while one is pending or verified, only after a rejection (REQ-01-17)
+- [x] My Profile: drop the visible "Step N of 2" label, keep it for screen readers
+- [x] Pest tests for the changed REQ-01-17

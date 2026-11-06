@@ -2,9 +2,9 @@
 <div class="mx-auto max-w-3xl space-y-6">
     <x-page-header title="My Profile" description="Your personal and academic information and valid ID. The Office of the Registrar uses them to confirm that requests come from the document owner." />
 
-    {{-- Shown only on the summary; while editing it stays for screen readers and as the focus target of showStep(). --}}
-    <p id="profile-step" tabindex="-1" @class(['text-sm font-semibold text-ink outline-none', 'sr-only' => ! $reviewing])>
-        {{ $reviewing ? __('Step 2 of 2: Review and confirm') : __('Step 1 of 2: Your details') }}
+    {{-- Not shown: it announces the step to screen readers and is the focus target of showStep(). --}}
+    <p id="profile-step" tabindex="-1" class="sr-only">
+        {{ $reviewing ? __('Review and confirm your details') : __('Your details') }}
     </p>
 
     @unless ($reviewing || $user->canRequestCredentials())
@@ -84,8 +84,10 @@
                 </flux:callout>
             @elseif ($user->identity_status === \App\Enums\IdentityStatus::Pending)
                 <flux:callout icon="clock" color="sky">
-                    <flux:callout.text>{{ __('Your ID is being verified by the Office of the Registrar. You can already submit requests; they are accepted for processing once your identity is verified.') }}</flux:callout.text>
+                    <flux:callout.text>{{ __('Your ID is being verified by the Office of the Registrar. You can already submit requests; they are accepted for processing once your identity is verified. You can upload a different ID only if this one is rejected.') }}</flux:callout.text>
                 </flux:callout>
+            @elseif ($user->identity_status === \App\Enums\IdentityStatus::Verified)
+                <p class="text-sm text-zinc-600">{{ __('Your identity is verified, so your ID can no longer be changed. To correct it, contact the Office of the Registrar.') }}</p>
             @endif
 
             @if ($canUpload)

@@ -4,7 +4,6 @@ namespace App\Livewire\Forms;
 
 use App\Enums\AcademicStatus;
 use App\Enums\DepartmentType;
-use App\Enums\IdentityStatus;
 use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\User;
@@ -93,10 +92,11 @@ class RequesterProfileForm extends Form
             'student_number' => ['nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9-]+$/'],
             'attended_from' => ['required', 'integer', 'between:1950,'.$thisYear],
             'attended_to' => ['required', 'integer', 'between:1950,'.$thisYear, 'gte:attended_from'],
-            // An ID on file, pending or verified, needs no new one (REQ-01-22).
+            // An ID on file, pending or verified, needs no new one (REQ-01-22) and can't be
+            // replaced until the registrar rejects it (REQ-01-17).
             'id_type' => [Rule::requiredIf($user->needsValidId()), 'nullable', 'required_with:id_file', Rule::in(IdentityDocument::ID_TYPES)],
             'id_file' => [
-                Rule::prohibitedIf($user->identity_status === IdentityStatus::Verified),
+                Rule::prohibitedIf(! $user->needsValidId()),
                 Rule::requiredIf($user->needsValidId()),
                 'nullable', 'required_with:id_type', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120',
             ],

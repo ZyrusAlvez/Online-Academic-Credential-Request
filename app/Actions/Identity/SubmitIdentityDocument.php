@@ -19,12 +19,15 @@ class SubmitIdentityDocument
     /**
      * Store a requester's valid ID privately and mark their identity as pending (REQ-01-17).
      *
-     * @throws ValidationException when the identity is already verified
+     * @throws ValidationException when an ID is already pending or verified: a new one is taken
+     *                             only after a rejection (REQ-01-17)
      */
     public function handle(User $user, string $idType, UploadedFile $file): IdentityDocument
     {
-        if ($user->identity_status === IdentityStatus::Verified) {
-            throw ValidationException::withMessages(['idFile' => 'Your identity is already verified.']);
+        if (! $user->needsValidId()) {
+            throw ValidationException::withMessages(['idFile' => $user->identity_status === IdentityStatus::Verified
+                ? 'Your identity is already verified.'
+                : 'Your ID is already being verified. You can upload another one only if it is rejected.']);
         }
 
         $disk = RequestWorkflow::proofDisk();
