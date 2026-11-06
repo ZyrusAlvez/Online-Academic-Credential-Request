@@ -96,7 +96,7 @@
                     @endforeach
                 </flux:select>
                 <div>
-                    <flux:select wire:model="form.program" :label="__('Program or strand')" :disabled="$programs->isEmpty()" required>
+                    <flux:select wire:model="form.program" :label="__('Program')" :disabled="$programs->isEmpty()" required>
                         <flux:select.option value="">{{ blank($form->college_id) ? __('Choose a college first') : __('Choose…') }}</flux:select.option>
                         @foreach ($programs as $program)
                             <flux:select.option :value="$program">{{ $program }}</flux:select.option>
@@ -143,7 +143,22 @@
                             <flux:select.option :value="$type">{{ $type }}</flux:select.option>
                         @endforeach
                     </flux:select>
-                    <flux:input type="file" wire:model="form.id_file" :label="__('Valid ID')" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+                    {{-- The chosen file opens in the viewer from the browser's own copy: nothing is sent to preview it. --}}
+                    <div class="space-y-2" data-id-preview
+                        x-data="{ chosen: null,
+                            choose(file) {
+                                if (this.chosen) URL.revokeObjectURL(this.chosen.url);
+                                this.chosen = file ? { url: URL.createObjectURL(file), name: file.name, type: file.type } : null;
+                            } }"
+                        x-on:change="if ($event.target.type === 'file') choose($event.target.files[0] ?? null)">
+                        <flux:input type="file" wire:model="form.id_file" :label="__('Valid ID')" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+                        <p x-show="chosen" x-cloak class="text-sm text-zinc-600">
+                            {{ __('Chosen:') }}
+                            <a href="#" aria-haspopup="dialog" class="break-all font-medium text-highlight underline underline-offset-2 hover:no-underline"
+                                x-text="chosen?.name"
+                                x-on:click.prevent="$dispatch('open-file', chosen)"></a>
+                        </p>
+                    </div>
                 </div>
                 <div wire:loading wire:target="form.id_file" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
             @endif
