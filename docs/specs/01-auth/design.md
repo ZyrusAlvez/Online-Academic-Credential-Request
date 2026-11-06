@@ -57,7 +57,12 @@ Identity code:
   `SubmitIdentityDocument`, all in one transaction (REQ-01-22, 25, 29). `User::hasLockedName()`
   locks the name of a verified requester: `RequesterProfileForm` puts the saved name back before
   validating, so a forged change is ignored. A registrar corrects it through
-  `CorrectRequesterName` on Identity Checks (REQ-01-27, 28). `User::missingProfileItems()` lists what is still
+  `CorrectRequesterName` on Identity Checks (REQ-01-27, 28). `User::needsValidId()` (no ID, or
+  the last one rejected) is the only state that offers the ID upload; `RequesterProfileForm`
+  prohibits a file otherwise and `SubmitIdentityDocument` refuses it, so a pending or verified ID
+  can't be replaced (REQ-01-17). The page shows no "Step N of 2" label (the user asked for it to
+  go): a screen-reader-only heading still announces each step and takes focus when it changes.
+  `User::missingProfileItems()` lists what is still
   missing; `canRequestCredentials()` is true when that list is empty.
 - Livewire: `Student\Profile` (`/student/profile`, "My Profile") and `Registrar\Identities\Index`
   (`/registrar/identities`, "Identity Checks" with a pending-count badge).
