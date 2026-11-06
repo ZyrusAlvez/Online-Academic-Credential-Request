@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\IdentityStatus;
 use App\Enums\Role;
 use App\Models\User;
 use App\Notifications\VerificationCode;
@@ -36,7 +35,7 @@ test('REQ-01-01 a guest can register with only an email and a password', functio
         ->and($user->first_name)->toBeNull()
         ->and($user->contact_number)->toBeNull()
         ->and($user->privacy_consented_at)->toBeNull()
-        ->and($user->identity_status)->toBe(IdentityStatus::Unsubmitted)
+        ->and($user->identityDocuments()->exists())->toBeFalse()
         ->and($user->hasVerifiedEmail())->toBeFalse()
         ->and($user->name)->toBe('juan@example.com');
 });

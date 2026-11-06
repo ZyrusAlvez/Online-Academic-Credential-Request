@@ -137,10 +137,10 @@ test('REQ-13-08 only an active purpose is accepted, and its name is stored on th
     Livewire::actingAs($owner = requester($org->ccs))->test(Create::class)
         ->set('form.credential_type_id', $org->free->id)
         ->set('form.purpose', $purpose)
-        ->call('submit')
+        ->call('review')->call('submit')
         ->assertHasErrors(['form.purpose' => 'exists'])
         ->set('form.purpose', 'Further studies')
-        ->call('submit')
+        ->call('review')->call('submit')
         ->assertHasNoErrors();
 
     expect(CredentialRequest::sole()->purpose)->toBe('Further studies');
@@ -170,7 +170,7 @@ test('REQ-13-10 with no active purpose the requester can still choose Others', f
         ->set('form.credential_type_id', $org->free->id)
         ->set('form.purpose', CredentialRequestForm::OTHER_PURPOSE)
         ->set('form.purpose_other', 'Embassy requirement')
-        ->call('submit')
+        ->call('review')->call('submit')
         ->assertHasNoErrors();
 
     expect(CredentialRequest::sole()->purpose)->toBe('Embassy requirement');
@@ -184,13 +184,13 @@ test('REQ-13-11 Others asks for the purpose in a text box and stores what was ty
         ->assertDontSee('Please specify')
         ->set('form.purpose', CredentialRequestForm::OTHER_PURPOSE)
         ->assertSee('Please specify')
-        ->call('submit')
+        ->call('review')->call('submit')
         ->assertHasErrors(['form.purpose_other' => 'required'])
         ->set('form.purpose_other', str_repeat('a', 501))
-        ->call('submit')
+        ->call('review')->call('submit')
         ->assertHasErrors(['form.purpose_other' => 'max'])
         ->set('form.purpose_other', '  Requirement for a church wedding  ')
-        ->call('submit')
+        ->call('review')->call('submit')
         ->assertHasNoErrors();
 
     expect(CredentialRequest::sole()->purpose)->toBe('Requirement for a church wedding');
@@ -205,7 +205,7 @@ test('REQ-13-11 text typed under Others is ignored once a listed purpose is chos
         ->set('form.purpose_other', 'Something else')
         ->set('form.purpose', 'Employment')
         ->assertDontSee('Please specify')
-        ->call('submit')
+        ->call('review')->call('submit')
         ->assertHasNoErrors();
 
     expect(CredentialRequest::sole()->purpose)->toBe('Employment');

@@ -46,8 +46,9 @@ and `CorrectRequesterName` are removed; activity logs get the review through the
 - `Student\Requests\Create`: form → summary (`reviewing`) → submit. `submit()` runs one transaction:
   save the profile, store a new ID through `SubmitIdentityDocument`, `RequestWorkflow::submit()`,
   declare the representative. If it fails, a stored ID file is deleted.
-- `Settings\Profile` (`/settings/profile`, `role:student`) is the old `Student\Profile` in the
-  settings layout, never locked.
+- Settings → Profile (`/settings/profile`, `role:student`) is the old `Student\Profile`, kept in
+  the `Student` namespace like `Student\EmailNotifications`, now in the settings layout (wide) and
+  never locked. The errors modal is the shared `partials/requester-profile-errors`.
 - `Student\Requests\Show` shows the request's ID and status; while rejected, an upload form calls
   `SubmitIdentityDocument` then `replaceIdentity` in one transaction.
 - `Registrar\Requests\Show` reviews through `RequestWorkflow::reviewIdentity`. The request list

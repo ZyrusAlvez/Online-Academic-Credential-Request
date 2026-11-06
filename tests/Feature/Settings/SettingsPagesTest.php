@@ -3,21 +3,26 @@
 use App\Models\User;
 use Livewire\Volt\Volt;
 
-test('REQ-01-12 there is no settings Profile page to change a name or email', function () {
+test('REQ-01-12 nobody changes their email in settings; staff have no Profile page', function () {
     $this->actingAs(User::factory()->registrar()->create());
 
-    $this->get('/settings/profile')->assertNotFound();
+    $this->get('/settings/profile')->assertForbidden();
     $this->get(route('settings.password'))->assertOk()
         ->assertDontSee('Profile')
         ->assertDontSee('wire:model="email"', false)
         ->assertDontSee('First name');
 
+    // The requester's Settings → Profile (REQ-15-07) has no email field.
+    $this->actingAs(User::factory()->student()->create())->get(route('settings.profile'))->assertOk()
+        ->assertDontSee('wire:model="email"', false)
+        ->assertDontSee('wire:model="form.email"', false);
+
     expect(fn () => Volt::test('settings.profile'))->toThrow(Exception::class);
 });
 
-test('REQ-01-12 settings opens email notifications for requesters and the password for staff', function () {
+test('REQ-01-12 settings opens the profile for requesters and the password for staff', function () {
     $this->actingAs(User::factory()->student()->create())
-        ->get('/settings')->assertRedirect(route('settings.notifications'));
+        ->get('/settings')->assertRedirect(route('settings.profile'));
 
     $this->actingAs(User::factory()->registrar()->create())
         ->get('/settings')->assertRedirect(route('settings.password'));

@@ -21,7 +21,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('student')->name('student.')->middleware('role:student')->group(function () {
         Route::get('/', Student\Dashboard::class)->name('dashboard');
-        Route::get('profile', Student\Profile::class)->name('profile');
+        // My Profile became Settings → Profile; links in older notifications still land (REQ-15-02).
+        Route::redirect('profile', '/settings/profile');
         Route::get('requests/new', Student\Requests\Create::class)->name('requests.create');
         Route::get('requests/{credentialRequest}', Student\Requests\Show::class)->name('requests.show');
     });
@@ -39,7 +40,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('users', Registrar\Users\Index::class)->name('users');
         Route::get('calendar', Registrar\Calendar\Index::class)->name('calendar');
         Route::get('logs', Registrar\Logs\Index::class)->name('logs');
-        Route::get('identities', Registrar\Identities\Index::class)->name('identities');
         Route::get('credential-types', Registrar\CredentialTypes\Index::class)->name('credential-types');
         Route::get('credential-types/{credentialType}/workflow', Registrar\CredentialTypes\Workflow::class)->name('credential-types.workflow');
     });
@@ -58,11 +58,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    // There is no settings Profile page (REQ-01-12). Requesters land on their email switch.
+    // Requesters land on their profile (REQ-15-07); staff have only the password.
     Route::get('settings', fn () => redirect()->route(
-        auth()->user()->hasRole(Role::Student) ? 'settings.notifications' : 'settings.password'
+        auth()->user()->hasRole(Role::Student) ? 'settings.profile' : 'settings.password'
     ))->name('settings');
 
+    Route::get('settings/profile', Student\Profile::class)
+        ->middleware(['verified', 'role:student'])->name('settings.profile');
     Volt::route('settings/password', 'settings.password')->name('settings.password');
     Route::get('settings/notifications', Student\EmailNotifications::class)
         ->middleware('role:student')->name('settings.notifications');

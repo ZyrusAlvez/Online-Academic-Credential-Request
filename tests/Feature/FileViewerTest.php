@@ -1,8 +1,8 @@
 <?php
 
-use App\Livewire\Registrar\Identities\Index as IdentityChecks;
 use App\Livewire\Registrar\Requests\Show;
 use App\Livewire\Student\Profile;
+use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\CredentialRequest;
 use App\Models\IdentityDocument;
 use App\Models\User;
@@ -42,7 +42,7 @@ function storedId(User $owner): IdentityDocument
 }
 
 test('REQ-09-14 the app layout carries the file viewer, with download, new tab and close but no zoom', function () {
-    $this->actingAs($this->owner)->get(route('student.profile'))
+    $this->actingAs($this->owner)->get(route('settings.profile'))
         ->assertOk()
         ->assertSeeHtml('data-file-viewer')
         ->assertSeeHtml('x-on:open-file.window="open($event.detail)"')
@@ -55,7 +55,7 @@ test('REQ-09-14 the app layout carries the file viewer, with download, new tab a
 });
 
 test('REQ-09-14 the viewer shows a loading indicator until the file loads, and a message if it fails', function () {
-    $html = $this->actingAs($this->owner)->get(route('student.profile'))->assertOk()->getContent();
+    $html = $this->actingAs($this->owner)->get(route('settings.profile'))->assertOk()->getContent();
 
     expect($html)
         ->toContain('data-file-loading')
@@ -81,20 +81,21 @@ test('REQ-09-16 an image on a page shows a placeholder until it loads', function
 
 test('REQ-09-14 every uploaded file opens in the viewer and stays a real link to the file', function () {
     $request = requestWithFiles();
-    $id = storedId($this->owner);
+    $id = $request->identityDocument;   // the ID sent with the request, also the saved ID (spec 15)
+    $id->update(['mime_type' => 'image/jpeg']);
     $proof = $request->paymentProofs()->sole();
     $spa = $request->documents()->sole();
 
     $requestPage = Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])->html();
+    $ownRequestPage = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])->html();
     $profile = Livewire::actingAs($this->owner)->test(Profile::class)->html();
-    $checks = Livewire::actingAs($this->registrar)->test(IdentityChecks::class)->set('status', '')->html();
 
     $links = [
         [$requestPage, route('identity-documents.show', $id), 'image/jpeg'],
         [$requestPage, route('payment-proofs.show', $proof), $proof->mime_type],
         [$requestPage, route('request-documents.show', $spa), 'application/pdf'],
+        [$ownRequestPage, route('identity-documents.show', $id), 'image/jpeg'],
         [$profile, route('identity-documents.show', $id), 'image/jpeg'],
-        [$checks, route('identity-documents.show', $id), 'image/jpeg'],
     ];
 
     foreach ($links as [$html, $url, $type]) {

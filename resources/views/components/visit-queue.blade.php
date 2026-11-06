@@ -21,7 +21,7 @@
                         <flux:badge size="sm" color="red" class="mt-1">{{ __('Overdue') }}</flux:badge>
                     @endif
                 </flux:table.cell>
-                <flux:table.cell class="max-md:hidden whitespace-normal">{{ $request->student->name }}</flux:table.cell>
+                <flux:table.cell class="max-md:hidden whitespace-normal">{{ $request->requester_name }}</flux:table.cell>
                 <flux:table.cell class="max-lg:hidden">
                     {{ $visit->step->task->label() }}
                     @if ($visit->fromDepartment)

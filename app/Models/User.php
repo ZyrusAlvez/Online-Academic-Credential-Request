@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Actions\Auth\SendVerificationCode;
 use App\Enums\AcademicStatus;
 use App\Enums\ActivityCategory;
-use App\Enums\IdentityStatus;
 use App\Enums\Role;
 use App\Models\Concerns\LogsActivity;
 use Database\Factories\UserFactory;
@@ -31,7 +30,6 @@ use Illuminate\Support\Str;
  * @property ?string $student_number
  * @property ?int $attended_from
  * @property ?int $attended_to
- * @property IdentityStatus $identity_status
  * @property-read string $name
  */
 class User extends Authenticatable implements MustVerifyEmail
@@ -40,7 +38,7 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasFactory, LogsActivity, Notifiable;
 
     /**
-     * Role, activation and identity status are never mass assignable; the registrar sets them.
+     * Role and activation are never mass assignable; the registrar sets them.
      *
      * @var list<string>
      */
@@ -74,7 +72,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'role' => 'student',
         'is_active' => true,
         'email_notifications' => true,
-        'identity_status' => 'unsubmitted',
     ];
 
     /**
@@ -92,8 +89,6 @@ class User extends Authenticatable implements MustVerifyEmail
             'academic_status' => AcademicStatus::class,
             'attended_from' => 'integer',
             'attended_to' => 'integer',
-            'identity_status' => IdentityStatus::class,
-            'identity_verified_at' => 'datetime',
         ];
     }
 
@@ -109,7 +104,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function fullName(): string
     {
-        // Self-registered requesters give their name in My Profile after signing up (REQ-01-01).
+        // Self-registered requesters give their name on their first request (REQ-01-01).
         if (blank($this->first_name) && blank($this->last_name)) {
             return $this->email;
         }
@@ -176,6 +171,8 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * The saved ID: the newest upload, used on the next request unless another is chosen (REQ-15-04).
+     *
      * @return HasOne<IdentityDocument, $this>
      */
     public function latestIdentityDocument(): HasOne
@@ -183,9 +180,15 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(IdentityDocument::class)->latestOfMany();
     }
 
-    public function hasAcademicProfile(): bool
+    /**
+     * Everything a request copies from the profile is filled in (REQ-15-06).
+     */
+    public function hasRequesterDetails(): bool
     {
-        return $this->academic_status !== null
+        return filled($this->first_name)
+            && filled($this->last_name)
+            && filled($this->contact_number)
+            && $this->academic_status !== null
             && $this->college_id !== null
             && filled($this->program)
             && $this->attended_from !== null
@@ -193,55 +196,12 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * What a requester still has to give before they can request credentials (REQ-01-18).
-     *
-     * @return list<string>
+     * The name as a request keeps it: "First Middle Last" with the whole middle name, to compare
+     * with the ID (REQ-15-08).
      */
-    public function missingProfileItems(): array
+    public function requesterName(): string
     {
-        return array_keys(array_filter([
-            'Full name' => blank($this->first_name) || blank($this->last_name),
-            'Contact number' => blank($this->contact_number),
-            'Academic information' => ! $this->hasAcademicProfile(),
-            'Valid ID' => $this->needsValidId(),
-            'Data privacy consent' => $this->privacy_consented_at === null,
-        ]));
-    }
-
-    /**
-     * The identity check is with the Registrar or passed, so My Profile is read-only until a
-     * rejection (REQ-01-30). A profile still missing an entry stays editable, so nobody is stuck.
-     */
-    public function hasLockedProfile(): bool
-    {
-        return ! $this->needsValidId() && $this->missingProfileItems() === [];
-    }
-
-    /**
-     * No ID awaits or has passed verification, so My Profile asks for one (REQ-01-22).
-     */
-    public function needsValidId(): bool
-    {
-        return ! in_array($this->identity_status, [IdentityStatus::Pending, IdentityStatus::Verified], true);
-    }
-
-    /**
-     * A verified name matches the ID, so only the registrar changes it (REQ-01-27).
-     */
-    public function hasLockedName(): bool
-    {
-        return $this->identity_status === IdentityStatus::Verified
-            && filled($this->first_name)
-            && filled($this->last_name);
-    }
-
-    /**
-     * Ready to request credentials: profile filled in, privacy consent given and an ID pending or
-     * verified (REQ-01-18).
-     */
-    public function canRequestCredentials(): bool
-    {
-        return $this->missingProfileItems() === [];
+        return trim(implode(' ', array_filter([$this->first_name, $this->middle_name, $this->last_name], filled(...))));
     }
 
     public function initials(): string
@@ -274,13 +234,13 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * The Google link and the identity status (logged with the ID itself) stay out (REQ-14-08).
+     * The Google link stays out (REQ-14-08).
      *
      * @return list<string>
      */
     protected function activityIgnored(): array
     {
-        return ['google_id', 'identity_status', 'identity_verified_at'];
+        return ['google_id'];
     }
 
     /** Someone who registers or resets a forgotten password is not signed in yet: they acted themselves. */

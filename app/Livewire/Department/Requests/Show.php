@@ -28,7 +28,7 @@ class Show extends Component
     public function render(): View
     {
         $request = $this->credentialRequest->load([
-            'student', 'credentialType', 'college',
+            'credentialType', 'college',
             'openVisit.department', 'openVisit.step', 'openVisit.credentialRequest.visits',
             'steps.department', 'visits.department', 'visits.step', 'visits.returnedTo', 'visits.receiver', 'visits.completer',
             'events.department', 'events.step',

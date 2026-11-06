@@ -24,6 +24,7 @@ test('a TOR request follows the client\'s flowchart from portal to release', fun
     // Submit → evaluate: requirements incomplete → comply in person → complete.
     $request = submitRequest($owner, $org->tor);
     workflow()->startEvaluation($request, $registrar);
+    workflow()->reviewIdentity($request, $registrar, true);   // the ID is checked on the request (REQ-15-09)
     workflow()->requestCompliance($request, $registrar, ['PSA-authenticated birth certificate']);
     workflow()->resolveDeficiency($request->deficiencies()->sole(), $registrar, 'Original PSA birth certificate received');
     workflow()->completeEvaluation($request, $registrar);

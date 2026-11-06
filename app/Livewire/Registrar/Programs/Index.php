@@ -14,7 +14,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
- * The programs and strands offered to requesters on My Profile (spec 12).
+ * The programs and strands offered to requesters on New Request and Settings → Profile (spec 12).
  */
 #[Title('Programs')]
 class Index extends Component

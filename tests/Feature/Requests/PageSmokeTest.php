@@ -27,7 +27,7 @@ test('every request page renders in every status for each role that can see it',
         }
     }
 
-    foreach (['registrar.dashboard', 'registrar.requests', 'registrar.identities'] as $page) {
+    foreach (['registrar.dashboard', 'registrar.requests'] as $page) {
         $this->actingAs($registrar)->get(route($page))->assertOk();
     }
 
@@ -40,4 +40,5 @@ test('every request page renders in every status for each role that can see it',
     $this->actingAs(User::where('email', 'vpf@example.com')->firstOrFail())->get(route('department.dashboard'))->assertOk();
     $this->actingAs(User::where('email', 'student@example.com')->firstOrFail())->get(route('student.dashboard'))->assertOk();
     $this->actingAs(User::where('email', 'student@example.com')->firstOrFail())->get(route('student.requests.create'))->assertOk();
+    $this->actingAs(User::where('email', 'student@example.com')->firstOrFail())->get(route('settings.profile'))->assertOk();
 });

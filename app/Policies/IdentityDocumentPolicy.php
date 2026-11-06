@@ -18,9 +18,4 @@ class IdentityDocumentPolicy
             ? Response::allow()
             : Response::denyAsNotFound();
     }
-
-    public function review(User $user, IdentityDocument $document): bool
-    {
-        return $user->hasRole(Role::Registrar);
-    }
 }

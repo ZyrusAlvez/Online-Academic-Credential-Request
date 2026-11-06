@@ -1,10 +1,8 @@
 <?php
 
 use App\Actions\Audit\RecordRequestEvent;
-use App\Actions\Identity\ReviewIdentityDocument;
 use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\ActivityCategory;
-use App\Enums\IdentityStatus;
 use App\Enums\Role;
 use App\Livewire\Registrar\CredentialTypes\Index as CredentialTypes;
 use App\Livewire\Registrar\Logs\Index;
@@ -111,22 +109,24 @@ test('REQ-14-03 account changes are logged, including activation and the request
 test('REQ-14-04 uploading, verifying and rejecting a valid ID are logged', function () {
     Storage::fake(config('uphsl.receipts_disk'));
     $owner = User::factory()->withProfile($this->org->ccs)->create(['first_name' => 'Juan', 'middle_name' => null, 'last_name' => 'Cruz']);
-    $owner->forceFill(['identity_status' => IdentityStatus::Unsubmitted, 'identity_verified_at' => null])->save();
+    $owner->identityDocuments()->delete();
 
     $this->actingAs($owner);
-    $first = app(SubmitIdentityDocument::class)->handle($owner, 'Passport', UploadedFile::fake()->image('id.jpg'));
+    app(SubmitIdentityDocument::class)->handle($owner, 'Passport', UploadedFile::fake()->image('id.jpg'));
+    $request = submitRequest($owner, $this->org->free);
 
+    // The review is on the request (spec 15), so it is logged through its ledger (REQ-14-01).
     $this->actingAs($this->registrar);
-    app(ReviewIdentityDocument::class)->handle($first, $this->registrar, verified: false, remarks: 'Blurry photo');
+    workflow()->reviewIdentity($request, $this->registrar, false, 'Blurry photo');
 
-    $logs = ActivityLog::where('category', ActivityCategory::Identity)->orderBy('id')->get();
-    expect($logs->pluck('description')->all())->toBe([
-        'Uploaded a valid ID (Passport)',
-        'Rejected the valid ID (Passport) of Juan Cruz: Blurry photo',
-    ])
-        ->and($logs[0]->actor_id)->toBe($owner->id)
-        ->and($logs[1]->actor_id)->toBe($this->registrar->id)
-        ->and($logs[1]->changes['status'])->toBe(['For verification', 'Rejected']);
+    $upload = ActivityLog::where('category', ActivityCategory::Identity)->sole();
+    expect($upload->description)->toBe('Uploaded a valid ID (Passport)')
+        ->and($upload->actor_id)->toBe($owner->id);
+
+    $review = ActivityLog::where('category', ActivityCategory::Request)->latest('id')->firstOrFail();
+    expect($review->description)->toBe('Identity rejected: Blurry photo')
+        ->and($review->reference_no)->toBe($request->reference_no)
+        ->and($review->actor_id)->toBe($this->registrar->id);
 });
 
 test('REQ-14-05 sign-ins, sign-outs and failed sign-ins are logged', function () {

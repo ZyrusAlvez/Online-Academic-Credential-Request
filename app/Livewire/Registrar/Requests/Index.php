@@ -54,7 +54,7 @@ class Index extends Component
     public function render(): View
     {
         $requests = $this->filter()->query()
-            ->with(['student:id,first_name,middle_name,last_name', 'credentialType:id,name', 'openVisit.department:id,name'])
+            ->with(['credentialType:id,name', 'openVisit.department:id,name'])
             ->paginate(20);
 
         return view('livewire.registrar.requests.index', [

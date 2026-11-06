@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A program or strand of a college, offered to requesters on My Profile (spec 12). Never deleted,
+ * A program or strand of a college, offered to requesters on New Request and Settings → Profile (spec 12). Never deleted,
  * only deactivated.
  *
  * @property string $name

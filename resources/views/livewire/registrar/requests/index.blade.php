@@ -48,7 +48,7 @@
                         <div class="text-xs text-zinc-600">{{ $request->credentialType->name }}</div>
                     </flux:table.cell>
                     <flux:table.cell class="max-md:hidden whitespace-normal">
-                        <div class="text-ink">{{ $request->student->name }}</div>
+                        <div class="text-ink">{{ $request->requester_name }}</div>
                         <div class="text-xs text-zinc-500">{{ $request->student_number }}</div>
                     </flux:table.cell>
                     <flux:table.cell class="max-lg:hidden whitespace-normal text-zinc-700">{{ $request->whereabouts() }}</flux:table.cell>
@@ -57,6 +57,10 @@
                             <x-request-status :status="$request->status" />
                             @if ($request->isOverdue())
                                 <flux:badge size="sm" color="red" icon="clock">{{ __('Overdue') }}</flux:badge>
+                            @endif
+                            {{-- The ID is checked on the request (REQ-15-12). --}}
+                            @if ($request->identity_document_id && $request->identity_status === \App\Enums\ReviewStatus::Pending && $request->identityReviewable())
+                                <flux:badge size="sm" color="sky" icon="identification" data-id-to-verify>{{ __('ID to verify') }}</flux:badge>
                             @endif
                         </div>
                     </flux:table.cell>

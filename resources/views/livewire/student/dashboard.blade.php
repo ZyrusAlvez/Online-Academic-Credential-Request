@@ -6,8 +6,6 @@
         </x-slot:actions>
     </x-page-header>
 
-    <x-profile-required-callout :user="auth()->user()" />
-
     <section aria-labelledby="requests-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="requests-heading" class="text-lg font-semibold text-primary">{{ __('Your requests') }}</h2>
 

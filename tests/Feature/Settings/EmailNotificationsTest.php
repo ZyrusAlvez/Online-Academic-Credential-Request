@@ -2,10 +2,8 @@
 
 use App\Enums\RequestEventType;
 use App\Livewire\Student\EmailNotifications;
-use App\Models\IdentityDocument;
 use App\Models\User;
 use App\Notifications\DueReminder;
-use App\Notifications\IdentityReviewed;
 use App\Notifications\RequestActivity;
 use App\Notifications\VerificationCode;
 use Illuminate\Support\Facades\Notification;
@@ -48,15 +46,15 @@ test('REQ-06-16 with email off the requester is still notified in-app but not em
     $this->owner->forceFill(['email_notifications' => false])->save();
 
     $request = submitRequest($this->owner, $this->org->tor);
+    workflow()->reviewIdentity($request, $this->registrar, false, 'Blurred');
     workflow()->decline($request, $this->registrar, 'Not eligible');
 
     $sent = Notification::sent($this->owner, RequestActivity::class);
     expect($sent->map(fn (RequestActivity $n) => $n->event->type)->all())
-        ->toContain(RequestEventType::Submitted, RequestEventType::Declined)
+        ->toContain(RequestEventType::Submitted, RequestEventType::IdentityRejected, RequestEventType::Declined)
         ->and($sent->every(fn (RequestActivity $n) => $n->via($this->owner) === ['database']))->toBeTrue();
 
-    expect((new DueReminder($request, true))->via($this->owner))->toBe(['database'])
-        ->and((new IdentityReviewed(IdentityDocument::factory()->make()))->via($this->owner))->toBe(['database']);
+    expect((new DueReminder($request, true))->via($this->owner))->toBe(['database']);
 });
 
 test('REQ-06-16 verification codes are always emailed', function () {

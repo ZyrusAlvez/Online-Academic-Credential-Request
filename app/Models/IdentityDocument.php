@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\ActivityCategory;
-use App\Enums\ReviewStatus;
 use App\Models\Concerns\LogsActivity;
 use Database\Factories\IdentityDocumentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,15 +12,15 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * A requester's uploaded valid ID (spec 01). Stored privately on the receipts disk.
+ * A requester's uploaded valid ID (spec 01), stored privately on the receipts disk. The newest is
+ * their saved ID; it is reviewed on each request that uses it (spec 15).
  *
+ * @property int $user_id
  * @property string $id_type
  * @property string $path
  * @property string $original_name
  * @property string $mime_type
- * @property ReviewStatus $status
- * @property ?Carbon $reviewed_at
- * @property ?string $remarks
+ * @property Carbon $created_at
  */
 class IdentityDocument extends Model
 {
@@ -55,9 +54,7 @@ class IdentityDocument extends Model
     protected function casts(): array
     {
         return [
-            'status' => ReviewStatus::class,
             'size' => 'integer',
-            'reviewed_at' => 'datetime',
         ];
     }
 
@@ -67,14 +64,6 @@ class IdentityDocument extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    /**
-     * @return BelongsTo<User, $this>
-     */
-    public function reviewer(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'reviewed_by');
     }
 
     public function isImage(): bool
@@ -98,21 +87,23 @@ class IdentityDocument extends Model
     }
 
     /**
-     * The stored file's details and the reviewer (already the actor) add nothing to the log.
+     * The stored file's details add nothing to the log.
      *
      * @return list<string>
      */
     protected function activityIgnored(): array
     {
-        return ['user_id', 'path', 'original_name', 'mime_type', 'size', 'reviewed_by', 'reviewed_at'];
+        return ['user_id', 'path', 'original_name', 'mime_type', 'size'];
     }
 
     /**
+     * Only the upload is logged here; the review is a ledger entry on the request (REQ-14-04).
+     *
      * @param  array<string, array{0: ?string, 1: ?string}>  $changes
      */
     protected function shouldLogActivity(string $event, array $changes): bool
     {
-        return $event === 'created' || array_key_exists('status', $changes);
+        return $event === 'created';
     }
 
     /**
@@ -120,14 +111,6 @@ class IdentityDocument extends Model
      */
     protected function activityDescription(string $event, array $changes, ?User $actor): string
     {
-        if ($event === 'created') {
-            return "Uploaded a valid ID ({$this->id_type})";
-        }
-
-        $owner = User::whereKey($this->user_id)->first();
-        $verb = $this->status === ReviewStatus::Verified ? 'Verified' : 'Rejected';
-
-        return "{$verb} the valid ID ({$this->id_type}) of ".($owner->name ?? 'a requester')
-            .(filled($this->remarks) && $this->status === ReviewStatus::Rejected ? ": {$this->remarks}" : '');
+        return "Uploaded a valid ID ({$this->id_type})";
     }
 }

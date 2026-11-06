@@ -4,11 +4,16 @@
         <flux:breadcrumbs.item>{{ __('New request') }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 
-    <x-page-header title="Request a credential" description="Choose the credential, check its requirements, and submit. The Office of the Registrar evaluates every request before accepting it." />
+    <x-page-header title="Request a credential" description="Choose the credential, give your details and valid ID, review, and submit. Your details are saved for your next request. The Office of the Registrar evaluates every request before accepting it." />
 
-    <x-profile-required-callout :user="$owner" />
+    {{-- Not shown: it announces the step to screen readers and is the focus target of showStep(). --}}
+    <p id="request-step" tabindex="-1" class="sr-only">
+        {{ $reviewing ? __('Review and submit your request') : __('Your request') }}
+    </p>
 
-    <form wire:submit="submit" class="space-y-8">
+    {{-- Hidden, not removed, on the summary: the file inputs keep the chosen files for "Back to edit".
+         novalidate: the browser's popups would stop the submit before the errors modal (REQ-01-26). --}}
+    <form wire:submit="review" novalidate @class(['space-y-8', 'hidden' => $reviewing])>
         <section aria-labelledby="what-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <h2 id="what-heading" class="text-lg font-semibold text-primary">{{ __('1. What do you need?') }}</h2>
 
@@ -91,8 +96,6 @@
                 </div>
             @endif
 
-            {{-- Until the profile is complete the credentials can be browsed but not requested (REQ-01-18). --}}
-            <div @class(['space-y-6', 'opacity-50' => $locked]) @if ($locked) inert @endif>
             <div class="space-y-3">
                 <flux:select wire:model.live="form.purpose" :label="__('Purpose')" required>
                     <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
@@ -111,29 +114,13 @@
             @else
                 <flux:input wire:model="form.receiving_institution" :label="__('Receiving school, employer or agency')" :description="__('If applicable: the complete name of the institution the credential is for.')" badge="Optional" />
             @endif
-            </div>
         </section>
 
-        <div @class(['space-y-8', 'opacity-50' => $locked]) @if ($locked) inert @endif>
-
-        <section aria-labelledby="who-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <h2 id="who-heading" class="text-lg font-semibold text-primary">{{ __('2. Your academic details') }}</h2>
-                    <p class="mt-1 text-sm text-zinc-600">{{ __('Taken from your profile. Only the Dean of your college reviews the request, not every college.') }}</p>
-                </div>
-                <flux:button size="sm" variant="ghost" icon="pencil-square" :href="route('student.profile')" wire:navigate>{{ __('Edit in My Profile') }}</flux:button>
-            </div>
-            <dl class="grid gap-4 text-sm sm:grid-cols-2">
-                <div><dt class="text-zinc-500">{{ __('Status') }}</dt><dd class="font-medium text-ink">{{ $owner->academic_status?->label() }} · {{ $owner->attended_from }}–{{ $owner->attended_to }}</dd></div>
-                <div><dt class="text-zinc-500">{{ __('College') }}</dt><dd class="font-medium text-ink">{{ $owner->college?->name }}</dd></div>
-                <div><dt class="text-zinc-500">{{ __('Program or strand') }}</dt><dd class="font-medium text-ink">{{ $owner->program }}</dd></div>
-                <div><dt class="text-zinc-500">{{ __('Student number') }}</dt><dd class="font-medium text-ink">{{ $owner->student_number ?? '—' }}</dd></div>
-            </dl>
-        </section>
+        {{-- Sections 2 to 4, filled in from the saved profile (REQ-15-03, 04). --}}
+        @include('partials.requester-profile-fields', ['prefix' => 'profile', 'fields' => $profile, 'number' => 2])
 
         <section aria-labelledby="rep-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
-            <h2 id="rep-heading" class="text-lg font-semibold text-primary">{{ __('3. Who will transact?') }}</h2>
+            <h2 id="rep-heading" class="text-lg font-semibold text-primary">{{ __('5. Who will transact?') }}</h2>
 
             <flux:radio.group wire:model.live="form.requester_mode" :label="__('Submitting documents and claiming the credential')">
                 @foreach (\App\Enums\RequesterMode::cases() as $mode)
@@ -155,11 +142,9 @@
                 <div wire:loading wire:target="spa,representativeId" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
             @endif
         </section>
-        </div>
 
         {{-- The client's portal notice (Proposed Workflow, III-D), shown before every submission (REQ-04-02),
-             collapsed to its heading (REQ-09-10). Outside the locked block so it can always be opened;
-             wire:ignore.self keeps it open across re-renders. --}}
+             collapsed to its heading (REQ-09-10); wire:ignore.self keeps it open across re-renders. --}}
         <details wire:ignore.self class="group rounded-xl border border-amber-500 bg-amber-50">
             <summary class="flex cursor-pointer list-none items-center gap-3 rounded-xl p-4 font-medium text-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight [&::-webkit-details-marker]:hidden">
                 <flux:icon.exclamation-triangle variant="mini" class="shrink-0 text-amber-600" />
@@ -176,7 +161,37 @@
 
         <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <flux:button :href="route('student.dashboard')" variant="ghost" wire:navigate>{{ __('Cancel') }}</flux:button>
-            <flux:button type="submit" variant="primary" icon-trailing="arrow-right" :disabled="$locked" wire:loading.attr="disabled" wire:target="spa,representativeId,submit">{{ __('Submit request') }}</flux:button>
+            <flux:button type="submit" variant="primary" icon-trailing="arrow-right" wire:loading.attr="disabled" wire:target="spa,representativeId,profile.id_file,review">{{ __('Review request') }}</flux:button>
         </div>
     </form>
+
+    @if ($reviewing)
+        <div class="space-y-8">
+            <div class="space-y-1">
+                <h2 class="text-xl font-bold text-primary" data-summary-title>{{ __('Summary') }}</h2>
+                <flux:text>{{ __('Check that everything below is correct. The Office of the Registrar uses these details and your ID to confirm that the request comes from the document owner.') }}</flux:text>
+            </div>
+
+            <section aria-labelledby="summary-request-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
+                <h3 id="summary-request-heading" class="text-lg font-semibold text-primary">{{ __('Request') }}</h3>
+                <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+                    @foreach ($requestSummary as $label => $value)
+                        <div>
+                            <dt class="text-zinc-500">{{ __($label) }}</dt>
+                            <dd class="font-medium break-words text-ink">{{ $value }}</dd>
+                        </div>
+                    @endforeach
+                </dl>
+            </section>
+
+            @include('partials.requester-profile-summary', ['prefix' => 'profile', 'fields' => $profile, 'user' => $owner])
+
+            <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <flux:button wire:click="back" wire:loading.attr="disabled" wire:target="back,submit">{{ __('Back to edit') }}</flux:button>
+                <flux:button wire:click="submit" variant="primary" icon-trailing="paper-airplane" wire:loading.attr="disabled" wire:target="back,submit">{{ __('Submit request') }}</flux:button>
+            </div>
+        </div>
+    @endif
+
+    @include('partials.requester-profile-errors')
 </div>

@@ -65,6 +65,7 @@ final class RegistrarRequestFilter
             ->when($term !== '', fn (Builder $q) => $q->where(fn (Builder $q) => $q
                 ->where('reference_no', 'like', "%{$term}%")
                 ->orWhere('student_number', 'like', "%{$term}%")
+                ->orWhere('requester_name', 'like', "%{$term}%")   // the request's copy (REQ-15-08)
                 ->orWhereHas('student', fn (Builder $q) => $q
                     ->where('first_name', 'like', "%{$term}%")
                     ->orWhere('last_name', 'like', "%{$term}%")

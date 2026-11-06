@@ -202,13 +202,13 @@ test('REQ-09-07 the verify-email page names the address the code was sent to', f
 });
 
 test('REQ-09-08 toasts appear at the top centre of the screen', function () {
-    $this->actingAs(User::factory()->student()->create())->get(route('student.profile'))
+    $this->actingAs(User::factory()->student()->create())->get(route('settings.profile'))
         ->assertOk()
         ->assertSeeHtml('class="pointer-events-none fixed inset-x-4 top-4 z-50 flex justify-center"');
 });
 
-test('REQ-09-09 the requester sidebar has no group heading and lists New Request first', function () {
-    $html = $this->actingAs(User::factory()->student()->create())->get(route('student.profile'))
+test('REQ-09-09 the requester sidebar has no group heading and lists New Request, then My Requests', function () {
+    $html = $this->actingAs(User::factory()->student()->create())->get(route('student.dashboard'))
         ->assertOk()
         ->getContent();
 
@@ -216,26 +216,22 @@ test('REQ-09-09 the requester sidebar has no group heading and lists New Request
 
     expect($nav)->not->toContain('Student')
         ->and(strpos($nav, 'New Request'))->toBeLessThan(strpos($nav, 'My Requests'))
-        ->and(strpos($nav, 'My Requests'))->toBeLessThan(strpos($nav, 'My Profile'));
+        ->and($nav)->not->toContain('My Profile');
 });
 
-test('REQ-09-10 the incomplete-requirements notice is collapsed between "Who will transact?" and Submit', function () {
+test('REQ-09-10 the incomplete-requirements notice is collapsed between "Who will transact?" and Review request', function () {
     $org = organisation();
     $heading = 'Important notice: incomplete requirements';
 
-    $unlocked = $this->actingAs(requester($org->ccs))->get(route('student.requests.create'))->assertOk()
-        ->assertSeeInOrder(['3. Who will transact?', $heading, 'Submit request'])
+    $html = $this->actingAs(requester($org->ccs))->get(route('student.requests.create'))->assertOk()
+        ->assertSeeInOrder(['5. Who will transact?', $heading, 'Review request'])
         ->getContent();
 
-    $notice = Str::between($unlocked, '<details', '</details>');
+    $notice = Str::between($html, '<details', '</details>');
     expect(Str::before($notice, '>'))->not->toContain(' open')
         ->and(Str::between($notice, '<summary', '</summary>'))->toContain($heading)
-        ->and(Str::after($notice, '</summary>'))->toContain('Submitting an online request does not automatically mean');
-
-    // While the profile is incomplete the form is inert, but the notice can still be opened.
-    $locked = $this->actingAs(User::factory()->student()->create())->get(route('student.requests.create'))->assertOk()->getContent();
-    expect(Str::before($locked, '<details'))->toContain(' inert')
-        ->and(Str::after($locked, '<details'))->not->toContain(' inert');
+        ->and(Str::after($notice, '</summary>'))->toContain('Submitting an online request does not automatically mean')
+        ->and($html)->not->toContain(' inert');
 });
 
 test('REQ-09-11 the chosen credential shows its offices as a numbered list ending with the final check', function () {
@@ -275,13 +271,13 @@ test('REQ-09-18 signed-in pages stop at 96rem on wide screens and detail grids c
         ->and($this->get(route('registrar.requests.show', $request))->assertOk()->getContent())->toContain('grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]');
 });
 
-test('REQ-09-12 New Request, My Requests and My Profile share one column and one section style', function () {
+test('REQ-09-12 New Request and My Requests share one column and one section style', function () {
     $org = organisation();
     $owner = requester($org->ccs);
     submitRequest($owner, $org->free);
     $this->actingAs($owner);
 
-    foreach (['student.requests.create', 'student.dashboard', 'student.profile'] as $page) {
+    foreach (['student.requests.create', 'student.dashboard'] as $page) {
         $html = $this->get(route($page))->assertOk()->getContent();
 
         preg_match_all('/<section[^>]*class="([^"]*)"/', $html, $sections);

@@ -4,7 +4,7 @@
         <flux:breadcrumbs.item>{{ $request->reference_no }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 
-    <x-page-header :title="$request->reference_no" :description="$request->credentialType->name.' · '.$request->student->name">
+    <x-page-header :title="$request->reference_no" :description="$request->credentialType->name.' · '.$request->requester_name">
         <x-slot:afterTitle>
             <x-copy-button :value="$request->reference_no" :label="__('Copy tracking number')" :copied="__('Tracking number copied.')" />
         </x-slot:afterTitle>

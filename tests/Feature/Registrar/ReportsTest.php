@@ -239,7 +239,8 @@ test('REQ-07-18 the delay analysis separates the holding office from the cause',
 
 test('REQ-07-19 the customer compliance and release reports', function () {
     expect(reportRows(new ComplianceReport))->toBe([[
-        $this->h->reference_no, $this->owner->name, $this->owner->contact_number, 'Transcript of Records', 'Pending compliance',
+        // The request's own copy of the name and contact (REQ-15-08).
+        $this->h->reference_no, $this->owner->requesterName(), $this->owner->contact_number, 'Transcript of Records', 'Pending compliance',
         'Missing: Original Form 137', '2026-10-20', 0,   // no ledger entry in this fixture: since its last update
     ]]);
 
@@ -251,7 +252,7 @@ test('REQ-07-19 the customer compliance and release reports', function () {
 
 test('REQ-07-20 reports download as formula-safe CSV for the registrar only', function () {
     $this->c->forceFill(['purpose' => 'x'])->save();
-    $this->owner->forceFill(['first_name' => '=cmd'])->save();
+    $this->h->forceFill(['requester_name' => '=cmd'])->save();
 
     $response = $this->actingAs($this->registrar)->get(route('registrar.reports.export', ['report' => 'compliance']));
     $response->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
