@@ -10,7 +10,7 @@
                     <p class="mt-1 text-3xl font-bold text-primary tabular-nums">{{ $tile['value'] }}</p>
                 </a>
             @endforeach
-            <a href="{{ route('registrar.requests', ['status' => 'overdue']) }}" wire:navigate
+            <a href="{{ route('registrar.records', ['status' => 'overdue']) }}" wire:navigate
                 @class([
                     'rounded-xl border p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight',
                     'border-red-700 bg-red-50 hover:bg-red-100' => $overdueCount > 0,
@@ -105,7 +105,7 @@
                 <ul class="space-y-2.5">
                     @foreach ($waitingByOffice as $row)
                         <li>
-                            <a href="{{ route('registrar.requests', ['status' => 'processing', 'office' => $row['id']]) }}" wire:navigate
+                            <a href="{{ route('registrar.records', ['status' => 'processing', 'office' => $row['id']]) }}" wire:navigate
                                 class="group grid grid-cols-[1fr_2.5rem] items-center gap-x-3 gap-y-1 rounded-md p-1 hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-highlight sm:grid-cols-[minmax(0,15rem)_1fr_2.5rem]"
                                 title="{{ trans_choice(':count request|:count requests', $row['waiting']) }}{{ $row['inTransit'] ? ' · '.__(':n not yet received', ['n' => $row['inTransit']]) : '' }}">
                                 <span class="col-span-2 min-w-0 sm:col-span-1">

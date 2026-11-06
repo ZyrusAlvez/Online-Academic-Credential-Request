@@ -250,18 +250,8 @@ test('REQ-07-19 the customer compliance and release reports', function () {
         ->and($release[$this->a->reference_no][3])->toBe('Released');
 });
 
-test('REQ-07-20 reports download as formula-safe CSV for the registrar only', function () {
-    $this->c->forceFill(['purpose' => 'x'])->save();
-    $this->h->forceFill(['requester_name' => '=cmd'])->save();
-
-    $response = $this->actingAs($this->registrar)->get(route('registrar.reports.export', ['report' => 'compliance']));
-    $response->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
-
-    expect($response->streamedContent())
-        ->toContain('"Tracking no.",Requester,Contact,Credential')
-        ->toContain($this->h->reference_no)
-        ->toContain("'=cmd");
-
-    $this->actingAs($this->registrar)->get(route('registrar.reports.export', ['report' => 'nope']))->assertNotFound();
-    $this->actingAs($this->owner)->get(route('registrar.reports.export', ['report' => 'delay']))->assertForbidden();
+test('REQ-07-20 reports are for the registrar only', function () {
+    $this->actingAs($this->registrar)->get(route('registrar.reports', ['report' => 'compliance']))->assertOk()->assertSee($this->h->reference_no);
+    $this->actingAs($this->owner)->get(route('registrar.reports'))->assertForbidden();
+    $this->actingAs(User::factory()->departmentStaff($this->org->vpf)->create())->get(route('registrar.reports'))->assertForbidden();
 });

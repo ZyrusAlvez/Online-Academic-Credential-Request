@@ -35,22 +35,31 @@
 
     @if ($request->status === \App\Enums\RequestStatus::PendingCompliance)
         <section aria-labelledby="compliance-heading" class="space-y-4 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6">
-            <h2 id="compliance-heading" class="text-lg font-semibold text-amber-900">{{ __('Important notice: incomplete requirements') }}</h2>
-            <p class="text-sm text-amber-950">{{ __('The Office of the Registrar found the following requirements incomplete. Submit the original documents and accomplish the clearance at the Registrar\'s Office of UPHSL, personally or through an authorized representative with a Special Power of Attorney (SPA) and the valid IDs of both of you.') }}</p>
-            <ul class="space-y-2">
-                @foreach ($request->deficiencies as $deficiency)
-                    <li class="flex items-start gap-2 text-sm">
-                        @if ($deficiency->resolved_at)
-                            <flux:icon.check-circle variant="mini" class="mt-0.5 shrink-0 text-green-700" />
-                            <span><span class="line-through">{{ $deficiency->description }}</span> <span class="text-green-800">{{ __('— complied :date', ['date' => $deficiency->resolved_at->format('M j')]) }}</span></span>
-                        @else
-                            <flux:icon.exclamation-circle variant="mini" class="mt-0.5 shrink-0 text-amber-700" />
-                            <span class="font-medium text-ink">{{ $deficiency->description }}</span>
-                        @endif
-                    </li>
-                @endforeach
-            </ul>
-            <p class="text-sm font-medium text-amber-950">{{ __('Your request remains pending until these are resolved and verified. The processing period starts only after your requirements and payment are verified and the request is accepted.') }}</p>
+            {{-- Returned by the evaluator: what was rejected and why (REQ-16-15). --}}
+            <h2 id="compliance-heading" class="text-lg font-semibold text-amber-900">{{ __('Your request was returned to you') }}</h2>
+            @if ($rejectedParts !== [])
+                <div>
+                    <p class="text-sm text-amber-950">{{ __('The Office of the Registrar could not confirm:') }}</p>
+                    <ul class="mt-1 space-y-1" data-rejected-parts>
+                        @foreach ($rejectedParts as $part)
+                            <li class="flex items-start gap-2 text-sm">
+                                <flux:icon.exclamation-circle variant="mini" class="mt-0.5 shrink-0 text-amber-700" />
+                                <span class="font-medium text-ink">{{ __($part->label()) }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            @if ($returnRemarks)
+                <p class="rounded-md bg-white p-3 text-sm whitespace-pre-line text-ink"><span class="font-semibold">{{ __('Remarks:') }}</span> {{ \Illuminate\Support\Str::contains($returnRemarks, "\n") ? \Illuminate\Support\Str::after($returnRemarks, "\n") : $returnRemarks }}</p>
+            @endif
+            <p class="text-sm text-amber-950">{{ __('If original documents or clearance are missing, submit them at the Registrar\'s Office of UPHSL, personally or through an authorized representative with a Special Power of Attorney (SPA) and the valid IDs of both of you. The processing period starts only after your requirements and payment are verified and the request is accepted.') }}</p>
+            @can('resubmit', $request)
+                <form wire:submit="resubmit" class="space-y-3">
+                    <flux:textarea wire:model="note" :label="__('Note to the Office of the Registrar')" badge="Optional" :description="__('What you fixed, or when you will come in person.')" rows="2" />
+                    <flux:button type="submit" variant="primary" icon="paper-airplane">{{ __('Resubmit for evaluation') }}</flux:button>
+                </form>
+            @endcan
         </section>
     @endif
 
@@ -75,19 +84,6 @@
             </form>
         </section>
     @endcan
-
-    @if ($request->status === \App\Enums\RequestStatus::ReturnedForCustomerAction)
-        <section aria-labelledby="action-heading" class="space-y-4 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6">
-            <h2 id="action-heading" class="text-lg font-semibold text-amber-900">{{ __('Your action is needed') }}</h2>
-            <p class="rounded-md bg-white p-3 text-sm text-ink">{{ $actionMessage }}</p>
-            @can('respond', $request)
-                <form wire:submit="respond" class="space-y-3">
-                    <flux:textarea wire:model="reply" :label="__('Your reply')" :description="__('If you need to submit something in person, say when you will come.')" rows="3" required />
-                    <flux:button type="submit" variant="primary" icon="paper-airplane">{{ __('Send reply') }}</flux:button>
-                </form>
-            @endcan
-        </section>
-    @endif
 
     @if ($request->requires_payment && in_array($request->status, [\App\Enums\RequestStatus::AwaitingPayment, \App\Enums\RequestStatus::PaymentVerification], true))
         <section aria-labelledby="payment-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6">

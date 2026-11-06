@@ -1,12 +1,12 @@
 <?php
 
+use App\Enums\CheckStage;
 use App\Enums\PaymentStatus;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\RouteTask;
 use App\Enums\StepStatus;
 use App\Enums\VisitStatus;
-use App\Exceptions\InvalidTransition;
 use App\Livewire\Registrar\Requests\Show;
 use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\User;
@@ -57,33 +57,34 @@ test('REQ-04-13 the registrar rejects a proof with remarks', function () {
     uploadPayment($this->request);
 
     Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request])
-        ->call('rejectPayment')->assertHasErrors('rejectRemarks')
-        ->set('rejectRemarks', 'No matching transaction')->call('rejectPayment')->assertHasNoErrors();
+        ->call('returnRequest')->assertHasErrors('remarks')
+        ->set('remarks', 'No matching transaction')->call('returnRequest')->assertHasNoErrors();
 
     expect($this->request->fresh()->status)->toBe(RequestStatus::AwaitingPayment)
         ->and($this->request->paymentProofs()->sole())->status->toBe(PaymentStatus::Rejected)->remarks->toBe('No matching transaction');
 });
 
-test('REQ-04-13 a rejection that fails keeps the dialog open with the remarks typed', function () {
+test('REQ-04-13 a rejection that fails keeps the remarks typed', function () {
     uploadPayment($this->request);
     $page = Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request]);
 
     // Meanwhile another registrar verified the payment in another tab.
+    checkAll($this->request, $this->registrar, CheckStage::Payment);
     workflow()->verifyPaymentAndAccept($this->request, User::factory()->registrar()->create(), 'OR-0001');
 
-    $page->set('rejectRemarks', 'No matching transaction')->call('rejectPayment')
-        ->assertDispatched('notify', message: 'Only payments awaiting verification can be rejected.')
-        ->assertNotDispatched('modal-close', name: 'reject-payment')
-        ->assertSet('rejectRemarks', 'No matching transaction');
+    $page->set('remarks', 'No matching transaction')->call('returnRequest')
+        ->assertDispatched('notify')
+        ->assertSet('remarks', 'No matching transaction');
 });
 
 test('REQ-04-13 verification needs the official receipt number; a proof alone is not paid', function () {
     uploadPayment($this->request);
     expect($this->request->fresh()->accepted_at)->toBeNull();
+    checkAll($this->request, $this->registrar, CheckStage::Payment);
 
     Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request])
-        ->call('verifyPayment')->assertHasErrors('officialReceiptNo')
-        ->set('officialReceiptNo', 'OR-778899')->call('verifyPayment')->assertHasNoErrors();
+        ->call('approve')->assertHasErrors('officialReceiptNo')
+        ->set('officialReceiptNo', 'OR-778899')->call('approve')->assertHasNoErrors();
 
     expect($this->request->paymentProofs()->sole())
         ->status->toBe(PaymentStatus::Verified)
@@ -93,6 +94,7 @@ test('REQ-04-13 verification needs the official receipt number; a proof alone is
 
 test('REQ-04-14 acceptance starts the clock: due date, route and first hand-off', function () {
     uploadPayment($this->request);
+    checkAll($this->request, $this->registrar, CheckStage::Payment);
     Carbon::setTestNow('2026-10-09 10:00:00');   // a Friday
     workflow()->verifyPaymentAndAccept($this->request, $this->registrar, 'OR-1');
 
@@ -109,19 +111,4 @@ test('REQ-04-14 acceptance starts the clock: due date, route and first hand-off'
         ->and($steps->first()->status)->toBe(StepStatus::Current)
         ->and(openVisit($request)->status)->toBe(VisitStatus::InTransit)
         ->and($request->events()->pluck('type')->all())->toContain(RequestEventType::PaymentVerified, RequestEventType::Accepted, RequestEventType::DocumentForwarded);
-});
-
-test('REQ-04-15 the registrar can correct the college only before acceptance', function () {
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request])
-        ->set('collegeId', $this->org->cba->id)
-        ->call('changeCollege');
-
-    expect($this->request->fresh()->college_id)->toBe($this->org->cba->id)
-        ->and($this->request->events()->get()->last()->type)->toBe(RequestEventType::CollegeChanged);
-
-    uploadPayment($this->request);
-    workflow()->verifyPaymentAndAccept($this->request, $this->registrar, 'OR-1');
-
-    expect($this->request->fresh()->steps()->pluck('department_id')->all())->toContain($this->org->cba->id)
-        ->and(fn () => workflow()->changeCollege($this->request, $this->registrar, $this->org->ccs))->toThrow(InvalidTransition::class);
 });

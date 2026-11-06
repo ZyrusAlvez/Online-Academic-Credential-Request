@@ -3,6 +3,7 @@
 namespace App\Livewire\Concerns;
 
 use App\Enums\DelayCategory;
+use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\Department;
 use App\Models\OfficeVisit;
@@ -77,10 +78,9 @@ trait ActsOnVisits
     {
         $visit = $this->credentialRequest->openVisit()->with(['department', 'step', 'credentialRequest'])->first();
 
-        if (! $this->actor()->can('review', $this->credentialRequest)) {
-            abort_if($visit === null, 403);
-            $this->authorize('act', $visit);
-        }
+        // Department offices only; the registrar does not record delay reasons (REQ-16-21).
+        abort_if($visit === null || $this->actor()->hasRole(Role::Registrar), 403);
+        $this->authorize('act', $visit);
 
         $this->validate([
             'delayCategory' => ['required', Rule::enum(DelayCategory::class)],

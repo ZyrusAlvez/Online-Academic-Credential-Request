@@ -1,18 +1,13 @@
 <div class="space-y-6">
-    <x-page-header title="Requests" description="Evaluate new requests, verify payments, and follow every request through the offices.">
-        <x-slot:actions>
-            <flux:button icon="arrow-down-tray" :href="$exportUrl">{{ __('Export CSV') }}</flux:button>
-        </x-slot:actions>
-    </x-page-header>
+    <x-page-header title="Records" description="Every credential request, for viewing and tracking. Act on a request from its stage's queue." />
 
     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" label:sr-only :placeholder="__('Tracking no., name or student number')" clearable />
         <flux:select wire:model.live="status" :label="__('Status')" label:sr-only>
-            <flux:select.option value="review">{{ __('Needs the Registrar (:count)', ['count' => $reviewCount]) }}</flux:select.option>
+            <flux:select.option value="">{{ __('All statuses') }}</flux:select.option>
+            <flux:select.option value="open">{{ __('All open') }}</flux:select.option>
             <flux:select.option value="processing">{{ __('Being processed') }}</flux:select.option>
             <flux:select.option value="overdue">{{ __('Overdue (:count)', ['count' => $overdueCount]) }}</flux:select.option>
-            <flux:select.option value="open">{{ __('All open') }}</flux:select.option>
-            <flux:select.option value="">{{ __('All statuses') }}</flux:select.option>
             @foreach ($statuses as $option)
                 <flux:select.option :value="$option->value">{{ $option->label() }}</flux:select.option>
             @endforeach
@@ -44,7 +39,7 @@
             @forelse ($requests as $request)
                 <flux:table.row :key="$request->id">
                     <flux:table.cell class="whitespace-normal">
-                        <a href="{{ route('registrar.requests.show', $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $request->reference_no }}</a>
+                        <a href="{{ route('registrar.records.show', $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $request->reference_no }}</a>
                         <div class="text-xs text-zinc-600">{{ $request->credentialType->name }}</div>
                     </flux:table.cell>
                     <flux:table.cell class="max-md:hidden whitespace-normal">
@@ -57,10 +52,6 @@
                             <x-request-status :status="$request->status" />
                             @if ($request->isOverdue())
                                 <flux:badge size="sm" color="red" icon="clock">{{ __('Overdue') }}</flux:badge>
-                            @endif
-                            {{-- The ID is checked on the request (REQ-15-12). --}}
-                            @if ($request->identity_document_id && $request->identity_status === \App\Enums\ReviewStatus::Pending && $request->identityReviewable())
-                                <flux:badge size="sm" color="sky" icon="identification" data-id-to-verify>{{ __('ID to verify') }}</flux:badge>
                             @endif
                         </div>
                     </flux:table.cell>

@@ -32,10 +32,11 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
 
 ### Requester notifications
 - **REQ-06-05** THE SYSTEM SHALL notify the requester in-app and by email when the request is
-  received, when requirements or clarification are needed, when payment instructions are available,
-  when the payment is rejected, when the payment is verified and the request accepted (with the
-  expected release date), when the credential is ready for release, and when the request is
-  declined or cancelled by the registrar.
+  received, when it is returned to them with what to fix (REQ-16-13), when payment instructions are
+  available, when the payment is rejected, when the payment is verified and the request accepted
+  (with the expected release date), when the credential is ready for release, and when the request
+  is declined. *(Only the requester cancels now, REQ-16-21, and their own actions are not sent to
+  them.)*
 - **REQ-06-16** THE SYSTEM SHALL let a requester turn email notifications on or off in Settings →
   Email notifications; they are on for every new and existing account. WHILE they are off THE
   SYSTEM SHALL send no request, reminder or ID-review emails to that requester, and SHALL still
@@ -48,8 +49,8 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
 ### Staff notifications
 - **REQ-06-07** WHEN a document is forwarded or returned to an office THE SYSTEM SHALL notify that
   office's active staff in-app; for the Office of the Registrar, registrar accounts are notified.
-- **REQ-06-08** WHEN a request is submitted, a proof of payment is uploaded, a requester replies, or
-  a representative is declared THE SYSTEM SHALL notify active registrar accounts in-app.
+- **REQ-06-08** WHEN a request is submitted or resubmitted (REQ-16-15), a proof of payment is
+  uploaded, or a representative is declared THE SYSTEM SHALL notify active registrar accounts in-app.
 
 ### Reminders
 - **REQ-06-11** WHEN a document's effective due date falls within the next working day THE SYSTEM

@@ -269,7 +269,8 @@ test('REQ-09-18 signed-in pages stop at 96rem on wide screens and detail grids c
     $this->actingAs($registrar);
 
     expect($this->get(route('registrar.departments'))->assertOk()->getContent())->toContain('class="mx-auto w-full max-w-screen-2xl" data-page-width')
-        ->and($this->get(route('registrar.requests.show', $request))->assertOk()->getContent())->toContain('grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]');
+        // The request page is one column of checklist cards (spec 16) whose details stack on phones.
+        ->and($this->get(route('registrar.requests.show', $request))->assertOk()->getContent())->toContain('class="mx-auto max-w-4xl space-y-6"')->toContain('grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2');
 });
 
 test('REQ-09-12 New Request and My Requests share one column and one section style', function () {

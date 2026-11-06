@@ -3,6 +3,9 @@
 namespace App\Livewire\Student\Requests;
 
 use App\Actions\Identity\SubmitIdentityDocument;
+use App\Enums\CheckItem;
+use App\Enums\CheckResult;
+use App\Enums\CheckStage;
 use App\Enums\PaymentStatus;
 use App\Enums\RequestEventType;
 use App\Exceptions\InvalidTransition;
@@ -45,7 +48,7 @@ class Show extends Component
 
     public string $paidOn = '';
 
-    public string $reply = '';
+    public string $note = '';
 
     public string $cancelReason = '';
 
@@ -96,21 +99,24 @@ class Show extends Component
         $this->dispatch('notify', message: 'Proof of payment uploaded. The Office of the Registrar will verify it against the payment record.');
     }
 
-    public function respond(RequestWorkflow $workflow): void
+    /**
+     * Send the returned request back for evaluation (REQ-16-15).
+     */
+    public function resubmit(RequestWorkflow $workflow): void
     {
-        $this->authorize('respond', $this->credentialRequest);
-        $this->validate(['reply' => ['required', 'string', 'max:1000']], attributes: ['reply' => 'reply']);
+        $this->authorize('resubmit', $this->credentialRequest);
+        $this->validate(['note' => ['nullable', 'string', 'max:1000']], attributes: ['note' => 'note']);
 
         try {
-            $workflow->customerResponded($this->credentialRequest, $this->owner(), $this->reply);
+            $workflow->resubmit($this->credentialRequest, $this->owner(), $this->note);
         } catch (InvalidTransition $e) {
-            $this->addError('reply', $e->getMessage());
+            $this->addError('note', $e->getMessage());
 
             return;
         }
 
-        $this->reset('reply');
-        $this->dispatch('notify', message: 'Reply sent to the Office of the Registrar.');
+        $this->reset('note');
+        $this->dispatch('notify', message: 'Resubmitted. The Office of the Registrar will evaluate your request again.');
     }
 
     public function declareRepresentative(RequestWorkflow $workflow): void
@@ -200,17 +206,24 @@ class Show extends Component
     {
         $request = $this->credentialRequest->load([
             'credentialType', 'college', 'identityDocument', 'openVisit.department', 'paymentProofs', 'deficiencies',
-            'representatives.documents', 'release', 'steps.department',
+            'representatives.documents', 'release', 'steps.department', 'checks',
         ]);
 
         $events = $request->events()->with(['department', 'step'])->get()
             ->reject(fn ($event) => $event->type->isInternal())
             ->values();
 
+        $results = $request->checkResults(CheckStage::Evaluation);
+
         return view('livewire.student.requests.show', [
             'request' => $request,
             'rejectedProof' => $request->paymentProofs->firstWhere('status', PaymentStatus::Rejected),
-            'actionMessage' => $events->last(fn ($event) => $event->type === RequestEventType::CustomerActionRequested)?->remarks,
+            // What the evaluator rejected and why (REQ-16-15).
+            'rejectedParts' => array_values(array_filter(
+                CheckItem::for(CheckStage::Evaluation, $request),
+                fn (CheckItem $item) => ($results[$item->value] ?? null) === CheckResult::Rejected,
+            )),
+            'returnRemarks' => $events->last(fn ($event) => $event->type === RequestEventType::ComplianceRequested)?->remarks,
             'events' => $events,
             'idTypes' => IdentityDocument::ID_TYPES,
         ])->title($request->reference_no);

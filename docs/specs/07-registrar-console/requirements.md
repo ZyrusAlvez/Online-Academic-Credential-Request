@@ -23,8 +23,7 @@ measures).
 - **REQ-07-03** THE SYSTEM SHALL show the registrar counts of requests needing the Registrar,
   pending compliance, awaiting payment, being processed and ready for release, and overdue requests.
 - **REQ-07-05** THE SYSTEM SHALL show, per office, how many documents it currently holds
-  (forwarded or received), largest first, each linking to the In Progress queue filtered to that
-  office.
+  (forwarded or received), largest first, each linking to Records filtered to that office.
 - **REQ-07-06** THE SYSTEM SHALL list the most overdue requests (up to 5) on the dashboard.
 - **REQ-07-07** THE SYSTEM SHALL let the registrar filter Records and the In Progress queue by the
   office currently holding the document.
@@ -73,6 +72,7 @@ measures).
 
 ### Demo data & documentation
 - **REQ-07-09** THE SYSTEM SHALL provide a demo seeder (refused in production) that creates one
-  account per office and sample requests in every status.
+  account per office and sample requests in every status still in use (all but
+  `returned_for_customer_action`, which spec 16 retired).
 - **REQ-07-10** THE SYSTEM SHALL include a README describing setup, demo accounts, architecture
   and the spec index.

@@ -1,11 +1,10 @@
 <?php
 
+use App\Enums\RegistrarQueue;
 use App\Enums\Role;
 use App\Http\Controllers\IdentityDocumentController;
 use App\Http\Controllers\PaymentProofController;
-use App\Http\Controllers\ReportsCsvController;
 use App\Http\Controllers\RequestDocumentController;
-use App\Http\Controllers\RequestsCsvController;
 use App\Livewire\Department;
 use App\Livewire\Notifications;
 use App\Livewire\Registrar;
@@ -29,11 +28,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('registrar')->name('registrar.')->middleware('role:registrar')->group(function () {
         Route::get('/', Registrar\Dashboard::class)->name('dashboard');
-        Route::get('requests', Registrar\Requests\Index::class)->name('requests');
-        Route::get('requests/export', RequestsCsvController::class)->name('requests.export');
+        // One queue per stage (REQ-16-01..06); the working page of a request, and Records (REQ-16-07).
+        Route::get('evaluation', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Evaluation->value)->name('evaluation');
+        Route::get('payments', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Payment->value)->name('payments');
+        Route::get('in-progress', Registrar\Queue::class)->defaults('queue', RegistrarQueue::InProgress->value)->name('in-progress');
+        Route::get('final-check', Registrar\Queue::class)->defaults('queue', RegistrarQueue::FinalCheck->value)->name('final-check');
+        Route::get('release', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Release->value)->name('release');
         Route::get('requests/{credentialRequest}', Registrar\Requests\Show::class)->name('requests.show');
+        Route::get('records', Registrar\Records\Index::class)->name('records');
+        Route::get('records/{credentialRequest}', Registrar\Records\Show::class)->name('records.show');
         Route::get('reports', Registrar\Reports\Index::class)->name('reports');
-        Route::get('reports/{report}/export', ReportsCsvController::class)->name('reports.export');
         Route::get('departments', Registrar\Departments\Index::class)->name('departments');
         Route::get('programs', Registrar\Programs\Index::class)->name('programs');
         Route::get('purposes', Registrar\Purposes\Index::class)->name('purposes');

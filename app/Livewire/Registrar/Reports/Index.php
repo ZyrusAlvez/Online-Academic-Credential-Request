@@ -17,12 +17,12 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 
 /**
- * The client's ten reports with shared filters and CSV export (REQ-07-13..20).
+ * The client's ten reports with shared filters (REQ-07-13..20). There is no CSV (REQ-16-08).
  */
 #[Title('Reports')]
 class Index extends Component
 {
-    /** Rows shown on the page; the CSV has them all. */
+    /** Rows shown on the page; narrower filters show the rest. */
     public const PAGE_ROWS = 200;
 
     #[Url]
@@ -68,7 +68,6 @@ class Index extends Component
             'types' => CredentialType::orderBy('name')->get(['id', 'name']),
             'evaluators' => User::where('role', Role::Registrar)->orderBy('first_name')->get(),
             'offices' => Department::orderBy('name')->get(['id', 'name']),
-            'exportUrl' => route('registrar.reports.export', ['report' => $kind->value, ...$filter->toArray()]),
         ]);
     }
 

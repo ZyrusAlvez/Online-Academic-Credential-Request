@@ -3,7 +3,7 @@
 use App\Livewire\Registrar\Departments\Index as Departments;
 use App\Livewire\Registrar\Programs\Index as Programs;
 use App\Livewire\Registrar\Purposes\Index as Purposes;
-use App\Livewire\Registrar\Requests\Index as Requests;
+use App\Livewire\Registrar\Records\Index as Records;
 use App\Livewire\Registrar\Users\Index as Users;
 use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
@@ -46,7 +46,7 @@ test('REQ-09-17 a search box keeps the space typed between words', function (str
         ->assertSet('search', 'sad ');
 })->with([
     'accounts' => [Users::class],
-    'requests' => [Requests::class],
+    'records' => [Records::class],
     'offices' => [Departments::class],
     'programs' => [Programs::class],
     'purposes' => [Purposes::class],

@@ -7,10 +7,10 @@
 | Column | Type | Notes |
 |---|---|---|
 | `id` | bigint | |
-| `credential_request_id` | FK → `credential_requests`, cascade | |
+| `credential_request_id` | FK → `credential_requests`, restrict | |
 | `item` | string(30) | `App\Enums\CheckItem` |
 | `result` | string(20) | `App\Enums\CheckResult`: `confirmed`, `rejected` |
-| `checked_by` | FK → `users`, null on delete | |
+| `checked_by` | FK → `users`, restrict | |
 | `checked_at` | datetime | |
 
 There is a unique key on (`credential_request_id`, `item`). An item belongs to one stage
@@ -18,7 +18,7 @@ There is a unique key on (`credential_request_id`, `item`). An item belongs to o
 result is updated when the evaluator changes their mind. Clearing the rejected parts on resubmit or
 reopen deletes their rows. The decision's ledger entry keeps the history (REQ-16-22).
 
-`request_releases.id_presented` becomes nullable: release now records who claimed the credential,
+`releases.id_presented` becomes nullable: release now records who claimed the credential,
 not the ID they showed (REQ-16-20).
 
 `CheckItem` cases, by stage:

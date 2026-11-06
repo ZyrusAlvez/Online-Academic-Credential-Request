@@ -4,6 +4,9 @@ namespace Database\Seeders;
 
 use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
+use App\Enums\CheckItem;
+use App\Enums\CheckResult;
+use App\Enums\CheckStage;
 use App\Enums\DelayCategory;
 use App\Enums\RecipientType;
 use App\Enums\Role;
@@ -75,31 +78,31 @@ class DemoSeeder extends Seeder
             // Submitted, waiting for an evaluator.
             $this->at(0, fn () => $this->submit($juan, $tor, 'Employment abroad'));
 
-            // Under evaluation, with the ID rejected: Maria is asked for another.
+            // Under evaluation, half checked: the credential is fine, the ID is not (spec 16).
             $this->at(1, function () use ($maria, $type): void {
                 $request = $this->submit($maria, $type('Certification of Enrollment'), 'Scholarship application');
                 $this->workflow->startEvaluation($request, $this->registrar);
-                $this->workflow->reviewIdentity($request, $this->registrar, false, 'The photo is too blurred to read the name. Please upload a clearer copy.');
+                $this->workflow->recordCheck($request, $this->registrar, CheckItem::CredentialRequest, CheckResult::Confirmed);
+                $this->workflow->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
             });
 
-            // Pending compliance: ID verified, two missing originals, one already brought in.
+            // Pending compliance: returned with the academic record rejected (missing originals).
             $this->at(3, function () use ($jose, $tor): void {
                 $request = $this->submit($jose, $tor, 'Board or licensure examination');
                 $this->workflow->startEvaluation($request, $this->registrar);
-                $this->workflow->reviewIdentity($request, $this->registrar, true);
-                $this->workflow->requestCompliance($request, $this->registrar, [
-                    'Form 137 or the UPHSL copy of the previous Transcript of Records',
-                    'PSA-authenticated birth certificate',
-                ], 'Please submit the originals at the Registrar\'s Office.');
-                $this->later(20);
-                $this->workflow->resolveDeficiency($request->deficiencies()->firstOrFail(), $this->registrar, 'Original Form 137 received and verified.');
+                $this->check($request, CheckStage::Evaluation, reject: CheckItem::AcademicRecord);
+                $this->workflow->returnToRequester($request, $this->registrar,
+                    'Please submit the originals of your Form 137 and PSA-authenticated birth certificate at the Registrar\'s Office.');
             });
 
-            // Returned for customer action before acceptance (clarification).
+            // Resubmitted: returned for a blurred ID, the requester replied and sent it back.
             $this->at(2, function () use ($ana, $type): void {
                 $request = $this->submit($ana, $type('Copy of Grades'), 'Employment');
                 $this->workflow->startEvaluation($request, $this->registrar);
-                $this->workflow->requestCustomerAction($request, $this->registrar, 'Our records show two enrollments under different names. Please confirm the name used in 2021.');
+                $this->check($request, CheckStage::Evaluation, reject: CheckItem::Identity);
+                $this->workflow->returnToRequester($request, $this->registrar, 'The photo of your ID is too blurred to read the name.');
+                $this->later(20);
+                $this->workflow->resubmit($request, $ana, 'I will bring the original ID on Monday.');
             });
 
             // Awaiting payment.
@@ -153,7 +156,7 @@ class DemoSeeder extends Seeder
                 $request = $this->accepted($juan, $type('Certification of Enrollment'), 'Visa or immigration');
                 $this->advanceUntil($request, null);
                 $this->later(20);
-                $this->release($request, $juan->name);
+                $this->release($request);
             });
 
             // Released late: the Chancellor's signature took long.
@@ -163,7 +166,7 @@ class DemoSeeder extends Seeder
                 $this->later(24 * 12);
                 $this->advanceUntil($request, null);
                 $this->later(30);
-                $this->release($request, $jose->name);
+                $this->release($request);
             });
 
             // Overdue: waiting for the Chancellor's signature, with a delay reason.
@@ -174,12 +177,18 @@ class DemoSeeder extends Seeder
                 $this->workflow->recordDelay($request, $this->staff['CHAN'], DelayCategory::PendingSignature, 'The Chancellor is attending a conference abroad.', 'Signing scheduled on return.');
             });
 
-            // Paused: returned to the requester after acceptance.
+            // Accepted, received by the Registrar for preparation: not yet in progress (REQ-16-18).
             $this->at(8, function () use ($juan, $type): void {
                 $request = $this->accepted($juan, $type('Diploma / Certificate for Non-Degree Programs'), 'Personal copy');
                 $this->advanceUntil($request, Department::REGISTRAR_CODE, receive: true);
-                $this->later(4);
-                $this->workflow->requestCustomerAction($request, $this->registrar, 'Please submit an affidavit of loss for the original diploma.');
+            });
+
+            // Declined at the final quality check (REQ-16-19).
+            $this->at(10, function () use ($ana, $type): void {
+                $request = $this->accepted($ana, $type('Certification of Graduation'), 'Employment');
+                $this->advanceUntil($request, Department::REGISTRAR_CODE, receive: true, finalCheck: true);
+                $this->workflow->recordCheck($request, $this->registrar, CheckItem::CredentialDocument, CheckResult::Rejected);
+                $this->workflow->decline($request, $this->registrar, 'The records show the requester has not completed the program.');
             });
 
             // Declined: not eligible.
@@ -245,9 +254,19 @@ class DemoSeeder extends Seeder
         $this->later(2);
         $this->workflow->startEvaluation($request, $this->registrar);
         $this->later(1);
-        $this->workflow->reviewIdentity($request, $this->registrar, true);
+        $this->check($request, CheckStage::Evaluation);
         $this->later(2);
-        $this->workflow->completeEvaluation($request, $this->registrar, 'Records and requirements complete.');
+        $this->workflow->approveEvaluation($request, $this->registrar, 'Records and requirements complete.');
+    }
+
+    /**
+     * Confirm every part of a stage's checklist, or all but the one rejected (spec 16).
+     */
+    private function check(CredentialRequest $request, CheckStage $stage, ?CheckItem $reject = null): void
+    {
+        foreach (CheckItem::for($stage, $request->fresh() ?? $request) as $item) {
+            $this->workflow->recordCheck($request, $this->registrar, $item, $item === $reject ? CheckResult::Rejected : CheckResult::Confirmed);
+        }
     }
 
     private function pay(CredentialRequest $request): void
@@ -266,6 +285,7 @@ class DemoSeeder extends Seeder
         if ($request->requires_payment) {
             $this->pay($request);
             $this->later(4);
+            $this->check($request, CheckStage::Payment);
             $this->workflow->verifyPaymentAndAccept($request, $this->registrar, 'OR-'.fake()->numerify('######'));
         }
 
@@ -296,19 +316,18 @@ class DemoSeeder extends Seeder
             }
 
             $this->later(fake()->numberBetween(3, 30));
+
+            if ($visit->step->task === RouteTask::FinalCheck) {
+                $this->check($request, CheckStage::FinalCheck);
+            }
+
             $this->workflow->completeVisit($visit, $this->actorFor($code), fake()->optional(0.3)->randomElement(['Signed.', 'Verified.', 'Stamped.']));
         }
     }
 
-    private function release(CredentialRequest $request, string $recipient): void
+    private function release(CredentialRequest $request): void
     {
-        $this->workflow->release($request, $this->registrar, [
-            'recipient_type' => RecipientType::Owner,
-            'recipient_name' => $recipient,
-            'id_presented' => 'PhilSys National ID',
-            'identity_checked' => true,
-            'acknowledged' => true,
-        ]);
+        $this->workflow->release($request, $this->registrar, RecipientType::Owner);
     }
 
     /**

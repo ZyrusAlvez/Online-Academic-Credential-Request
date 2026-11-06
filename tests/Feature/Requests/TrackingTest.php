@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\CheckStage;
 use App\Livewire\Department\Requests\Show as OfficeShow;
 use App\Livewire\Registrar\Requests\Show;
 use App\Livewire\Student\Requests\Show as RequesterShow;
@@ -65,6 +66,7 @@ test('REQ-06-01 the tracker is a step bar with the date under each finished mile
         ])
         ->assertSee('bg-green-600', false);
 
+    checkAll($request, $this->registrar, CheckStage::FinalCheck);   // REQ-16-19
     workflow()->completeVisit(openVisit($request), $this->registrar);
 
     $tracker($request)->assertSeeInOrder(['Final approval and quality check', '(done)', 'Ready for release', '(current)']);

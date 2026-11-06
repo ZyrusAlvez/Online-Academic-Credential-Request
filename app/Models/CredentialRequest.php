@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\AcademicStatus;
+use App\Enums\CheckResult;
+use App\Enums\CheckStage;
 use App\Enums\RequesterMode;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
@@ -36,6 +38,7 @@ use Illuminate\Support\Carbon;
  * @property RequestStatus $status
  * @property ?Carbon $submitted_at
  * @property ?Carbon $evaluation_started_at
+ * @property ?int $evaluated_by
  * @property ?Carbon $accepted_at
  * @property ?Carbon $due_at
  * @property ?Carbon $adjusted_due_at
@@ -177,6 +180,40 @@ class CredentialRequest extends Model
     }
 
     /**
+     * While under evaluation the request belongs to its evaluator; other registrars are kept out
+     * (REQ-16-09).
+     */
+    public function isEvaluatedBySomeoneElse(User $user): bool
+    {
+        return $this->status === RequestStatus::UnderEvaluation
+            && $this->evaluated_by !== null
+            && $this->evaluated_by !== $user->id;
+    }
+
+    /**
+     * The checklist results of a stage, keyed by item value (REQ-16-22). Uses the loaded `checks`.
+     *
+     * @return array<string, CheckResult>
+     */
+    public function checkResults(CheckStage $stage): array
+    {
+        return $this->checks
+            ->filter(fn (RequestCheck $check): bool => $check->item->stage() === $stage)
+            ->mapWithKeys(fn (RequestCheck $check): array => [$check->item->value => $check->result])
+            ->all();
+    }
+
+    /**
+     * @return HasMany<RequestCheck, $this>
+     */
+    public function checks(): HasMany
+    {
+        return $this->hasMany(RequestCheck::class)->orderBy('id');
+    }
+
+    /**
+     * Requests from before spec 16 only; nothing records new deficiencies.
+     *
      * @return HasMany<RequestDeficiency, $this>
      */
     public function deficiencies(): HasMany

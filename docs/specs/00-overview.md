@@ -276,4 +276,4 @@ All feature specs describe this model.
 | 13 | Request purposes | done |
 | 14 | Activity logs (audit trail) | in progress |
 | 15 | Identity checked on the request; Settings → Profile | done |
-| 16 | Registrar stages: checklists, evaluation lock, stage queues | in progress |
+| 16 | Registrar stages: checklists, evaluation lock, stage queues | done |
