@@ -324,6 +324,7 @@ class User extends Authenticatable implements MustVerifyEmail
             $fields === [] => "Set a new password for {$this->activityLabel()}",
             $fields === ['email_verified_at'] && $self => 'Verified their email address',
             $fields === ['is_active'] => ($this->is_active ? 'Reactivated' : 'Deactivated')." the account of {$this->activityLabel()}",
+            in_array('role', $fields, true) => "Changed the role of {$this->activityLabel()} to {$this->role->label()}",
             $self => 'Updated their profile'.($this->wasChanged('password') ? ' and password' : ''),
             default => "Updated the account of {$this->activityLabel()}".($this->wasChanged('password') ? ' and set a new password' : ''),
         };

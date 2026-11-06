@@ -68,6 +68,6 @@ Source: *Proposed Workflow*, sections VI–VII (offices and signatories).
   or cancelled THEN THE SYSTEM SHALL refuse the role change and say that the open requests must
   be finished or cancelled first, because only a student can follow up on their requests.
 - **REQ-02-17** WHEN an account's role changes THE SYSTEM SHALL log it in the activity log as
-  "Changed the role of <name> (<email>)" with the old and new role (and department).
+  "Changed the role of <name> (<email>) to <role>" with the old and new role (and department).
 - **REQ-02-12** IF a non-registrar opens a department or account management page or action THEN
   THE SYSTEM SHALL respond 403.

@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Accounts" description="Create staff accounts for departments and the Registrar, and activate or deactivate any account.">
+    <x-page-header title="Accounts" description="Create staff accounts for departments and the Registrar, change an account's role, and activate or deactivate any account.">
         <x-slot:actions>
             <flux:button variant="primary" icon="user-plus" wire:click="create">{{ __('Add staff account') }}</flux:button>
         </x-slot:actions>
@@ -42,12 +42,15 @@
                         <flux:badge size="sm" :color="$account->is_active ? 'green' : 'zinc'">{{ $account->is_active ? __('Active') : __('Inactive') }}</flux:badge>
                     </flux:table.cell>
                     <flux:table.cell align="end">
-                        @canany(['update', 'setStatus'], $account)
+                        @canany(['update', 'changeRole', 'setStatus'], $account)
                             <flux:dropdown position="bottom" align="end">
                                 <flux:button size="sm" variant="ghost" icon="ellipsis-horizontal" :aria-label="__('Actions for :name', ['name' => $account->name])" />
                                 <flux:menu>
                                     @can('update', $account)
                                         <flux:menu.item icon="pencil-square" wire:click="edit({{ $account->id }})">{{ __('Edit') }}</flux:menu.item>
+                                    @endcan
+                                    @can('changeRole', $account)
+                                        <flux:menu.item icon="arrows-right-left" wire:click="editRole({{ $account->id }})">{{ __('Change role') }}</flux:menu.item>
                                     @endcan
                                     @can('setStatus', $account)
                                         <flux:menu.item :icon="$account->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $account->id }})" data-confirm-title="{{ __('Deactivate account') }}" data-confirm-label="{{ __('Deactivate') }}" data-confirm-variant="danger" :wire:confirm="$account->is_active ? __('Deactivate :name? They will be logged out and cannot log in until reactivated.', ['name' => $account->name]) : null">
@@ -78,10 +81,12 @@
             <flux:input wire:model="form.middle_name" :label="__('Middle name')" badge="Optional" />
             <flux:input wire:model="form.email" type="email" :label="__('Email')" required />
 
-            <flux:radio.group wire:model.live="form.role" :label="__('Role')" variant="segmented">
-                <flux:radio value="department" :label="__('Department staff')" />
-                <flux:radio value="registrar" :label="__('Registrar')" />
-            </flux:radio.group>
+            @unless ($form->account)
+                <flux:radio.group wire:model.live="form.role" :label="__('Role')" variant="segmented">
+                    <flux:radio value="department" :label="__('Department staff')" />
+                    <flux:radio value="registrar" :label="__('Registrar')" />
+                </flux:radio.group>
+            @endunless
 
             @if ($form->role === 'department')
                 <flux:select wire:model="form.department_id" :label="__('Department')">
@@ -109,6 +114,43 @@
                     <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
                 </flux:modal.close>
                 <flux:button type="submit" variant="primary">{{ __('Save') }}</flux:button>
+            </div>
+        </form>
+    </flux:modal>
+
+    <flux:modal name="change-role" class="w-full md:w-[32rem]">
+        <form wire:submit="changeRole" class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ __('Change role') }}</flux:heading>
+                @if ($roleForm->account)
+                    <flux:text class="mt-2">
+                        {{ __(':name (:email) is currently :role.', ['name' => $roleForm->account->name, 'email' => $roleForm->account->email, 'role' => $roleForm->account->role->label()]) }}
+                    </flux:text>
+                @endif
+            </div>
+
+            <flux:radio.group wire:model.live="roleForm.role" :label="__('New role')">
+                <flux:radio value="student" :label="__('Student')" :description="__('Requests credentials and tracks them.')" />
+                <flux:radio value="department" :label="__('Department staff')" :description="__('Receives and processes requests for one college or office.')" />
+                <flux:radio value="registrar" :label="__('Registrar')" :description="__('Evaluates and accepts requests and manages offices and accounts.')" />
+            </flux:radio.group>
+
+            @if ($roleForm->role === 'department')
+                <flux:select wire:model="roleForm.department_id" :label="__('Department')">
+                    <flux:select.option value="">{{ __('Choose a department…') }}</flux:select.option>
+                    @foreach ($departments as $department)
+                        <flux:select.option :value="$department->id">{{ $department->name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+            @endif
+
+            <flux:text>{{ __('They keep their name, email, password and history. The new role applies from their next page.') }}</flux:text>
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
+                </flux:modal.close>
+                <flux:button type="submit" variant="primary">{{ __('Change role') }}</flux:button>
             </div>
         </form>
     </flux:modal>
