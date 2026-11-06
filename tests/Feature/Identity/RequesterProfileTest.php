@@ -176,16 +176,17 @@ test('REQ-01-29 one save stores the name, contact, academic information, consent
         ->and($this->student->identityDocuments()->count())->toBe(1);
 });
 
-test('REQ-15-07 the first save needs the data privacy consent; later saves do not ask again', function () {
+test('REQ-15-07 every save needs the data privacy consent ticked; the first consent\'s time is kept', function () {
     $this->student->forceFill(['privacy_consented_at' => null])->save();
 
     fillProfile(['form.privacy_consent' => false])->assertHasErrors(['form.privacy_consent' => 'accepted']);
     expect($this->student->fresh()->privacy_consented_at)->toBeNull();
 
-    fillProfile()->assertHasNoErrors();
+    fillProfile()->assertHasNoErrors()->assertSet('form.privacy_consent', false);   // unticked again for the next save
     $consentedAt = $this->student->fresh()->privacy_consented_at;
 
-    fillProfile(['form.privacy_consent' => false])->assertHasNoErrors();
+    fillProfile(['form.privacy_consent' => false])->assertHasErrors(['form.privacy_consent' => 'accepted']);
+    fillProfile()->assertHasNoErrors();
     expect($this->student->fresh()->privacy_consented_at->equalTo($consentedAt))->toBeTrue();
 });
 
@@ -289,12 +290,18 @@ test('REQ-15-05 the summary shows the saved ID when no other is chosen', functio
     reviewProfile()->assertSee('UMID: umid.jpg');
 });
 
-test('REQ-15-05 a requester who already consented sees when, and no checkbox', function () {
+test('REQ-15-05 a requester who consented before still gets an unticked checkbox, and Confirm and save waits for it', function () {
     $this->student->forceFill(['privacy_consented_at' => '2026-10-27 09:00:00'])->save();
 
-    reviewProfile()
-        ->assertSee('You agreed to the processing of your personal data on Oct 27, 2026.')
-        ->assertDontSee('I agree to the processing of my personal data');
+    $html = reviewProfile()
+        ->assertSee('I agree to the processing of my personal data')
+        ->assertSee('Tick the box to continue.')
+        ->assertDontSee('You agreed to the processing of your personal data')
+        ->assertSet('form.privacy_consent', false)
+        ->html();
+
+    expect($html)->toMatch('/<button[^>]*x-bind:disabled="! \$wire\.form\.privacy_consent"[^>]*disabled[^>]*data-save-profile/')
+        ->and(reviewProfile(['form.privacy_consent' => true])->html())->not->toMatch('/<button[^>]*\sdisabled="disabled"[^>]*data-save-profile/');
 });
 
 test('REQ-15-05 going back keeps every entry and the chosen file', function () {

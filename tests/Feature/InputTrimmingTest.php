@@ -33,7 +33,7 @@ test('request form text is trimmed', function () {
             'form.purpose' => '  Employment  ',
             'form.receiving_institution' => '  Ateneo de Manila University ',
         ])
-        ->call('review')->call('submit')
+        ->set('profile.privacy_consent', true)->call('review')->call('submit')
         ->assertHasNoErrors();
 
     expect(CredentialRequest::sole())

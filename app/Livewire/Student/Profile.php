@@ -122,7 +122,7 @@ class Profile extends Component
             throw $e;
         }
 
-        $this->form->reset('id_type', 'id_file');
+        $this->form->reset('id_type', 'id_file', 'privacy_consent');   // the next save asks again (REQ-15-07)
         $this->showStep(reviewing: false);
         $this->dispatch('notify', message: 'Profile saved. Your next request will use these details.');
     }

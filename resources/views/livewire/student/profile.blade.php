@@ -28,7 +28,7 @@
 
                 <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <flux:button wire:click="back" wire:loading.attr="disabled" wire:target="back,save">{{ __('Back to edit') }}</flux:button>
-                    <flux:button wire:click="save" variant="primary" wire:loading.attr="disabled" wire:target="back,save">{{ __('Confirm and save') }}</flux:button>
+                    <flux:button wire:click="save" variant="primary" x-bind:disabled="! $wire.form.privacy_consent" :disabled="! $form->privacy_consent" wire:loading.attr="disabled" wire:target="back,save" data-save-profile>{{ __('Confirm and save') }}</flux:button>
                 </div>
             </div>
         @endif

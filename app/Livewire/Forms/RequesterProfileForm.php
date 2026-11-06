@@ -96,7 +96,8 @@ class RequesterProfileForm extends Form
             // A saved ID is used unless another is chosen; without one, an ID is required (REQ-15-04).
             'id_type' => [Rule::requiredIf($needsId), 'nullable', 'required_with:id_file', Rule::in(IdentityDocument::ID_TYPES)],
             'id_file' => [Rule::requiredIf($needsId), 'nullable', 'required_with:id_type', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
-            'privacy_consent' => $this->user()->privacy_consented_at === null ? ['accepted'] : [],
+            // Ticked on every summary before anything is saved or submitted (REQ-15-05, 07).
+            'privacy_consent' => ['accepted'],
         ];
     }
 
@@ -123,7 +124,7 @@ class RequesterProfileForm extends Form
     {
         return [
             'contact_number.regex' => self::PHONE_MESSAGE,
-            'privacy_consent.accepted' => 'You must agree to the processing of your personal data to continue.',
+            'privacy_consent.accepted' => 'Tick the box to agree to the processing of your personal data before you continue.',
         ];
     }
 

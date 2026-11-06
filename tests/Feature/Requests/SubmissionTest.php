@@ -10,6 +10,8 @@ use App\Models\CredentialType;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Js;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -22,7 +24,7 @@ test('REQ-04-01 a requester with a complete profile can submit a request', funct
     Livewire::actingAs($this->owner)->test(Create::class)
         ->set('form.credential_type_id', $this->org->tor->id)
         ->set('form.purpose', 'Employment abroad')
-        ->call('review')->call('submit')
+        ->set('profile.privacy_consent', true)->call('review')->call('submit')
         ->assertHasNoErrors()
         ->assertRedirect(route('student.requests.show', CredentialRequest::sole()));
 
@@ -37,10 +39,10 @@ test('REQ-04-01 the receiving school is required when the credential type says s
     Livewire::actingAs($this->owner)->test(Create::class)
         ->set('form.credential_type_id', $transfer->id)
         ->set('form.purpose', 'Transfer to another school')
-        ->call('review')->call('submit')
+        ->set('profile.privacy_consent', true)->call('review')->call('submit')
         ->assertHasErrors('form.receiving_institution')
         ->set('form.receiving_institution', 'Polytechnic University of the Philippines')
-        ->call('review')->call('submit')
+        ->set('profile.privacy_consent', true)->call('review')->call('submit')
         ->assertHasNoErrors();
 
     expect(CredentialRequest::sole()->receiving_institution)->toBe('Polytechnic University of the Philippines');
@@ -58,7 +60,7 @@ test('REQ-04-01 invalid details, inactive types and types without a route are re
 
     Livewire::actingAs($this->owner)->test(Create::class)
         ->set(array_merge(['form.credential_type_id' => $this->org->tor->id, 'form.purpose' => 'Employment'], $input))
-        ->call('review')->call('submit')
+        ->set('profile.privacy_consent', true)->call('review')->call('submit')
         ->assertHasErrors($error);
 
     expect(CredentialRequest::count())->toBe(0);
@@ -77,21 +79,45 @@ test('REQ-04-01 the workflow refuses requesters without a complete profile', fun
 test('REQ-04-02 the form shows requirements, fee, period, offices, conditions and the notice', function () {
     $this->org->tor->update(['special_conditions' => 'Bring the original diploma.']);
 
-    Livewire::actingAs($this->owner)->test(Create::class)
+    $page = Livewire::actingAs($this->owner)->test(Create::class)
         ->assertSee('Important notice: incomplete requirements')
         ->assertSee('Submitting an online request does not automatically mean that your request has been accepted for processing.')
         ->assertSee('Choose a credential…')
-        ->assertDontSee('Documentary requirements')
-        ->assertDontSee('₱530.00')
-        ->set('form.credential_type_id', $this->org->tor->id)
-        ->assertSee('Documentary requirements')
-        ->assertSee('PSA-authenticated birth certificate')
-        ->assertSee('₱530.00')
         ->assertDontSee('Copies')
-        ->assertDontSee('per copy')
-        ->assertSeeInOrder(['7 working days', 'from acceptance'])
-        ->assertSeeInOrder(['Office of the VP for Finance', '(documentary stamp)', '(final quality check)'])
-        ->assertSee('Bring the original diploma.');
+        ->assertDontSee('per copy');
+
+    // No card shows until a credential is chosen.
+    expect(credentialCardShown($page->html(), $this->org->tor))->toBeFalse()
+        ->and(credentialCardShown($page->html(), $this->org->free))->toBeFalse();
+
+    $card = credentialCard($page->html(), $this->org->tor);
+    expect($card)->toContain('Documentary requirements')
+        ->toContain('PSA-authenticated birth certificate')
+        ->toContain('₱530.00')
+        ->toContain('Bring the original diploma.')
+        ->toMatch('/7 working days.*from acceptance/s')
+        ->toMatch('/Office of the VP for Finance.*\(documentary stamp\).*\(final quality check\)/s');
+
+    $page->set('form.credential_type_id', $this->org->tor->id);
+    expect(credentialCardShown($page->html(), $this->org->tor))->toBeTrue()
+        ->and(credentialCardShown($page->html(), $this->org->free))->toBeFalse();
+});
+
+test('REQ-15-15 the chosen credential\'s details show in the browser at once, without a server round trip', function () {
+    $html = Livewire::actingAs($this->owner)->test(Create::class)->html();
+
+    // The dropdown is not live: Alpine shows the card of the value chosen in the browser.
+    expect($html)->toContain('wire:model="form.credential_type_id"')
+        ->not->toContain('wire:model.live="form.credential_type_id"')
+        ->and(credentialCard($html, $this->org->tor))->toContain("x-show=\"String(\$wire.form.credential_type_id ?? '') === '{$this->org->tor->id}'\"")
+        ->and(credentialCard($html, $this->org->free))->toContain("=== '{$this->org->free->id}'");
+
+    // The receiving-school field follows the chosen credential the same way.
+    $transfer = CredentialType::factory()->withSteps([$this->org->registrarOffice])->create(['requires_receiving_institution' => true]);
+    $html = Livewire::actingAs($this->owner)->test(Create::class)->html();
+    expect(Str::after($html, 'data-receiving-school'))->toContain(Js::from([(string) $transfer->id])->toHtml())
+        ->toContain('x-text="transfer ?')
+        ->toContain('x-bind:required="transfer"');
 });
 
 test('REQ-04-03 a submitted request gets a tracking number and snapshots of the profile and fee', function () {

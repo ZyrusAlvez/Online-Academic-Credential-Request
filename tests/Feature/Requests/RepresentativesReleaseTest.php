@@ -53,12 +53,12 @@ test('REQ-11-01 the owner declares a representative with SPA and ID when submitt
         ->set('form.credential_type_id', $this->org->free->id)
         ->set('form.purpose', 'Employment')
         ->set('form.requester_mode', 'representative')
-        ->call('review')->call('submit')->assertHasErrors('form.representative_name')
+        ->set('profile.privacy_consent', true)->call('review')->call('submit')->assertHasErrors('form.representative_name')
         ->set('form.representative_name', 'Rosa Dela Cruz')
         ->set('form.representative_relationship', 'Mother')
         ->set('spa', UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'))
         ->set('representativeId', UploadedFile::fake()->image('id.jpg'))
-        ->call('review')->call('submit')
+        ->set('profile.privacy_consent', true)->call('review')->call('submit')
         ->assertHasNoErrors();
 
     $request = CredentialRequest::sole();
