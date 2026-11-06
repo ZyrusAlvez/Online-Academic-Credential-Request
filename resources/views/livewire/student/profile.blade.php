@@ -14,6 +14,50 @@
         </flux:callout>
     @endunless
 
+    @if ($locked)
+        {{-- The identity check is with the Registrar or passed: nothing here can be changed (REQ-01-30). --}}
+        <div class="space-y-8" data-profile-locked>
+            @if ($user->identity_status === \App\Enums\IdentityStatus::Verified)
+                <flux:callout icon="lock-closed" color="green">
+                    <flux:callout.heading>{{ __('Your identity is verified') }}</flux:callout.heading>
+                    <flux:callout.text>{{ __('Your details and ID can no longer be changed here. To correct something, contact the Office of the Registrar.') }}</flux:callout.text>
+                </flux:callout>
+            @else
+                <flux:callout icon="lock-closed" color="sky">
+                    <flux:callout.heading>{{ __('Your identity check is with the Office of the Registrar') }}</flux:callout.heading>
+                    <flux:callout.text>{{ __('Your details and ID can\'t be changed while they are being checked. If the Registrar rejects them, you can correct your details and upload another ID. You can already submit requests; they are accepted for processing once your identity is verified.') }}</flux:callout.text>
+                </flux:callout>
+            @endif
+
+            @foreach ($details as $heading => $rows)
+                <section aria-labelledby="details-heading-{{ $loop->index }}" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
+                    <h2 id="details-heading-{{ $loop->index }}" class="text-lg font-semibold text-primary">{{ __($heading) }}</h2>
+                    <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+                        @foreach ($rows as $label => $value)
+                            <div>
+                                <dt class="text-zinc-500">{{ __($label) }}</dt>
+                                <dd class="font-medium break-words text-ink">{{ __($value) }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
+                </section>
+            @endforeach
+
+            <section aria-labelledby="locked-id-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h2 id="locked-id-heading" class="text-lg font-semibold text-primary">{{ __('Valid ID') }}</h2>
+                    <flux:badge :color="$user->identity_status->color()">{{ $user->identity_status->label() }}</flux:badge>
+                </div>
+                <x-identity-document-list :documents="$documents" />
+            </section>
+
+            <section aria-labelledby="locked-privacy-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
+                <h2 id="locked-privacy-heading" class="text-lg font-semibold text-primary">{{ __('Data privacy') }}</h2>
+                <p class="text-sm">{{ __('The University of Perpetual Help System uses your details, academic information and the valid ID you upload only to process your credential requests, in accordance with the Data Privacy Act of 2012 (RA 10173).') }}</p>
+                <flux:text size="sm">{{ __('You agreed to the processing of your personal data on :date.', ['date' => $user->privacy_consented_at->format('M j, Y')]) }}</flux:text>
+            </section>
+        </div>
+    @else
     {{-- Hidden, not removed, on the summary: the file input keeps the chosen ID for "Back to edit".
          novalidate: the browser's popups would stop the submit before the errors modal (REQ-01-26). --}}
     <form wire:submit="review" novalidate @class(['space-y-8', 'hidden' => $reviewing])>
@@ -164,6 +208,7 @@
                 <flux:button wire:click="save" variant="primary" wire:loading.attr="disabled" wire:target="back,save">{{ __('Confirm and save') }}</flux:button>
             </div>
         </div>
+    @endif
     @endif
 
     <flux:modal name="profile-errors" class="w-full md:w-[32rem]" x-on:close="document.querySelector('form [data-invalid]')?.focus()">

@@ -53,6 +53,8 @@ class Profile extends Component
      */
     public function review(): void
     {
+        $this->ensureEditable();
+
         try {
             $this->form->validateDetails();
         } catch (ValidationException $e) {
@@ -78,6 +80,8 @@ class Profile extends Component
         if (! $this->reviewing) {
             return;
         }
+
+        $this->ensureEditable();
 
         $user = $this->user();
 
@@ -125,6 +129,7 @@ class Profile extends Component
     public function render(): View
     {
         $user = $this->user();
+        $locked = $user->hasLockedProfile();   // the identity check is pending or passed (REQ-01-30)
 
         return view('livewire.student.profile', [
             'user' => $user,
@@ -136,6 +141,9 @@ class Profile extends Component
             'idTypes' => IdentityDocument::ID_TYPES,
             'documents' => $user->identityDocuments()->get(),
             'canUpload' => $user->needsValidId(),   // no ID yet, or the last one rejected (REQ-01-17)
+            'locked' => $locked,
+            // The form holds the saved profile while locked, as nothing can be typed into it.
+            'details' => $locked ? $this->form->summary() : [],
             'summary' => $this->reviewing ? $this->form->summary() : [],
         ]);
     }
@@ -149,6 +157,14 @@ class Profile extends Component
         $this->reviewing = $reviewing;
 
         $this->js("document.getElementById('profile-step')?.focus()");
+    }
+
+    /**
+     * A pending or verified identity check can't be changed from here (REQ-01-30).
+     */
+    private function ensureEditable(): void
+    {
+        abort_if($this->user()->hasLockedProfile(), 403, 'Your profile is locked while your identity check is pending or verified.');
     }
 
     private function user(): User
