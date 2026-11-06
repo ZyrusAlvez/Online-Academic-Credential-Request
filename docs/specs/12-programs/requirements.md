@@ -34,7 +34,7 @@
 - **REQ-12-06** IF anyone but a registrar opens the Programs page THEN THE SYSTEM SHALL respond 403.
 
 ### Requester
-- **REQ-12-07** THE SYSTEM SHALL show My Profile's "Program or strand" as a dropdown of the active
+- **REQ-12-07** THE SYSTEM SHALL show My Profile's "Program" as a dropdown of the active
   programs of the chosen college, disabled until a college is chosen; choosing another college
   SHALL clear the chosen program.
 - **REQ-12-08** THE SYSTEM SHALL accept only an active program of the chosen college.

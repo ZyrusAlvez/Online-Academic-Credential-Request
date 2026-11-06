@@ -102,6 +102,8 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 - **REQ-01-22** THE SYSTEM SHALL take the whole My Profile page (name, contact number, academic
   information and a valid ID, required while none awaits or has passed verification) in one form with a single "Confirm"
   button at the bottom right; the button SHALL check the entries and save nothing (REQ-01-25).
+  WHEN a requester chooses an ID file THE SYSTEM SHALL show its name as a link that opens the
+  chosen file in the file viewer, in their own browser, before anything is uploaded or saved.
 - **REQ-01-25** WHEN a requester chooses "Confirm" and their entries are valid THE
   SYSTEM SHALL show a summary of everything they entered (personal and academic information, and
   the chosen ID's type and file name, or the ID on file) with the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry and
