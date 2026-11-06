@@ -24,6 +24,14 @@ class RecordSignInActivity
             return;
         }
 
+        // A remember-me cookie signs a deactivated account in for a moment before
+        // EnsureUserIsActive throws it out; that is a refusal, not a sign-in.
+        if (! $event->user->is_active) {
+            $this->record->handle($event->user, ActivityCategory::SignIn, 'sign_in.refused', 'Sign-in refused: the account is deactivated', subject: $event->user);
+
+            return;
+        }
+
         $this->record->handle(
             $event->user,
             ActivityCategory::SignIn,
@@ -39,7 +47,13 @@ class RecordSignInActivity
             return;
         }
 
-        $this->record->handle($event->user, ActivityCategory::SignIn, 'sign_in.logout', 'Signed out', subject: $event->user);
+        $this->record->handle(
+            $event->user,
+            ActivityCategory::SignIn,
+            'sign_in.logout',
+            $event->user->is_active ? 'Signed out' : 'Signed out: the account is deactivated',
+            subject: $event->user,
+        );
     }
 
     /** Nobody is signed in, so there is no actor; the account, if the email matched one, is the subject. */

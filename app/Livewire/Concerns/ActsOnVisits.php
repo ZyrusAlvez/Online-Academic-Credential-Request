@@ -47,8 +47,10 @@ trait ActsOnVisits
         $visit = $this->actionableVisit();
         $this->validate(['completeRemarks' => ['nullable', 'string', 'max:500']]);
 
-        $this->attempt(fn () => $workflow->completeVisit($visit, $this->actor(), $this->completeRemarks), 'Done. The document was forwarded.');
-        $this->reset('completeRemarks');
+        // A failed attempt keeps the remarks the staff member typed.
+        if ($this->attempt(fn () => $workflow->completeVisit($visit, $this->actor(), $this->completeRemarks), 'Done. The document was forwarded.')) {
+            $this->reset('completeRemarks');
+        }
     }
 
     public function returnVisit(RequestWorkflow $workflow): void

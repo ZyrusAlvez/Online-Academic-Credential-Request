@@ -95,6 +95,18 @@ test('REQ-05-04 approving releases the document to the next office, which must r
         ->and($this->request->steps()->where('status', StepStatus::Completed)->count())->toBe(2);
 });
 
+test('REQ-05-04 approving before receipt is refused and keeps the remarks typed', function () {
+    passOffice($this->request, $this->registrar);
+
+    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $this->request])
+        ->set('completeRemarks', 'Signed')
+        ->call('completeVisit')
+        ->assertDispatched('notify')
+        ->assertSet('completeRemarks', 'Signed');
+
+    expect($this->request->openVisit()->sole()->status)->toBe(VisitStatus::InTransit);
+});
+
 test('REQ-05-05 the final quality check makes the request ready for release', function () {
     $request = toVpFinance();
     passOffice($request, $this->vpf);

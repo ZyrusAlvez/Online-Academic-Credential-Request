@@ -12,6 +12,7 @@ use App\Models\User;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -62,7 +63,16 @@ class Index extends Component
     public function verify(int $documentId, ReviewIdentityDocument $review): void
     {
         $document = $this->document($documentId);
-        $review->handle($document, $this->registrar(), verified: true);
+
+        try {
+            $review->handle($document, $this->registrar(), verified: true);
+        } catch (ValidationException $e) {
+            // e.g. another registrar reviewed it first. The error key belongs to the reject dialog,
+            // which is closed here, so show it as a toast.
+            $this->dispatch('notify', message: $e->validator->errors()->first());
+
+            return;
+        }
 
         $this->dispatch('notify', message: "Identity of {$document->user->name} verified.");
     }
