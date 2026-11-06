@@ -123,6 +123,7 @@
 
         <x-toast />
         <x-confirm-dialog />
+        <x-file-viewer />
 
         @fluxScripts
     </body>

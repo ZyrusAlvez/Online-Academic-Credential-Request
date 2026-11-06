@@ -17,9 +17,9 @@
                 <ul class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
                     @foreach ($representative->documents as $document)
                         <li>
-                            <a href="{{ route('request-documents.show', $document) }}" target="_blank" rel="noopener" class="text-highlight underline underline-offset-2 hover:no-underline">
-                                {{ $document->kind->label() }}<span class="sr-only"> ({{ __('opens in a new tab') }})</span>
-                            </a>
+                            <x-file-link :href="route('request-documents.show', $document)" :name="$document->kind->label().' – '.$representative->full_name" :type="$document->mime_type">
+                                {{ $document->kind->label() }}
+                            </x-file-link>
                         </li>
                     @endforeach
                 </ul>

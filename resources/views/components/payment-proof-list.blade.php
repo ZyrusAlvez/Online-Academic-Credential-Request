@@ -5,9 +5,9 @@
         @foreach ($proofs as $proof)
             <li class="flex flex-wrap items-start justify-between gap-3 p-3 text-sm">
                 <div class="min-w-0">
-                    <a href="{{ route('payment-proofs.show', $proof) }}" target="_blank" rel="noopener" class="font-medium break-all text-highlight underline underline-offset-2 hover:no-underline">
-                        {{ $proof->original_name }}<span class="sr-only"> ({{ __('opens in a new tab') }})</span>
-                    </a>
+                    <x-file-link :href="route('payment-proofs.show', $proof)" :name="__('Proof of payment: :file', ['file' => $proof->original_name])" :type="$proof->mime_type" class="font-medium break-all">
+                        {{ $proof->original_name }}
+                    </x-file-link>
                     <p class="text-xs text-zinc-500">
                         {{ __('Uploaded :date', ['date' => $proof->created_at->format('M j, Y g:i A')]) }}
                         @if ($proof->reference_no) · {{ __('Ref :ref', ['ref' => $proof->reference_no]) }} @endif
