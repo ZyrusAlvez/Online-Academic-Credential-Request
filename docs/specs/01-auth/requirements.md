@@ -83,7 +83,9 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   current year, from ≤ to).
 - **REQ-01-17** THE SYSTEM SHALL let a requester upload a valid ID (type of ID and an image or PDF
   file of at most 5 MB), store it privately and mark their identity as pending verification;
-  earlier uploads are kept.
+  earlier uploads are kept. WHILE an ID awaits or has passed verification THE SYSTEM SHALL neither
+  offer nor accept another upload: a requester uploads a new ID only after the registrar rejects
+  theirs.
 - **REQ-01-18** WHILE a requester's name, contact number or academic information is incomplete,
   they have not given their data privacy consent, or no ID awaits or has passed verification THE
   SYSTEM SHALL show a red "Verify your profile before making a request" banner on the new-request
