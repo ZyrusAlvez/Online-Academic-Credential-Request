@@ -13,3 +13,7 @@
       renames colleges, removes Law, replaces staff accounts (REQ-02-01, 14)
 - [x] Demo data and `docs/credentials.md` on the new codes
 - [x] Pest tests for REQ-02-14 and the changed REQ-02-01
+- [ ] `ChangeAccountRole` action + `UserPolicy::changeRole` (REQ-02-15, 16)
+- [ ] Accounts page: Change role menu item and modal; Edit no longer changes the role (REQ-02-09, 15)
+- [ ] Role change wording in the activity log (REQ-02-17)
+- [ ] Pest tests for REQ-02-15..17 and the changed REQ-02-09, 11
