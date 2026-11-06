@@ -65,18 +65,18 @@
 
 ### Navigation
 - **REQ-09-09** THE SYSTEM SHALL show the requester's sidebar links without a group heading, in the
-  order New Request, My Requests, My Profile.
+  order New Request, My Requests (My Profile was removed by REQ-15-02).
 
 ### New Request
 - **REQ-09-10** THE SYSTEM SHALL show New Request's *Incomplete requirements* notice (REQ-04-02)
-  between "3. Who will transact?" and the Submit button, collapsed to its heading until the
-  requester opens it, and openable even while the form is locked (REQ-01-18).
+  between "Who will transact?" and the "Review request" button, collapsed to its heading until the
+  requester opens it.
 - **REQ-09-11** WHEN a credential is chosen on New Request THE SYSTEM SHALL show its details
   (REQ-04-02) as a card: the fee and the processing period side by side, then the offices of its
   route as a numbered list, one office per line with its task (the Dean step names the requester's
   college), ending with the Office of the Registrar's final quality check, then the documentary
   requirements as a checklist and the special conditions as a note.
-- **REQ-09-12** THE SYSTEM SHALL lay out New Request, My Requests and My Profile alike: one centred
+- **REQ-09-12** THE SYSTEM SHALL lay out New Request and My Requests alike: one centred
   column of the same width, with the content in bordered sections that share their padding and
   heading style; My Requests lists the requests inside a "Your requests" section.
 

@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\IdentityStatus;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Exceptions\InvalidTransition;
@@ -38,7 +37,9 @@ test('REQ-04-06 the evaluator sees the profile, identity and requirements', func
 
     registrarPage()
         ->assertSee($this->owner->email)
-        ->assertSee('Identity verified')
+        ->assertSee($this->request->requester_name)
+        ->assertSee('ID: For verification')
+        ->assertSee('Verify identity')
         ->assertSee('PSA-authenticated birth certificate')
         ->assertSee('Requirements complete – send payment instructions')
         ->assertSee('Requirements incomplete')
@@ -80,8 +81,7 @@ test('REQ-04-06 clarification and decline need a message or reason', function ()
         ->decline_reason->toBe('Not a UPHSL graduate.');
 });
 
-test('REQ-04-07 the requirements cannot be complete while the identity is unverified', function () {
-    $this->owner->forceFill(['identity_status' => IdentityStatus::Pending])->save();
+test('REQ-04-07 the requirements cannot be complete while the request\'s ID is unverified', function () {
     workflow()->startEvaluation($this->request, $this->registrar);
 
     expect(fn () => workflow()->completeEvaluation($this->request, $this->registrar))
@@ -113,6 +113,7 @@ test('REQ-04-09 the requester sees each deficiency and the compliance notice', f
 
 test('REQ-04-10 compliance is recorded per deficiency and blocks payment until all are resolved', function () {
     workflow()->startEvaluation($this->request, $this->registrar);
+    workflow()->reviewIdentity($this->request, $this->registrar, true);
     workflow()->requestCompliance($this->request, $this->registrar, ['Original Form 137', 'Library clearance']);
     [$form137, $clearance] = $this->request->deficiencies()->get()->all();
 

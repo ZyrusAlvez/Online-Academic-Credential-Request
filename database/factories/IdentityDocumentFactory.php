@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Enums\ReviewStatus;
 use App\Models\IdentityDocument;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -24,7 +23,6 @@ class IdentityDocumentFactory extends Factory
             'original_name' => 'passport.png',
             'mime_type' => 'image/png',
             'size' => 1024,
-            'status' => ReviewStatus::Pending,
         ];
     }
 }

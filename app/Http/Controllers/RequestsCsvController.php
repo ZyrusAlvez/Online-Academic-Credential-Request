@@ -17,7 +17,7 @@ class RequestsCsvController extends Controller
 
         $query = RegistrarRequestFilter::fromArray($request->only(['search', 'status', 'type', 'office']))
             ->query()
-            ->with(['student', 'credentialType', 'college', 'openVisit.department']);
+            ->with(['credentialType', 'college', 'openVisit.department']);
 
         return Csv::download(
             'credential-requests-'.now()->format('Y-m-d-His').'.csv',
@@ -25,7 +25,7 @@ class RequestsCsvController extends Controller
             $query->lazyById(200)->map(fn (CredentialRequest $row): array => [
                 $row->reference_no,
                 $row->credentialType->name,
-                $row->student->name,
+                $row->requester_name,
                 $row->student_number,
                 $row->college->name,
                 $row->status->label(),

@@ -52,8 +52,7 @@ class VisitQueue
         return [
             'step:id,task',
             'fromDepartment:id,name,code',
-            'credentialRequest:id,reference_no,user_id,credential_type_id,college_id,status,effective_due_at',
-            'credentialRequest.student:id,first_name,middle_name,last_name',
+            'credentialRequest:id,reference_no,user_id,requester_name,credential_type_id,college_id,status,effective_due_at',
             'credentialRequest.credentialType:id,name',
         ];
     }

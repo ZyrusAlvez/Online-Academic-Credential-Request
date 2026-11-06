@@ -5,6 +5,7 @@ use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\OfficeVisit;
+use App\Models\Program;
 use App\Models\User;
 use App\Services\RequestWorkflow;
 use Database\Seeders\PurposeSeeder;
@@ -37,6 +38,11 @@ function organisation(): object
     $ccs = Department::factory()->college()->create(['name' => 'College of Computer Studies', 'code' => 'CCS']);
     $cba = Department::factory()->college()->create(['name' => 'College of Business and Accountancy', 'code' => 'CBA']);
 
+    // The program of User::factory()->withProfile(), so a saved profile passes New Request (REQ-15-03).
+    foreach ([$ccs, $cba] as $college) {
+        Program::factory()->for($college, 'college')->create(['name' => 'BS Computer Science']);
+    }
+
     $tor = CredentialType::factory()->paid('530.00')
         ->withSteps([[$registrarOffice, RouteTask::Prepare], 'college', [$vpf, RouteTask::DocumentaryStamp], $chancellor])
         ->create(['name' => 'Transcript of Records', 'processing_days' => 7, 'requirements' => ['Completed clearance', 'PSA-authenticated birth certificate']]);
@@ -49,7 +55,7 @@ function organisation(): object
 }
 
 /**
- * A requester with a complete profile and a verified identity.
+ * A requester with a complete profile and a saved valid ID.
  */
 function requester(Department $college): User
 {
@@ -76,11 +82,12 @@ function submitRequest(User $owner, CredentialType $type, array $overrides = [])
 }
 
 /**
- * Evaluate a submitted request as complete.
+ * Evaluate a submitted request as complete, verifying its ID on the way (REQ-15-10).
  */
 function evaluate(CredentialRequest $request, User $registrar): CredentialRequest
 {
     workflow()->startEvaluation($request, $registrar);
+    workflow()->reviewIdentity($request, $registrar, true);
     workflow()->completeEvaluation($request, $registrar);
 
     return $request;

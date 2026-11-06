@@ -41,7 +41,7 @@ final class ComplianceReport implements Report
 
         return $filter->requests()
             ->whereIn('status', self::WAITING)
-            ->with(['student', 'credentialType', 'deficiencies', 'events'])
+            ->with(['credentialType', 'deficiencies', 'events'])
             ->orderBy('id')
             ->get()
             ->map(function (CredentialRequest $request) use ($calendar): array {
@@ -49,8 +49,8 @@ final class ComplianceReport implements Report
 
                 return [
                     $request->reference_no,
-                    $request->student->name,
-                    $request->student->contact_number,
+                    $request->requester_name,
+                    $request->contact_number,
                     $request->credentialType->name,
                     $request->status->label(),
                     $this->waitingFor($request),

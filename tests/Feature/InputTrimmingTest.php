@@ -1,7 +1,6 @@
 <?php
 
 use App\Livewire\Registrar\Departments\Index as Departments;
-use App\Livewire\Registrar\Identities\Index as Identities;
 use App\Livewire\Registrar\Programs\Index as Programs;
 use App\Livewire\Registrar\Purposes\Index as Purposes;
 use App\Livewire\Registrar\Requests\Index as Requests;
@@ -34,7 +33,7 @@ test('request form text is trimmed', function () {
             'form.purpose' => '  Employment  ',
             'form.receiving_institution' => '  Ateneo de Manila University ',
         ])
-        ->call('submit')
+        ->call('review')->call('submit')
         ->assertHasNoErrors();
 
     expect(CredentialRequest::sole())
@@ -48,7 +47,6 @@ test('REQ-09-17 a search box keeps the space typed between words', function (str
 })->with([
     'accounts' => [Users::class],
     'requests' => [Requests::class],
-    'ID reviews' => [Identities::class],
     'offices' => [Departments::class],
     'programs' => [Programs::class],
     'purposes' => [Purposes::class],

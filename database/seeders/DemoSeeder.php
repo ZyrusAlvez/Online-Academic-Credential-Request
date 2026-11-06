@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Actions\Identity\ReviewIdentityDocument;
 use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
 use App\Enums\DelayCategory;
@@ -62,15 +61,9 @@ class DemoSeeder extends Seeder
             ['ana@example.com', 'Ana', null, 'Mendoza', 'CTE', 'Bachelor of Secondary Education'],
         ])->map(fn (array $r) => $this->requester($departments[$r[4]], ...array_slice($r, 0, 4), program: $r[5]));
 
-        // Identities: three verified, Ana's ID still waiting for the registrar.
-        $requesters->each(function (User $requester, int $index): void {
-            $this->at(40, function () use ($requester, $index): void {
-                $document = app(SubmitIdentityDocument::class)->handle($requester, 'PhilSys National ID', $this->image('national-id.png'));
-
-                if ($index < 3) {
-                    app(ReviewIdentityDocument::class)->handle($document, $this->registrar, verified: true);
-                }
-            });
+        // Every requester has a saved ID; it is checked on each request (spec 15).
+        $requesters->each(function (User $requester): void {
+            $this->at(40, fn () => app(SubmitIdentityDocument::class)->handle($requester, 'PhilSys National ID', $this->image('national-id.png')));
         });
 
         $type = fn (string $name): CredentialType => CredentialType::where('name', $name)->firstOrFail();
@@ -82,16 +75,18 @@ class DemoSeeder extends Seeder
             // Submitted, waiting for an evaluator.
             $this->at(0, fn () => $this->submit($juan, $tor, 'Employment abroad'));
 
-            // Under evaluation.
+            // Under evaluation, with the ID rejected: Maria is asked for another.
             $this->at(1, function () use ($maria, $type): void {
                 $request = $this->submit($maria, $type('Certification of Enrollment'), 'Scholarship application');
                 $this->workflow->startEvaluation($request, $this->registrar);
+                $this->workflow->reviewIdentity($request, $this->registrar, false, 'The photo is too blurred to read the name. Please upload a clearer copy.');
             });
 
-            // Pending compliance: two missing originals, one already brought in.
+            // Pending compliance: ID verified, two missing originals, one already brought in.
             $this->at(3, function () use ($jose, $tor): void {
                 $request = $this->submit($jose, $tor, 'Board or licensure examination');
                 $this->workflow->startEvaluation($request, $this->registrar);
+                $this->workflow->reviewIdentity($request, $this->registrar, true);
                 $this->workflow->requestCompliance($request, $this->registrar, [
                     'Form 137 or the UPHSL copy of the previous Transcript of Records',
                     'PSA-authenticated birth certificate',
@@ -249,7 +244,9 @@ class DemoSeeder extends Seeder
     {
         $this->later(2);
         $this->workflow->startEvaluation($request, $this->registrar);
-        $this->later(3);
+        $this->later(1);
+        $this->workflow->reviewIdentity($request, $this->registrar, true);
+        $this->later(2);
         $this->workflow->completeEvaluation($request, $this->registrar, 'Records and requirements complete.');
     }
 

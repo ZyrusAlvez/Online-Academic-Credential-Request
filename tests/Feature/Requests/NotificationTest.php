@@ -39,6 +39,7 @@ test('REQ-06-05 the requester is emailed at the client\'s key moments', function
 
     $request = submitRequest($this->owner, $this->org->tor);
     workflow()->startEvaluation($request, $this->registrar);
+    workflow()->reviewIdentity($request, $this->registrar, true);
     workflow()->requestCompliance($request, $this->registrar, ['Original Form 137']);
     workflow()->resolveDeficiency($request->deficiencies()->sole(), $this->registrar, 'Received');
     workflow()->completeEvaluation($request, $this->registrar);
@@ -49,6 +50,7 @@ test('REQ-06-05 the requester is emailed at the client\'s key moments', function
 
     expect(mailedTypes())->toBe([
         RequestEventType::Submitted,
+        RequestEventType::IdentityVerified,
         RequestEventType::ComplianceRequested,
         RequestEventType::RequirementsCompleted,
         RequestEventType::PaymentRejected,

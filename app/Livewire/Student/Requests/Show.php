@@ -2,18 +2,24 @@
 
 namespace App\Livewire\Student\Requests;
 
+use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\PaymentStatus;
 use App\Enums\RequestEventType;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\RequesterProfileForm;
 use App\Models\CredentialRequest;
+use App\Models\IdentityDocument;
 use App\Models\User;
 use App\Services\RequestWorkflow;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -54,6 +60,11 @@ class Show extends Component
 
     /** @var UploadedFile|null */
     public $representativeId = null;
+
+    public string $newIdType = '';
+
+    /** @var UploadedFile|null */
+    public $newIdFile = null;
 
     public function mount(CredentialRequest $credentialRequest): void
     {
@@ -131,6 +142,41 @@ class Show extends Component
         $this->dispatch('notify', message: 'Representative added. The Office of the Registrar will verify their SPA and IDs.');
     }
 
+    /**
+     * Another valid ID for this request after a rejection; it also becomes the saved ID, all or
+     * nothing (REQ-15-11).
+     */
+    public function replaceIdentity(SubmitIdentityDocument $submitIdentity, RequestWorkflow $workflow): void
+    {
+        $this->authorize('replaceIdentity', $this->credentialRequest);
+
+        $this->validate([
+            'newIdType' => ['required', Rule::in(IdentityDocument::ID_TYPES)],
+            'newIdFile' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+        ], attributes: ['newIdType' => 'type of ID', 'newIdFile' => 'valid ID']);
+
+        $owner = $this->owner();
+        $stored = null;
+
+        try {
+            DB::transaction(function () use ($submitIdentity, $workflow, $owner, &$stored): void {
+                $stored = $submitIdentity->handle($owner, $this->newIdType, $this->newIdFile);
+                $workflow->replaceIdentity($this->credentialRequest, $owner, $stored);
+            });
+        } catch (InvalidTransition|ValidationException $e) {
+            if ($stored !== null) {
+                Storage::disk(RequestWorkflow::proofDisk())->delete($stored->path);
+            }
+
+            $this->addError('newIdFile', $e instanceof ValidationException ? $e->validator->errors()->first() : $e->getMessage());
+
+            return;
+        }
+
+        $this->reset('newIdType', 'newIdFile');
+        $this->dispatch('notify', message: 'Valid ID uploaded. The Office of the Registrar will verify it.');
+    }
+
     public function cancel(RequestWorkflow $workflow): void
     {
         $this->authorize('cancel', $this->credentialRequest);
@@ -153,7 +199,7 @@ class Show extends Component
     public function render(): View
     {
         $request = $this->credentialRequest->load([
-            'credentialType', 'college', 'openVisit.department', 'paymentProofs', 'deficiencies',
+            'credentialType', 'college', 'identityDocument', 'openVisit.department', 'paymentProofs', 'deficiencies',
             'representatives.documents', 'release', 'steps.department',
         ]);
 
@@ -166,6 +212,7 @@ class Show extends Component
             'rejectedProof' => $request->paymentProofs->firstWhere('status', PaymentStatus::Rejected),
             'actionMessage' => $events->last(fn ($event) => $event->type === RequestEventType::CustomerActionRequested)?->remarks,
             'events' => $events,
+            'idTypes' => IdentityDocument::ID_TYPES,
         ])->title($request->reference_no);
     }
 

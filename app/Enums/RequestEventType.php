@@ -18,6 +18,11 @@ enum RequestEventType: string
     case Declined = 'declined';
     case CollegeChanged = 'college_changed';
 
+    // The request's valid ID (spec 15)
+    case IdentityVerified = 'identity_verified';
+    case IdentityRejected = 'identity_rejected';
+    case IdentityResubmitted = 'identity_resubmitted';
+
     // Payment and acceptance (spec 04)
     case PaymentSubmitted = 'payment_submitted';
     case PaymentRejected = 'payment_rejected';

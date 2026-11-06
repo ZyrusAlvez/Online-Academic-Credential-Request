@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Registrar\Requests;
 
-use App\Actions\Identity\ReviewIdentityDocument;
 use App\Enums\PaymentStatus;
 use App\Enums\RecipientType;
 use App\Enums\ReviewStatus;
@@ -10,7 +9,6 @@ use App\Livewire\Concerns\ActsOnVisits;
 use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use App\Models\Department;
-use App\Models\IdentityDocument;
 use App\Models\RequestDeficiency;
 use App\Models\RequestRepresentative;
 use App\Services\RequestWorkflow;
@@ -191,19 +189,22 @@ class Show extends Component
         }
     }
 
-    public function verifyIdentity(int $documentId, ReviewIdentityDocument $review): void
+    /**
+     * The request's ID is checked as part of its evaluation (REQ-15-09).
+     */
+    public function verifyIdentity(RequestWorkflow $workflow): void
     {
         $this->authorize('review', $this->credentialRequest);
 
-        $this->reviewIdentity($review, $documentId, verified: true, success: 'Identity verified.');
+        $this->attempt(fn () => $workflow->reviewIdentity($this->credentialRequest, $this->actor(), true), 'Identity verified.');
     }
 
-    public function rejectIdentity(int $documentId, ReviewIdentityDocument $review): void
+    public function rejectIdentity(RequestWorkflow $workflow): void
     {
         $this->authorize('review', $this->credentialRequest);
         $this->validate(['identityRemarks' => ['required', 'string', 'max:500']], attributes: ['identityRemarks' => 'reason']);
 
-        if ($this->reviewIdentity($review, $documentId, verified: false, success: 'ID rejected. The requester was asked to upload another.', remarks: $this->identityRemarks)) {
+        if ($this->attempt(fn () => $workflow->reviewIdentity($this->credentialRequest, $this->actor(), false, $this->identityRemarks), 'ID rejected. The requester was asked to upload another.')) {
             Flux::modal('reject-identity')->close();
             $this->reset('identityRemarks');
         }
@@ -340,7 +341,7 @@ class Show extends Component
     public function render(): View
     {
         $request = $this->credentialRequest->load([
-            'student.latestIdentityDocument', 'student.college', 'credentialType', 'college', 'evaluator',
+            'student', 'identityDocument', 'credentialType', 'college', 'evaluator',
             'openVisit.department', 'openVisit.step', 'openVisit.credentialRequest.visits',
             'paymentProofs.reviewer', 'deficiencies.resolver', 'representatives.documents', 'release.releaser',
             'steps.department', 'visits.department', 'visits.step', 'visits.returnedTo', 'visits.receiver', 'visits.completer',
@@ -365,29 +366,5 @@ class Show extends Component
     private function representative(int $id): RequestRepresentative
     {
         return $this->credentialRequest->representatives()->findOrFail($id);
-    }
-
-    /**
-     * The action reports "already reviewed" (another registrar, another tab) on a `remarks` field
-     * this page doesn't have, so it is shown as a toast instead of being lost.
-     */
-    private function reviewIdentity(ReviewIdentityDocument $review, int $documentId, bool $verified, string $success, ?string $remarks = null): bool
-    {
-        try {
-            $review->handle($this->identityDocument($documentId), $this->actor(), verified: $verified, remarks: $remarks);
-        } catch (ValidationException $e) {
-            $this->dispatch('notify', message: $e->validator->errors()->first());
-
-            return false;
-        }
-
-        $this->dispatch('notify', message: $success);
-
-        return true;
-    }
-
-    private function identityDocument(int $id): IdentityDocument
-    {
-        return IdentityDocument::where('user_id', $this->credentialRequest->user_id)->findOrFail($id);
     }
 }

@@ -26,6 +26,7 @@ class SendRequestNotifications
         RequestEventType::PaymentSubmitted,
         RequestEventType::CustomerResponded,
         RequestEventType::RepresentativeDeclared,
+        RequestEventType::IdentityResubmitted,
     ];
 
     public function handle(RequestEventRecorded $recorded): void
@@ -82,6 +83,7 @@ class SendRequestNotifications
             RequestEventType::Submitted => "New request {$request->reference_no} to evaluate",
             RequestEventType::PaymentSubmitted => "Payment to verify for {$request->reference_no}",
             RequestEventType::CustomerResponded => "The requester replied on {$request->reference_no}",
+            RequestEventType::IdentityResubmitted => "Valid ID to verify for {$request->reference_no}",
             default => "Representative to verify for {$request->reference_no}",
         };
 

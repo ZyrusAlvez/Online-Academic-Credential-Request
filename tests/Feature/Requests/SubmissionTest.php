@@ -22,7 +22,7 @@ test('REQ-04-01 a requester with a complete profile can submit a request', funct
     Livewire::actingAs($this->owner)->test(Create::class)
         ->set('form.credential_type_id', $this->org->tor->id)
         ->set('form.purpose', 'Employment abroad')
-        ->call('submit')
+        ->call('review')->call('submit')
         ->assertHasNoErrors()
         ->assertRedirect(route('student.requests.show', CredentialRequest::sole()));
 
@@ -37,10 +37,10 @@ test('REQ-04-01 the receiving school is required when the credential type says s
     Livewire::actingAs($this->owner)->test(Create::class)
         ->set('form.credential_type_id', $transfer->id)
         ->set('form.purpose', 'Transfer to another school')
-        ->call('submit')
+        ->call('review')->call('submit')
         ->assertHasErrors('form.receiving_institution')
         ->set('form.receiving_institution', 'Polytechnic University of the Philippines')
-        ->call('submit')
+        ->call('review')->call('submit')
         ->assertHasNoErrors();
 
     expect(CredentialRequest::sole()->receiving_institution)->toBe('Polytechnic University of the Philippines');
@@ -58,7 +58,7 @@ test('REQ-04-01 invalid details, inactive types and types without a route are re
 
     Livewire::actingAs($this->owner)->test(Create::class)
         ->set(array_merge(['form.credential_type_id' => $this->org->tor->id, 'form.purpose' => 'Employment'], $input))
-        ->call('submit')
+        ->call('review')->call('submit')
         ->assertHasErrors($error);
 
     expect(CredentialRequest::count())->toBe(0);

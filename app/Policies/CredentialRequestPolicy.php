@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\RequestStatus;
+use App\Enums\ReviewStatus;
 use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\User;
@@ -46,6 +47,14 @@ class CredentialRequestPolicy
     public function respond(User $user, CredentialRequest $request): bool
     {
         return $request->user_id === $user->id && $request->status === RequestStatus::ReturnedForCustomerAction;
+    }
+
+    /** Upload another valid ID after the Registrar rejected the request's (REQ-15-11). */
+    public function replaceIdentity(User $user, CredentialRequest $request): bool
+    {
+        return $request->user_id === $user->id
+            && $request->identity_status === ReviewStatus::Rejected
+            && $request->identityReviewable();
     }
 
     public function declareRepresentative(User $user, CredentialRequest $request): bool

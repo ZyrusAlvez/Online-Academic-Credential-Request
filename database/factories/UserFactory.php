@@ -3,9 +3,9 @@
 namespace Database\Factories;
 
 use App\Enums\AcademicStatus;
-use App\Enums\IdentityStatus;
 use App\Enums\Role;
 use App\Models\Department;
+use App\Models\IdentityDocument;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -43,8 +43,6 @@ class UserFactory extends Factory
             'student_number' => null,
             'attended_from' => null,
             'attended_to' => null,
-            'identity_status' => IdentityStatus::Unsubmitted,
-            'identity_verified_at' => null,
             'privacy_consented_at' => null,
         ];
     }
@@ -86,11 +84,11 @@ class UserFactory extends Factory
     }
 
     /**
-     * A requester with a complete academic profile and a verified identity (spec 01).
+     * A requester with a complete profile and a saved valid ID, ready to request (spec 15).
      */
     public function withProfile(?Department $college = null): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->afterCreating(fn (User $user) => IdentityDocument::factory()->for($user)->create())->state(fn (array $attributes) => [
             'role' => Role::Student,
             'contact_number' => '0917'.fake()->numerify('#######'),
             'academic_status' => AcademicStatus::Graduate,
@@ -99,8 +97,6 @@ class UserFactory extends Factory
             'student_number' => fake()->numerify('20-####-###'),
             'attended_from' => 2020,
             'attended_to' => 2024,
-            'identity_status' => IdentityStatus::Verified,
-            'identity_verified_at' => now(),
             'privacy_consented_at' => now(),
         ]);
     }

@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Actions\Audit\RecordRequestEvent;
 use App\Enums\DelayCategory;
 use App\Enums\DocumentKind;
-use App\Enums\IdentityStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\RecipientType;
 use App\Enums\RequesterMode;
@@ -22,6 +21,7 @@ use App\Exceptions\InvalidTransition;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
+use App\Models\IdentityDocument;
 use App\Models\OfficeVisit;
 use App\Models\PaymentProof;
 use App\Models\RequestDeficiency;
@@ -56,15 +56,24 @@ class RequestWorkflow
     // ── Submission (spec 04) ───────────────────────────────────────────────────────────────
 
     /**
+     * Submit a request with a copy of the owner's details and the ID sent with it, by default their
+     * saved ID (REQ-04-03, REQ-15-06).
+     *
      * @param  array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $data
      */
-    public function submit(User $owner, array $data): CredentialRequest
+    public function submit(User $owner, array $data, ?IdentityDocument $identity = null): CredentialRequest
     {
-        if (! $owner->canRequestCredentials()) {
-            throw new InvalidTransition('Complete your profile and upload a valid ID before requesting a credential.');
+        if (! $owner->hasRequesterDetails()) {
+            throw new InvalidTransition('Give your name, contact number and academic information before requesting a credential.');
         }
 
-        return DB::transaction(function () use ($owner, $data): CredentialRequest {
+        $identity ??= $owner->latestIdentityDocument()->first();
+
+        if ($identity === null || $identity->user_id !== $owner->id) {
+            throw new InvalidTransition('Upload a valid ID before requesting a credential.');
+        }
+
+        return DB::transaction(function () use ($owner, $data, $identity): CredentialRequest {
             $type = CredentialType::requestable()->findOrFail($data['credential_type_id']);
             $receivingInstitution = $data['receiving_institution'] ?? null;
 
@@ -80,6 +89,10 @@ class RequestWorkflow
 
             $request->forceFill([
                 'user_id' => $owner->id,
+                'requester_name' => $owner->requesterName(),
+                'contact_number' => $owner->contact_number,
+                'identity_document_id' => $identity->id,
+                'identity_status' => ReviewStatus::Pending,
                 'college_id' => $owner->college_id,
                 'academic_status' => $owner->academic_status,
                 'program' => $owner->program,
@@ -189,7 +202,7 @@ class RequestWorkflow
                 'Only requests under evaluation or pending compliance can be marked complete.',
             );
 
-            if ($locked->student()->firstOrFail()->identity_status !== IdentityStatus::Verified) {
+            if ($locked->identity_status !== ReviewStatus::Verified) {
                 throw new InvalidTransition("Verify the requester's valid ID before marking the requirements complete.");
             }
 
@@ -208,6 +221,66 @@ class RequestWorkflow
             $locked->save();
             $this->record($locked, $registrar, RequestEventType::RequirementsCompleted, null, null, $remarks);
             $this->accept($locked, $request, $registrar);
+        });
+    }
+
+    /**
+     * Verify the request's valid ID, or reject it with a reason, while its requirements are being
+     * evaluated (REQ-15-09).
+     */
+    public function reviewIdentity(CredentialRequest $request, User $registrar, bool $verified, ?string $remarks = null): void
+    {
+        if (! $verified && blank($remarks)) {
+            throw new InvalidTransition('Give the reason for rejecting this ID.');
+        }
+
+        DB::transaction(function () use ($request, $registrar, $verified, $remarks): void {
+            $locked = $this->lock($request, CredentialRequest::IDENTITY_REVIEW_STATUSES, "The requester's ID can only be checked while the requirements are being evaluated.");
+
+            if ($locked->identity_document_id === null || $locked->identity_status !== ReviewStatus::Pending) {
+                throw new InvalidTransition('This ID has already been reviewed.');
+            }
+
+            $locked->forceFill([
+                'identity_status' => $verified ? ReviewStatus::Verified : ReviewStatus::Rejected,
+                'identity_reviewed_by' => $registrar->id,
+                'identity_reviewed_at' => now(),
+                'identity_remarks' => $verified ? null : $remarks,
+            ])->save();
+            $request->setRawAttributes($locked->getAttributes(), sync: true);
+
+            $this->record($locked, $registrar, $verified ? RequestEventType::IdentityVerified : RequestEventType::IdentityRejected,
+                null, null, $verified ? null : $remarks);
+        });
+    }
+
+    /**
+     * Attach another valid ID after the request's was rejected (REQ-15-11). The document is stored
+     * by App\Actions\Identity\SubmitIdentityDocument.
+     */
+    public function replaceIdentity(CredentialRequest $request, User $owner, IdentityDocument $identity): void
+    {
+        if ($identity->user_id !== $owner->id || $request->user_id !== $owner->id) {
+            throw new InvalidTransition('Upload your own valid ID.');
+        }
+
+        DB::transaction(function () use ($request, $owner, $identity): void {
+            $locked = $this->lock($request, CredentialRequest::IDENTITY_REVIEW_STATUSES, 'This request no longer takes a new ID.');
+
+            if ($locked->identity_status !== ReviewStatus::Rejected) {
+                throw new InvalidTransition('A new ID is needed only after the Office of the Registrar rejects one.');
+            }
+
+            $locked->forceFill([
+                'identity_document_id' => $identity->id,
+                'identity_status' => ReviewStatus::Pending,
+                'identity_reviewed_by' => null,
+                'identity_reviewed_at' => null,
+                'identity_remarks' => null,
+            ])->save();
+            $request->setRawAttributes($locked->getAttributes(), sync: true);
+
+            $this->record($locked, $owner, RequestEventType::IdentityResubmitted, null, null, $identity->id_type);
         });
     }
 

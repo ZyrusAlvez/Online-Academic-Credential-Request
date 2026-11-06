@@ -15,6 +15,11 @@
             <dd class="font-medium text-ink">{{ $request->receiving_institution }}</dd>
         </div>
     @endif
+    {{-- The request's own copy of the name (REQ-15-08); the contact number is for the Registrar only. --}}
+    <div class="sm:col-span-2">
+        <dt class="text-zinc-500">{{ __('Requester') }}</dt>
+        <dd class="font-medium break-words text-ink">{{ $request->requester_name }}</dd>
+    </div>
     <div>
         <dt class="text-zinc-500">{{ __('Status') }}</dt>
         <dd class="font-medium text-ink">{{ $request->academic_status->label() }} · {{ $request->attended_from }}–{{ $request->attended_to }}</dd>

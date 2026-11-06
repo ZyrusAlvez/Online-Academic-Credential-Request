@@ -24,6 +24,8 @@ class RequestActivity extends Notification implements ShouldQueue
         RequestEventType::Submitted,
         RequestEventType::ComplianceRequested,
         RequestEventType::CustomerActionRequested,
+        RequestEventType::IdentityVerified,
+        RequestEventType::IdentityRejected,
         RequestEventType::RequirementsCompleted,
         RequestEventType::PaymentRejected,
         RequestEventType::Accepted,

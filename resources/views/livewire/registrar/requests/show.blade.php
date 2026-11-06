@@ -3,7 +3,7 @@
 
     $status = $request->status;
     $owner = $request->student;
-    $idDocument = $owner->latestIdentityDocument;
+    $idDocument = $request->identityDocument;
     $visit = $request->openVisit;
     $processing = in_array($status, S::processing(), true);
 @endphp
@@ -14,7 +14,7 @@
         <flux:breadcrumbs.item>{{ $request->reference_no }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 
-    <x-page-header :title="$request->reference_no" :description="$request->credentialType->name.' · '.$owner->name">
+    <x-page-header :title="$request->reference_no" :description="$request->credentialType->name.' · '.$request->requester_name">
         <x-slot:afterTitle>
             <x-copy-button :value="$request->reference_no" :label="__('Copy tracking number')" :copied="__('Tracking number copied.')" />
         </x-slot:afterTitle>
@@ -45,33 +45,37 @@
                 @endif
             </section>
 
+            {{-- The request's own copy of the requester's details and ID, checked here (REQ-15-09). --}}
             <section aria-labelledby="requester-heading" class="space-y-3 rounded-xl border border-secondary/50 p-5 sm:p-6">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <h2 id="requester-heading" class="text-lg font-semibold text-primary">{{ __('Requester and identity') }}</h2>
-                    <flux:badge :color="$owner->identity_status->color()">{{ $owner->identity_status->label() }}</flux:badge>
+                    <flux:badge :color="$request->identity_status->color()" data-identity-status>{{ __('ID: :status', ['status' => $request->identity_status->label()]) }}</flux:badge>
                 </div>
                 <p class="text-sm text-zinc-700">
-                    <span class="font-medium text-ink">{{ $owner->name }}</span>
+                    <span class="font-medium text-ink">{{ $request->requester_name }}</span>
                     · <a href="mailto:{{ $owner->email }}" class="break-all text-highlight underline underline-offset-2">{{ $owner->email }}</a>
-                    @if ($owner->contact_number) · {{ $owner->contact_number }} @endif
+                    @if ($request->contact_number) · {{ $request->contact_number }} @endif
                 </p>
                 @if ($idDocument)
                     <p class="text-sm">
-                        <x-file-link :href="route('identity-documents.show', $idDocument)" :name="$idDocument->id_type.' – '.$owner->name" :type="$idDocument->mime_type">
+                        <x-file-link :href="route('identity-documents.show', $idDocument)" :name="$idDocument->id_type.' – '.$request->requester_name" :type="$idDocument->mime_type">
                             {{ __('Open :type', ['type' => $idDocument->id_type]) }}
                         </x-file-link>
                         <span class="text-zinc-500">· {{ __('uploaded :date', ['date' => $idDocument->created_at->format('M j, Y')]) }}</span>
                     </p>
-                    @if ($idDocument->status === \App\Enums\ReviewStatus::Pending)
+                    @if ($request->identity_status === \App\Enums\ReviewStatus::Rejected && $request->identity_remarks)
+                        <p class="text-sm text-zinc-700">{{ __('Rejected: :reason', ['reason' => $request->identity_remarks]) }}</p>
+                    @endif
+                    @if ($request->identity_status === \App\Enums\ReviewStatus::Pending && $request->identityReviewable())
                         <div class="flex flex-wrap gap-2">
-                            <flux:button size="sm" variant="primary" icon="check" wire:click="verifyIdentity({{ $idDocument->id }})" data-confirm-title="{{ __('Verify identity') }}" data-confirm-label="{{ __('Verify') }}" :wire:confirm="__('Verify the identity of :name?', ['name' => $owner->name])">{{ __('Verify identity') }}</flux:button>
+                            <flux:button size="sm" variant="primary" icon="check" wire:click="verifyIdentity" data-confirm-title="{{ __('Verify identity') }}" data-confirm-label="{{ __('Verify') }}" :wire:confirm="__('Verify the identity of :name?', ['name' => $request->requester_name])">{{ __('Verify identity') }}</flux:button>
                             <flux:modal.trigger name="reject-identity">
                                 <flux:button size="sm" variant="ghost" icon="x-mark">{{ __('Reject ID') }}</flux:button>
                             </flux:modal.trigger>
                         </div>
                     @endif
                 @else
-                    <p class="text-sm text-zinc-600">{{ __('No valid ID uploaded yet.') }}</p>
+                    <p class="text-sm text-zinc-600">{{ __('No valid ID was sent with this request.') }}</p>
                 @endif
             </section>
 
@@ -398,7 +402,7 @@
 
     @if ($idDocument)
         <flux:modal name="reject-identity" class="w-full md:w-[28rem]">
-            <form wire:submit="rejectIdentity({{ $idDocument->id }})" class="space-y-6">
+            <form wire:submit="rejectIdentity" class="space-y-6">
                 <flux:heading size="lg">{{ __('Reject valid ID') }}</flux:heading>
                 <flux:textarea wire:model="identityRemarks" :label="__('Reason')" :description="__('Sent to the requester, who can upload another ID.')" rows="3" required />
                 <div class="flex justify-end gap-2">

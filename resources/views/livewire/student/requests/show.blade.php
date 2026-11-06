@@ -54,6 +54,28 @@
         </section>
     @endif
 
+    @can('replaceIdentity', $request)
+        {{-- The Registrar rejected the ID sent with this request (REQ-15-11). --}}
+        <section aria-labelledby="new-id-heading" class="space-y-4 rounded-xl border border-red-600 bg-red-50 p-5 sm:p-6" data-replace-id>
+            <h2 id="new-id-heading" class="text-lg font-semibold text-red-900">{{ __('Your valid ID was not accepted') }}</h2>
+            <p class="rounded-md bg-white p-3 text-sm text-ink"><span class="font-semibold">{{ __('Reason:') }}</span> {{ $request->identity_remarks }}</p>
+            <form wire:submit="replaceIdentity" class="space-y-4">
+                <p class="text-sm text-red-950">{{ __('Upload another valid ID (JPG, PNG, WebP or PDF, up to 5 MB). It is also saved for your next request.') }}</p>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <flux:select wire:model="newIdType" :label="__('Type of ID')" required>
+                        <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
+                        @foreach ($idTypes as $type)
+                            <flux:select.option :value="$type">{{ $type }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    <flux:input type="file" wire:model="newIdFile" :label="__('Valid ID')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
+                </div>
+                <div wire:loading wire:target="newIdFile" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
+                <flux:button type="submit" variant="primary" icon="arrow-up-tray" wire:loading.attr="disabled" wire:target="newIdFile,replaceIdentity">{{ __('Upload valid ID') }}</flux:button>
+            </form>
+        </section>
+    @endcan
+
     @if ($request->status === \App\Enums\RequestStatus::ReturnedForCustomerAction)
         <section aria-labelledby="action-heading" class="space-y-4 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6">
             <h2 id="action-heading" class="text-lg font-semibold text-amber-900">{{ __('Your action is needed') }}</h2>
@@ -163,6 +185,18 @@
     <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request details') }}</h2>
         <x-request-details :request="$request" />
+        @if ($request->identityDocument)
+            {{-- The ID sent with this request and its check (REQ-15-08, 09). --}}
+            <div class="mt-4 flex flex-wrap items-start justify-between gap-3 border-t border-secondary/50 pt-4 text-sm" data-request-id>
+                <div class="min-w-0">
+                    <p class="text-zinc-500">{{ __('Valid ID') }}</p>
+                    <x-file-link :href="route('identity-documents.show', $request->identityDocument)" :name="$request->identityDocument->id_type.': '.$request->identityDocument->original_name" :type="$request->identityDocument->mime_type" class="font-medium break-all">
+                        {{ $request->identityDocument->id_type }}: {{ $request->identityDocument->original_name }}
+                    </x-file-link>
+                </div>
+                <flux:badge size="sm" :color="$request->identity_status->color()">{{ $request->identity_status->label() }}</flux:badge>
+            </div>
+        @endif
     </section>
 
     @can('declareRepresentative', $request)

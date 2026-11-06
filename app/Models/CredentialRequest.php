@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AcademicStatus;
 use App\Enums\RequesterMode;
 use App\Enums\RequestStatus;
+use App\Enums\ReviewStatus;
 use App\Enums\VisitStatus;
 use Database\Factories\CredentialRequestFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,6 +21,12 @@ use Illuminate\Support\Carbon;
  *
  * @property string $reference_no
  * @property int $user_id
+ * @property string $requester_name
+ * @property ?string $contact_number
+ * @property ?int $identity_document_id
+ * @property ReviewStatus $identity_status
+ * @property ?Carbon $identity_reviewed_at
+ * @property ?string $identity_remarks
  * @property int $college_id
  * @property AcademicStatus $academic_status
  * @property RequesterMode $requester_mode
@@ -42,6 +49,14 @@ class CredentialRequest extends Model
     /** @use HasFactory<CredentialRequestFactory> */
     use HasFactory;
 
+    /** Statuses in which the request's ID can be verified, rejected or replaced (REQ-15-09, 11). */
+    public const IDENTITY_REVIEW_STATUSES = [
+        RequestStatus::Submitted,
+        RequestStatus::UnderEvaluation,
+        RequestStatus::PendingCompliance,
+        RequestStatus::ReturnedForCustomerAction,
+    ];
+
     protected $fillable = [
         'credential_type_id',
         'purpose',
@@ -57,6 +72,8 @@ class CredentialRequest extends Model
             'status' => RequestStatus::class,
             'academic_status' => AcademicStatus::class,
             'requester_mode' => RequesterMode::class,
+            'identity_status' => ReviewStatus::class,
+            'identity_reviewed_at' => 'datetime',
             'requires_payment' => 'boolean',
             'fee' => 'decimal:2',
             'amount_due' => 'decimal:2',
@@ -106,6 +123,33 @@ class CredentialRequest extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * The valid ID sent with this request, checked on it (REQ-15-09).
+     *
+     * @return BelongsTo<IdentityDocument, $this>
+     */
+    public function identityDocument(): BelongsTo
+    {
+        return $this->belongsTo(IdentityDocument::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function identityReviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'identity_reviewed_by');
+    }
+
+    /**
+     * The registrar may verify or reject the ID while the requirements are still being
+     * evaluated (REQ-15-09).
+     */
+    public function identityReviewable(): bool
+    {
+        return in_array($this->status, self::IDENTITY_REVIEW_STATUSES, true);
     }
 
     /**
