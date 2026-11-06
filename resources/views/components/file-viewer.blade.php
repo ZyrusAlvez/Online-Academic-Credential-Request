@@ -9,10 +9,11 @@
     x-data="{ url: null, name: '', type: '', loading: false, failed: false,
         get isImage() { return this.type.startsWith('image/') },
         get isPdf() { return this.type === 'application/pdf' },
-        {{-- A file chosen but not yet uploaded (blob:) is already the browser's own copy. --}}
-        get downloadUrl() { return ! this.url ? '#' : this.url.startsWith('blob:') ? this.url : this.url + (this.url.includes('?') ? '&' : '?') + 'download=1' },
+        {{-- A file not saved yet (a browser copy or a signed preview) brings its own download address. --}}
+        download: null,
+        get downloadUrl() { return ! this.url ? '#' : this.download ?? this.url + (this.url.includes('?') ? '&' : '?') + 'download=1' },
         open(detail) {
-            this.url = detail.url; this.name = detail.name; this.type = detail.type || '';
+            this.url = detail.url; this.name = detail.name; this.type = detail.type || ''; this.download = detail.download ?? null;
             this.failed = false;
             this.loading = this.isImage || this.isPdf;
             $flux.modal('file-viewer').show();

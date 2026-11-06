@@ -106,7 +106,9 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   chosen file in the file viewer, in their own browser, before anything is uploaded or saved.
 - **REQ-01-25** WHEN a requester chooses "Confirm" and their entries are valid THE
   SYSTEM SHALL show a summary of everything they entered (personal and academic information, and
-  the chosen ID's type and file name, or the ID on file) with the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry and
+  the chosen ID's type and file name, or the ID on file) under a "Summary" heading, with the
+  chosen ID shown: an image as a picture, and the file name as a link that opens it, image or PDF,
+  in the file viewer; with the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry and
   the chosen file, and a "Confirm and save" button. THE SYSTEM SHALL save only from the summary.
   WHILE the requester has not yet consented THE SYSTEM SHALL require them to tick the consent on
   the summary before saving and SHALL record when they did. IF an entry turns out invalid on
