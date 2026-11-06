@@ -62,7 +62,7 @@ at acceptance.
 | Role | Who | Can |
 |---|---|---|
 | `student` (shown as *Requester*) | Current students, graduates and former students (self-registered) | Register and upload an ID, request credentials, declare a representative, upload proof of payment, track requests, cancel before acceptance |
-| `registrar` | Office of the Registrar staff | Everything on the Registrar's side: verify identities, evaluate requests, record compliance, verify payments, accept, act on the Registrar's routing steps (preparation, final quality check), release, manage offices, credential types, the working calendar and staff accounts, view reports and the activity log. One role for all Registrar staff; every action records the staff member. |
+| `registrar` | Office of the Registrar staff | Everything on the Registrar's side, one queue per stage: evaluate requests (identity, academic record, representative), validate payments and accept, act on the Registrar's preparation step, do the final quality check, release; track requests at the offices and view all records; manage offices, credential types, the working calendar and staff accounts; view reports and the activity log. One role for all Registrar staff; every action records the staff member. |
 | `department` | Staff of a signing office: a college (the Dean), VP Finance, Chancellor, President | Accept receipt of documents sent to their office, approve and release them to the next office, return them for correction, record delay reasons |
 
 ## Glossary
@@ -113,29 +113,35 @@ Chancellor *sign* → Registrar *final check*.
 ## Request lifecycle
 
 ```
-submitted ──► under_evaluation ──┬─(complete)──────────────► awaiting_payment ──► payment_verification
-                 ▲    │          ├─(incomplete)──► pending_compliance ─(resolved)─┘        │    │
-                 │    │          ├─(clarify)───► returned_for_customer_action ─(responded)─┘    │
-                 │    │          └─(not eligible)─► declined                     (rejected)◄────┘
-                 │    │                                                                  │ (verified)
-                 └────┘ (customer responds)                                              ▼
-                                                                          accepted_for_processing
-                                                                           (clock starts, due date)
-                                                                                         │ first receipt
-                                                                                         ▼
-                 returned_for_correction ◄──(office returns)──── in_progress ◄──(re-received)
-                                                                                         │ Registrar receives
-                                                                                         ▼ for final check
-                                                                                for_final_approval
-                                                                                         │ final QC done
-                                                                                         ▼
-                                                                                 ready_for_release
-                                                                                         │ claimant verified
-                                                                                         ▼
-                                                                                      released
+            ┌──────────────(requester resubmits)──────────────┐
+            ▼                                                 │
+submitted ──► under_evaluation ──┬─(approve)──► awaiting_payment ──► payment_verification
+                 ▲               ├─(return)───► pending_compliance ─┘        │    │
+                 └─(registrar reopens)─────────────┘                (return)◄┘    │ (approve)
+                                 └─(decline)──► declined ◄─(decline)──────────────┤
+                                                                                  ▼
+                                                                    accepted_for_processing
+                                                                     (clock starts, due date)
+                                                                                  │ sent on from the
+                                                                                  ▼ first office
+            returned_for_correction ◄──(office returns)──── in_progress ◄──(re-received)
+                                                                                  │ Registrar receives
+                                                                                  ▼ for final check
+                                                  declined ◄─(decline)── for_final_approval
+                                                                                  │ approve
+                                                                                  ▼
+                                                                          ready_for_release
+                                                                                  │ claimant verified
+                                                                                  ▼
+                                                                               released
 
-Any open status ──► cancelled  (requester: before acceptance; registrar: any time, reason required)
+Open, not accepted ──► cancelled  (by the requester)
 ```
+
+Each Registrar stage is a checklist of parts, each confirmed or rejected, then one decision with
+remarks (spec 16): Initial Evaluation (approve, return, decline), Payment Validation (approve,
+return, decline), Final Quality Check (approve, decline), Release (mark released). An evaluator
+owns a request while it is under evaluation.
 
 ### Request statuses
 
@@ -143,8 +149,8 @@ Any open status ──► cancelled  (requester: before acceptance; registrar: a
 |---|---|
 | `submitted` | Online request received |
 | `under_evaluation` | Academic records and requirements are being reviewed |
-| `pending_compliance` | The requester must submit missing documents or complete clearance in person |
-| `returned_for_customer_action` | The requester must clarify or act before processing continues |
+| `pending_compliance` | Returned to the requester: they must fix what was rejected or comply in person |
+| `returned_for_customer_action` | No longer used (spec 16); kept for older requests |
 | `awaiting_payment` | Requirements complete; payment instructions provided |
 | `payment_verification` | Proof of payment is awaiting verification |
 | `accepted_for_processing` | All conditions satisfied; the processing period has started |
@@ -153,11 +159,11 @@ Any open status ──► cancelled  (requester: before acceptance; registrar: a
 | `for_final_approval` | Back at the Registrar for the final quality check |
 | `ready_for_release` | Processing complete; available for claiming |
 | `released` | Released to the owner or an authorized representative |
-| `declined` | Not eligible; reason recorded |
-| `cancelled` | Cancelled, reason recorded |
+| `declined` | Declined at evaluation, payment validation or the final quality check; reason recorded |
+| `cancelled` | Cancelled by the requester before acceptance |
 
-A requester's return (`pending_compliance`, `returned_for_customer_action`) and an internal
-return between offices (`returned_for_correction`) are different events, statuses and report rows.
+A requester's return (`pending_compliance`) and an internal return between offices
+(`returned_for_correction`) are different events, statuses and report rows.
 
 ### Office actions
 
@@ -212,7 +218,8 @@ Rules the document leaves open, taken as follows until the client says otherwise
 4. The Registrar's final quality check is inside the processing period.
 5. A credential is *unclaimed* once it has been ready for release for more than 10 working days.
 6. Payment verification records the official receipt (OR) number.
-7. A registrar's action approves a due-date pause.
+7. A registrar's action approved a due-date pause. Since spec 16 nothing pauses the processing
+   period; pauses recorded earlier keep their adjusted due dates.
 8. Working days are Monday to Saturday (the document's own example counts Monday to Friday; the
    work week is a one-line setting).
 
@@ -269,3 +276,4 @@ All feature specs describe this model.
 | 13 | Request purposes | done |
 | 14 | Activity logs (audit trail) | in progress |
 | 15 | Identity checked on the request; Settings → Profile | done |
+| 16 | Registrar stages: checklists, evaluation lock, stage queues | in progress |
