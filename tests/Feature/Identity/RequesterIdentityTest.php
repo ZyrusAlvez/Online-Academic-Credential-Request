@@ -5,10 +5,13 @@ use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
 use App\Enums\IdentityStatus;
 use App\Enums\ReviewStatus;
+use App\Enums\RouteTask;
 use App\Livewire\Registrar\Identities\Index;
+use App\Livewire\Registrar\Requests\Show as RegistrarRequestShow;
 use App\Livewire\Student\Profile;
 use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
+use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\Program;
@@ -66,6 +69,15 @@ function fillProfile(array $overrides = [], ?User $user = null): Testable
 
     // Invalid entries stop at the form, as they do in the browser.
     return $component->errors()->isEmpty() ? $component->call('save') : $component;
+}
+
+/** A request by a requester whose ID may still be pending (REQ-01-18 lets them submit). */
+function submitRequestFor(User $owner): CredentialRequest
+{
+    // Only a credential with a route can be requested.
+    return submitRequest($owner, CredentialType::factory()
+        ->withSteps([[Department::factory()->registrarOffice()->create(), RouteTask::Prepare]])
+        ->create());
 }
 
 function uploadId(?User $user = null): IdentityDocument
@@ -592,6 +604,52 @@ test('REQ-01-19 the registrar sees pending IDs first and can verify one', functi
 
     Notification::assertSentTo($this->student, IdentityReviewed::class, fn ($n, array $channels) => in_array('mail', $channels, true));
     expect($verified->identity_status)->toBe(IdentityStatus::Verified);
+});
+
+test('REQ-01-19 an ID another registrar already reviewed says so instead of failing silently', function () {
+    $document = uploadId();
+    $page = Livewire::actingAs($this->registrar)->test(Index::class);
+
+    app(ReviewIdentityDocument::class)->handle($document, User::factory()->registrar()->create(), verified: false, remarks: 'Blurred.');
+
+    $page->call('verify', $document->id)
+        ->assertDispatched('notify', message: 'This ID has already been reviewed.')
+        ->assertHasNoErrors();
+    expect($document->fresh()->status)->toBe(ReviewStatus::Rejected);
+});
+
+test('REQ-01-19 the registrar can verify or reject the ID from the request page too', function () {
+    Notification::fake();
+    $document = uploadId();
+    $request = submitRequestFor($this->student->fresh());
+
+    Livewire::actingAs($this->registrar)->test(RegistrarRequestShow::class, ['credentialRequest' => $request])
+        ->call('rejectIdentity', $document->id)->assertHasErrors('identityRemarks')
+        ->set('identityRemarks', 'The photo is blurred.')
+        ->call('rejectIdentity', $document->id)
+        ->assertHasNoErrors()
+        ->assertDispatched('notify', message: 'ID rejected. The requester was asked to upload another.')
+        ->assertSet('identityRemarks', '');
+
+    expect($document->fresh()->status)->toBe(ReviewStatus::Rejected)
+        ->and($this->student->fresh()->identity_status)->toBe(IdentityStatus::Rejected);
+});
+
+test('REQ-01-19 reviewing an already reviewed ID from the request page shows why and keeps the reason', function () {
+    $document = uploadId();
+    $request = submitRequestFor($this->student->fresh());
+    $page = Livewire::actingAs($this->registrar)->test(RegistrarRequestShow::class, ['credentialRequest' => $request]);
+
+    app(ReviewIdentityDocument::class)->handle($document, User::factory()->registrar()->create(), verified: true);
+
+    $page->call('verifyIdentity', $document->id)
+        ->assertDispatched('notify', message: 'This ID has already been reviewed.');
+
+    $page->set('identityRemarks', 'Wrong person')->call('rejectIdentity', $document->id)
+        ->assertDispatched('notify', message: 'This ID has already been reviewed.')
+        ->assertSet('identityRemarks', 'Wrong person');
+
+    expect($document->fresh()->status)->toBe(ReviewStatus::Verified);
 });
 
 test('REQ-01-19 rejecting needs a reason; the requester is told and can upload again', function () {

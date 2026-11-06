@@ -194,10 +194,8 @@ class Show extends Component
     public function verifyIdentity(int $documentId, ReviewIdentityDocument $review): void
     {
         $this->authorize('review', $this->credentialRequest);
-        $document = $this->identityDocument($documentId);
 
-        $review->handle($document, $this->actor(), verified: true);
-        $this->dispatch('notify', message: 'Identity verified.');
+        $this->reviewIdentity($review, $documentId, verified: true, success: 'Identity verified.');
     }
 
     public function rejectIdentity(int $documentId, ReviewIdentityDocument $review): void
@@ -205,10 +203,10 @@ class Show extends Component
         $this->authorize('review', $this->credentialRequest);
         $this->validate(['identityRemarks' => ['required', 'string', 'max:500']], attributes: ['identityRemarks' => 'reason']);
 
-        $review->handle($this->identityDocument($documentId), $this->actor(), verified: false, remarks: $this->identityRemarks);
-        Flux::modal('reject-identity')->close();
-        $this->reset('identityRemarks');
-        $this->dispatch('notify', message: 'ID rejected. The requester was asked to upload another.');
+        if ($this->reviewIdentity($review, $documentId, verified: false, success: 'ID rejected. The requester was asked to upload another.', remarks: $this->identityRemarks)) {
+            Flux::modal('reject-identity')->close();
+            $this->reset('identityRemarks');
+        }
     }
 
     public function changeCollege(RequestWorkflow $workflow): void
@@ -241,9 +239,11 @@ class Show extends Component
         $this->authorize('review', $this->credentialRequest);
         $this->validate(['rejectRemarks' => ['required', 'string', 'max:500']], attributes: ['rejectRemarks' => 'remarks']);
 
-        $this->attempt(fn () => $workflow->rejectPayment($this->credentialRequest, $this->actor(), $this->rejectRemarks), 'Payment rejected. The requester was asked for a valid proof.');
-        Flux::modal('reject-payment')->close();
-        $this->reset('rejectRemarks');
+        // Only on success: a failed rejection keeps the dialog and what was typed.
+        if ($this->attempt(fn () => $workflow->rejectPayment($this->credentialRequest, $this->actor(), $this->rejectRemarks), 'Payment rejected. The requester was asked for a valid proof.')) {
+            Flux::modal('reject-payment')->close();
+            $this->reset('rejectRemarks');
+        }
     }
 
     // ── Routing overrides (spec 05) ────────────────────────────────────────────────────────
@@ -265,9 +265,10 @@ class Show extends Component
         $this->authorize('cancel', $this->credentialRequest);
         $this->validate(['cancelReason' => ['required', 'string', 'max:500']], attributes: ['cancelReason' => 'reason']);
 
-        $this->attempt(fn () => $workflow->cancel($this->credentialRequest, $this->actor(), $this->cancelReason), 'Request cancelled.');
-        Flux::modal('cancel-request')->close();
-        $this->reset('cancelReason');
+        if ($this->attempt(fn () => $workflow->cancel($this->credentialRequest, $this->actor(), $this->cancelReason), 'Request cancelled.')) {
+            Flux::modal('cancel-request')->close();
+            $this->reset('cancelReason');
+        }
     }
 
     // ── Representatives and release (spec 11) ──────────────────────────────────────────────
@@ -364,6 +365,25 @@ class Show extends Component
     private function representative(int $id): RequestRepresentative
     {
         return $this->credentialRequest->representatives()->findOrFail($id);
+    }
+
+    /**
+     * The action reports "already reviewed" (another registrar, another tab) on a `remarks` field
+     * this page doesn't have, so it is shown as a toast instead of being lost.
+     */
+    private function reviewIdentity(ReviewIdentityDocument $review, int $documentId, bool $verified, string $success, ?string $remarks = null): bool
+    {
+        try {
+            $review->handle($this->identityDocument($documentId), $this->actor(), verified: $verified, remarks: $remarks);
+        } catch (ValidationException $e) {
+            $this->dispatch('notify', message: $e->validator->errors()->first());
+
+            return false;
+        }
+
+        $this->dispatch('notify', message: $success);
+
+        return true;
     }
 
     private function identityDocument(int $id): IdentityDocument

@@ -24,7 +24,9 @@ keeps a per-request ledger. This spec adds one log of what everyone did across t
 - **REQ-14-04** WHEN a requester uploads a valid ID, or the Registrar verifies or rejects one,
   THE SYSTEM SHALL log it.
 - **REQ-14-05** WHEN someone signs in or out, or a sign-in fails, THE SYSTEM SHALL log it; a
-  failed sign-in records the email that was typed.
+  failed sign-in records the email that was typed. A deactivated account SHALL never be logged as
+  signed in: the sign-in form refuses it before signing it in (a failed sign-in), and a
+  remember-me cookie that briefly signs it in is logged as a refused sign-in.
 - **REQ-14-06** THE SYSTEM SHALL record each entry's date and time, the person's name and role as
   they were at that moment, and the IP address it came from.
 

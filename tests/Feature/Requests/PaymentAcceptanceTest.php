@@ -64,6 +64,19 @@ test('REQ-04-13 the registrar rejects a proof with remarks', function () {
         ->and($this->request->paymentProofs()->sole())->status->toBe(PaymentStatus::Rejected)->remarks->toBe('No matching transaction');
 });
 
+test('REQ-04-13 a rejection that fails keeps the dialog open with the remarks typed', function () {
+    uploadPayment($this->request);
+    $page = Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request]);
+
+    // Meanwhile another registrar verified the payment in another tab.
+    workflow()->verifyPaymentAndAccept($this->request, User::factory()->registrar()->create(), 'OR-0001');
+
+    $page->set('rejectRemarks', 'No matching transaction')->call('rejectPayment')
+        ->assertDispatched('notify', message: 'Only payments awaiting verification can be rejected.')
+        ->assertNotDispatched('modal-close', name: 'reject-payment')
+        ->assertSet('rejectRemarks', 'No matching transaction');
+});
+
 test('REQ-04-13 verification needs the official receipt number; a proof alone is not paid', function () {
     uploadPayment($this->request);
     expect($this->request->fresh()->accepted_at)->toBeNull();
