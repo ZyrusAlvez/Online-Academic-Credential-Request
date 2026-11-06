@@ -102,6 +102,25 @@ test('REQ-01-22 the chosen ID file name is a link that previews it in the file v
         ->assertSee("\$dispatch('open-file', chosen)", false);
 });
 
+test('REQ-01-25 the summary has a Summary heading and shows a chosen image ID as a picture that opens in the viewer', function () {
+    $html = reviewProfile()->assertSee('Summary')->assertSeeHtml('data-summary-title')->html();
+
+    expect($html)->toContain('data-id-summary-preview')
+        ->and($html)->toMatch('#<img src="[^"]*preview-file[^"]*"[^>]*alt="Your chosen ID \(open larger\)"#')
+        ->and($html)->toContain('passport.jpg');
+});
+
+test('REQ-01-25 a chosen PDF ID is shown on the summary as a link that opens it in the viewer', function () {
+    $html = reviewProfile(['form.id_file' => UploadedFile::fake()->createWithContent('passport.pdf', "%PDF-1.4\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n")])
+        ->assertSee('passport.pdf')->html();
+
+    expect($html)->toContain('data-id-summary-preview')
+        ->and($html)->toContain('preview-file')
+        ->and($html)->toMatch('#application\\\\?/pdf#')
+        ->and($html)->toContain('View PDF')
+        ->and($html)->not->toContain('Your chosen ID (open larger)');
+});
+
 test('REQ-01-16 a requester can save their academic information; the student number is optional', function () {
     fillProfile()->assertHasNoErrors();
 
