@@ -264,14 +264,14 @@ test('REQ-09-11 the chosen credential shows its offices as a numbered list endin
     expect(Str::after($html, '</ol>'))->toContain('Documentary requirements')->toContain('PSA-authenticated birth certificate');
 });
 
-test('REQ-09-18 signed-in pages stop at 80rem on wide screens and detail grids can shrink on phones', function () {
+test('REQ-09-18 signed-in pages stop at 96rem on wide screens and detail grids can shrink on phones', function () {
     $org = organisation();
     $registrar = User::factory()->registrar()->create();
     $request = submitRequest(requester($org->ccs), $org->free);
 
     $this->actingAs($registrar);
 
-    expect($this->get(route('registrar.departments'))->assertOk()->getContent())->toContain('class="mx-auto w-full max-w-7xl" data-page-width')
+    expect($this->get(route('registrar.departments'))->assertOk()->getContent())->toContain('class="mx-auto w-full max-w-screen-2xl" data-page-width')
         ->and($this->get(route('registrar.requests.show', $request))->assertOk()->getContent())->toContain('grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]');
 });
 
