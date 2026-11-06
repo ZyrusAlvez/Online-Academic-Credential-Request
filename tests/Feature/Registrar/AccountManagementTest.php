@@ -1,7 +1,11 @@
 <?php
 
+use App\Actions\Staff\ChangeAccountRole;
+use App\Enums\RequestStatus;
 use App\Enums\Role;
 use App\Livewire\Registrar\Users\Index;
+use App\Models\ActivityLog;
+use App\Models\CredentialRequest;
 use App\Models\Department;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -139,6 +143,20 @@ test('REQ-02-10 the registrar cannot deactivate their own account', function () 
     expect($this->registrar->fresh()->is_active)->toBeTrue();
 });
 
+test('REQ-02-09 editing a staff account keeps its role', function () {
+    $staff = User::factory()->departmentStaff($this->library)->create();
+
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->call('edit', $staff->id)
+        ->assertDontSee('wire:model.live="form.role"', escape: false)
+        ->set('form.role', 'registrar')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($staff->fresh()->role)->toBe(Role::Department)
+        ->and($staff->fresh()->department_id)->toBe($this->library->id);
+});
+
 test('REQ-02-11 student accounts cannot be created or edited as staff', function () {
     $student = User::factory()->student()->create();
 
@@ -152,6 +170,124 @@ test('REQ-02-11 student accounts cannot be created or edited as staff', function
     Livewire::actingAs($this->registrar)->test(Index::class)
         ->call('edit', $student->id)
         ->assertForbidden();
+});
+
+test('REQ-02-15 the registrar can change an account to any other role', function (string $from, string $to) {
+    $account = User::factory()->{$from === 'department' ? 'departmentStaff' : $from}()->create();
+    $department = $to === 'department' ? $this->library->id : null;
+
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->call('editRole', $account->id)
+        ->assertSet('roleForm.role', $from)
+        ->set('roleForm.role', $to)
+        ->set('roleForm.department_id', $department)
+        ->call('changeRole')
+        ->assertHasNoErrors();
+
+    $account->refresh();
+    expect($account->role)->toBe(Role::from($to))
+        ->and($account->department_id)->toBe($department);
+
+    // The new role applies on the next page, without signing them out.
+    $this->actingAs($account)->get(route('dashboard'))->assertRedirect(route($account->role->homeRoute()));
+})->with([
+    ['student', 'department'],
+    ['student', 'registrar'],
+    ['department', 'student'],
+    ['department', 'registrar'],
+    ['registrar', 'student'],
+    ['registrar', 'department'],
+]);
+
+test('REQ-02-15 a department staff member can move to another department', function () {
+    $staff = User::factory()->departmentStaff($this->library)->create();
+    $other = Department::factory()->create();
+
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->call('editRole', $staff->id)
+        ->set('roleForm.department_id', $other->id)
+        ->call('changeRole')
+        ->assertHasNoErrors();
+
+    expect($staff->fresh()->department_id)->toBe($other->id);
+});
+
+test('REQ-02-15 the department role needs an active department and a change', function () {
+    $student = User::factory()->student()->create();
+    $inactive = Department::factory()->inactive()->create();
+
+    $component = Livewire::actingAs($this->registrar)->test(Index::class)
+        ->call('editRole', $student->id)
+        ->set('roleForm.role', 'department');
+
+    $component->call('changeRole')->assertHasErrors(['roleForm.department_id' => 'required']);
+    $component->set('roleForm.department_id', $inactive->id)->call('changeRole')->assertHasErrors(['roleForm.department_id' => 'exists']);
+    $component->set('roleForm.role', 'nope')->call('changeRole')->assertHasErrors('roleForm.role');
+    $component->set('roleForm.role', 'student')->call('changeRole')->assertHasErrors('roleForm.role');
+
+    expect($student->fresh()->role)->toBe(Role::Student);
+});
+
+test('REQ-02-15 the registrar cannot change their own role', function () {
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->assertDontSee('editRole('.$this->registrar->id.')')
+        ->call('editRole', $this->registrar->id)
+        ->assertForbidden();
+
+    expect(fn () => app(ChangeAccountRole::class)->handle($this->registrar, $this->registrar, Role::Student))
+        ->toThrow(DomainException::class);
+    expect($this->registrar->fresh()->role)->toBe(Role::Registrar);
+});
+
+test('REQ-02-15 only the registrar can change roles', function () {
+    $staff = User::factory()->departmentStaff($this->library)->create();
+    $other = User::factory()->student()->create();
+
+    Livewire::actingAs($staff)->test(Index::class)->assertForbidden();
+    expect($staff->can('changeRole', $other))->toBeFalse();
+});
+
+test('REQ-02-16 a student with an open request cannot change role', function () {
+    $student = User::factory()->student()->create();
+    CredentialRequest::factory()->for($student, 'student')->status(RequestStatus::AwaitingPayment)->create();
+
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->call('editRole', $student->id)
+        ->set('roleForm.role', 'registrar')
+        ->call('changeRole')
+        ->assertHasErrors('roleForm.role')
+        ->assertSee('must be released, declined or cancelled');
+
+    expect($student->fresh()->role)->toBe(Role::Student);
+});
+
+test('REQ-02-16 a student whose requests are all finished can change role', function () {
+    $student = User::factory()->student()->create();
+    CredentialRequest::factory()->for($student, 'student')->status(RequestStatus::Released)->create();
+    CredentialRequest::factory()->for($student, 'student')->status(RequestStatus::Cancelled)->create();
+
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->call('editRole', $student->id)
+        ->set('roleForm.role', 'registrar')
+        ->call('changeRole')
+        ->assertHasNoErrors();
+
+    expect($student->fresh()->role)->toBe(Role::Registrar);
+});
+
+test('REQ-02-17 a role change is logged with the old and new role', function () {
+    $staff = User::factory()->departmentStaff($this->library)->create(['first_name' => 'Lina', 'middle_name' => null, 'last_name' => 'Librarian', 'email' => 'lina@uphsl.edu.ph']);
+
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->call('editRole', $staff->id)
+        ->set('roleForm.role', 'registrar')
+        ->call('changeRole');
+
+    $log = ActivityLog::where('action', 'user.updated')->latest('id')->first();
+    expect($log->description)->toBe('Changed the role of Lina Librarian (lina@uphsl.edu.ph) to Registrar')
+        ->and($log->actor_id)->toBe($this->registrar->id)
+        ->and($log->changes['role'])->toBe(['Department Staff', 'Registrar'])
+        ->and($log->changes['department_id'])->toBe(['Library', null]);
 });
 
 test('REQ-02-12 non-registrars cannot manage accounts', function (string $state) {

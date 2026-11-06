@@ -7,7 +7,8 @@ use App\Models\User;
 use DomainException;
 
 /**
- * Creates or updates a department/registrar staff account on behalf of the registrar.
+ * Creates or updates a department/registrar staff account on behalf of the registrar. The role is
+ * set when the account is added; afterwards it changes only through ChangeAccountRole (REQ-02-15).
  */
 class SaveStaffAccount
 {
@@ -16,16 +17,14 @@ class SaveStaffAccount
      */
     public function handle(User $actor, array $data, ?User $account = null): User
     {
-        if ($data['role'] === Role::Student) {
-            throw new DomainException('Student accounts are self-registered.');
-        }
-
         if ($account?->role === Role::Student) {
-            throw new DomainException('Student accounts cannot be converted to staff.');
+            throw new DomainException('Student profiles are kept by the students themselves.');
         }
 
-        if ($account?->is($actor) && $data['role'] !== $actor->role) {
-            throw new DomainException('You cannot change your own role.');
+        $role = $account->role ?? $data['role'];
+
+        if ($role === Role::Student) {
+            throw new DomainException('Student accounts are self-registered.');
         }
 
         $account ??= new User;
@@ -47,8 +46,8 @@ class SaveStaffAccount
         }
 
         $account->forceFill([
-            'role' => $data['role'],
-            'department_id' => $data['role'] === Role::Department ? $data['department_id'] : null,
+            'role' => $role,
+            'department_id' => $role === Role::Department ? $data['department_id'] : null,
         ])->save();
 
         return $account;

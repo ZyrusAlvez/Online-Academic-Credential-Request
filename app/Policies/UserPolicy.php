@@ -36,4 +36,10 @@ class UserPolicy
     {
         return $user->hasRole(Role::Registrar) && ! $account->is($user);
     }
+
+    /** Any account's role, students included, but never the registrar's own (REQ-02-15). */
+    public function changeRole(User $user, User $account): bool
+    {
+        return $user->hasRole(Role::Registrar) && ! $account->is($user);
+    }
 }
