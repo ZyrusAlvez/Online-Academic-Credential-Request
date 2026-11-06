@@ -268,3 +268,4 @@ All feature specs describe this model.
 | 12 | Programs & strands | done |
 | 13 | Request purposes | done |
 | 14 | Activity logs (audit trail) | in progress |
+| 15 | Identity checked on the request; Settings → Profile | in progress |

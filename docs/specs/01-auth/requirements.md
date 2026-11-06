@@ -8,9 +8,7 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 - **US-01-1** As a student, graduate or former student, I want to create an account with just my
   email and a password, so that I can start quickly and give my details in my profile.
 - **US-01-5** As a requester, I want to give my academic information and upload a valid ID once,
-  so that the Registrar can confirm the account is really mine.
-- **US-01-6** As the registrar, I want to review each requester's valid ID, so that credentials
-  are only processed for their real owner.
+  so that the Registrar can confirm the request is really mine (now on the request, spec 15).
 - **US-01-2** As any user, I want to log in with my email and password, or with my Google account.
 - **US-01-3** As the registrar, I want only verified, active accounts to use the system, so
   that requests and notifications reach real people.
@@ -20,8 +18,8 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 
 ### Registration
 - **REQ-01-01** THE SYSTEM SHALL let a guest register with only an email address and a password;
-  the name, contact number, academic information, valid ID and data privacy consent are given in
-  My Profile (REQ-01-22). Until a name is given THE SYSTEM SHALL show the email in its place.
+  the name, contact number, academic information, valid ID and data privacy consent are given on
+  their first request (REQ-15-03). Until a name is given THE SYSTEM SHALL show the email in its place.
 - **REQ-01-02** WHEN a guest registers THE SYSTEM SHALL create the account with role `student`,
   regardless of any role value submitted.
 - **REQ-01-03** IF the email is invalid or already registered, or the password fails the password
@@ -66,11 +64,11 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 - **REQ-01-11** IF a user opens a page belonging to another role THEN THE SYSTEM SHALL respond 403.
 
 ### Profile
-- **REQ-01-12** THE SYSTEM SHALL NOT let users change their own name or email in settings; settings
-  holds only the password and, for requesters, email notifications (REQ-06-16). Requesters edit
-  their name in My Profile (REQ-01-22); the registrar edits staff names and emails in Accounts.
-  (The settings Profile page was removed: an email change took effect at once, with no
-  confirmation, and locked the user out until the new address was verified.)
+- **REQ-01-12** THE SYSTEM SHALL NOT let users change their own email in settings; settings holds
+  the password and, for requesters, their profile (REQ-15-07) and email notifications (REQ-06-16).
+  The registrar edits staff names and emails in Accounts. (The old settings Profile page was
+  removed: an email change took effect at once, with no confirmation, and locked the user out until
+  the new address was verified. The requester's Settings → Profile of spec 15 has no email field.)
 - **REQ-01-13** THE SYSTEM SHALL NOT let users delete their own account (requests form a
   permanent ledger; the registrar deactivates accounts instead).
 - **REQ-01-14** WHEN a user's name is displayed THE SYSTEM SHALL format it as
@@ -81,61 +79,27 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   and last name, contact number (exactly 11 digits, e.g. `09171234567`; the field accepts digits only) and academic information: status (current student, graduate or former student), college, program or
   strand (from the list of spec 12), student number (optional) and years attended (from and to, not before 1950 nor after the
   current year, from ≤ to).
-- **REQ-01-17** THE SYSTEM SHALL let a requester upload a valid ID (type of ID and an image or PDF
-  file of at most 5 MB), store it privately and mark their identity as pending verification;
-  earlier uploads are kept. WHILE an ID awaits or has passed verification THE SYSTEM SHALL neither
-  offer nor accept another upload: a requester uploads a new ID only after the registrar rejects
-  theirs.
-- **REQ-01-18** WHILE a requester's name, contact number or academic information is incomplete,
-  they have not given their data privacy consent, or no ID awaits or has passed verification THE
-  SYSTEM SHALL show a red "Verify your profile before making a request" banner on the new-request
-  page and on My Requests, listing what is missing (and the reason a rejected ID was not accepted)
-  with a link to My Profile, and SHALL show the new-request page with its fields and Submit
-  disabled (the credentials can still be browsed) and refuse a submission.
-- **REQ-01-19** THE SYSTEM SHALL let the registrar list requesters by identity status (pending
-  first, oldest upload first), open the uploaded ID, and verify it or reject it with a reason; the
-  requester SHALL be notified of the result and MAY upload another ID after a rejection.
+- **REQ-01-17** THE SYSTEM SHALL store an uploaded valid ID (type of ID and an image or PDF file of
+  at most 5 MB) privately and keep earlier uploads; the newest is the requester's saved ID. It is
+  verified on each request (REQ-15-09), not on the account.
+- ~~REQ-01-18~~ *Superseded by spec 15:* there is no profile gate or banner; New Request takes the
+  details itself (REQ-15-03).
+- ~~REQ-01-19~~ *Superseded by REQ-15-01 and REQ-15-09:* no Identity Checks page; the ID is
+  verified on the request.
 - **REQ-01-20** THE SYSTEM SHALL let only the ID's owner and registrars open an uploaded ID
   (others get 404), without letting browsers cache it.
-- **REQ-01-21** WHEN a requester submits a request THE SYSTEM SHALL take its academic details
-  from their profile, shown on the new-request form and edited in My Profile.
-- **REQ-01-22** THE SYSTEM SHALL take the whole My Profile page (name, contact number, academic
-  information and a valid ID, required while none awaits or has passed verification) in one form with a single "Confirm"
-  button at the bottom right; the button SHALL check the entries and save nothing (REQ-01-25).
-  WHEN a requester chooses an ID file THE SYSTEM SHALL show its name as a link that opens the
-  chosen file in the file viewer, in their own browser, before anything is uploaded or saved.
-- **REQ-01-25** WHEN a requester chooses "Confirm" and their entries are valid THE
-  SYSTEM SHALL show a summary of everything they entered (personal and academic information, and
-  the chosen ID's type and file name, or the ID on file) under a "Summary" heading, with the
-  chosen ID shown: an image as a picture, and the file name as a link that opens it, image or PDF,
-  in the file viewer; with the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry and
-  the chosen file, and a "Confirm and save" button. THE SYSTEM SHALL save only from the summary.
-  WHILE the requester has not yet consented THE SYSTEM SHALL require them to tick the consent on
-  the summary before saving and SHALL record when they did. IF an entry turns out invalid on
-  saving THEN THE SYSTEM SHALL return to the form and show the error there.
-- **REQ-01-26** IF a requester chooses "Confirm" and an entry is missing or invalid THEN THE SYSTEM
+- ~~REQ-01-21, REQ-01-22, REQ-01-25~~ *Superseded by REQ-15-03..07:* the details, ID, summary and
+  consent are on New Request and Settings → Profile; My Profile is gone.
+- **REQ-01-26** IF a requester chooses "Review request" or "Confirm" and an entry is missing or invalid THEN THE SYSTEM
   SHALL show a modal listing what needs attention, mark those fields on the form with their
   errors, and move focus to the first of them when the modal closes. A type of ID without a file,
   or a file without a type, SHALL count as invalid. The browser's own validation SHALL NOT replace
   this modal.
-- **REQ-01-27** WHILE a requester's identity is verified THE SYSTEM SHALL show their name as locked,
-  say that the Office of the Registrar corrects it, and ignore any change to it from My Profile.
-- **REQ-01-28** THE SYSTEM SHALL let a registrar correct a verified requester's name on Identity
-  Checks, keeping their identity verified, and SHALL log which registrar did it.
+- ~~REQ-01-27, REQ-01-28, REQ-01-30~~ *Superseded by REQ-15-07/08:* the profile is never locked
+  (each request keeps its own copy), so there is no locked name and no registrar name correction.
 - **REQ-01-29** WHEN a requester saves from the summary THE SYSTEM SHALL save the profile, the
   consent and a new ID together: IF the ID cannot be stored THEN THE SYSTEM SHALL save nothing and
   return to the form with the error.
-- **REQ-01-30** WHILE a requester's identity check is pending or verified THE SYSTEM SHALL show the
-  whole of My Profile read-only:
-  - personal and academic information, the valid ID and the consent;
-  - a note saying why it is locked, and that the Office of the Registrar corrects a verified
-    profile;
-  - any change to it SHALL be refused.
-
-  WHEN the registrar rejects the ID THE SYSTEM SHALL make the whole profile editable again, so the
-  requester can correct it and send it for checking with a new ID. A profile still missing an
-  entry (an account from before these rules) SHALL stay editable until it is complete, so a
-  requester is never locked out of requesting.
 
 ### Seed
 - **REQ-01-15** THE SYSTEM SHALL provide a database seeder that creates an initial registrar

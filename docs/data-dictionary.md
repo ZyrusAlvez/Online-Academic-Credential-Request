@@ -56,13 +56,13 @@ Accounts for all three roles.
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
-| first_name | varchar(100) | Yes | | | Requesters give it in My Profile after signing up |
+| first_name | varchar(100) | Yes | | | Requesters give it on their first request; edited in Settings → Profile |
 | middle_name | varchar(100) | Yes | | | Shown as an initial: "Juan S. Dela Cruz" |
-| last_name | varchar(100) | Yes | | | Requesters give it in My Profile after signing up |
+| last_name | varchar(100) | Yes | | | Requesters give it on their first request; edited in Settings → Profile |
 | email | varchar(255) | No | UQ | | Login name |
 | google_id | varchar(64) | Yes | UQ | | Google account ID once the user signs in with Google (REQ-01-24) |
-| contact_number | varchar(20) | Yes | | | Requesters: 11 digits, given in My Profile |
-| privacy_consented_at | timestamp | Yes | | | When the requester agreed to the Data Privacy Act notice (first My Profile save) |
+| contact_number | varchar(20) | Yes | | | Requesters: 11 digits, the saved profile's (each request keeps its own copy) |
+| privacy_consented_at | timestamp | Yes | | | When the requester agreed to the Data Privacy Act notice (first request or profile save) |
 | role | varchar(20) | No | IX | `student` | `student`, `registrar`, `department` (see [Role](#role)) |
 | department_id | bigint unsigned | Yes | FK → departments | | Only for `department` staff |
 | academic_status | varchar(20) | Yes | | | Requesters: `current`, `graduate`, `former` (see [AcademicStatus](#academicstatus)) |
@@ -70,8 +70,6 @@ Accounts for all three roles.
 | program | varchar(150) | Yes | | | Requesters: program or strand |
 | student_number | varchar(30) | Yes | | | Requesters: optional |
 | attended_from, attended_to | smallint unsigned | Yes | | | Requesters: years attended |
-| identity_status | varchar(20) | No | IX | `unsubmitted` | See [IdentityStatus](#identitystatus); set by uploads and the registrar's review only |
-| identity_verified_at | timestamp | Yes | | | When the registrar verified the requester's ID |
 | is_active | tinyint(1) | No | | 1 | 0 = deactivated by the registrar; cannot log in |
 | email_verified_at | timestamp | Yes | | | Required before a student can submit a request |
 | password | varchar(255) | Yes | | | Bcrypt hash; empty for accounts made through Google |
@@ -94,7 +92,7 @@ Offices on credential routes (spec 02): the 11 colleges (as the Dean), Registrar
 
 ## programs
 
-Programs and strands by college (spec 12), kept by the registrar and offered on My Profile. Never deleted, only deactivated, except when the 2026-11-06 list replaced the earlier one (REQ-12-12). `users.program` and `credential_requests.program` hold a copy of the name, so a later rename doesn't change past requests.
+Programs and strands by college (spec 12), kept by the registrar and offered on New Request and Settings → Profile. Never deleted, only deactivated, except when the 2026-11-06 list replaced the earlier one (REQ-12-12). `users.program` and `credential_requests.program` hold a copy of the name, so a later rename doesn't change past requests.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
@@ -167,6 +165,13 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 | program | varchar(150) | No | | | Snapshot: program or strand |
 | student_number | varchar(30) | Yes | | | Snapshot |
 | attended_from, attended_to | smallint unsigned | No | | | Snapshot: years attended |
+| requester_name | varchar(150) | No | | | Snapshot: "First Middle Last" with the full middle name, to compare with the ID (spec 15) |
+| contact_number | varchar(20) | Yes | | | Snapshot of the requester's contact number |
+| identity_document_id | bigint unsigned | Yes | FK → identity_documents | | The ID sent with this request (`RESTRICT`); a replacement after a rejection points here |
+| identity_status | varchar(20) | No | IX | pending | The request's identity check: `pending`, `verified`, `rejected` (see [ReviewStatus](#reviewstatus)) |
+| identity_reviewed_by | bigint unsigned | Yes | FK → users | | Registrar who verified or rejected the ID |
+| identity_reviewed_at | timestamp | Yes | | | |
+| identity_remarks | varchar(500) | Yes | | | Reason for a rejection, shown to the requester |
 | requester_mode | varchar(20) | No | | personal | `personal` or `representative` (see [RequesterMode](#requestermode)) |
 | requires_payment | tinyint(1) | No | | 0 | Snapshot of the credential type |
 | fee | decimal(10,2) | Yes | | | Snapshot of the credential's fee |
@@ -406,7 +411,9 @@ Laravel database notifications (the bell). `id` is a UUID.
 ## identity_documents
 
 Requesters' uploaded valid IDs (spec 01). Files live privately on the receipts disk under
-`identity-documents/{user_id}/`; only the owner and registrars can open them. Every upload is kept.
+`identity-documents/{user_id}/`; only the owner and registrars can open them. Every upload is kept;
+the newest is the requester's saved ID. The ID is reviewed on each request that uses it
+(`credential_requests.identity_status`, spec 15), not here.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
@@ -417,10 +424,6 @@ Requesters' uploaded valid IDs (spec 01). Files live privately on the receipts d
 | original_name | varchar(255) | No | | | File name as uploaded |
 | mime_type | varchar(100) | No | | | |
 | size | int unsigned | No | | | Bytes |
-| status | varchar(20) | No | IX | | `pending`, `verified`, `rejected` (see [ReviewStatus](#reviewstatus)) |
-| reviewed_by | bigint unsigned | Yes | FK → users | | Registrar who reviewed it |
-| reviewed_at | timestamp | Yes | | | |
-| remarks | varchar(500) | Yes | | | Reason for a rejection, shown to the requester |
 | created_at, updated_at | timestamp | Yes | | | |
 
 ## email_verification_codes
@@ -599,15 +602,6 @@ client's delay categories, *Proposed Workflow* IX-D).
 | `setup` | A credential type, route step, office, program, purpose or non-working day changed |
 | `identity` | A valid ID uploaded, verified or rejected |
 | `sign_in` | Signed in, signed out, or a failed sign-in |
-
-### IdentityStatus
-
-| Value | Meaning |
-|---|---|
-| `unsubmitted` | No valid ID uploaded yet |
-| `pending` | ID uploaded, awaiting the registrar |
-| `verified` | The registrar verified the ID |
-| `rejected` | The registrar rejected the latest ID; the requester may upload another |
 
 ### ReviewStatus
 
