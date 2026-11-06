@@ -31,7 +31,8 @@ keeps a per-request ledger. This spec adds one log of what everyone did across t
 ### Integrity
 - **REQ-14-07** THE SYSTEM SHALL keep the log append-only: entries can't be edited or deleted.
 - **REQ-14-08** THE SYSTEM SHALL NOT log passwords, remember-me tokens or Google account IDs, not
-  even as a changed field.
+  even as a changed field; a password change SHALL be logged as having happened, without either
+  password.
 
 ### Logs page
 - **REQ-14-09** THE SYSTEM SHALL show the log to registrars as "Logs" under Administration, newest

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityCategory;
+use App\Models\Concerns\LogsActivity;
 use Database\Factories\PurposeFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,7 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 class Purpose extends Model
 {
     /** @use HasFactory<PurposeFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $fillable = [
         'name',
@@ -48,5 +50,20 @@ class Purpose extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    public function activityCategory(): ActivityCategory
+    {
+        return ActivityCategory::Setup;
+    }
+
+    public function activityNoun(): string
+    {
+        return 'purpose';
+    }
+
+    public function activityLabel(): string
+    {
+        return $this->name;
     }
 }

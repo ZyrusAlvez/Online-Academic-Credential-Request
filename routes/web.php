@@ -38,6 +38,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('purposes', Registrar\Purposes\Index::class)->name('purposes');
         Route::get('users', Registrar\Users\Index::class)->name('users');
         Route::get('calendar', Registrar\Calendar\Index::class)->name('calendar');
+        Route::get('logs', Registrar\Logs\Index::class)->name('logs');
         Route::get('identities', Registrar\Identities\Index::class)->name('identities');
         Route::get('credential-types', Registrar\CredentialTypes\Index::class)->name('credential-types');
         Route::get('credential-types/{credentialType}/workflow', Registrar\CredentialTypes\Workflow::class)->name('credential-types.workflow');

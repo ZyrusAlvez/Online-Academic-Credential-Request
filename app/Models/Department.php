@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityCategory;
 use App\Enums\DepartmentType;
+use App\Models\Concerns\LogsActivity;
 use Database\Factories\DepartmentFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -17,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Department extends Model
 {
     /** @use HasFactory<DepartmentFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     /** Code of the Office of the Registrar; registrar accounts act on its steps. */
     public const REGISTRAR_CODE = 'REG';
@@ -89,5 +91,25 @@ class Department extends Model
             get: fn (string $value): string => $value,
             set: fn (string $value): string => strtoupper(trim($value)),
         );
+    }
+
+    public function activityCategory(): ActivityCategory
+    {
+        return ActivityCategory::Setup;
+    }
+
+    public function activityNoun(): string
+    {
+        return 'office';
+    }
+
+    public function activityLabel(): string
+    {
+        return $this->name;
+    }
+
+    protected function activityDepartmentId(): ?int
+    {
+        return $this->id;
     }
 }

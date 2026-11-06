@@ -22,6 +22,7 @@
             <flux:navlist.item icon="clipboard-document-list" :href="route('registrar.purposes')" :current="request()->routeIs('registrar.purposes')" wire:navigate>{{ __('Purposes') }}</flux:navlist.item>
             <flux:navlist.item icon="users" :href="route('registrar.users')" :current="request()->routeIs('registrar.users')" wire:navigate>{{ __('Accounts') }}</flux:navlist.item>
             <flux:navlist.item icon="calendar-days" :href="route('registrar.calendar')" :current="request()->routeIs('registrar.calendar')" wire:navigate>{{ __('Working Calendar') }}</flux:navlist.item>
+            <flux:navlist.item icon="queue-list" :href="route('registrar.logs')" :current="request()->routeIs('registrar.logs')" wire:navigate>{{ __('Logs') }}</flux:navlist.item>
         </flux:navlist.group>
     @else
         <flux:navlist.group :heading="auth()->user()->department?->code ?? __('Department')" class="grid">
