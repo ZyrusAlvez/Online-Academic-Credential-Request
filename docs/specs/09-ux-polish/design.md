@@ -55,12 +55,17 @@ confirmation is never skipped. `wire:confirm.prompt` is not used (it would still
   the URL, the name and the MIME type. It is marked `aria-haspopup="dialog"`.
 - `<x-file-viewer>`, in the app layout next to `<x-confirm-dialog>`, is a Flux modal (Esc,
   focus trap and focus return come from the native dialog):
-  - an image is fitted to the viewport and toggles to full size, scrolling, with a Zoom button or
-    a click on the image;
+  - an image is fitted to the viewport (no zoom: the user dropped it; "Open in new tab" shows
+    the full size);
   - a PDF loads in an `<iframe>`, which works because the file routes are same-origin and send no
     frame-blocking header;
+  - a spinner with "Loading…" covers the area until the image or iframe fires `load`. An image
+    that fails (`error`) shows "This file couldn't be loaded" with the Download button. An image
+    already in the cache counts as loaded at once (`$el.complete`), so the spinner never sticks;
   - any other type shows a note and the Download button.
   - The source is cleared on close so the file isn't kept in memory.
+- `<x-loading-image>` wraps an `<img>` shown on a page (the payment-proof thumbnail). It shows a
+  pulsing placeholder until the image loads, with the same `$el.complete` check (REQ-09-16).
 - Downloads: the three file controllers share `ServesPrivateFile::serveFile()`. With `?download=1`
   it answers `Content-Disposition: attachment`, otherwise `inline`, after the same policy check,
   with `no-store` caching and `nosniff`.

@@ -209,6 +209,15 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * The identity check is with the Registrar or passed, so My Profile is read-only until a
+     * rejection (REQ-01-30). A profile still missing an entry stays editable, so nobody is stuck.
+     */
+    public function hasLockedProfile(): bool
+    {
+        return ! $this->needsValidId() && $this->missingProfileItems() === [];
+    }
+
+    /**
      * No ID awaits or has passed verification, so My Profile asks for one (REQ-01-22).
      */
     public function needsValidId(): bool

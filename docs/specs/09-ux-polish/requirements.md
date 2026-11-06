@@ -48,12 +48,14 @@
 - **REQ-09-14** WHEN a user opens an uploaded file (a valid ID, a proof of payment, an SPA or a
   representative's ID) THE SYSTEM SHALL show it in a viewer on the same page instead of a new
   browser tab:
-  - an image fitted to the screen, which the user can zoom to full size, or a PDF shown inline;
-    any other file offers the download;
+  - an image fitted to the screen, or a PDF shown inline; any other file offers the download;
+  - a loading indicator until the image or PDF has loaded, and a message if it can't be loaded;
   - the file's name, a Download button, an "Open in new tab" link and a Close button.
 
   Escape and Close SHALL close the viewer. A Ctrl-, ⌘- or middle-click SHALL still open the file
   in a new tab, and without JavaScript the link SHALL open the file as before.
+- **REQ-09-16** WHILE an uploaded image shown on a page (the proof of payment on the registrar's
+  request page) is still loading THE SYSTEM SHALL show a loading placeholder in its place.
 - **REQ-09-15** THE SYSTEM SHALL serve an uploaded file as a download when asked, under the same
   access rules as viewing it (REQ-01-20) and without letting browsers cache it.
 

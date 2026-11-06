@@ -133,6 +133,8 @@ test('REQ-01-25 the first save needs the data privacy consent; later saves do no
     fillProfile()->assertHasNoErrors();
     $consentedAt = $this->student->fresh()->privacy_consented_at;
 
+    // The next save comes after a rejection, which opens the profile again (REQ-01-30).
+    $this->student->forceFill(['identity_status' => IdentityStatus::Rejected])->save();
     fillProfile(['form.privacy_consent' => false])->assertHasNoErrors();
     expect($this->student->fresh()->privacy_consented_at->equalTo($consentedAt))->toBeTrue();
 });
@@ -203,7 +205,10 @@ test('REQ-01-26 an entry that fails on saving returns to the form with the modal
 });
 
 test('REQ-01-27 a verified requester\'s name is locked, with a note, and a forged change is ignored', function () {
+    // A complete verified profile is read-only (REQ-01-30); the name lock matters on an older
+    // verified profile that is still missing an entry, here the contact number.
     $verified = User::factory()->withProfile($this->college)->create(['first_name' => 'Maria', 'middle_name' => 'Luz', 'last_name' => 'Reyes']);
+    $verified->forceFill(['contact_number' => null])->save();
 
     $this->actingAs($verified)->get(route('student.profile'))
         ->assertOk()
@@ -228,8 +233,8 @@ test('REQ-01-27 a verified requester\'s name is locked, with a note, and a forge
         ->last_name->toBe('Reyes');
 });
 
-test('REQ-01-27 a name stays editable until the identity is verified', function () {
-    foreach ([IdentityStatus::Unsubmitted, IdentityStatus::Pending, IdentityStatus::Rejected] as $status) {
+test('REQ-01-27 a name stays editable while no ID is on file and after a rejection', function () {
+    foreach ([IdentityStatus::Unsubmitted, IdentityStatus::Rejected] as $status) {
         $this->student->forceFill(['identity_status' => $status, 'first_name' => 'Old'])->save();
 
         expect($this->student->fresh()->hasLockedName())->toBeFalse();
@@ -422,9 +427,10 @@ test('REQ-01-17 while an ID is pending or verified the upload is neither offered
         ->assertDontSeeHtml('wire:model="form.id_file"')
         ->assertDontSeeHtml('wire:model="form.id_type"');
 
-    // A forged upload is refused by the form and by the action behind it.
+    // A forged upload is refused by the page (the whole profile is locked, REQ-01-30) and by
+    // the action behind it.
     reviewProfile(['form.id_type' => 'Passport', 'form.id_file' => UploadedFile::fake()->image('other.jpg')])
-        ->assertHasErrors(['form.id_file' => 'prohibited']);
+        ->assertForbidden();
 
     expect(fn () => app(SubmitIdentityDocument::class)->handle($this->student->fresh(), 'Passport', UploadedFile::fake()->image('other.jpg')))
         ->toThrow(ValidationException::class);
@@ -491,6 +497,8 @@ test('REQ-12-08 only an active program of the chosen college is accepted', funct
 
 test('REQ-12-09 a saved program no longer on the list stays on the profile until the next save', function () {
     $student = User::factory()->withProfile($this->college)->create(['program' => 'Old Program']);
+    // Saving again needs an editable profile, which a rejection gives (REQ-01-30).
+    $student->forceFill(['identity_status' => IdentityStatus::Rejected])->save();
 
     expect($student->fresh()->missingProfileItems())->not->toContain('Academic information');
 
@@ -646,4 +654,81 @@ test('REQ-01-25 My Profile shows no step label; screen readers still hear which 
         ->assertDontSee('Step 2 of 2')
         ->assertSee('Review and confirm your details')
         ->assertSeeHtml('<p id="profile-step" tabindex="-1" class="sr-only">');
+});
+
+test('REQ-01-30 once submitted the whole profile is read-only while the identity check is pending', function () {
+    uploadId();
+    $student = $this->student->fresh();
+    expect($student->hasLockedProfile())->toBeTrue();
+
+    $this->actingAs($student)->get(route('student.profile'))
+        ->assertOk()
+        ->assertSeeHtml('data-profile-locked')
+        ->assertSee('Your identity check is with the Office of the Registrar')
+        ->assertSee('If the Registrar rejects them, you can correct your details and upload another ID.')
+        ->assertSeeInOrder(['Juan', 'Dela Cruz', '09171234567', 'Graduate', 'College of Computer Studies', 'BS Computer Science', '2019 to 2023', 'Passport', 'You agreed to the processing of your personal data'])
+        ->assertDontSeeHtml('wire:submit="review"')
+        ->assertDontSeeHtml('wire:model="form.first_name"')
+        ->assertDontSeeHtml('wire:model="form.contact_number"')
+        ->assertDontSeeHtml('wire:model="form.college_id"')
+        ->assertDontSee('Confirm and save');
+});
+
+test('REQ-01-30 a verified profile is read-only and says the Registrar corrects it', function () {
+    $verified = User::factory()->withProfile($this->college)->create();
+
+    $this->actingAs($verified)->get(route('student.profile'))
+        ->assertOk()
+        ->assertSeeHtml('data-profile-locked')
+        ->assertSee('Your identity is verified')
+        ->assertSee('To correct something, contact the Office of the Registrar.')
+        ->assertDontSeeHtml('wire:submit="review"');
+});
+
+test('REQ-01-30 a change to a locked profile is refused and nothing is saved', function (IdentityStatus $status) {
+    $user = User::factory()->withProfile($this->college)->create(['contact_number' => '09170000000']);
+    $user->forceFill(['identity_status' => $status])->save();
+
+    Livewire::actingAs($user)->test(Profile::class)
+        ->set('form.contact_number', '09179999999')
+        ->call('review')
+        ->assertForbidden();
+
+    expect($user->fresh()->contact_number)->toBe('09170000000');
+})->with([IdentityStatus::Pending, IdentityStatus::Verified]);
+
+test('REQ-01-30 a profile that locks while its summary is open is not saved', function () {
+    // The summary was opened in one tab; meanwhile the profile was sent for checking in another.
+    $component = reviewProfile(['form.contact_number' => '09179999999', 'form.privacy_consent' => true])->assertSet('reviewing', true);
+    uploadId();
+
+    $component->call('save')->assertForbidden();
+    expect($this->student->fresh()->contact_number)->toBe('09171234567')
+        ->and($this->student->identityDocuments()->count())->toBe(1);
+});
+
+test('REQ-01-30 a rejection opens the whole profile again', function () {
+    $document = uploadId();
+    app(ReviewIdentityDocument::class)->handle($document, $this->registrar, verified: false, remarks: 'The photo is blurred.');
+
+    $this->actingAs($this->student->fresh())->get(route('student.profile'))
+        ->assertOk()
+        ->assertDontSeeHtml('data-profile-locked')
+        ->assertSeeHtml('wire:submit="review"')
+        ->assertSeeHtml('wire:model="form.first_name"')
+        ->assertSeeHtml('wire:model="form.id_file"')
+        ->assertSee('The photo is blurred.');
+
+    fillProfile(['form.contact_number' => '09998887777'], $this->student->fresh())->assertHasNoErrors();
+    expect($this->student->fresh())
+        ->contact_number->toBe('09998887777')
+        ->identity_status->toBe(IdentityStatus::Pending);
+});
+
+test('REQ-01-30 a profile still missing an entry stays editable, so nobody is locked out', function () {
+    $user = User::factory()->withProfile($this->college)->create();
+    $user->forceFill(['contact_number' => null])->save();
+
+    expect($user->fresh()->hasLockedProfile())->toBeFalse();
+    $this->actingAs($user)->get(route('student.profile'))->assertSeeHtml('wire:submit="review"');
 });

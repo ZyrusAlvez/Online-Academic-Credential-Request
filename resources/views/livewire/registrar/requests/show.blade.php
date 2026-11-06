@@ -106,7 +106,7 @@
 
                     @if ($pendingProof && $pendingProof->isImage())
                         <x-file-link :href="route('payment-proofs.show', $pendingProof)" :name="__('Proof of payment: :file', ['file' => $pendingProof->original_name])" :type="$pendingProof->mime_type" class="block w-fit cursor-zoom-in">
-                            <img src="{{ route('payment-proofs.show', $pendingProof) }}" alt="{{ __('Proof of payment uploaded by the requester (open larger)') }}" class="max-h-96 w-auto rounded-lg border border-secondary/50" loading="lazy">
+                            <x-loading-image :src="route('payment-proofs.show', $pendingProof)" :alt="__('Proof of payment uploaded by the requester (open larger)')" class="max-h-96 w-auto rounded-lg border border-secondary/50" />
                         </x-file-link>
                     @endif
 

@@ -121,6 +121,17 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 - **REQ-01-29** WHEN a requester saves from the summary THE SYSTEM SHALL save the profile, the
   consent and a new ID together: IF the ID cannot be stored THEN THE SYSTEM SHALL save nothing and
   return to the form with the error.
+- **REQ-01-30** WHILE a requester's identity check is pending or verified THE SYSTEM SHALL show the
+  whole of My Profile read-only:
+  - personal and academic information, the valid ID and the consent;
+  - a note saying why it is locked, and that the Office of the Registrar corrects a verified
+    profile;
+  - any change to it SHALL be refused.
+
+  WHEN the registrar rejects the ID THE SYSTEM SHALL make the whole profile editable again, so the
+  requester can correct it and send it for checking with a new ID. A profile still missing an
+  entry (an account from before these rules) SHALL stay editable until it is complete, so a
+  requester is never locked out of requesting.
 
 ### Seed
 - **REQ-01-15** THE SYSTEM SHALL provide a database seeder that creates an initial registrar

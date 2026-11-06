@@ -45,3 +45,5 @@
 - [x] No ID upload while one is pending or verified, only after a rejection (REQ-01-17)
 - [x] My Profile: drop the visible "Step N of 2" label, keep it for screen readers
 - [x] Pest tests for the changed REQ-01-17
+- [x] Whole My Profile read-only while the identity check is pending or verified (REQ-01-30)
+- [x] Pest tests for REQ-01-30
