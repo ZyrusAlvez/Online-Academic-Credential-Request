@@ -91,7 +91,7 @@
 
 ### Page width
 - **REQ-09-18** THE SYSTEM SHALL fit every signed-in page to the screen, from a 320px phone to a
-  wide monitor. On a wide screen the page content stops at 80rem and is centred beside the sidebar
+  wide monitor. On a wide screen the page content stops at 96rem (about a 1920px monitor) and is centred beside the sidebar
   (requester pages keep their narrower column, REQ-09-12). On a small screen nothing makes the
   page scroll sideways: a table scrolls inside its own box with its less-needed columns hidden, and
   long emails and payment references wrap.

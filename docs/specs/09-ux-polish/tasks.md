@@ -24,6 +24,6 @@
 - [x] Pest tests for the changed REQ-09-14 and REQ-09-16
 - [x] `TrimsInput` leaves `search` as typed; each search query trims it (REQ-09-17)
 - [x] Pest tests for REQ-09-17
-- [x] App layout: centred 80rem cap (`max-w-7xl`) around every signed-in page (REQ-09-18)
+- [x] App layout: centred 96rem cap (`max-w-screen-2xl`) around every signed-in page (REQ-09-18)
 - [x] Long emails and payment references wrap; the office-visits table hides its less-needed columns on phones; detail grids use `grid-cols-1` so tables scroll inside their box (REQ-09-18)
 - [x] Pest tests for REQ-09-18
