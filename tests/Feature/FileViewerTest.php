@@ -41,16 +41,42 @@ function storedId(User $owner): IdentityDocument
     ]);
 }
 
-test('REQ-09-14 the app layout carries the file viewer, with zoom, download, new tab and close', function () {
+test('REQ-09-14 the app layout carries the file viewer, with download, new tab and close but no zoom', function () {
     $this->actingAs($this->owner)->get(route('student.profile'))
         ->assertOk()
         ->assertSeeHtml('data-file-viewer')
         ->assertSeeHtml('x-on:open-file.window="open($event.detail)"')
-        ->assertSee('Zoom to full size')
+        ->assertDontSee('Zoom to full size')
+        ->assertDontSeeHtml('zoomed')
         ->assertSee('Download')
         ->assertSee('Open in new tab')
         ->assertSee('Close')
         ->assertSeeHtml("+ 'download=1'");
+});
+
+test('REQ-09-14 the viewer shows a loading indicator until the file loads, and a message if it fails', function () {
+    $html = $this->actingAs($this->owner)->get(route('student.profile'))->assertOk()->getContent();
+
+    expect($html)
+        ->toContain('data-file-loading')
+        ->toContain('Loading…')
+        ->toContain('x-show="loading"')
+        ->toContain('this.loading = this.isImage || this.isPdf;')
+        ->toContain('x-on:load="loading = false"')
+        ->toContain('x-on:error="loading = false; failed = true"')
+        ->toContain('if ($el.complete && $el.naturalWidth) loading = false')
+        ->toContain('This file couldn&#039;t be loaded.');
+});
+
+test('REQ-09-16 an image on a page shows a placeholder until it loads', function () {
+    $request = requestWithFiles();
+    $proof = $request->paymentProofs()->sole();
+
+    $html = Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])->html();
+
+    expect($html)->toMatch('/data-loading-image.*?x-show="! loaded".*?animate-pulse.*?Loading image….*?<img src="'.preg_quote(e(route('payment-proofs.show', $proof)), '/').'"/s')
+        ->and($html)->toContain('x-init="if ($el.complete) loaded = true"')
+        ->and($html)->toContain('x-on:load="loaded = true"');
 });
 
 test('REQ-09-14 every uploaded file opens in the viewer and stays a real link to the file', function () {
@@ -81,7 +107,7 @@ test('REQ-09-14 every uploaded file opens in the viewer and stays a real link to
     expect($profile)->toContain('if ($event.ctrlKey || $event.metaKey || $event.shiftKey || $event.altKey || $event.button !== 0) return;');
 
     // The proof's thumbnail on the request page opens the viewer too.
-    expect($requestPage)->toMatch('/data-file-link[^>]*>\s*<img src="'.preg_quote(e(route('payment-proofs.show', $proof)), '/').'"/');
+    expect($requestPage)->toMatch('/data-file-link[^>]*>\s*<span[^>]*data-loading-image.*?<img src="'.preg_quote(e(route('payment-proofs.show', $proof)), '/').'"/s');
 });
 
 test('REQ-09-15 a file is served inline for the viewer, or as a download when asked', function () {

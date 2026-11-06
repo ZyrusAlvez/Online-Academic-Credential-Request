@@ -19,6 +19,6 @@
 - [x] `<x-file-link>` and `<x-file-viewer>` for every uploaded file (REQ-09-14)
 - [x] Download through `?download=1` on the three file routes (REQ-09-15)
 - [x] Pest tests for REQ-09-14, 15
-- [ ] Viewer: drop the zoom; loading indicator and load-error message (REQ-09-14)
-- [ ] `<x-loading-image>` placeholder for the proof thumbnail (REQ-09-16)
-- [ ] Pest tests for the changed REQ-09-14 and REQ-09-16
+- [x] Viewer: drop the zoom; loading indicator and load-error message (REQ-09-14)
+- [x] `<x-loading-image>` placeholder for the proof thumbnail (REQ-09-16)
+- [x] Pest tests for the changed REQ-09-14 and REQ-09-16
