@@ -185,6 +185,27 @@ test('REQ-15-05 the consent is required on the summary and recorded once given',
         ->and(CredentialRequest::count())->toBe(1);
 });
 
+test('REQ-15-05 every request asks for the consent again with an unticked checkbox, and Submit waits for it', function () {
+    $owner = requester($this->org->ccs);   // consented on an earlier save
+    $consentedAt = $owner->privacy_consented_at;
+
+    $page = reviewRequest($owner, ['profile.privacy_consent' => false])
+        ->assertSet('reviewing', true)
+        ->assertSee('I agree to the processing of my personal data')
+        ->assertSee('Tick the box to continue.')
+        ->assertDontSee('You agreed to the processing of your personal data');
+
+    expect($page->html())->toMatch('/<button[^>]*x-bind:disabled="! \$wire\.profile\.privacy_consent"[^>]*disabled[^>]*data-submit-request/');
+
+    // A forged click is refused by the server too.
+    $page->call('submit')->assertHasErrors(['profile.privacy_consent' => 'accepted']);
+    expect(CredentialRequest::count())->toBe(0);
+
+    $page->set('profile.privacy_consent', true)->call('submit')->assertHasNoErrors();
+    expect(CredentialRequest::count())->toBe(1)
+        ->and($owner->fresh()->privacy_consented_at->equalTo($consentedAt))->toBeTrue();
+});
+
 test('REQ-15-05 going back keeps every entry, and submitting from the form only reviews', function () {
     $component = reviewRequest($this->newcomer)
         ->call('back')
@@ -238,6 +259,7 @@ test('REQ-15-06 the next request starts filled in from what was submitted', func
         ->set('form.purpose', 'Employment')
         ->call('review')
         ->assertHasNoErrors()
+        ->set('profile.privacy_consent', true)   // ticked again on every summary (REQ-15-05)
         ->call('submit')
         ->assertHasNoErrors();
 

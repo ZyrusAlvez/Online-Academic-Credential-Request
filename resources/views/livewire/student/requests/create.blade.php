@@ -17,20 +17,25 @@
         <section aria-labelledby="what-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <h2 id="what-heading" class="text-lg font-semibold text-primary">{{ __('1. What do you need?') }}</h2>
 
-            <flux:select wire:model.live="form.credential_type_id" :label="__('Credential')" :description="__('Choose one to see its fee, requirements and processing time.')" required>
+            <flux:select wire:model="form.credential_type_id" :label="__('Credential')" :description="__('Choose one to see its fee, requirements and processing time.')" required>
                 <flux:select.option value="">{{ __('Choose a credential…') }}</flux:select.option>
                 @foreach ($types as $type)
                     <flux:select.option :value="$type->id">{{ $type->name }}</flux:select.option>
                 @endforeach
             </flux:select>
 
-            @if ($selectedType)
+            {{-- Every credential's details are on the page and the chosen one is shown in the browser at
+                 once, without a trip to the server (REQ-15-15). --}}
+            <div aria-live="polite">
+            @foreach ($types as $type)
                 {{-- The chosen credential's details (REQ-04-02), laid out as a card (REQ-09-11). --}}
-                <div class="overflow-hidden rounded-xl border border-secondary/50 bg-white text-sm" aria-live="polite">
+                <div wire:key="credential-card-{{ $type->id }}" data-credential-card="{{ $type->id }}"
+                    x-show="String($wire.form.credential_type_id ?? '') === '{{ $type->id }}'" @if ((int) $form->credential_type_id !== $type->id) x-cloak style="display: none" @endif
+                    class="overflow-hidden rounded-xl border border-secondary/50 bg-white text-sm">
                     <div class="space-y-1 border-b border-secondary/40 bg-primary-50 px-4 py-3 sm:px-5">
-                        <h3 class="text-base font-semibold text-primary">{{ $selectedType->name }}</h3>
-                        @if ($selectedType->description)
-                            <p class="text-ink">{{ $selectedType->description }}</p>
+                        <h3 class="text-base font-semibold text-primary">{{ $type->name }}</h3>
+                        @if ($type->description)
+                            <p class="text-ink">{{ $type->description }}</p>
                         @endif
                     </div>
 
@@ -40,10 +45,10 @@
                                 <flux:icon.banknotes class="size-5 shrink-0 text-primary" />
                                 <div>
                                     <dt class="text-xs font-medium uppercase tracking-wide text-zinc-600">{{ __('Fee') }}</dt>
-                                    @if ($selectedType->requires_payment && $selectedType->fee !== null)
-                                        <dd class="mt-0.5 font-semibold text-ink">₱{{ number_format((float) $selectedType->fee, 2) }}</dd>
+                                    @if ($type->requires_payment && $type->fee !== null)
+                                        <dd class="mt-0.5 font-semibold text-ink">₱{{ number_format((float) $type->fee, 2) }}</dd>
                                     @else
-                                        <dd class="mt-0.5 font-semibold text-ink">{{ $selectedType->requires_payment ? __('Requires payment') : __('Free') }}</dd>
+                                        <dd class="mt-0.5 font-semibold text-ink">{{ $type->requires_payment ? __('Requires payment') : __('Free') }}</dd>
                                     @endif
                                 </div>
                             </div>
@@ -51,7 +56,7 @@
                                 <flux:icon.clock class="size-5 shrink-0 text-primary" />
                                 <div>
                                     <dt class="text-xs font-medium uppercase tracking-wide text-zinc-600">{{ __('Processing period') }}</dt>
-                                    <dd class="mt-0.5 font-semibold text-ink">{{ trans_choice(':count working day|:count working days', $selectedType->processing_days) }}</dd>
+                                    <dd class="mt-0.5 font-semibold text-ink">{{ trans_choice(':count working day|:count working days', $type->processing_days) }}</dd>
                                     <dd class="text-zinc-600">{{ __('from acceptance') }}</dd>
                                 </div>
                             </div>
@@ -60,7 +65,7 @@
                         <div>
                             <h4 class="font-semibold text-ink">{{ __('Offices that process it') }}</h4>
                             <ol role="list" class="mt-3">
-                                @foreach ($route as $stop)
+                                @foreach ($routes[$type->id] as $stop)
                                     <li class="relative flex gap-3 pb-4 last:pb-0">
                                         @unless ($loop->last)
                                             <span class="absolute top-7 bottom-1 left-3 w-px -translate-x-1/2 bg-secondary" aria-hidden="true"></span>
@@ -72,11 +77,11 @@
                             </ol>
                         </div>
 
-                        @if ($selectedType->requirements)
+                        @if ($type->requirements)
                             <div>
                                 <h4 class="font-semibold text-ink">{{ __('Documentary requirements') }}</h4>
                                 <ul role="list" class="mt-2 space-y-2">
-                                    @foreach ($selectedType->requirements as $requirement)
+                                    @foreach ($type->requirements as $requirement)
                                         <li class="flex items-start gap-2 text-ink">
                                             <flux:icon.check-circle variant="mini" class="mt-0.5 shrink-0 text-primary" />
                                             <span>{{ $requirement }}</span>
@@ -86,15 +91,16 @@
                             </div>
                         @endif
 
-                        @if ($selectedType->special_conditions)
+                        @if ($type->special_conditions)
                             <div class="flex items-start gap-2 rounded-lg bg-primary-50 p-3 text-ink">
                                 <flux:icon.information-circle variant="mini" class="mt-0.5 shrink-0 text-primary" />
-                                <p><span class="font-semibold">{{ __('Special conditions:') }}</span> {{ $selectedType->special_conditions }}</p>
+                                <p><span class="font-semibold">{{ __('Special conditions:') }}</span> {{ $type->special_conditions }}</p>
                             </div>
                         @endif
                     </div>
                 </div>
-            @endif
+            @endforeach
+            </div>
 
             <div class="space-y-3">
                 <flux:select wire:model.live="form.purpose" :label="__('Purpose')" required>
@@ -109,11 +115,22 @@
                 @endif
             </div>
 
-            @if ($selectedType?->requires_receiving_institution)
-                <flux:input wire:model="form.receiving_institution" :label="__('Receiving school')" :description="__('The complete name of the school you are transferring to. It appears on the credential.')" required />
-            @else
-                <flux:input wire:model="form.receiving_institution" :label="__('Receiving school, employer or agency')" :description="__('If applicable: the complete name of the institution the credential is for.')" badge="Optional" />
-            @endif
+            {{-- One field whose wording follows the chosen credential in the browser (REQ-15-15). --}}
+            @php($transferIds = $types->where('requires_receiving_institution', true)->pluck('id')->map(fn ($id) => (string) $id)->values())
+            <div data-receiving-school x-data="{ get transfer() { return @js($transferIds).includes(String($wire.form.credential_type_id ?? '')) } }">
+                <flux:field>
+                    <flux:label>
+                        <span x-text="transfer ? @js(__('Receiving school')) : @js(__('Receiving school, employer or agency'))">{{ $selectedType?->requires_receiving_institution ? __('Receiving school') : __('Receiving school, employer or agency') }}</span>
+                        {{-- Flux's own "Optional" badge, shown only when the field is optional. --}}
+                        <span x-show="! transfer" @if ($selectedType?->requires_receiving_institution) style="display: none" @endif class="ms-1.5 -my-1 rounded-[4px] bg-zinc-800/5 px-1.5 py-1 text-xs text-zinc-800/70" aria-hidden="true">{{ __('Optional') }}</span>
+                    </flux:label>
+                    <flux:description>
+                        <span x-text="transfer ? @js(__('The complete name of the school you are transferring to. It appears on the credential.')) : @js(__('If applicable: the complete name of the institution the credential is for.'))">{{ $selectedType?->requires_receiving_institution ? __('The complete name of the school you are transferring to. It appears on the credential.') : __('If applicable: the complete name of the institution the credential is for.') }}</span>
+                    </flux:description>
+                    <flux:input wire:model="form.receiving_institution" x-bind:required="transfer" />
+                    <flux:error name="form.receiving_institution" />
+                </flux:field>
+            </div>
         </section>
 
         {{-- Sections 2 to 4, filled in from the saved profile (REQ-15-03, 04). --}}
@@ -184,11 +201,11 @@
                 </dl>
             </section>
 
-            @include('partials.requester-profile-summary', ['prefix' => 'profile', 'fields' => $profile, 'user' => $owner])
+            @include('partials.requester-profile-summary', ['prefix' => 'profile', 'fields' => $profile])
 
             <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <flux:button wire:click="back" wire:loading.attr="disabled" wire:target="back,submit">{{ __('Back to edit') }}</flux:button>
-                <flux:button wire:click="submit" variant="primary" icon-trailing="paper-airplane" wire:loading.attr="disabled" wire:target="back,submit">{{ __('Submit request') }}</flux:button>
+                <flux:button wire:click="submit" variant="primary" icon-trailing="paper-airplane" x-bind:disabled="! $wire.profile.privacy_consent" :disabled="! $profile->privacy_consent" wire:loading.attr="disabled" wire:target="back,submit" data-submit-request>{{ __('Submit request') }}</flux:button>
             </div>
         </div>
     @endif

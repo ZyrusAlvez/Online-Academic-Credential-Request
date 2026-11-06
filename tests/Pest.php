@@ -11,6 +11,7 @@ use App\Services\RequestWorkflow;
 use Database\Seeders\PurposeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)
@@ -60,6 +61,26 @@ function organisation(): object
 function requester(Department $college): User
 {
     return User::factory()->withProfile($college)->create();
+}
+
+/**
+ * New Request's details card of one credential, from its opening tag to the next card (REQ-15-15).
+ */
+function credentialCard(string $html, CredentialType $type): string
+{
+    preg_match('/<div[^>]*data-credential-card="'.$type->id.'".*?(?=<div[^>]*data-credential-card=|data-receiving-school)/s', $html, $card);
+
+    return $card[0] ?? '';
+}
+
+/**
+ * Whether that card starts visible (the browser then follows the dropdown, REQ-15-15).
+ */
+function credentialCardShown(string $html, CredentialType $type): bool
+{
+    $card = credentialCard($html, $type);
+
+    return $card !== '' && ! str_contains(Str::before($card, '>'), 'display: none');
 }
 
 function workflow(): RequestWorkflow

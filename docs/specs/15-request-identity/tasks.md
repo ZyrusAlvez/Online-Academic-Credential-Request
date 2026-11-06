@@ -10,3 +10,5 @@
 - [x] Requester uploads another ID after a rejection (REQ-15-11)
 - [x] Demo data, factories; data dictionary
 - [x] Pest tests for every REQ-15 criterion
+- [x] Credential details shown at once in the browser (REQ-15-15)
+- [x] The consent is an unticked checkbox on every summary, required to submit or save (REQ-15-05, 07)

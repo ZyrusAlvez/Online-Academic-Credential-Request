@@ -242,6 +242,7 @@ test('REQ-09-11 the chosen credential shows its offices as a numbered list endin
         ->assertSee(['₱530.00', '7 working days', 'Offices that process it'])
         ->html();
 
+    $html = credentialCard($html, $org->tor);   // every credential's card is on the page (REQ-15-15)
     $route = Str::between($html, '<ol role="list"', '</ol>');
     $stops = collect(explode('</li>', $route))->filter(fn (string $item) => str_contains($item, '<li'))
         ->map(fn (string $item) => trim(preg_replace('/\s+/', ' ', strip_tags(Str::after($item, '<li')))))

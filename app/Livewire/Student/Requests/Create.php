@@ -165,12 +165,14 @@ class Create extends Component
         $types = CredentialType::requestable()->with('steps.department')->orderBy('name')->get();
         $selectedType = $types->firstWhere('id', (int) $this->form->credential_type_id);
         $college = filled($this->profile->college_id) ? Department::find((int) $this->profile->college_id) : null;
+        $registrarOffice = Department::where('code', Department::REGISTRAR_CODE)->value('name') ?? __('Office of the Registrar');
 
         return view('livewire.student.requests.create', [
             'owner' => $owner,
             'types' => $types,
             'selectedType' => $selectedType,
-            'route' => $selectedType ? $this->route($selectedType, $college) : [],
+            // Every credential's route is on the page so the chosen one shows at once (REQ-15-15).
+            'routes' => $types->mapWithKeys(fn (CredentialType $type): array => [$type->id => $this->route($type, $college, $registrarOffice)])->all(),
             'purposes' => Purpose::active()->orderBy('name')->pluck('name'),
             'statuses' => AcademicStatus::cases(),
             'colleges' => Department::active()->colleges()->orderBy('name')->get(['id', 'name']),
@@ -254,7 +256,7 @@ class Create extends Component
      *
      * @return list<array{office: string, task: string}>
      */
-    private function route(CredentialType $type, ?Department $college): array
+    private function route(CredentialType $type, ?Department $college, string $registrarOffice): array
     {
         $route = $type->steps->map(fn (WorkflowStep $step): array => [
             'office' => $step->is_student_college
@@ -264,7 +266,7 @@ class Create extends Component
         ])->values()->all();
 
         $route[] = [
-            'office' => Department::where('code', Department::REGISTRAR_CODE)->value('name') ?? __('Office of the Registrar'),
+            'office' => $registrarOffice,
             'task' => RouteTask::FinalCheck->label(),
         ];
 
