@@ -86,9 +86,11 @@ class Index extends Component
 
     public function render(): View
     {
+        $term = trim($this->search);
+
         $programs = Program::query()
             ->with('college:id,name,code')
-            ->when($this->search !== '', fn ($query) => $query->where('programs.name', 'like', "%{$this->search}%"))
+            ->when($term !== '', fn ($query) => $query->where('programs.name', 'like', "%{$term}%"))
             ->when($this->college !== '', fn ($query) => $query->where('programs.department_id', (int) $this->college))
             ->when($this->status !== '', fn ($query) => $query->where('programs.is_active', $this->status === 'active'))
             ->join('departments', 'departments.id', '=', 'programs.department_id')

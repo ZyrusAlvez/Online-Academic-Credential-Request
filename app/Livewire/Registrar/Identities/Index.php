@@ -136,14 +136,15 @@ class Index extends Component
     public function render(): View
     {
         $status = IdentityStatus::tryFrom($this->status);
+        $term = trim($this->search);
 
         $requesters = User::query()
             ->where('role', Role::Student)
             ->when($status, fn ($query, IdentityStatus $status) => $query->where('identity_status', $status))
-            ->when($this->search !== '', fn ($query) => $query->where(fn ($query) => $query
-                ->where('email', 'like', "%{$this->search}%")
-                ->orWhere('student_number', 'like', "%{$this->search}%")
-                ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$this->search}%"])))
+            ->when($term !== '', fn ($query) => $query->where(fn ($query) => $query
+                ->where('email', 'like', "%{$term}%")
+                ->orWhere('student_number', 'like', "%{$term}%")
+                ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$term}%"])))
             ->with(['latestIdentityDocument', 'college'])
             // Oldest upload first, so nobody waits longer than necessary.
             ->orderBy(IdentityDocument::select('created_at')->whereColumn('user_id', 'users.id')->latest('id')->limit(1))

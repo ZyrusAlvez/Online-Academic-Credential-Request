@@ -82,8 +82,10 @@ class Index extends Component
 
     public function render(): View
     {
+        $term = trim($this->search);
+
         $purposes = Purpose::query()
-            ->when($this->search !== '', fn ($query) => $query->where('name', 'like', "%{$this->search}%"))
+            ->when($term !== '', fn ($query) => $query->where('name', 'like', "%{$term}%"))
             ->when($this->status !== '', fn ($query) => $query->where('is_active', $this->status === 'active'))
             ->orderBy('name')
             ->paginate(20);
