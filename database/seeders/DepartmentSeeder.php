@@ -12,7 +12,26 @@ use Illuminate\Database\Seeder;
  */
 class DepartmentSeeder extends Seeder
 {
-    private const DEAN = "Dean's review and signature";
+    public const DEAN = "Dean's review and signature";
+
+    /**
+     * The 11 colleges, code => name (list of 2026-11-06, REQ-02-01, REQ-02-14).
+     *
+     * @var array<string, string>
+     */
+    public const COLLEGES = [
+        'CAS' => 'College of Arts and Sciences',
+        'SOA' => 'School of Aviation',
+        'BED' => 'Basic Education Department',
+        'CBAA' => 'College of Business Administration and Accountancy',
+        'CCS' => 'College of Computer Studies',
+        'CCJE' => 'College of Criminal Justice Education',
+        'CTE' => 'College of Teacher Education',
+        'CEA' => 'College of Engineering and Architecture',
+        'GS' => 'Graduate School',
+        'CNHTM' => 'College of Nutrition, Hospitality and Tourism Management',
+        'CME' => 'College of Maritime Education',
+    ];
 
     /** Offices replaced by the evaluator's clearance check (REQ-02-13); kept for history. */
     public const RETIRED = ['LIB', 'FIN', 'SAS'];
@@ -20,18 +39,7 @@ class DepartmentSeeder extends Seeder
     public function run(): void
     {
         $departments = [
-            ['CAS', 'College of Arts and Sciences', DepartmentType::College, self::DEAN],
-            ['CBA', 'College of Business and Accountancy', DepartmentType::College, self::DEAN],
-            ['CCS', 'College of Computer Studies', DepartmentType::College, self::DEAN],
-            ['CRIM', 'College of Criminology', DepartmentType::College, self::DEAN],
-            ['COED', 'College of Education', DepartmentType::College, self::DEAN],
-            ['COE', 'College of Engineering', DepartmentType::College, self::DEAN],
-            ['CIHM', 'College of International Hospitality Management', DepartmentType::College, self::DEAN],
-            ['CME', 'College of Maritime Education', DepartmentType::College, self::DEAN],
-            ['LAW', 'College of Law', DepartmentType::College, self::DEAN],
-            ['GS', 'Graduate School', DepartmentType::College, self::DEAN],
-            ['CAA', 'Architecture and Aviation', DepartmentType::College, self::DEAN],
-            ['BED', 'Basic Education Department', DepartmentType::College, self::DEAN],
+            ...array_map(fn (string $code, string $name) => [$code, $name, DepartmentType::College, self::DEAN], array_keys(self::COLLEGES), self::COLLEGES),
             [Department::REGISTRAR_CODE, 'Office of the Registrar', DepartmentType::Office, 'Verifies records, prepares the credential and does the final quality check'],
             ['VPF', 'Office of the VP for Finance', DepartmentType::Office, 'Documentary stamp (no signature)'],
             ['CHAN', 'Office of the Chancellor', DepartmentType::Office, 'Review and signature'],

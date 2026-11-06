@@ -53,13 +53,13 @@ class DemoSeeder extends Seeder
         $this->registrar = User::where('role', Role::Registrar)->orderBy('id')->firstOrFail();
 
         $departments = Department::active()->get()->keyBy('code');
-        $this->staff = $departments->map(fn (Department $department) => $this->staffAccount($department));
+        $this->staff = $departments->map(fn (Department $department) => self::staffAccount($department));
 
         $requesters = collect([
-            ['student@example.com', 'Juan', 'Santos', 'Dela Cruz', 'CCS', 'BS Computer Science, Specialization in Data Science'],
-            ['maria@example.com', 'Maria', null, 'Reyes', 'CBA', 'BS Accountancy'],
-            ['jose@example.com', 'Jose', 'Lopez', 'Garcia', 'COE', 'BS Civil Engineering'],
-            ['ana@example.com', 'Ana', null, 'Mendoza', 'COED', 'Bachelor of Secondary Education'],
+            ['student@example.com', 'Juan', 'Santos', 'Dela Cruz', 'CCS', 'Bachelor of Science in Computer Science, Specialization in Data Science'],
+            ['maria@example.com', 'Maria', null, 'Reyes', 'CBAA', 'Bachelor of Science in Accountancy'],
+            ['jose@example.com', 'Jose', 'Lopez', 'Garcia', 'CEA', 'Bachelor of Science in Civil Engineering'],
+            ['ana@example.com', 'Ana', null, 'Mendoza', 'CTE', 'Bachelor of Secondary Education'],
         ])->map(fn (array $r) => $this->requester($departments[$r[4]], ...array_slice($r, 0, 4), program: $r[5]));
 
         // Identities: three verified, Ana's ID still waiting for the registrar.
@@ -123,10 +123,10 @@ class DemoSeeder extends Seeder
             // Accepted for processing, not yet received by the Registrar.
             $this->at(0, fn () => $this->accepted($jose, $type('Certification of Graduation'), 'Employment'));
 
-            // In progress: received by the Dean of CBA.
+            // In progress: received by the Dean of CBAA.
             $this->at(5, function () use ($maria, $tor): void {
                 $request = $this->accepted($maria, $tor, 'Further studies');
-                $this->advanceUntil($request, 'CBA', receive: true);
+                $this->advanceUntil($request, 'CBAA', receive: true);
             });
 
             // Returned for correction: VP Finance sent it back to the Registrar.
@@ -202,7 +202,11 @@ class DemoSeeder extends Seeder
         });
     }
 
-    private function staffAccount(Department $department): User
+    /**
+     * The office's demo account, `<code>@example.com` with the demo password. Also used by the
+     * migration that replaced the college list (REQ-02-14).
+     */
+    public static function staffAccount(Department $department): User
     {
         $user = User::firstOrNew(['email' => strtolower($department->code).'@example.com']);
         $user->fill(['first_name' => $department->code, 'middle_name' => null, 'last_name' => 'Staff', 'password' => 'password']);

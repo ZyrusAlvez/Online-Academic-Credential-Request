@@ -14,9 +14,20 @@ Source: *Proposed Workflow*, sections VI–VII (offices and signatories).
 ## Acceptance criteria
 
 ### Departments
-- **REQ-02-01** THE SYSTEM SHALL seed the 16 offices from the overview: the 12 colleges (each
+- **REQ-02-01** THE SYSTEM SHALL seed the 15 offices from the overview: the 11 colleges (each
   acting as the Dean) and the Office of the Registrar, VP Finance, Chancellor and President, with
   a name, short code, type and role description; re-seeding SHALL NOT create duplicates.
+- **REQ-02-14** WHEN a deployment migrates THE SYSTEM SHALL replace the earlier college list with
+  the 11 colleges (list of 2026-11-06, see design):
+  - each earlier college becomes its successor under the new name and code, keeping its requests
+    and requesters. Requesters of BS Architecture move to Engineering and Architecture;
+  - the College of Law is removed, or only deactivated while a request, requester or log entry
+    still names it;
+  - the earlier colleges' staff accounts are removed. An account that has already acted (a
+    request, an office visit, a log entry) is deactivated instead, so the history stays;
+  - in local and staging, each college keeps or gets one demo staff account,
+    `<code>@example.com`, with the demo password. In production the registrar creates the new
+    staff accounts.
 - **REQ-02-13** WHEN the offices are seeded THE SYSTEM SHALL deactivate the retired Library,
   Cashier / Finance Office and Student Affairs offices (their clearance is now an evaluation
   requirement), keeping them for the history of earlier requests.

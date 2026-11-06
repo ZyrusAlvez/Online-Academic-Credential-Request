@@ -80,7 +80,7 @@ Accounts for all three roles.
 
 ## departments
 
-Offices on credential routes (spec 02): the colleges (as the Dean), Registrar, VP Finance, Chancellor and President. Never deleted, only deactivated.
+Offices on credential routes (spec 02): the 11 colleges (as the Dean), Registrar, VP Finance, Chancellor and President. Never deleted, only deactivated, except once: the 2026-11-06 list replacement renamed the earlier colleges in place and removed the unused College of Law (REQ-02-14).
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
@@ -94,7 +94,7 @@ Offices on credential routes (spec 02): the colleges (as the Dean), Registrar, V
 
 ## programs
 
-Programs and strands by college (spec 12), kept by the registrar and offered on My Profile. Never deleted, only deactivated. `users.program` and `credential_requests.program` hold a copy of the name, so a later rename doesn't change past requests.
+Programs and strands by college (spec 12), kept by the registrar and offered on My Profile. Never deleted, only deactivated, except when the 2026-11-06 list replaced the earlier one (REQ-12-12). `users.program` and `credential_requests.program` hold a copy of the name, so a later rename doesn't change past requests.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|

@@ -85,10 +85,10 @@ at acceptance.
 
 ## Offices and credential master list
 
-Offices: the 12 colleges (each acting as the **Dean**: Arts and Sciences; Business and
-Accountancy; Computer Studies; Criminology; Education; Engineering; International Hospitality
-Management; Maritime Education; Law; Graduate School; Architecture and Aviation; Basic Education
-Department), the **Office of
+Offices: the 11 colleges (each acting as the **Dean**: Arts and Sciences; Aviation; Basic
+Education Department; Business Administration and Accountancy; Computer Studies; Criminal Justice
+Education; Teacher Education; Engineering and Architecture; Graduate School; Nutrition,
+Hospitality and Tourism Management; Maritime Education), the **Office of
 the Registrar**, the **VP Finance** (documentary stamp, no signature), the **Chancellor** and the
 **President**. Library, Cashier and Student Affairs clearance is checked by the evaluator as a
 requirement, not as a routing step.

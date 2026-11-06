@@ -9,3 +9,7 @@
 - [x] Pest tests for REQ-02-01..12
 - [x] `composer qa` green
 - [x] Master list offices: REG, VPF, CHAN, PRES + colleges; retired LIB/FIN/SAS deactivated (REQ-02-01, 13)
+- [x] The 11-college list of 2026-11-06 in `DepartmentSeeder`; `replace_college_list` migration
+      renames colleges, removes Law, replaces staff accounts (REQ-02-01, 14)
+- [x] Demo data and `docs/credentials.md` on the new codes
+- [x] Pest tests for REQ-02-14 and the changed REQ-02-01
