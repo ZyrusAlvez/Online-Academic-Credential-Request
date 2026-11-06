@@ -44,7 +44,9 @@ Source: *Proposed Workflow*, sections VI–VII (offices and signatories).
 
 ### Staff accounts
 - **REQ-02-07** THE SYSTEM SHALL let the registrar list all accounts with search by name/email
-  and filters by role and status, showing each staff member's department.
+  and filters by role and status, showing each staff member's department. The name search
+  matches the first name, the last name or "first last" together (e.g. "juan dela"), as the
+  request and ID searches do.
 - **REQ-02-08** THE SYSTEM SHALL let the registrar create a staff account with first, middle
   (optional), last name, email, role (`department` or `registrar`), department (required for
   `department`, must be active) and an initial password; the account SHALL be pre-verified.
