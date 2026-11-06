@@ -10,7 +10,7 @@
                     </x-file-link>
                     <p class="text-xs text-zinc-500">
                         {{ __('Uploaded :date', ['date' => $proof->created_at->format('M j, Y g:i A')]) }}
-                        @if ($proof->reference_no) · {{ __('Ref :ref', ['ref' => $proof->reference_no]) }} @endif
+                        @if ($proof->reference_no) · <span class="break-all">{{ __('Ref :ref', ['ref' => $proof->reference_no]) }}</span> @endif
                         @if ($proof->amount !== null) · ₱{{ number_format((float) $proof->amount, 2) }} @endif
                     </p>
                     @if ($proof->remarks)

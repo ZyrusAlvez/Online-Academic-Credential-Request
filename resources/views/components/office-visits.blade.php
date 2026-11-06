@@ -5,8 +5,8 @@
     <flux:table.columns>
         <flux:table.column>{{ __('Office') }}</flux:table.column>
         <flux:table.column>{{ __('Received') }}</flux:table.column>
-        <flux:table.column>{{ __('Released') }}</flux:table.column>
-        <flux:table.column>{{ __('Time spent') }}</flux:table.column>
+        <flux:table.column class="max-sm:hidden">{{ __('Released') }}</flux:table.column>
+        <flux:table.column class="max-sm:hidden">{{ __('Time spent') }}</flux:table.column>
         <flux:table.column>{{ __('Status') }}</flux:table.column>
     </flux:table.columns>
     <flux:table.rows>
@@ -30,7 +30,7 @@
                         <span class="text-zinc-500">{{ __('Forwarded :date', ['date' => $visit->forwarded_at->format('M j, g:i A')]) }}</span>
                     @endif
                 </flux:table.cell>
-                <flux:table.cell class="whitespace-normal text-sm">
+                <flux:table.cell class="max-sm:hidden whitespace-normal text-sm">
                     @if ($visit->completed_at)
                         {{ $visit->completed_at->format('M j, g:i A') }}
                         @if ($showActors && $visit->completer)<div class="text-xs text-zinc-500">{{ $visit->completer->name }}</div>@endif
@@ -38,7 +38,7 @@
                         —
                     @endif
                 </flux:table.cell>
-                <flux:table.cell class="tabular-nums">
+                <flux:table.cell class="max-sm:hidden tabular-nums">
                     @if ($visit->working_days !== null)
                         {{ $visit->working_days === 0 ? __('Same day') : trans_choice(':count working day|:count working days', $visit->working_days) }}
                     @elseif ($visit->received_at)
