@@ -31,7 +31,7 @@
         </x-slot:actions>
     </x-page-header>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <div class="space-y-6">
             <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
                 <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request details') }}</h2>
@@ -52,7 +52,7 @@
                 </div>
                 <p class="text-sm text-zinc-700">
                     <span class="font-medium text-ink">{{ $owner->name }}</span>
-                    · <a href="mailto:{{ $owner->email }}" class="text-highlight underline underline-offset-2">{{ $owner->email }}</a>
+                    · <a href="mailto:{{ $owner->email }}" class="break-all text-highlight underline underline-offset-2">{{ $owner->email }}</a>
                     @if ($owner->contact_number) · {{ $owner->contact_number }} @endif
                 </p>
                 @if ($idDocument)
@@ -228,7 +228,7 @@
                         <dl class="grid grid-cols-2 gap-2 text-sm">
                             <dt class="text-zinc-600">{{ __('Amount due') }}</dt><dd class="font-medium text-ink">₱{{ number_format((float) $request->amount_due, 2) }}</dd>
                             <dt class="text-zinc-600">{{ __('Amount paid') }}</dt><dd class="font-medium text-ink">{{ $pendingProof->amount !== null ? '₱'.number_format((float) $pendingProof->amount, 2) : '—' }}</dd>
-                            <dt class="text-zinc-600">{{ __('Reference') }}</dt><dd class="font-medium text-ink">{{ $pendingProof->reference_no ?? '—' }}</dd>
+                            <dt class="text-zinc-600">{{ __('Reference') }}</dt><dd class="min-w-0 break-all font-medium text-ink">{{ $pendingProof->reference_no ?? '—' }}</dd>
                             <dt class="text-zinc-600">{{ __('Date paid') }}</dt><dd class="font-medium text-ink">{{ $pendingProof->paid_on?->format('M j, Y') ?? '—' }}</dd>
                         </dl>
                     @endif

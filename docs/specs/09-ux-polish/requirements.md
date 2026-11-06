@@ -88,3 +88,10 @@
 - **REQ-09-17** THE SYSTEM SHALL trim leading and trailing spaces from text input (except
   passwords) before validating or storing it, but SHALL leave a search box exactly as typed, so a
   space between words survives a pause in typing; the search itself ignores the outer spaces.
+
+### Page width
+- **REQ-09-18** THE SYSTEM SHALL fit every signed-in page to the screen, from a 320px phone to a
+  wide monitor. On a wide screen the page content stops at 80rem and is centred beside the sidebar
+  (requester pages keep their narrower column, REQ-09-12). On a small screen nothing makes the
+  page scroll sideways: a table scrolls inside its own box with its less-needed columns hidden, and
+  long emails and payment references wrap.

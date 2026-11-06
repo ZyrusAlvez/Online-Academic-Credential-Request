@@ -6,7 +6,7 @@
 
     <x-page-header :title="$credentialType->name" :description="__('The offices this credential passes through, in order, and what each one does. Changes apply to requests routed from now on; requests already in progress keep their current steps.')" />
 
-    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section aria-labelledby="steps-heading">
             <h2 id="steps-heading" class="sr-only">{{ __('Route steps') }}</h2>
 
