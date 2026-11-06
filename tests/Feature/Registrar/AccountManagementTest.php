@@ -28,6 +28,17 @@ test('REQ-02-07 the registrar can list, search and filter accounts with departme
         ->assertSee('Lina Librarian')->assertDontSee('Sam Student');
 });
 
+test('REQ-02-07 the account search matches a first and last name typed together', function () {
+    User::factory()->student()->create(['first_name' => 'Sam', 'middle_name' => null, 'last_name' => 'Student', 'email' => 'sam@example.com']);
+    User::factory()->student()->create(['first_name' => 'Samuel', 'middle_name' => null, 'last_name' => 'Reyes', 'email' => 'samuel@example.com']);
+
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->set('search', 'sam stu')
+        ->assertSee('Sam Student')->assertDontSee('Samuel Reyes')
+        ->set('search', 'Samuel Reyes')
+        ->assertSee('Samuel Reyes')->assertDontSee('Sam Student');
+});
+
 test('REQ-02-08 the registrar can create a verified department staff account', function () {
     Livewire::actingAs($this->registrar)->test(Index::class)
         ->call('create')
