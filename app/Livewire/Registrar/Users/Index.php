@@ -97,6 +97,7 @@ class Index extends Component
             ->when($this->search !== '', fn ($query) => $query->where(fn ($query) => $query
                 ->where('first_name', 'like', "%{$this->search}%")
                 ->orWhere('last_name', 'like', "%{$this->search}%")
+                ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$this->search}%"])
                 ->orWhere('email', 'like', "%{$this->search}%")))
             ->when(Role::tryFrom($this->role), fn ($query, $role) => $query->where('role', $role))
             ->when($this->status !== '', fn ($query) => $query->where('is_active', $this->status === 'active'))
