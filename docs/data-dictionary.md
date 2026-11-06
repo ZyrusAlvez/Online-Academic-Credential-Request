@@ -34,6 +34,8 @@ erDiagram
     credential_requests ||--o{ request_events : "ledger of"
     users |o--o{ request_events : performs
     users |o--o{ non_working_days : "added"
+    users |o--o{ activity_logs : performs
+    departments |o--o{ activity_logs : involves
 ```
 
 - A **requester** owns **credential requests**, uploads **identity documents**; a **department staff** user belongs to one **office**.
@@ -354,6 +356,28 @@ The append-only ledger: every action on a request. Rows are never updated or del
 | remarks | text | Yes | | | |
 | created_at | timestamp | No | | CURRENT_TIMESTAMP | |
 
+## activity_logs
+
+The system-wide audit log (spec 14): request actions, account and setup changes, ID reviews and
+sign-ins. Append-only; rows are never updated or deleted. Name and role are copied in at the time
+of the action.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| actor_id | bigint unsigned | Yes | FK → users, IX (with created_at) | | Who did it; null for a failed sign-in or a scheduled job |
+| actor_name | varchar(255) | Yes | | | The actor's name at the time |
+| actor_role | varchar(20) | Yes | | | The actor's [Role](#role) at the time |
+| category | varchar(20) | No | IX (with created_at) | | See [ActivityCategory](#activitycategory) |
+| action | varchar(60) | No | | | e.g. `request.payment_verified`, `credential_type.updated`, `sign_in.failed` |
+| description | varchar(500) | No | | | One line shown on the Logs page |
+| reference_no | varchar(20) | Yes | IX | | The request's reference no. (transaction ID) |
+| department_id | bigint unsigned | Yes | FK → departments | | Office involved |
+| subject_type, subject_id | varchar, bigint unsigned | Yes | | | The record acted on |
+| changes | json | Yes | | | `{field: [old, new]}`; never passwords or tokens |
+| ip_address | varchar(45) | Yes | | | |
+| created_at | timestamp | No | IX | CURRENT_TIMESTAMP | |
+
 ## reminder_logs
 
 Due-date reminders already sent (spec 06), so a rerun never sends them twice.
@@ -565,6 +589,16 @@ client's delay categories, *Proposed Workflow* IX-D).
 | `current` | Current student |
 | `graduate` | Graduate |
 | `former` | Former student (did not graduate) |
+
+### ActivityCategory
+
+| Value | Meaning |
+|---|---|
+| `request` | An action on a request (copied from its ledger) |
+| `account` | An account created or changed |
+| `setup` | A credential type, route step, office, program, purpose or non-working day changed |
+| `identity` | A valid ID uploaded, verified or rejected |
+| `sign_in` | Signed in, signed out, or a failed sign-in |
 
 ### IdentityStatus
 

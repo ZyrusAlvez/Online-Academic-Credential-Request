@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Actions\Auth\SendVerificationCode;
 use App\Enums\AcademicStatus;
+use App\Enums\ActivityCategory;
 use App\Enums\IdentityStatus;
 use App\Enums\Role;
+use App\Models\Concerns\LogsActivity;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -15,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 /**
@@ -34,7 +37,7 @@ use Illuminate\Support\Str;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, LogsActivity, Notifiable;
 
     /**
      * Role, activation and identity status are never mass assignable; the registrar sets them.
@@ -244,5 +247,76 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasRole(Role ...$roles): bool
     {
         return in_array($this->role, $roles, true);
+    }
+
+    public function activityCategory(): ActivityCategory
+    {
+        return ActivityCategory::Account;
+    }
+
+    public function activityNoun(): string
+    {
+        return 'account';
+    }
+
+    public function activityLabel(): string
+    {
+        return "{$this->name} ({$this->email})";
+    }
+
+    /**
+     * The Google link and the identity status (logged with the ID itself) stay out (REQ-14-08).
+     *
+     * @return list<string>
+     */
+    protected function activityIgnored(): array
+    {
+        return ['google_id', 'identity_status', 'identity_verified_at'];
+    }
+
+    /** Someone who registers or resets a forgotten password is not signed in yet: they acted themselves. */
+    protected function activityActor(string $event): ?User
+    {
+        $user = Auth::user();
+
+        if ($user instanceof User) {
+            return $user;
+        }
+
+        return ! app()->runningInConsole() && ($event === 'created' || $this->wasChanged('password')) ? $this : null;
+    }
+
+    /**
+     * A password change is logged, never the password (REQ-14-08).
+     *
+     * @param  array<string, array{0: ?string, 1: ?string}>  $changes
+     */
+    protected function shouldLogActivity(string $event, array $changes): bool
+    {
+        return $event !== 'updated' || $changes !== [] || $this->wasChanged('password');
+    }
+
+    /**
+     * @param  array<string, array{0: ?string, 1: ?string}>  $changes
+     */
+    protected function activityDescription(string $event, array $changes, ?User $actor): string
+    {
+        $self = $actor?->is($this) ?? false;
+        $fields = array_keys($changes);
+
+        if ($event === 'created') {
+            return $self
+                ? "Created an account ({$this->email})"
+                : "Created the {$this->role->label()} account of {$this->activityLabel()}";
+        }
+
+        return match (true) {
+            $fields === [] && $self => 'Changed their password',
+            $fields === [] => "Set a new password for {$this->activityLabel()}",
+            $fields === ['email_verified_at'] && $self => 'Verified their email address',
+            $fields === ['is_active'] => ($this->is_active ? 'Reactivated' : 'Deactivated')." the account of {$this->activityLabel()}",
+            $self => 'Updated their profile'.($this->wasChanged('password') ? ' and password' : ''),
+            default => "Updated the account of {$this->activityLabel()}".($this->wasChanged('password') ? ' and set a new password' : ''),
+        };
     }
 }

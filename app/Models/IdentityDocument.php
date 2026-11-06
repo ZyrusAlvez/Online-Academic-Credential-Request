@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityCategory;
 use App\Enums\ReviewStatus;
+use App\Models\Concerns\LogsActivity;
 use Database\Factories\IdentityDocumentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +26,7 @@ use Illuminate\Support\Str;
 class IdentityDocument extends Model
 {
     /** @use HasFactory<IdentityDocumentFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     /** Accepted kinds of valid ID, shown as choices on upload. */
     public const ID_TYPES = [
@@ -78,5 +80,54 @@ class IdentityDocument extends Model
     public function isImage(): bool
     {
         return Str::startsWith($this->mime_type, 'image/');
+    }
+
+    public function activityCategory(): ActivityCategory
+    {
+        return ActivityCategory::Identity;
+    }
+
+    public function activityNoun(): string
+    {
+        return 'valid ID';
+    }
+
+    public function activityLabel(): string
+    {
+        return $this->id_type;
+    }
+
+    /**
+     * The stored file's details and the reviewer (already the actor) add nothing to the log.
+     *
+     * @return list<string>
+     */
+    protected function activityIgnored(): array
+    {
+        return ['user_id', 'path', 'original_name', 'mime_type', 'size', 'reviewed_by', 'reviewed_at'];
+    }
+
+    /**
+     * @param  array<string, array{0: ?string, 1: ?string}>  $changes
+     */
+    protected function shouldLogActivity(string $event, array $changes): bool
+    {
+        return $event === 'created' || array_key_exists('status', $changes);
+    }
+
+    /**
+     * @param  array<string, array{0: ?string, 1: ?string}>  $changes
+     */
+    protected function activityDescription(string $event, array $changes, ?User $actor): string
+    {
+        if ($event === 'created') {
+            return "Uploaded a valid ID ({$this->id_type})";
+        }
+
+        $owner = User::whereKey($this->user_id)->first();
+        $verb = $this->status === ReviewStatus::Verified ? 'Verified' : 'Rejected';
+
+        return "{$verb} the valid ID ({$this->id_type}) of ".($owner->name ?? 'a requester')
+            .(filled($this->remarks) && $this->status === ReviewStatus::Rejected ? ": {$this->remarks}" : '');
     }
 }

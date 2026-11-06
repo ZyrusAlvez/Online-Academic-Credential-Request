@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Actions\Audit\RecordRequestEvent;
 use App\Enums\DelayCategory;
 use App\Enums\DocumentKind;
 use App\Enums\IdentityStatus;
@@ -902,6 +903,8 @@ class RequestWorkflow
             'department_id' => $visit->department_id ?? $step?->department_id,
             'remarks' => filled($remarks) ? $remarks : null,
         ]);
+
+        app(RecordRequestEvent::class)->handle($event, $request, $actor);   // REQ-14-01
 
         DB::afterCommit(fn () => RequestEventRecorded::dispatch($event));
 

@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityCategory;
 use App\Enums\RouteTask;
+use App\Models\Concerns\LogsActivity;
 use Database\Factories\WorkflowStepFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WorkflowStep extends Model
 {
     /** @use HasFactory<WorkflowStepFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     public const STUDENT_COLLEGE_LABEL = "Dean (student's college)";
 
@@ -70,5 +72,38 @@ class WorkflowStep extends Model
         return $this->is_student_college
             ? self::STUDENT_COLLEGE_LABEL
             : (string) $this->department?->name;
+    }
+
+    public function activityCategory(): ActivityCategory
+    {
+        return ActivityCategory::Setup;
+    }
+
+    public function activityNoun(): string
+    {
+        return 'route step';
+    }
+
+    /** "VP Finance in Transcript of Records"; queried, since lazy loading is off outside production. */
+    public function activityLabel(): string
+    {
+        $office = $this->is_student_college
+            ? "Student's college (Dean)"
+            : Department::whereKey($this->department_id)->value('name');
+
+        return $office.' in '.CredentialType::whereKey($this->credential_type_id)->value('name');
+    }
+
+    protected function activityDepartmentId(): ?int
+    {
+        return $this->department_id;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function activityIgnored(): array
+    {
+        return ['credential_type_id'];
     }
 }
