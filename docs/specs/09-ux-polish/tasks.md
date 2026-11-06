@@ -22,3 +22,5 @@
 - [x] Viewer: drop the zoom; loading indicator and load-error message (REQ-09-14)
 - [x] `<x-loading-image>` placeholder for the proof thumbnail (REQ-09-16)
 - [x] Pest tests for the changed REQ-09-14 and REQ-09-16
+- [x] `TrimsInput` leaves `search` as typed; each search query trims it (REQ-09-17)
+- [x] Pest tests for REQ-09-17

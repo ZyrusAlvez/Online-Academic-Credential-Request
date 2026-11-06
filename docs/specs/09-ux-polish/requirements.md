@@ -83,3 +83,8 @@
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the
   other sign-in pages and name the address the code was sent to.
+
+### Text input
+- **REQ-09-17** THE SYSTEM SHALL trim leading and trailing spaces from text input (except
+  passwords) before validating or storing it, but SHALL leave a search box exactly as typed, so a
+  space between words survives a pause in typing; the search itself ignores the outer spaces.
