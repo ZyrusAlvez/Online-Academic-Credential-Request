@@ -22,19 +22,19 @@ claiming procedure).
 - **REQ-11-02** THE SYSTEM SHALL record the representative's identity separately from the owner's
   account and show the owner and the registrar the representative and their verification status.
 - **REQ-11-03** THE SYSTEM SHALL let the registrar verify a representative (SPA and IDs checked,
-  online or presented in person) or reject them with a reason.
+  online or presented in person) or reject them: during the evaluation through the Representative
+  part of the checklist (REQ-16-12, 13), and on the release page for one declared later, with a
+  reason (REQ-16-20).
 - **REQ-11-04** THE SYSTEM SHALL let only the owner and registrars open a representative's
   documents (404 for others), without letting browsers cache them.
 
 ### Release
 - **REQ-11-05** WHILE a request is `ready_for_release` THE SYSTEM SHALL show the requester that the
   credential can be claimed and what to bring.
-- **REQ-11-06** THE SYSTEM SHALL let the registrar release a credential by recording the claimant
-  (the owner, or a representative of the request), the recipient's name, the ID presented and the
-  recipient's acknowledgment of receipt; the release time and the releasing staff member are
-  recorded automatically (status `released`).
-- **REQ-11-07** IF the claimant is a representative who is not verified, or the owner's identity
-  or the recipient's acknowledgment is not confirmed, THEN THE SYSTEM SHALL NOT mark the credential
-  released.
+- ~~REQ-11-06~~ *Superseded by REQ-16-20:* release records who claimed the credential (the owner or
+  a verified representative), the time and the staff member, without the ID presented or the
+  checkboxes.
+- **REQ-11-07** IF the claimant is a representative who is not verified THEN THE SYSTEM SHALL NOT
+  mark the credential released.
 - **REQ-11-08** WHEN a credential is released THE SYSTEM SHALL store its processing time in working
   days from acceptance to release.

@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\CheckItem;
+use App\Enums\CheckResult;
 use App\Enums\RequestEventType;
 use App\Livewire\Student\EmailNotifications;
 use App\Models\User;
@@ -46,12 +48,15 @@ test('REQ-06-16 with email off the requester is still notified in-app but not em
     $this->owner->forceFill(['email_notifications' => false])->save();
 
     $request = submitRequest($this->owner, $this->org->tor);
-    workflow()->reviewIdentity($request, $this->registrar, false, 'Blurred');
+    workflow()->startEvaluation($request, $this->registrar);
+    workflow()->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
+    workflow()->returnToRequester($request, $this->registrar, 'Blurred');
+    workflow()->reopenEvaluation($request, $this->registrar);
     workflow()->decline($request, $this->registrar, 'Not eligible');
 
     $sent = Notification::sent($this->owner, RequestActivity::class);
     expect($sent->map(fn (RequestActivity $n) => $n->event->type)->all())
-        ->toContain(RequestEventType::Submitted, RequestEventType::IdentityRejected, RequestEventType::Declined)
+        ->toContain(RequestEventType::Submitted, RequestEventType::ComplianceRequested, RequestEventType::Declined)
         ->and($sent->every(fn (RequestActivity $n) => $n->via($this->owner) === ['database']))->toBeTrue();
 
     expect((new DueReminder($request, true))->via($this->owner))->toBe(['database']);

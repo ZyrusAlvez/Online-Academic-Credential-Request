@@ -23,7 +23,7 @@ keeps a per-request ledger. This spec adds one log of what everyone did across t
   field's old and new value.
 - **REQ-14-04** WHEN a requester uploads a valid ID, or the Registrar verifies or rejects one,
   THE SYSTEM SHALL log it. (Since spec 15 the review is on the request, so it is logged through
-  its ledger entry, REQ-14-01.)
+  its ledger entry, REQ-14-01; since spec 16 that entry is the evaluation's decision.)
 - **REQ-14-05** WHEN someone signs in or out, or a sign-in fails, THE SYSTEM SHALL log it; a
   failed sign-in records the email that was typed. A deactivated account SHALL never be logged as
   signed in: the sign-in form refuses it before signing it in (a failed sign-in), and a

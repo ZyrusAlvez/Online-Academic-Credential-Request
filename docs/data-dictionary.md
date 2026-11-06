@@ -22,6 +22,7 @@ erDiagram
     departments |o--o{ workflow_steps : "acts at"
     credential_types ||--o{ credential_requests : "requested as"
     credential_requests ||--o{ request_deficiencies : "missing"
+    credential_requests ||--o{ request_checks : "checked by"
     credential_requests ||--o{ payment_proofs : has
     credential_requests ||--o{ request_steps : "routed through"
     request_steps ||--o{ office_visits : "visited as"
@@ -42,8 +43,8 @@ erDiagram
 - A **credential type** has an ordered **route** (`workflow_steps`) of offices with tasks.
 - On acceptance the route is copied into **request_steps** (plus the Registrar's final check);
   each physical stay at an office is an **office_visit**.
-- Deficiencies, payment proofs, delay notes, pauses, representatives (with their documents), the
-  release record and the **request_events** ledger all belong to a request.
+- Checklist results, deficiencies, payment proofs, delay notes, pauses, representatives (with their
+  documents), the release record and the **request_events** ledger all belong to a request.
 
 Nothing that belongs to a request can be deleted: all request foreign keys are `RESTRICT`.
 
@@ -193,9 +194,25 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 | cancelled_at, cancel_reason | timestamp, varchar(500) | Yes | | | |
 | created_at, updated_at | timestamp | Yes | | | |
 
+## request_checks
+
+The current result of each part of a Registrar stage's checklist (spec 16). A result changes until
+the stage's decision; rejected parts are cleared when the request comes back for evaluation. The
+decision's `request_events` entry keeps the history.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| credential_request_id | bigint unsigned | No | FK → credential_requests, UQ with item | | |
+| item | varchar(30) | No | UQ with credential_request_id | | See [CheckItem](#checkitem) |
+| result | varchar(20) | No | | | See [CheckResult](#checkresult) |
+| checked_by | bigint unsigned | No | FK → users | | Staff member who confirmed or rejected it |
+| checked_at | timestamp | No | | | |
+
 ## request_deficiencies
 
-Missing requirements found during evaluation (spec 04).
+Missing requirements found during evaluation (spec 04). Requests from before spec 16 only: a
+return now records the rejected checklist parts instead.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
@@ -336,8 +353,8 @@ The release acknowledgment, one per released request (spec 11).
 | credential_request_id | bigint unsigned | No | FK → credential_requests, UQ | | |
 | recipient_type | varchar(20) | No | | | See [RecipientType](#recipienttype) |
 | request_representative_id | bigint unsigned | Yes | FK → request_representatives | | Verified representative who claimed it |
-| recipient_name | varchar(150) | No | | | |
-| id_presented | varchar(100) | No | | | |
+| recipient_name | varchar(150) | No | | | The owner's or the representative's name |
+| id_presented | varchar(100) | Yes | | | Recorded before spec 16 only |
 | acknowledged | tinyint(1) | No | | | Recipient acknowledged receipt |
 | released_by | bigint unsigned | No | FK → users | | |
 | released_at | timestamp | No | | | |
@@ -541,14 +558,29 @@ Stored as strings; defined in `app/Enums`.
 
 ### RequestEventType
 
-Submission and evaluation: `submitted`, `evaluation_started`, `compliance_requested`,
-`deficiency_resolved`, `customer_action_requested`, `customer_responded`, `requirements_completed`,
-`declined`, `college_changed`. Payment and acceptance: `payment_submitted`, `payment_rejected`,
+Submission and evaluation: `submitted`, `evaluation_started`, `compliance_requested` (returned to
+the requester), `resubmitted`, `evaluation_reopened`, `requirements_completed`, `declined`; and,
+from before spec 16 only, `deficiency_resolved`, `customer_action_requested`, `customer_responded`,
+`college_changed`. Payment and acceptance: `payment_submitted`, `payment_rejected`,
 `payment_verified`, `accepted`. Routing: `document_forwarded`, `receipt_accepted`,
-`step_completed`, `document_returned`, `document_resubmitted`, `delay_recorded`, `step_bypassed`,
-`ready_for_release`. Representatives and release: `representative_declared`,
+`step_completed`, `document_returned`, `document_resubmitted`, `delay_recorded`, `step_bypassed`
+(before spec 16 only), `ready_for_release`. Representatives and release: `representative_declared`,
 `representative_verified`, `representative_rejected`, `released`. And `cancelled`. Internal
 entries hidden from requesters: forwarding, returns, resubmissions, delay notes, bypasses.
+
+### CheckItem
+
+The parts of each Registrar stage's checklist (spec 16):
+
+| Stage | Values |
+|---|---|
+| Initial Evaluation | `credential_request`, `identity`, `academic_record`, `representative` (only when the requester transacts through one) |
+| Payment Validation | `payment_proof`, `payment_amount` |
+| Final Quality Check | `credential_document`, `signatures` |
+
+### CheckResult
+
+`confirmed`, `rejected`.
 
 ### DelayCategory
 

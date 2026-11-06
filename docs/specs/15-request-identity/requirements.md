@@ -69,25 +69,19 @@ identity, and My Profile in REQ-09-09/12.
 ### The request's own copy
 - **REQ-15-08** THE SYSTEM SHALL keep each request's name, contact number, academic information and
   ID as they were when it was submitted: a later profile change or new ID SHALL NOT change it. The
-  requester's, registrar's and offices' request pages and lists, the CSV export and the reports
-  SHALL show the request's copy of the name.
+  requester's, registrar's and offices' request pages and lists and the reports SHALL show the
+  request's copy of the name.
 
 ### Identity check during evaluation
-- **REQ-15-09** THE SYSTEM SHALL show the registrar, on the request page, the request's name,
-  contact number and email, a link that opens the request's ID, and the request's identity status
-  (awaiting verification, verified or rejected, with the reason). WHILE the ID awaits verification
-  and the request is submitted, under evaluation, pending compliance or returned for customer
-  action THE SYSTEM SHALL let the registrar verify it or reject it with a reason; each SHALL be
-  written to the request's ledger and the requester notified (in the app, and by email if theirs
-  are on).
-- **REQ-15-10** IF the request's ID is not verified THEN THE SYSTEM SHALL NOT let the registrar mark
-  the requirements complete.
+- ~~REQ-15-09, REQ-15-10~~ *Superseded by REQ-16-10, 12 and 13 (2026-11-06):* the ID is the User
+  identity part of the evaluation checklist; approving verifies it, and returning with that part
+  rejected rejects it.
 - **REQ-15-11** WHILE a request's ID is rejected and the request is still open before acceptance THE
   SYSTEM SHALL show the requester, on the request page, the reason and a form to upload another ID.
   WHEN they upload one THE SYSTEM SHALL store it privately, make it their saved ID, attach it to the
   request awaiting verification, write it to the ledger and notify the registrars.
-- **REQ-15-12** THE SYSTEM SHALL mark, on the registrar's request list, the requests whose ID awaits
-  verification ("ID to verify").
+- ~~REQ-15-12~~ *Superseded by REQ-16-02:* there is no request list; every request in the Initial
+  Evaluation queue has its ID checked.
 
 ### Access and existing data
 - **REQ-15-13** THE SYSTEM SHALL let only the ID's owner and registrars open an uploaded ID (others

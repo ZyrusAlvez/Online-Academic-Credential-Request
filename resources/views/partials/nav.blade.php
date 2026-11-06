@@ -8,7 +8,10 @@
     @elseif ($role === \App\Enums\Role::Registrar)
         <flux:navlist.group :heading="__('Registrar')" class="grid">
             <flux:navlist.item icon="home" :href="route('registrar.dashboard')" :current="request()->routeIs('registrar.dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
-            <flux:navlist.item icon="inbox" :href="route('registrar.requests')" :current="request()->routeIs('registrar.requests*')" wire:navigate>{{ __('Requests') }}</flux:navlist.item>
+            @foreach (\App\Enums\RegistrarQueue::cases() as $queue)
+                <flux:navlist.item :icon="$queue->icon()" :href="route($queue->routeName())" :current="request()->routeIs($queue->routeName())" wire:navigate>{{ __($queue->label()) }}</flux:navlist.item>
+            @endforeach
+            <flux:navlist.item icon="archive-box" :href="route('registrar.records')" :current="request()->routeIs('registrar.records*')" wire:navigate>{{ __('Records') }}</flux:navlist.item>
             <flux:navlist.item icon="chart-bar" :href="route('registrar.reports')" :current="request()->routeIs('registrar.reports*')" wire:navigate>{{ __('Reports') }}</flux:navlist.item>        </flux:navlist.group>
         <flux:navlist.group :heading="__('Administration')" class="grid">
             <flux:navlist.item icon="document-duplicate" :href="route('registrar.credential-types')" :current="request()->routeIs('registrar.credential-types*')" wire:navigate>{{ __('Credential Types') }}</flux:navlist.item>

@@ -43,10 +43,10 @@ class CredentialRequestPolicy
         return $request->user_id === $user->id && $request->status === RequestStatus::AwaitingPayment;
     }
 
-    /** Reply to the registrar's request for action. */
-    public function respond(User $user, CredentialRequest $request): bool
+    /** Send a returned request back for evaluation (REQ-16-15). */
+    public function resubmit(User $user, CredentialRequest $request): bool
     {
-        return $request->user_id === $user->id && $request->status === RequestStatus::ReturnedForCustomerAction;
+        return $request->user_id === $user->id && $request->status === RequestStatus::PendingCompliance;
     }
 
     /** Upload another valid ID after the Registrar rejected the request's (REQ-15-11). */
@@ -66,12 +66,9 @@ class CredentialRequestPolicy
         return $user->hasRole(Role::Registrar) || $request->user_id === $user->id;
     }
 
+    /** Only the owner, before acceptance (REQ-04-16, REQ-16-21). */
     public function cancel(User $user, CredentialRequest $request): bool
     {
-        if ($user->hasRole(Role::Registrar)) {
-            return ! $request->status->isFinal();
-        }
-
         return $request->user_id === $user->id
             && $request->accepted_at === null
             && ($request->status->isBeforeAcceptance() || $request->status === RequestStatus::ReturnedForCustomerAction);
@@ -82,9 +79,24 @@ class CredentialRequestPolicy
         return $user->hasRole(Role::Registrar) && $request->status === RequestStatus::ReadyForRelease;
     }
 
-    /** Evaluate, verify payment, accept, correct the college, pause, record delays. */
+    /** Act on the Registrar's stages: evaluate, validate payment, final check, release. */
     public function review(User $user, CredentialRequest $request): bool
     {
         return $user->hasRole(Role::Registrar);
+    }
+
+    /**
+     * Open the working page and act on it: not while another registrar is evaluating it
+     * (REQ-16-09).
+     */
+    public function evaluate(User $user, CredentialRequest $request): Response
+    {
+        if (! $user->hasRole(Role::Registrar)) {
+            return Response::deny();
+        }
+
+        return $request->isEvaluatedBySomeoneElse($user)
+            ? Response::deny("{$request->reference_no} is under evaluation by {$request->evaluator()->first()?->name}.")
+            : Response::allow();
     }
 }

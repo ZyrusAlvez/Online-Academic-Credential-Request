@@ -18,18 +18,16 @@ measures).
 ### Monitoring
 - **REQ-07-01** *(Replaced by REQ-10-04: due dates count working days from the working calendar.)*
 - **REQ-07-02** WHILE a request is being processed past its effective due date (REQ-05-12) THE
-  SYSTEM SHALL flag it as overdue in the registrar's request list and request page, and offer an
-  "Overdue" filter.
+  SYSTEM SHALL flag it as overdue in the registrar's Records and In Progress lists and request
+  page, and offer an "Overdue" filter in Records (REQ-16-04, 07).
 - **REQ-07-03** THE SYSTEM SHALL show the registrar counts of requests needing the Registrar,
   pending compliance, awaiting payment, being processed and ready for release, and overdue requests.
 - **REQ-07-05** THE SYSTEM SHALL show, per office, how many documents it currently holds
-  (forwarded or received), largest first, each linking to the request list filtered to that office.
+  (forwarded or received), largest first, each linking to Records filtered to that office.
 - **REQ-07-06** THE SYSTEM SHALL list the most overdue requests (up to 5) on the dashboard.
-- **REQ-07-07** THE SYSTEM SHALL let the registrar filter the request list by the office currently
-  holding the document.
-- **REQ-07-08** THE SYSTEM SHALL let the registrar download the filtered request list as CSV
-  (tracking number, credential, requester, student number, college, status, current office,
-  submitted, accepted, due, adjusted due, released, processing working days).
+- **REQ-07-07** THE SYSTEM SHALL let the registrar filter Records and the In Progress queue by the
+  office currently holding the document.
+- ~~REQ-07-08~~ *Superseded by REQ-16-08:* there is no CSV download.
 
 ### Performance indicators
 - **REQ-07-04** THE SYSTEM SHALL show the registrar, for a chosen period (this month by default):
@@ -69,11 +67,12 @@ measures).
   requirements, clarification or payment, with what is missing and since when; THE release report
   SHALL list credentials ready for release, released (and to whom) and unclaimed (ready for more
   than 10 working days).
-- **REQ-07-20** THE SYSTEM SHALL let the registrar download each report as CSV with its filters,
-  safe against spreadsheet formula injection, and SHALL refuse reports to other roles.
+- **REQ-07-20** THE SYSTEM SHALL refuse reports to other roles. *(The CSV download of each report
+  was removed by REQ-16-08.)*
 
 ### Demo data & documentation
 - **REQ-07-09** THE SYSTEM SHALL provide a demo seeder (refused in production) that creates one
-  account per office and sample requests in every status.
+  account per office and sample requests in every status still in use (all but
+  `returned_for_customer_action`, which spec 16 retired).
 - **REQ-07-10** THE SYSTEM SHALL include a README describing setup, demo accounts, architecture
   and the spec index.

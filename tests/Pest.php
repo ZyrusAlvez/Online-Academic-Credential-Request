@@ -1,6 +1,10 @@
 <?php
 
+use App\Enums\CheckItem;
+use App\Enums\CheckResult;
+use App\Enums\CheckStage;
 use App\Enums\RouteTask;
+use App\Enums\VisitPurpose;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
@@ -103,13 +107,24 @@ function submitRequest(User $owner, CredentialType $type, array $overrides = [])
 }
 
 /**
- * Evaluate a submitted request as complete, verifying its ID on the way (REQ-15-10).
+ * Give every part of a stage's checklist the same result (REQ-16-10, 17, 19).
+ */
+function checkAll(CredentialRequest $request, User $registrar, CheckStage $stage, CheckResult $result = CheckResult::Confirmed): void
+{
+    foreach (CheckItem::for($stage, $request->fresh()) as $item) {
+        workflow()->recordCheck($request, $registrar, $item, $result);
+    }
+}
+
+/**
+ * Evaluate a submitted request: every part confirmed, then approved, which verifies its ID
+ * (REQ-16-12).
  */
 function evaluate(CredentialRequest $request, User $registrar): CredentialRequest
 {
     workflow()->startEvaluation($request, $registrar);
-    workflow()->reviewIdentity($request, $registrar, true);
-    workflow()->completeEvaluation($request, $registrar);
+    checkAll($request, $registrar, CheckStage::Evaluation);
+    workflow()->approveEvaluation($request, $registrar);
 
     return $request;
 }
@@ -129,6 +144,7 @@ function acceptRequest(CredentialRequest $request, User $registrar): CredentialR
 
     if ($request->fresh()->requires_payment) {
         uploadPayment($request);
+        checkAll($request, $registrar, CheckStage::Payment);
         workflow()->verifyPaymentAndAccept($request, $registrar, 'OR-0001');
     }
 
@@ -141,11 +157,17 @@ function openVisit(CredentialRequest $request): OfficeVisit
 }
 
 /**
- * Accept receipt of the open visit and complete it.
+ * Accept receipt of the open visit and complete it; the final quality check needs its checklist
+ * confirmed first (REQ-16-19).
  */
 function passOffice(CredentialRequest $request, User $actor): void
 {
     $visit = openVisit($request);
     workflow()->acceptReceipt($visit, $actor);
+
+    if ($visit->step->task === RouteTask::FinalCheck && $visit->purpose !== VisitPurpose::Correction) {
+        checkAll($request, $actor, CheckStage::FinalCheck);
+    }
+
     workflow()->completeVisit($visit, $actor);
 }

@@ -8,12 +8,10 @@ use App\Models\CredentialRequest;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * The registrar's request-list filters, shared by the Livewire list and the CSV export.
+ * The registrar's Records filters (REQ-16-07).
  */
 final class RegistrarRequestFilter
 {
-    public const REVIEW = 'review';
-
     public const OPEN = 'open';
 
     public const PROCESSING = 'processing';
@@ -21,27 +19,14 @@ final class RegistrarRequestFilter
     public const OVERDUE = 'overdue';
 
     /**
-     * @param  string  $status  'review' (needs the Registrar), 'processing', 'open', 'overdue', '' (all) or a RequestStatus value
+     * @param  string  $status  'processing', 'open', 'overdue', '' (all) or a RequestStatus value
      */
     public function __construct(
         public string $search = '',
-        public string $status = self::REVIEW,
+        public string $status = '',
         public string $type = '',
         public string $office = '',
     ) {}
-
-    /**
-     * @param  array<string, mixed>  $input
-     */
-    public static function fromArray(array $input): self
-    {
-        return new self(
-            search: (string) ($input['search'] ?? ''),
-            status: (string) ($input['status'] ?? self::REVIEW),
-            type: (string) ($input['type'] ?? ''),
-            office: (string) ($input['office'] ?? ''),
-        );
-    }
 
     /**
      * @return Builder<CredentialRequest>
@@ -51,17 +36,12 @@ final class RegistrarRequestFilter
         $term = trim($this->search);
 
         return CredentialRequest::query()
-            ->when($this->status === self::REVIEW, fn (Builder $q) => $q->whereIn('status', self::needsRegistrar()))
             ->when($this->status === self::PROCESSING, fn (Builder $q) => $q->whereIn('status', RequestStatus::processing()))
             ->when($this->status === self::OPEN, fn (Builder $q) => $q->whereIn('status', RequestStatus::open()))
             ->when($this->status === self::OVERDUE, fn (Builder $q) => $q->overdue())
             ->when(RequestStatus::tryFrom($this->status), fn (Builder $q, RequestStatus $status) => $q->where('status', $status))
             ->when($this->type !== '', fn (Builder $q) => $q->where('credential_type_id', (int) $this->type))
-            ->when($this->office !== '', fn (Builder $q) => $q
-                ->whereIn('status', RequestStatus::processing())
-                ->whereHas('visits', fn (Builder $q) => $q
-                    ->where('department_id', (int) $this->office)
-                    ->whereIn('status', [VisitStatus::InTransit, VisitStatus::Received])))
+            ->when($this->office !== '', fn (Builder $q) => self::heldBy($q, (int) $this->office))
             ->when($term !== '', fn (Builder $q) => $q->where(fn (Builder $q) => $q
                 ->where('reference_no', 'like', "%{$term}%")
                 ->orWhere('student_number', 'like', "%{$term}%")
@@ -71,32 +51,35 @@ final class RegistrarRequestFilter
                     ->orWhere('last_name', 'like', "%{$term}%")
                     ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$term}%"]))))
             ->when(
-                in_array($this->status, [self::REVIEW, self::OVERDUE], true),
-                fn (Builder $q) => $q->orderBy($this->status === self::OVERDUE ? 'effective_due_at' : 'id'),   // oldest first
+                $this->status === self::OVERDUE,
+                fn (Builder $q) => $q->orderBy('effective_due_at'),   // most overdue first
                 fn (Builder $q) => $q->latest('id'),
             );
     }
 
     /**
-     * Requests waiting for the Registrar's evaluation or payment verification.
+     * Requests being processed whose document an office has now, forwarded or received
+     * (REQ-07-07).
+     *
+     * @param  Builder<CredentialRequest>  $query
+     * @return Builder<CredentialRequest>
+     */
+    public static function heldBy(Builder $query, int $departmentId): Builder
+    {
+        return $query
+            ->whereIn('status', RequestStatus::processing())
+            ->whereHas('visits', fn (Builder $q) => $q
+                ->where('department_id', $departmentId)
+                ->whereIn('status', [VisitStatus::InTransit, VisitStatus::Received]));
+    }
+
+    /**
+     * Requests waiting for a Registrar decision: evaluation or payment validation.
      *
      * @return list<RequestStatus>
      */
     public static function needsRegistrar(): array
     {
         return [RequestStatus::Submitted, RequestStatus::UnderEvaluation, RequestStatus::PaymentVerification];
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public function toArray(): array
-    {
-        return array_filter([
-            'search' => $this->search,
-            'status' => $this->status,
-            'type' => $this->type,
-            'office' => $this->office,
-        ], fn (string $value, string $key) => $value !== '' || $key === 'status', ARRAY_FILTER_USE_BOTH);
     }
 }

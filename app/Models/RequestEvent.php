@@ -63,7 +63,9 @@ class RequestEvent extends Model
         return match ($this->type) {
             RequestEventType::Submitted => 'Request received for evaluation',
             RequestEventType::EvaluationStarted => 'Evaluation started by the Office of the Registrar',
-            RequestEventType::ComplianceRequested => 'Requirements incomplete – please comply in person',
+            RequestEventType::ComplianceRequested => 'Returned to you – please complete the requirements',
+            RequestEventType::Resubmitted => 'Resubmitted for evaluation',
+            RequestEventType::EvaluationReopened => 'Evaluation reopened by the Office of the Registrar',
             RequestEventType::DeficiencyResolved => 'Requirement complied with',
             RequestEventType::CustomerActionRequested => 'Your action is needed',
             RequestEventType::CustomerResponded => 'Customer action completed',

@@ -1,10 +1,9 @@
 <?php
 
 use App\Enums\RequestStatus;
-use App\Livewire\Registrar\Requests\Index;
+use App\Livewire\Registrar\Records\Index;
 use App\Models\CredentialRequest;
 use App\Models\User;
-use App\Support\Csv;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -62,7 +61,7 @@ test('REQ-07-05 the dashboard shows which offices hold documents, largest first'
 
     $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
         ->assertSeeInOrder(['Where requests are waiting', 'Office of the Registrar', '2', 'College of Computer Studies', '1'])
-        ->assertSee(route('registrar.requests', ['status' => 'processing', 'office' => $this->org->ccs->id]));
+        ->assertSee(route('registrar.records', ['status' => 'processing', 'office' => $this->org->ccs->id]));
 });
 
 test('REQ-07-06 the dashboard lists the most overdue requests', function () {
@@ -84,27 +83,7 @@ test('REQ-07-07 the request list can be filtered by the office holding the docum
         ->assertDontSee($atRegistrar->reference_no);
 });
 
-test('REQ-07-08 the filtered list downloads as CSV and is registrar-only', function () {
-    $request = acceptedAt(now()->toDateTimeString(), $this->org->tor);
-    $other = submitRequest($this->owner, $this->org->free);
-
-    $response = $this->actingAs($this->registrar)->get(route('registrar.requests.export', ['status' => 'processing']));
-    $response->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
-
-    expect($response->streamedContent())->toContain('"Tracking no.",Credential,Requester')
-        ->toContain('Accepted,Due,"Adjusted due",Released,"Processing working days"')
-        ->toContain($request->reference_no)
-        ->not->toContain($other->reference_no);
-
-    $this->actingAs($this->owner)->get(route('registrar.requests.export'))->assertForbidden();
-});
-
-test('REQ-07-08 CSV cells cannot inject spreadsheet formulas', function () {
-    expect(Csv::safeCell('=HYPERLINK("x")'))->toBe("'=HYPERLINK(\"x\")")
-        ->and(Csv::safeCell('Juan'))->toBe('Juan');
-});
-
-test('REQ-07-09 the demo seeder creates accounts and requests in every status', function () {
+test('REQ-07-09 the demo seeder creates accounts and requests in every status still in use', function () {
     CredentialRequest::query()->delete();
 
     $this->seed(DemoSeeder::class);
@@ -112,6 +91,6 @@ test('REQ-07-09 the demo seeder creates accounts and requests in every status', 
     expect(User::where('email', 'student@example.com')->exists())->toBeTrue()
         ->and(User::where('email', 'vpf@example.com')->value('department_id'))->not->toBeNull()
         ->and(CredentialRequest::distinct()->pluck('status')->map->value->sort()->values()->all())
-        ->toBe(collect(RequestStatus::cases())->map->value->sort()->values()->all())
+        ->toBe(collect(RequestStatus::cases())->reject(fn ($s) => $s === RequestStatus::ReturnedForCustomerAction)->map->value->sort()->values()->all())
         ->and(CredentialRequest::overdue()->count())->toBeGreaterThan(0);
 });

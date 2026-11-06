@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Registrar\Requests;
+namespace App\Livewire\Registrar\Records;
 
 use App\Enums\RequestStatus;
 use App\Livewire\Concerns\TrimsInput;
@@ -14,7 +14,10 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-#[Title('Requests')]
+/**
+ * Every request, for viewing and tracking only (REQ-16-07).
+ */
+#[Title('Records')]
 class Index extends Component
 {
     use TrimsInput;
@@ -23,9 +26,9 @@ class Index extends Component
     #[Url(except: '')]
     public string $search = '';
 
-    /** 'review', 'processing', 'open', 'overdue', '' (all) or a RequestStatus value. */
-    #[Url(except: RegistrarRequestFilter::REVIEW)]
-    public string $status = RegistrarRequestFilter::REVIEW;
+    /** 'processing', 'open', 'overdue', '' (all) or a RequestStatus value. */
+    #[Url(except: '')]
+    public string $status = '';
 
     #[Url(except: '')]
     public string $type = '';
@@ -46,25 +49,18 @@ class Index extends Component
         }
     }
 
-    private function filter(): RegistrarRequestFilter
-    {
-        return new RegistrarRequestFilter($this->search, $this->status, $this->type, $this->office);
-    }
-
     public function render(): View
     {
-        $requests = $this->filter()->query()
+        $requests = (new RegistrarRequestFilter($this->search, $this->status, $this->type, $this->office))->query()
             ->with(['credentialType:id,name', 'openVisit.department:id,name'])
             ->paginate(20);
 
-        return view('livewire.registrar.requests.index', [
+        return view('livewire.registrar.records.index', [
             'requests' => $requests,
             'statuses' => RequestStatus::cases(),
             'types' => CredentialType::orderBy('name')->get(['id', 'name']),
             'offices' => Department::orderBy('name')->get(['id', 'name']),
-            'reviewCount' => CredentialRequest::whereIn('status', RegistrarRequestFilter::needsRegistrar())->count(),
             'overdueCount' => CredentialRequest::overdue()->count(),
-            'exportUrl' => route('registrar.requests.export', $this->filter()->toArray()),
         ]);
     }
 }

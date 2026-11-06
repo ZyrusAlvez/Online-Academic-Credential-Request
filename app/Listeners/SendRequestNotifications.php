@@ -24,6 +24,7 @@ class SendRequestNotifications
     private const FOR_REGISTRARS = [
         RequestEventType::Submitted,
         RequestEventType::PaymentSubmitted,
+        RequestEventType::Resubmitted,
         RequestEventType::CustomerResponded,
         RequestEventType::RepresentativeDeclared,
         RequestEventType::IdentityResubmitted,
@@ -82,6 +83,7 @@ class SendRequestNotifications
         $title = match ($event->type) {
             RequestEventType::Submitted => "New request {$request->reference_no} to evaluate",
             RequestEventType::PaymentSubmitted => "Payment to verify for {$request->reference_no}",
+            RequestEventType::Resubmitted => "{$request->reference_no} was resubmitted for evaluation",
             RequestEventType::CustomerResponded => "The requester replied on {$request->reference_no}",
             RequestEventType::IdentityResubmitted => "Valid ID to verify for {$request->reference_no}",
             default => "Representative to verify for {$request->reference_no}",

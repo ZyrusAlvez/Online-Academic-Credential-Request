@@ -53,11 +53,11 @@ class Dashboard extends Component
 
         return view('livewire.registrar.dashboard', [
             'tiles' => [
-                ['label' => __('Needs the Registrar'), 'value' => $count(...RegistrarRequestFilter::needsRegistrar()), 'href' => route('registrar.requests', ['status' => 'review'])],
-                ['label' => __('Pending compliance'), 'value' => $count(RequestStatus::PendingCompliance, RequestStatus::ReturnedForCustomerAction), 'href' => route('registrar.requests', ['status' => RequestStatus::PendingCompliance->value])],
-                ['label' => __('Awaiting payment'), 'value' => $count(RequestStatus::AwaitingPayment), 'href' => route('registrar.requests', ['status' => RequestStatus::AwaitingPayment->value])],
-                ['label' => __('Being processed'), 'value' => $count(...RequestStatus::processing()), 'href' => route('registrar.requests', ['status' => 'processing'])],
-                ['label' => __('Ready for release'), 'value' => $count(RequestStatus::ReadyForRelease), 'href' => route('registrar.requests', ['status' => RequestStatus::ReadyForRelease->value])],
+                ['label' => __('Needs the Registrar'), 'value' => $count(...RegistrarRequestFilter::needsRegistrar()), 'href' => route('registrar.evaluation')],
+                ['label' => __('Pending compliance'), 'value' => $count(RequestStatus::PendingCompliance, RequestStatus::ReturnedForCustomerAction), 'href' => route('registrar.evaluation', ['waiting' => 1])],
+                ['label' => __('Awaiting payment'), 'value' => $count(RequestStatus::AwaitingPayment), 'href' => route('registrar.records', ['status' => RequestStatus::AwaitingPayment->value])],
+                ['label' => __('Being processed'), 'value' => $count(...RequestStatus::processing()), 'href' => route('registrar.records', ['status' => RegistrarRequestFilter::PROCESSING])],
+                ['label' => __('Ready for release'), 'value' => $count(RequestStatus::ReadyForRelease), 'href' => route('registrar.release')],
             ],
             'overdueCount' => CredentialRequest::overdue()->count(),
             'metrics' => PerformanceMetrics::for($period),

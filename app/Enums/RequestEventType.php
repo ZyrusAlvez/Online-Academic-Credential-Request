@@ -18,6 +18,10 @@ enum RequestEventType: string
     case Declined = 'declined';
     case CollegeChanged = 'college_changed';
 
+    // Registrar stages (spec 16)
+    case Resubmitted = 'resubmitted';
+    case EvaluationReopened = 'evaluation_reopened';
+
     // The request's valid ID (spec 15)
     case IdentityVerified = 'identity_verified';
     case IdentityRejected = 'identity_rejected';
