@@ -62,7 +62,7 @@ at acceptance.
 | Role | Who | Can |
 |---|---|---|
 | `student` (shown as *Requester*) | Current students, graduates and former students (self-registered) | Register and upload an ID, request credentials, declare a representative, upload proof of payment, track requests, cancel before acceptance |
-| `registrar` | Office of the Registrar staff | Everything on the Registrar's side: verify identities, evaluate requests, record compliance, verify payments, accept, act on the Registrar's routing steps (preparation, final quality check), release, manage offices, credential types, the working calendar and staff accounts, view reports. One role for all Registrar staff; every action records the staff member. |
+| `registrar` | Office of the Registrar staff | Everything on the Registrar's side: verify identities, evaluate requests, record compliance, verify payments, accept, act on the Registrar's routing steps (preparation, final quality check), release, manage offices, credential types, the working calendar and staff accounts, view reports and the activity log. One role for all Registrar staff; every action records the staff member. |
 | `department` | Staff of a signing office: a college (the Dean), VP Finance, Chancellor, President | Accept receipt of documents sent to their office, approve and release them to the next office, return them for correction, record delay reasons |
 
 ## Glossary
@@ -266,3 +266,5 @@ All feature specs describe this model.
 | 10 | Working calendar & due dates | done |
 | 11 | Representatives & release | done |
 | 12 | Programs & strands | done |
+| 13 | Request purposes | done |
+| 14 | Activity logs (audit trail) | in progress |
