@@ -8,7 +8,8 @@ use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
- * One request's record, read-only: details, route, office visits and ledger (REQ-16-07).
+ * One request's record, read-only: details, route, office visits and ledger (REQ-16-07), for the
+ * Registrar and the Admin (REQ-18-06).
  */
 class Show extends Component
 {
@@ -17,7 +18,7 @@ class Show extends Component
 
     public function mount(CredentialRequest $credentialRequest): void
     {
-        $this->authorize('review', $credentialRequest);
+        $this->authorize('view', $credentialRequest);
 
         $this->credentialRequest = $credentialRequest;
     }

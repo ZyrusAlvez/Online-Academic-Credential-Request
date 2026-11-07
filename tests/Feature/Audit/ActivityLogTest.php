@@ -6,9 +6,9 @@ use App\Enums\ActivityCategory;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\Role;
-use App\Livewire\Registrar\CredentialTypes\Index as CredentialTypes;
-use App\Livewire\Registrar\Logs\Index;
-use App\Livewire\Registrar\Users\Index as Accounts;
+use App\Livewire\Admin\CredentialTypes\Index as CredentialTypes;
+use App\Livewire\Admin\Logs\Index;
+use App\Livewire\Admin\Users\Index as Accounts;
 use App\Models\ActivityLog;
 use App\Models\CredentialType;
 use App\Models\Purpose;
@@ -23,6 +23,8 @@ use Livewire\Volt\Volt;
 beforeEach(function () {
     $this->org = organisation();
     $this->registrar = User::factory()->registrar()->create(['first_name' => 'Rita', 'middle_name' => null, 'last_name' => 'Registrar']);
+    // Setup, accounts and the Logs page are the Admin's (REQ-18-04).
+    $this->admin = User::factory()->admin()->create(['first_name' => 'Ada', 'middle_name' => null, 'last_name' => 'Admin']);
 });
 
 test('REQ-14-01 request actions are logged with the actor, the reference no. and the office', function () {
@@ -49,7 +51,7 @@ test('REQ-14-01 request actions are logged with the actor, the reference no. and
 });
 
 test('REQ-14-02 setup changes are logged with each changed field', function () {
-    $this->actingAs($this->registrar);
+    $this->actingAs($this->admin);
 
     $this->org->tor->update(['fee' => '600.00']);
     $purpose = Purpose::create(['name' => 'Migration abroad']);
@@ -58,7 +60,7 @@ test('REQ-14-02 setup changes are logged with each changed field', function () {
     expect($edit->category)->toBe(ActivityCategory::Setup)
         ->and($edit->description)->toBe('Updated credential type “Transcript of Records”')
         ->and($edit->changes)->toBe(['fee' => ['530.00', '600.00']])
-        ->and($edit->actor_id)->toBe($this->registrar->id);
+        ->and($edit->actor_id)->toBe($this->admin->id);
 
     $added = ActivityLog::where('action', 'purpose.created')->sole();
     expect($added->description)->toBe('Added purpose “Migration abroad”')
@@ -80,7 +82,7 @@ test('REQ-14-02 seeding and migrating write nothing to the log', function () {
 });
 
 test('REQ-14-03 account changes are logged, including activation and the requester\'s own profile', function () {
-    Livewire::actingAs($this->registrar)->test(Accounts::class)
+    Livewire::actingAs($this->admin)->test(Accounts::class)
         ->call('create')
         ->set('form.first_name', 'Lina')->set('form.last_name', 'Librarian')
         ->set('form.email', 'lina@uphsl.edu.ph')->set('form.role', 'department')
@@ -95,7 +97,7 @@ test('REQ-14-03 account changes are logged, including activation and the request
         ->and($created->description)->toBe('Created the Department Staff account of Lina Librarian (lina@uphsl.edu.ph)')
         ->and($created->changes['department_id'])->toBe([null, 'Office of the VP for Finance']);
 
-    Livewire::actingAs($this->registrar)->test(Accounts::class)->call('toggleStatus', $staff->id);
+    Livewire::actingAs($this->admin)->test(Accounts::class)->call('toggleStatus', $staff->id);
     expect(ActivityLog::where('action', 'user.updated')->latest('id')->first()->description)
         ->toBe('Deactivated the account of Lina Librarian (lina@uphsl.edu.ph)');
 
@@ -195,14 +197,14 @@ test('REQ-14-08 passwords and tokens are never logged, but a password change is'
         ->not->toContain('12345');
 });
 
-test('REQ-14-09 registrars see the log newest first with who, what, the transaction ID, the office and the changes', function () {
+test('REQ-14-09 the admin sees the log newest first with who, what, the transaction ID, the office and the changes', function () {
     $owner = requester($this->org->ccs);
     $request = acceptRequest(submitRequest($owner, $this->org->tor), $this->registrar);
 
-    $this->actingAs($this->registrar);
+    $this->actingAs($this->admin);
     $this->org->tor->update(['fee' => '600.00']);
 
-    $this->get(route('registrar.logs'))
+    $this->get(route('admin.logs'))
         ->assertOk()
         ->assertSee('Logs')
         ->assertSeeInOrder(['Updated credential type “Transcript of Records”', 'Fee', '530.00', '600.00', 'Payment verified', 'Submitted'])
@@ -211,7 +213,7 @@ test('REQ-14-09 registrars see the log newest first with who, what, the transact
         ->assertSee($request->reference_no)
         ->assertSee($this->org->registrarOffice->name);
 
-    $this->get(route('registrar.dashboard'))->assertSee(route('registrar.logs'));
+    $this->get(route('admin.dashboard'))->assertSee(route('admin.logs'));
 });
 
 test('REQ-14-10 the registrar can search by reference no., name, email or action', function () {
@@ -221,7 +223,7 @@ test('REQ-14-10 the registrar can search by reference no., name, email or action
     $mariasRequest = submitRequest($maria, $this->org->free);
     workflow()->startEvaluation($juansRequest, $this->registrar);
 
-    $page = Livewire::actingAs($this->registrar)->test(Index::class);
+    $page = Livewire::actingAs($this->admin)->test(Index::class);
 
     $page->set('search', $juansRequest->reference_no)
         ->assertSee('Evaluation started')->assertDontSee($mariasRequest->reference_no);
@@ -247,7 +249,7 @@ test('REQ-14-11 the registrar can filter by role, kind of action, office and dat
     $this->org->tor->update(['fee' => '600.00']);
     Volt::test('auth.login')->set('email', 'nobody@example.com')->set('password', 'wrong')->call('login');
 
-    $page = Livewire::actingAs($this->registrar)->test(Index::class);
+    $page = Livewire::actingAs($this->admin)->test(Index::class);
 
     $page->set('role', 'student')
         ->assertSee('Submitted')->assertDontSee('Payment verified')->assertDontSee('Updated credential type');
@@ -267,11 +269,11 @@ test('REQ-14-11 the registrar can filter by role, kind of action, office and dat
         ->assertSee($request->reference_no)->assertDontSee('Updated credential type');
 });
 
-test('REQ-14-12 a request entry links to the request', function () {
+test('REQ-14-12 a request entry links to the request\'s record', function () {
     $request = submitRequest(requester($this->org->ccs), $this->org->tor);
 
-    $this->actingAs($this->registrar)->get(route('registrar.logs'))
-        ->assertSee(route('registrar.requests.show', $request), false);
+    $this->actingAs($this->admin)->get(route('admin.logs'))
+        ->assertSee(route('records.show', $request), false);   // the Admin's read-only record (REQ-18-06)
 });
 
 test('REQ-14-14 copying an existing ledger entry keeps its time and leaves no IP address', function () {
@@ -291,11 +293,12 @@ test('REQ-14-14 copying an existing ledger entry keeps its time and leaves no IP
         ->and($log->ip_address)->toBeNull();
 });
 
-test('REQ-14-13 only registrars can open the Logs page', function (string $role) {
+test('REQ-14-13 only the admin can open the Logs page', function (string $role) {
     $user = match ($role) {
         'student' => requester($this->org->ccs),
         'department' => User::factory()->departmentStaff($this->org->vpf)->create(),
+        'registrar' => $this->registrar,
     };
 
-    $this->actingAs($user)->get(route('registrar.logs'))->assertForbidden();
-})->with(['student', 'department']);
+    $this->actingAs($user)->get(route('admin.logs'))->assertForbidden();
+})->with(['student', 'department', 'registrar']);

@@ -1,8 +1,8 @@
 <?php
 
-use App\Livewire\Registrar\CredentialTypes\Index as CredentialTypesIndex;
-use App\Livewire\Registrar\Departments\Index as DepartmentsIndex;
-use App\Livewire\Registrar\Users\Index as UsersIndex;
+use App\Livewire\Admin\CredentialTypes\Index as CredentialTypesIndex;
+use App\Livewire\Admin\Departments\Index as DepartmentsIndex;
+use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialType;
 use App\Models\Department;
@@ -33,7 +33,7 @@ test('REQ-09-01 every password field on the sign-in pages has a show/hide toggle
 });
 
 test('REQ-09-01 the staff account password field has a show/hide toggle', function () {
-    Livewire::actingAs(User::factory()->registrar()->create())->test(UsersIndex::class)
+    Livewire::actingAs(User::factory()->admin()->create())->test(UsersIndex::class)
         ->assertSeeHtml('aria-label="'.VISIBILITY_TOGGLE.'"');
 });
 
@@ -57,7 +57,7 @@ test('REQ-09-02 new-password fields list the password rules as a live checklist'
     $response = $this->get(route('settings.password'))->assertSeeInOrder(PASSWORD_RULES);
     $checklist($response->getContent(), 'password');
 
-    $staffForm = Livewire::actingAs(User::factory()->registrar()->create())->test(UsersIndex::class)
+    $staffForm = Livewire::actingAs(User::factory()->admin()->create())->test(UsersIndex::class)
         ->assertSeeInOrder(PASSWORD_RULES);
     $checklist($staffForm->html(), 'form.password');
 });
@@ -133,27 +133,27 @@ test('REQ-09-05 request pages offer a copy-tracking-number button', function () 
 });
 
 test('REQ-09-06 deactivating an account asks for confirmation; activating does not', function () {
-    $registrar = User::factory()->registrar()->create();
+    $admin = User::factory()->admin()->create();
     User::factory()->student()->create(['first_name' => 'Ana', 'middle_name' => null, 'last_name' => 'Active']);
     User::factory()->student()->inactive()->create(['first_name' => 'Ian', 'middle_name' => null, 'last_name' => 'Inactive']);
 
-    Livewire::actingAs($registrar)->test(UsersIndex::class)
+    Livewire::actingAs($admin)->test(UsersIndex::class)
         ->assertSeeHtml('wire:confirm="Deactivate Ana Active?')
         ->assertDontSeeHtml('wire:confirm="Deactivate Ian Inactive?');
 });
 
 test('REQ-09-06 deactivating a department or credential type asks for confirmation', function () {
-    $registrar = User::factory()->registrar()->create();
+    $admin = User::factory()->admin()->create();
     Department::factory()->create(['name' => 'Library']);
     Department::factory()->inactive()->create(['name' => 'Old Office']);
     CredentialType::factory()->create(['name' => 'Diploma']);
     CredentialType::factory()->inactive()->create(['name' => 'Retired Form']);
 
-    Livewire::actingAs($registrar)->test(DepartmentsIndex::class)
+    Livewire::actingAs($admin)->test(DepartmentsIndex::class)
         ->assertSeeHtml('wire:confirm="Deactivate Library?')
         ->assertDontSeeHtml('wire:confirm="Deactivate Old Office?');
 
-    Livewire::actingAs($registrar)->test(CredentialTypesIndex::class)
+    Livewire::actingAs($admin)->test(CredentialTypesIndex::class)
         ->assertSeeHtml('wire:confirm="Deactivate Diploma?')
         ->assertDontSeeHtml('wire:confirm="Deactivate Retired Form?');
 });
@@ -161,8 +161,8 @@ test('REQ-09-06 deactivating a department or credential type asks for confirmati
 test('REQ-09-13 app pages carry the in-app confirm dialog and label each confirmation', function () {
     Department::factory()->create(['name' => 'Library']);
 
-    $this->actingAs(User::factory()->registrar()->create())
-        ->get(route('registrar.departments'))
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route('admin.departments'))
         ->assertOk()
         ->assertSee('data-confirm-dialog', false)
         ->assertSee('data-confirm-title="Deactivate department"', false)
@@ -266,11 +266,12 @@ test('REQ-09-18 signed-in pages stop at 96rem on wide screens and detail grids c
     $registrar = User::factory()->registrar()->create();
     $request = submitRequest(requester($org->ccs), $org->free);
 
-    $this->actingAs($registrar);
+    $this->actingAs(User::factory()->admin()->create());
+    expect($this->get(route('admin.departments'))->assertOk()->getContent())->toContain('class="mx-auto w-full max-w-screen-2xl" data-page-width');
 
-    expect($this->get(route('registrar.departments'))->assertOk()->getContent())->toContain('class="mx-auto w-full max-w-screen-2xl" data-page-width')
-        // The request page is one column of checklist cards (spec 16) whose details stack on phones.
-        ->and($this->get(route('registrar.requests.show', $request))->assertOk()->getContent())->toContain('class="mx-auto max-w-4xl space-y-6"')->toContain('grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2');
+    $this->actingAs($registrar);
+    // The request page is one column of checklist cards (spec 16) whose details stack on phones.
+    expect($this->get(route('registrar.requests.show', $request))->assertOk()->getContent())->toContain('class="mx-auto max-w-4xl space-y-6"')->toContain('grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2');
 });
 
 test('REQ-09-12 New Request and My Requests share one column and one section style', function () {

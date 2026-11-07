@@ -80,7 +80,7 @@ test('REQ-15-01 there is no Identity Checks page or nav item', function () {
     expect(Route::has('registrar.identities'))->toBeFalse();
 
     $this->actingAs($this->registrar)->get('/registrar/identities')->assertNotFound();
-    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))->assertOk()->assertDontSee('Identity Checks');
+    $this->actingAs($this->registrar)->get(route('registrar.evaluation'))->assertOk()->assertDontSee('Identity Checks');
 });
 
 test('REQ-15-02 there is no My Profile page; the old address goes to Settings → Profile', function () {
@@ -339,7 +339,7 @@ test('REQ-15-08 request pages and lists show the request\'s copy of the name', f
     $request->forceFill(['requester_name' => 'Copied Name On Request'])->save();
     $owner->forceFill(['first_name' => 'Renamed'])->save();
 
-    $this->actingAs($this->registrar)->get(route('registrar.records'))->assertSee('Copied Name On Request')->assertDontSee('Renamed');
+    $this->actingAs($this->registrar)->get(route('records'))->assertSee('Copied Name On Request')->assertDontSee('Renamed');
     $this->actingAs($this->registrar)->get(route('registrar.evaluation'))->assertSee('Copied Name On Request')->assertDontSee('Renamed');
     $this->actingAs($this->registrar)->get(route('registrar.requests.show', $request))->assertSee('Copied Name On Request');
     $this->actingAs($owner)->get(route('student.requests.show', $request))->assertSee('Copied Name On Request');

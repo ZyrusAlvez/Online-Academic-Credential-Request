@@ -1,6 +1,6 @@
 <div class="mx-auto max-w-4xl space-y-6" data-read-only-record>
     <flux:breadcrumbs>
-        <flux:breadcrumbs.item :href="route('registrar.records')" wire:navigate>{{ __('Records') }}</flux:breadcrumbs.item>
+        <flux:breadcrumbs.item :href="route('records')" wire:navigate>{{ __('Records') }}</flux:breadcrumbs.item>
         <flux:breadcrumbs.item>{{ $request->reference_no }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 

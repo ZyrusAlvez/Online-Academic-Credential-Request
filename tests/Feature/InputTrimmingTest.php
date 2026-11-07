@@ -1,10 +1,10 @@
 <?php
 
-use App\Livewire\Registrar\Departments\Index as Departments;
-use App\Livewire\Registrar\Programs\Index as Programs;
-use App\Livewire\Registrar\Purposes\Index as Purposes;
+use App\Livewire\Admin\Departments\Index as Departments;
+use App\Livewire\Admin\Programs\Index as Programs;
+use App\Livewire\Admin\Purposes\Index as Purposes;
+use App\Livewire\Admin\Users\Index as Users;
 use App\Livewire\Registrar\Records\Index as Records;
-use App\Livewire\Registrar\Users\Index as Users;
 use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
 use App\Models\User;
@@ -41,7 +41,7 @@ test('request form text is trimmed', function () {
 });
 
 test('REQ-09-17 a search box keeps the space typed between words', function (string $component) {
-    Livewire::actingAs(User::factory()->registrar()->create())->test($component)
+    Livewire::actingAs(User::factory()->admin()->create())->test($component)   // all are the Admin's (REQ-18-04, 06)
         ->set('search', 'sad ')
         ->assertSet('search', 'sad ');
 })->with([
@@ -56,7 +56,7 @@ test('REQ-09-17 the search ignores the spaces around the words', function () {
     User::factory()->student()->create(['first_name' => 'Sad', 'middle_name' => null, 'last_name' => 'Girl', 'email' => 'sg@example.com']);
     User::factory()->student()->create(['first_name' => 'Sam', 'middle_name' => null, 'last_name' => 'Student', 'email' => 'sam@example.com']);
 
-    Livewire::actingAs(User::factory()->registrar()->create(['first_name' => 'Rita', 'last_name' => 'Registrar']))->test(Users::class)
+    Livewire::actingAs(User::factory()->admin()->create(['first_name' => 'Ada', 'last_name' => 'Admin']))->test(Users::class)
         ->set('search', ' sad ')
         ->assertSee('Sad Girl')->assertDontSee('Sam Student')
         ->set('search', 'sad girl ')

@@ -75,6 +75,13 @@ class UserFactory extends Factory
         ]);
     }
 
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => Role::Admin,
+        ]);
+    }
+
     public function departmentStaff(?Department $department = null): static
     {
         return $this->state(fn (array $attributes) => [

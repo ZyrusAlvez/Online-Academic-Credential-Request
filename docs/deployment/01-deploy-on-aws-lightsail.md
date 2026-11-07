@@ -456,6 +456,8 @@ move, **Ctrl+W** searches, **Ctrl+O** then Enter saves, and **Ctrl+X** exits. Se
 APP_ENV=production
 INITIAL_REGISTRAR_EMAIL=<the registrar's email>
 INITIAL_REGISTRAR_PASSWORD=<a strong password you choose and remember>
+INITIAL_ADMIN_EMAIL=<the admin's email>
+INITIAL_ADMIN_PASSWORD=<another strong password>
 ```
 
 Staging:
@@ -471,6 +473,8 @@ nano .env
 APP_ENV=staging
 INITIAL_REGISTRAR_EMAIL=<the registrar's email>
 INITIAL_REGISTRAR_PASSWORD=<a strong password>
+INITIAL_ADMIN_EMAIL=<the admin's email>
+INITIAL_ADMIN_PASSWORD=<another strong password>
 ```
 
 Use a different password from production's. **Check `APP_ENV` in both files.** One left at the template's `local` would use the laptop
@@ -482,6 +486,7 @@ address `http://localhost:8000` in every email link and turn off the secure logi
 | `APP_KEY` | Leave empty; generated in step 9 | Leave empty; generated in step 9 |
 | `DB_USERNAME` / `DB_PASSWORD` | Written automatically in 8.3 | Written automatically in 8.3 |
 | `INITIAL_REGISTRAR_EMAIL` / `_PASSWORD` | Required (its own password) | Required |
+| `INITIAL_ADMIN_EMAIL` / `_PASSWORD` | Needed for the first admin (its own password) | Needed for the first admin |
 | `MAIL_USERNAME` / `MAIL_PASSWORD` | Step 13 | Step 13 |
 | `RECEIPTS_DISK`, `R2_*` | Step 13 | Step 13 |
 
@@ -588,10 +593,19 @@ their own JavaScript.
 | `DepartmentSeeder` | The 15 colleges and offices |
 | `CredentialTypeSeeder` | The 7 credential types and their signing order (`workflow_steps`) |
 | `RegistrarSeeder` | The first registrar account, from `INITIAL_REGISTRAR_EMAIL` / `INITIAL_REGISTRAR_PASSWORD` |
-| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff and requests in every status, all at `@example.com` with the password `password`. The demo requests are approved by your registrar |
+| `AdminSeeder` | The first admin account, from `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`; skipped with a warning when they are not set |
+| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff, a demo admin (`admin@example.com`) and requests in every status, all at `@example.com` with the password `password`. The demo requests are approved by your registrar |
 
-The first registrar is needed because someone has to be able to log in and create every other
-account. `RegistrarSeeder` works the same in every environment: it creates the account from
+The first admin is needed because someone has to be able to log in and create every other
+account: only an admin manages accounts and setup (spec 18). `AdminSeeder` works like
+`RegistrarSeeder`. Deploys never run the seeders, so on a server that is already running, add
+the two `INITIAL_ADMIN_*` lines to `.env` and run this once:
+
+```bash
+php artisan db:seed --class=AdminSeeder --force && php artisan optimize
+```
+
+`RegistrarSeeder` works the same in every environment: it creates the account from
 `INITIAL_REGISTRAR_EMAIL` / `INITIAL_REGISTRAR_PASSWORD` **only if no account with that email
 exists**, and never changes it afterwards. Re-seeding can't reset a password you changed in the
 app. Without a password it refuses to run, so no environment gets a guessable admin password.
@@ -599,9 +613,10 @@ app. Without a password it refuses to run, so no environment gets a guessable ad
 Demo accounts use `example.com`, a domain reserved for examples. The app never sends email to it,
 so demo data on staging can't bounce or use up Gmail's daily limit.
 
-After your first production login, change the registrar password in the app. Then remove the
-`INITIAL_REGISTRAR_PASSWORD` value from production's `.env` and run `php artisan optimize`. Keep
-the email line: the seeder uses it to see that the account already exists.
+After your first production login, change the registrar and admin passwords in the app. Then
+remove the `INITIAL_REGISTRAR_PASSWORD` and `INITIAL_ADMIN_PASSWORD` values from production's
+`.env` and run `php artisan optimize`. Keep the email lines: the seeders use them to see that the
+accounts already exist.
 
 ### Check
 

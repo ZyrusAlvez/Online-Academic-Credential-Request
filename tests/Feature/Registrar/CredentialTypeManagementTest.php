@@ -1,7 +1,7 @@
 <?php
 
 use App\Enums\RouteTask;
-use App\Livewire\Registrar\CredentialTypes\Index;
+use App\Livewire\Admin\CredentialTypes\Index;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\User;
@@ -10,7 +10,7 @@ use Database\Seeders\DepartmentSeeder;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    $this->registrar = User::factory()->registrar()->create();
+    $this->admin = User::factory()->admin()->create();   // the master list is the Admin's (REQ-18-04)
 });
 
 test('REQ-03-01 the seeder creates the 17-type master list with fees, periods and routes', function () {
@@ -66,7 +66,7 @@ test('REQ-03-02 the registrar sees credential types with fee, processing period 
     $registrarOffice = Department::factory()->registrarOffice()->create();
     CredentialType::factory()->paid('250.00')->withSteps([$registrarOffice, 'college'])->create(['name' => 'Transcript of Records', 'processing_days' => 10]);
 
-    $this->actingAs($this->registrar)->get(route('registrar.credential-types'))
+    $this->actingAs($this->admin)->get(route('admin.credential-types'))
         ->assertOk()
         ->assertSee('Transcript of Records')
         ->assertSee('₱250.00')
@@ -75,7 +75,7 @@ test('REQ-03-02 the registrar sees credential types with fee, processing period 
 });
 
 test('REQ-03-03 the registrar can create a paid credential type with requirements and is sent to its route', function () {
-    Livewire::actingAs($this->registrar)->test(Index::class)
+    Livewire::actingAs($this->admin)->test(Index::class)
         ->call('create')
         ->set('form.name', 'Certificate of Units Earned')
         ->set('form.requires_payment', true)
@@ -86,7 +86,7 @@ test('REQ-03-03 the registrar can create a paid credential type with requirement
         ->set('form.requires_receiving_institution', true)
         ->call('save')
         ->assertHasNoErrors()
-        ->assertRedirect(route('registrar.credential-types.workflow', CredentialType::sole()));
+        ->assertRedirect(route('admin.credential-types.workflow', CredentialType::sole()));
 
     expect(CredentialType::sole())
         ->requires_payment->toBeTrue()
@@ -100,7 +100,7 @@ test('REQ-03-03 the registrar can create a paid credential type with requirement
 test('REQ-03-03 fee is dropped when payment is not required and inputs are validated', function () {
     $type = CredentialType::factory()->paid('100.00')->create(['name' => 'Old']);
 
-    Livewire::actingAs($this->registrar)->test(Index::class)
+    Livewire::actingAs($this->admin)->test(Index::class)
         ->call('edit', $type->id)
         ->set('form.requires_payment', false)
         ->call('save')
@@ -108,7 +108,7 @@ test('REQ-03-03 fee is dropped when payment is not required and inputs are valid
 
     expect($type->fresh()->fee)->toBeNull();
 
-    Livewire::actingAs($this->registrar)->test(Index::class)
+    Livewire::actingAs($this->admin)->test(Index::class)
         ->set('form.name', 'Old')
         ->set('form.fee', '-5')
         ->set('form.processing_days', 'ten')
@@ -119,7 +119,7 @@ test('REQ-03-03 fee is dropped when payment is not required and inputs are valid
 test('REQ-03-04 the registrar can deactivate and reactivate a credential type', function () {
     $type = CredentialType::factory()->create();
 
-    $component = Livewire::actingAs($this->registrar)->test(Index::class)->call('toggleStatus', $type->id);
+    $component = Livewire::actingAs($this->admin)->test(Index::class)->call('toggleStatus', $type->id);
     expect($type->fresh()->is_active)->toBeFalse();
 
     $component->call('toggleStatus', $type->id);
@@ -132,7 +132,7 @@ test('REQ-03-05 credential types without steps are flagged and not requestable',
     $ready = CredentialType::factory()->withSteps(['college'])->create();
     CredentialType::factory()->inactive()->withSteps(['college'])->create();
 
-    $this->actingAs($this->registrar)->get(route('registrar.credential-types'))->assertSee('No route');
+    $this->actingAs($this->admin)->get(route('admin.credential-types'))->assertSee('No route');
 
     expect(CredentialType::requestable()->pluck('id')->all())->toBe([$ready->id]);
 });
@@ -141,7 +141,7 @@ test('REQ-03-11 non-registrars cannot manage credential types', function (string
     $user = User::factory()->{$state}()->create();
     $type = CredentialType::factory()->create();
 
-    $this->actingAs($user)->get(route('registrar.credential-types'))->assertForbidden();
-    $this->actingAs($user)->get(route('registrar.credential-types.workflow', $type))->assertForbidden();
+    $this->actingAs($user)->get(route('admin.credential-types'))->assertForbidden();
+    $this->actingAs($user)->get(route('admin.credential-types.workflow', $type))->assertForbidden();
     Livewire::actingAs($user)->test(Index::class)->assertForbidden();
-})->with(['student', 'departmentStaff']);
+})->with(['student', 'departmentStaff', 'registrar']);

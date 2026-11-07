@@ -1,11 +1,11 @@
 <?php
 
 use App\Enums\RegistrarQueue;
-use App\Livewire\Registrar\Logs\Index as Logs;
-use App\Livewire\Registrar\Programs\Index as Programs;
+use App\Livewire\Admin\Logs\Index as Logs;
+use App\Livewire\Admin\Programs\Index as Programs;
+use App\Livewire\Admin\Reports\Index as Reports;
 use App\Livewire\Registrar\Queue;
 use App\Livewire\Registrar\Records\Index as Records;
-use App\Livewire\Registrar\Reports\Index as Reports;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\User;
@@ -15,6 +15,7 @@ use Livewire\Livewire;
 beforeEach(function () {
     $this->org = organisation();
     $this->registrar = User::factory()->registrar()->create(['first_name' => 'Active']);
+    $this->admin = User::factory()->admin()->create();   // Reports and Administration (REQ-18-04)
     $this->retiredCollege = Department::factory()->college()->inactive()->create(['name' => 'College of Law', 'code' => 'LAW']);
     $this->retiredOffice = Department::factory()->inactive()->create(['name' => 'Cashier', 'code' => 'FIN']);
     $this->retiredType = CredentialType::factory()->inactive()->create(['name' => 'Retired Credential']);
@@ -44,7 +45,7 @@ test('REQ-02-19 the Records filters list only active offices and credential type
 });
 
 test('REQ-02-19 the Reports filters list only active offices, credential types and evaluators', function () {
-    Livewire::actingAs($this->registrar)->test(Reports::class)
+    Livewire::actingAs($this->admin)->test(Reports::class)
         ->assertViewHas('offices', fn (Collection $offices) => ! in_array('College of Law', listedNames($offices), true))
         ->assertViewHas('types', fn (Collection $types) => ! in_array('Retired Credential', listedNames($types), true))
         ->assertViewHas('evaluators', fn (Collection $evaluators) => in_array('Active', listedNames($evaluators, 'first_name'), true)
@@ -52,14 +53,14 @@ test('REQ-02-19 the Reports filters list only active offices, credential types a
 });
 
 test('REQ-02-19 the Activity log office filter and the Programs college list show only active ones', function () {
-    Livewire::actingAs($this->registrar)->test(Logs::class)
+    Livewire::actingAs($this->admin)->test(Logs::class)
         ->assertViewHas('offices', fn (Collection $offices) => ! in_array('College of Law', listedNames($offices), true)
             && ! in_array('Cashier', listedNames($offices), true));
 
-    Livewire::actingAs($this->registrar)->test(Programs::class)
+    Livewire::actingAs($this->admin)->test(Programs::class)
         ->assertViewHas('colleges', fn (Collection $colleges) => listedNames($colleges) === ['College of Business and Accountancy', 'College of Computer Studies']);
 });
 
 test('REQ-02-19 inactive rows stay on the Departments page, where they can be reactivated', function () {
-    $this->actingAs($this->registrar)->get(route('registrar.departments'))->assertOk()->assertSee('College of Law');
+    $this->actingAs($this->admin)->get(route('admin.departments'))->assertOk()->assertSee('College of Law');
 });

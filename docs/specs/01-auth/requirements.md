@@ -58,9 +58,9 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 ### Verification & access
 - **REQ-01-09** WHILE a user's email is unverified THE SYSTEM SHALL block access to application
   pages and show the verify-email notice.
-- **REQ-01-10** WHEN a user opens `/dashboard` or logs in THE SYSTEM SHALL take them to their
-  role's home: student → the new-request page (`/student/requests/new`), registrar →
-  `/registrar`, department → `/department`.
+- ~~REQ-01-10~~ *Superseded by REQ-18-02/03:* `/dashboard` and logging in take a user to their
+  role's home: student → the new-request page (`/student/requests/new`), registrar → Initial
+  Evaluation, department → `/department`, admin → `/admin`.
 - **REQ-01-11** IF a user opens a page belonging to another role THEN THE SYSTEM SHALL respond 403.
 
 ### Profile
@@ -86,8 +86,8 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   details itself (REQ-15-03).
 - ~~REQ-01-19~~ *Superseded by REQ-15-01 and REQ-15-09:* no Identity Checks page; the ID is
   verified on the request.
-- **REQ-01-20** THE SYSTEM SHALL let only the ID's owner and registrars open an uploaded ID
-  (others get 404), without letting browsers cache it.
+- **REQ-01-20** THE SYSTEM SHALL let only the ID's owner, registrars and admins (REQ-18-07) open
+  an uploaded ID (others get 404), without letting browsers cache it.
 - ~~REQ-01-21, REQ-01-22, REQ-01-25~~ *Superseded by REQ-15-03..07:* the details, ID, summary and
   consent are on New Request and Settings → Profile; My Profile is gone.
 - **REQ-01-26** IF a requester chooses "Review request" or "Confirm" and an entry is missing or invalid THEN THE SYSTEM
@@ -106,4 +106,5 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   account from `INITIAL_REGISTRAR_EMAIL` and `INITIAL_REGISTRAR_PASSWORD` so the system can be
   administered on first install. WHEN an account with that email already exists THE SYSTEM SHALL
   leave it unchanged. IF no password is configured and the account doesn't exist THEN THE SYSTEM
-  SHALL refuse to seed.
+  SHALL refuse to seed. *(Since spec 18 the system is administered by the Admin, whose first
+  account comes from `INITIAL_ADMIN_*`, REQ-18-11. The first registrar is still created.)*

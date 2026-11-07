@@ -15,6 +15,10 @@ measures).
 
 ## Acceptance criteria
 
+*Since spec 18 (2026-11-07), the Dashboard and Reports are the Admin's, at `/admin` and
+`/admin/reports`. There, read "the registrar" as "the Admin" (REQ-18-04, 08). Records and its
+office filter (REQ-07-07) serve both the Registrar and the Admin, at `/records` (REQ-18-06).*
+
 ### Monitoring
 - **REQ-07-01** *(Replaced by REQ-10-04: due dates count working days from the working calendar.)*
 - **REQ-07-02** WHILE a request is being processed past its effective due date (REQ-05-12) THE

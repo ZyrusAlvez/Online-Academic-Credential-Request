@@ -13,11 +13,12 @@ There are exactly three environments. Any other `APP_ENV` value stops the app at
 | Where | Your computer: `composer dev` → http://localhost:8000 | The server's staging address | The server's production address |
 | Database | `uphsl_credential_tracker_local` | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
 | Receipt files | `local/` folder (R2, or `storage/app/private/local`) | `staging/` folder | `production/` folder |
-| Data | Base data + demo accounts and requests | Base data + demo accounts and requests | Base data + one registrar account; real data only |
+| Data | Base data + demo accounts and requests | Base data + demo accounts and requests | Base data + the first registrar and admin accounts; real data only |
 | Email | Sent through Gmail, all redirected to your own inbox | Sent through Gmail | Sent through Gmail |
 
 Base data = the 15 offices (11 colleges and 4 offices), the 27 programs, the 17 credential types
-with their routes, the request purposes, the holiday calendar, and the registrar account.
+with their routes, the request purposes, the holiday calendar, and the first registrar and admin
+accounts.
 
 To reload the demo data (local or staging): `php artisan app:reset-demo`.
 
@@ -28,11 +29,22 @@ Open the local or staging address and log in with an **email and password** belo
 
 ## 2. Demo accounts
 
-### Registrar (admin)
+### Registrar
 
 The registrar is **your own account** from `.env` (`INITIAL_REGISTRAR_EMAIL` /
 `INITIAL_REGISTRAR_PASSWORD`), the same way production gets its first registrar. The demo
-requests are evaluated, accepted, prepared, checked and released by this account.
+requests are evaluated, accepted, prepared, checked and released by this account. The registrar
+sees Initial Evaluation, Payment Validation, In Progress, Final Quality Check, Release and
+Records.
+
+### Admin
+
+| Email | Password | Sees |
+|---|---|---|
+| `admin@example.com` | `password` | Dashboard, Records, Reports, and Administration (Credential Types, Departments, Programs, Purposes, Accounts, Working Calendar, Logs) |
+
+Production has no demo admin. Its first admin comes from `INITIAL_ADMIN_EMAIL` /
+`INITIAL_ADMIN_PASSWORD` (spec 18).
 
 ### Requesters
 
@@ -77,7 +89,7 @@ The college list changed on 2026-11-06. The old addresses (`cba@`, `crim@`, `coe
 `cihm@`, `caa@`, `law@`) no longer exist. On staging the deploy moved each demo account to its
 college's new address, keeping its history, and removed `law@`. Any other college staff account,
 such as the Basic Education starter account, was deleted, or deactivated if it had already acted.
-Production gets the same clean-up and no new accounts: the registrar creates the college staff
+Production gets the same clean-up and no new accounts: the admin creates the college staff
 accounts under **Administration → Accounts**.
 
 ### Programs
@@ -105,8 +117,8 @@ quality check).
   Profile** and upload a valid ID. They must click the verification link before they can submit
   a request. Locally, every email arrives in your own
   inbox (or in `storage/logs/laravel.log` while Gmail isn't configured).
-- **Staff** accounts are created by the registrar under **Administration → Accounts**. They
-  are verified automatically.
+- **Staff** accounts (department staff, registrars and admins) are created by an admin under
+  **Administration → Accounts**. They are verified automatically.
 
 ## 3. Where the real secrets live
 
@@ -115,6 +127,7 @@ quality check).
 | Database user/password | `.env` (`DB_USERNAME`, `DB_PASSWORD`) | `.env` is git-ignored; never copy its values into docs or commits |
 | App key | `.env` (`APP_KEY`) | `php artisan key:generate` |
 | First registrar | Each `.env` (`INITIAL_REGISTRAR_EMAIL`, `INITIAL_REGISTRAR_PASSWORD`) | Created by the seeder only when no account with that email exists; changing these later does not change the account. Seeding and `app:reset-demo` refuse to run without them |
+| First admin | Each `.env` (`INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD`) | Created the same way, only when missing. Without them, seeding skips the admin with a warning. Deploys never seed, so add it once with `php artisan db:seed --class=AdminSeeder --force` |
 | Gmail (email) | Each `.env` (`MAIL_USERNAME`, `MAIL_PASSWORD` = Google App Password) | Without them, emails are written to the log. Locally every email goes to your own inbox. Setup: [Lightsail guide §13.1](deployment/01-deploy-on-aws-lightsail.md#131-email-both-environments) |
 | Cloudflare R2 (receipts) | `.env` (`RECEIPTS_DISK=r2`, `R2_*`) | One private bucket, one folder per environment (`staging/`, `production/`). Setup: [Lightsail guide §13.2](deployment/01-deploy-on-aws-lightsail.md#132-receipts-cloudflare-r2) |
 

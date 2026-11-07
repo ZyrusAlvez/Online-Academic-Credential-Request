@@ -6,6 +6,8 @@
         <flux:select wire:model.live="status" :label="__('Status')" label:sr-only>
             <flux:select.option value="">{{ __('All statuses') }}</flux:select.option>
             <flux:select.option value="open">{{ __('All open') }}</flux:select.option>
+            <flux:select.option value="needs_registrar">{{ __('Needs the Registrar') }}</flux:select.option>
+            <flux:select.option value="waiting_for_requester">{{ __('Waiting for the requester') }}</flux:select.option>
             <flux:select.option value="processing">{{ __('Being processed') }}</flux:select.option>
             <flux:select.option value="overdue">{{ __('Overdue (:count)', ['count' => $overdueCount]) }}</flux:select.option>
             @foreach ($statuses as $option)
@@ -39,7 +41,7 @@
             @forelse ($requests as $request)
                 <flux:table.row :key="$request->id">
                     <flux:table.cell class="whitespace-normal">
-                        <a href="{{ route('registrar.records.show', $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $request->reference_no }}</a>
+                        <a href="{{ route('records.show', $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $request->reference_no }}</a>
                         <div class="text-xs text-zinc-600">{{ $request->credentialType->name }}</div>
                     </flux:table.cell>
                     <flux:table.cell class="max-md:hidden whitespace-normal">

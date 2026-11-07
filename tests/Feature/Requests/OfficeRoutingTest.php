@@ -241,7 +241,7 @@ test('REQ-05-12 requests being processed past their effective due date are overd
     expect($this->request->fresh()->isOverdue())->toBeTrue()
         ->and(CredentialRequest::overdue()->pluck('id')->all())->toBe([$this->request->id]);
 
-    $this->actingAs($this->registrar)->get(route('registrar.records', ['status' => 'overdue']))->assertSee($this->request->reference_no);
+    $this->actingAs($this->registrar)->get(route('records', ['status' => 'overdue']))->assertSee($this->request->reference_no);
 });
 
 test('REQ-05-14 office actions are in the ledger', function () {

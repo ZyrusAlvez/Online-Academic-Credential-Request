@@ -13,6 +13,10 @@ keeps a per-request ledger. This spec adds one log of what everyone did across t
 
 ## Acceptance criteria
 
+*Since spec 18 (2026-11-07), the Logs page is the Admin's, at `/admin/logs`. Read "the
+registrar" as "the Admin" in REQ-14-09..13 (REQ-18-04). The role filter includes Admin, and a
+reference no. links to the request's record (REQ-18-06).*
+
 ### What is logged
 - **REQ-14-01** WHEN any action on a request is recorded in its ledger (spec 06) THE SYSTEM SHALL
   also log it, with the person who did it, the request's reference no. and the office involved.

@@ -9,9 +9,10 @@ use Illuminate\Auth\Access\Response;
 
 class PaymentProofPolicy
 {
+    /** The owner, registrars and admins (REQ-18-07). */
     public function view(User $user, PaymentProof $proof): Response
     {
-        return $user->hasRole(Role::Registrar) || $proof->credentialRequest?->user_id === $user->id
+        return $user->hasRole(Role::Registrar, Role::Admin) || $proof->credentialRequest?->user_id === $user->id
             ? Response::allow()
             : Response::denyAsNotFound();
     }

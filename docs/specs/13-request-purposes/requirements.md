@@ -9,6 +9,9 @@
 
 ## Acceptance criteria
 
+*Since spec 18 (2026-11-07), the Purposes page is the Admin's, at `/admin/purposes`. Read "the
+registrar" as "the Admin" in REQ-13-03..06 (REQ-18-04).*
+
 ### Master list
 - **REQ-13-01** THE SYSTEM SHALL keep request purposes in the database, each with a unique name.
 - **REQ-13-02** WHEN a deployment migrates THE SYSTEM SHALL install a starter list of purposes
