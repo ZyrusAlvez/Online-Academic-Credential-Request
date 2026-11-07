@@ -65,6 +65,10 @@ test('REQ-17-01 Confirm is green and Reject red, and the chosen one is ringed an
 
     $html = handoffPage($request)->html();
 
+    // Reject first, Confirm on its right, on every part.
+    expect(preg_match_all('/data-(reject|confirm)-button/', $html, $order))->toBeGreaterThan(1)
+        ->and(array_chunk($order[1], 2))->each->toBe(['reject', 'confirm']);
+
     // Every part's Confirm is green and its Reject red, chosen or not.
     expect(substr_count($html, 'data-confirm-button'))->toBe(substr_count($html, 'data-reject-button'))->toBeGreaterThan(1)
         ->and(preg_match_all('/<button[^>]*data-confirm-button[^>]*>/', $html, $confirms))->toBeGreaterThan(1)
@@ -79,12 +83,86 @@ test('REQ-17-01 Confirm is green and Reject red, and the chosen one is ringed an
         ->and(collect($confirms[0])->contains(fn ($tag) => str_contains($tag, 'aria-pressed="true"')))->toBeFalse();
 });
 
-test('REQ-17-02 the decision buttons are centred under the remarks', function () {
+test('REQ-17-02 the decision buttons are centred under the remarks, Approve on the right', function () {
     $request = submitRequest($this->owner, $this->org->tor);
     workflow()->startEvaluation($request, $this->registrar);
 
-    expect(handoffPage($request)->html())
-        ->toMatch('/class="flex flex-wrap justify-center gap-2" data-decision-buttons/');
+    $html = handoffPage($request)->html();
+
+    expect($html)->toMatch('/class="flex flex-wrap justify-center gap-2" data-decision-buttons/')
+        ->and(preg_match_all('/data-(decline|return|approve)-button/', $html, $order))->toBe(3)
+        ->and($order[1])->toBe(['decline', 'return', 'approve']);
+
+    // A representative's Verify is right of Reject too.
+    $represented = submitRequest($this->owner, $this->org->free);
+    workflow()->declareRepresentative($represented, $this->owner, ['full_name' => 'Rosa Reyes']);
+    $list = (string) $this->blade('<x-representative-list :representatives="$representatives" reviewable />', ['representatives' => $represented->fresh()->representatives]);
+
+    expect($list)->toContain('verifyRepresentative(')
+        ->and(strpos($list, 'confirmRejectRepresentative('))->toBeLessThan(strpos($list, 'verifyRepresentative('));
+});
+
+test('REQ-17-17 Approve and Return are always enabled; a blocked one lists every reason in a dialog', function () {
+    $request = submitRequest($this->owner, $this->org->tor);
+    workflow()->startEvaluation($request, $this->registrar);
+    workflow()->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
+
+    $page = handoffPage($request);
+
+    // Nothing is disabled, and the dialog is on the page.
+    expect($page->html())->not->toMatch('/<button[^>]*\sdisabled="disabled"[^>]*data-(approve|return|decline)-button/')
+        ->toContain('data-decision-blocked');
+
+    // Approve: the unchecked and the rejected parts.
+    $page->call('approve')
+        ->assertDispatched('modal-show', name: 'decision-blocked')
+        ->assertSet('blockedAction', 'approve')
+        ->assertSet('blockers', [
+            'Confirm every part of the checklist. Not checked yet: Credential Request Verification, Academic Record Verification.',
+            'Rejected: User Identity Verification. Confirm it to approve, or return or decline the request.',
+        ])
+        ->assertSee("Can't approve yet")
+        ->assertSee('Not checked yet: Credential Request Verification, Academic Record Verification.');
+
+    // Return: missing remarks, also marked on the field; what was typed and checked is kept.
+    $page->call('returnRequest')
+        ->assertHasErrors(['remarks' => 'required'])
+        ->assertSet('blockedAction', 'return')
+        ->assertSet('blockers', ['Write your remarks; the requester sees them.'])
+        ->assertSee("Can't return yet");
+
+    expect($request->fresh()->status)->toBe(RequestStatus::UnderEvaluation)
+        ->and($request->checkResults(CheckStage::Evaluation))->toBe([CheckItem::Identity->value => CheckResult::Rejected]);
+
+    // Return with no rejected part and no remarks: both reasons.
+    workflow()->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Confirmed);
+    handoffPage($request)->call('returnRequest')->assertSet('blockers', [
+        'Reject at least one part of the checklist, so the requester knows what to fix.',
+        'Write your remarks; the requester sees them.',
+    ]);
+
+    // Once the conditions are met, nothing is blocked.
+    workflow()->recordCheck($request, $this->registrar, CheckItem::AcademicRecord, CheckResult::Rejected);
+    handoffPage($request)->set('remarks', 'Bring the original.')->call('returnRequest')
+        ->assertNotDispatched('modal-show')->assertSet('blockers', []);
+    expect($request->fresh()->status)->toBe(RequestStatus::PendingCompliance);
+});
+
+test('REQ-17-17 at the final check a rejected part points to decline only', function () {
+    // Taken through every office to a received final check.
+    $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    passOffice($request, $this->registrar);
+    passOffice($request, $this->dean);
+    passOffice($request, $this->vpf);
+    passOffice($request, User::factory()->departmentStaff($this->org->chancellor)->create());
+    workflow()->acceptReceipt(openVisit($request), $this->registrar);
+    $request = $request->fresh();
+
+    workflow()->recordCheck($request, $this->registrar, CheckItem::CredentialDocument, CheckResult::Rejected);
+    workflow()->recordCheck($request, $this->registrar, CheckItem::Signatures, CheckResult::Confirmed);
+
+    handoffPage($request)->call('approve')
+        ->assertSet('blockers', ['Rejected: Credential Document. Confirm it to approve, or decline the request.']);
 });
 
 test('REQ-17-03 the remarks field has no hint but its rules still apply', function () {

@@ -216,14 +216,15 @@
                 @endif
                 <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
 
+                {{-- Always enabled; a decision that can't run says why (REQ-17-17). The approving one is on the right (REQ-17-02). --}}
                 <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
-                    <flux:button wire:click="approve" variant="primary" icon="check" :disabled="! $allConfirmed">{{ __('Approve') }}</flux:button>
+                    <flux:button wire:click="decline" variant="danger" icon="no-symbol" data-decline-button data-confirm-title="{{ __('Decline request') }}" data-confirm-label="{{ __('Decline') }}" :wire:confirm="__('Decline :ref? The requester is notified with your remarks. This cannot be undone.', ['ref' => $request->reference_no])">{{ __('Decline') }}</flux:button>
                     @if ($panel === Page::PANEL_EVALUATION)
-                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" :disabled="! $anyRejected">{{ __('Return to requester') }}</flux:button>
+                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return to requester') }}</flux:button>
                     @elseif ($panel === Page::PANEL_PAYMENT)
-                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left">{{ __('Return') }}</flux:button>
+                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return') }}</flux:button>
                     @endif
-                    <flux:button wire:click="decline" variant="danger" icon="no-symbol" data-confirm-title="{{ __('Decline request') }}" data-confirm-label="{{ __('Decline') }}" :wire:confirm="__('Decline :ref? The requester is notified with your remarks. This cannot be undone.', ['ref' => $request->reference_no])">{{ __('Decline') }}</flux:button>
+                    <flux:button wire:click="approve" variant="primary" icon="check" data-approve-button>{{ __('Approve') }}</flux:button>
                 </div>
             </section>
         @endif
@@ -284,6 +285,28 @@
             default => [],
         }]])
     @endif
+
+    {{-- Why a decision could not run (REQ-17-17). --}}
+    <flux:modal name="decision-blocked" class="w-full md:w-[28rem]" data-decision-blocked>
+        <div class="space-y-4">
+            <flux:heading size="lg">
+                {{ match ($blockedAction) {
+                    'approve' => __("Can't approve yet"),
+                    'return' => __("Can't return yet"),
+                    'decline' => __("Can't decline yet"),
+                    default => __("Can't do that yet"),
+                } }}
+            </flux:heading>
+            <ul class="list-disc space-y-2 ps-5 text-sm text-ink" data-blockers>
+                @foreach ($blockers as $blocker)
+                    <li>{{ __($blocker) }}</li>
+                @endforeach
+            </ul>
+            <div class="flex justify-end">
+                <flux:modal.close><flux:button variant="primary">{{ __('OK') }}</flux:button></flux:modal.close>
+            </div>
+        </div>
+    </flux:modal>
 
     <flux:modal name="reject-representative" class="w-full md:w-[28rem]">
         <form wire:submit="rejectRepresentative" class="space-y-6">

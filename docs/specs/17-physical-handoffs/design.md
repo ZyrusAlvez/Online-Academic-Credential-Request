@@ -56,8 +56,21 @@ office as before.
 
 - `x-check-card`: Confirm is `variant="primary" color="green"` and Reject is
   `variant="primary" color="red"`, with the accent pushed to the 700 shade so white text meets
-  4.5:1. The chosen button gets a ring.
-- Decision row: `justify-center`. The Remarks textarea has no `description`.
+  4.5:1. The chosen button gets a ring. Reject comes first and Confirm second, so Confirm is on
+  the right.
+- Decision row: `justify-center`, in the order Decline, Return, Approve. The Remarks textarea has
+  no `description`.
+- Blocked decisions (REQ-17-17): no button is `disabled`. `Show::approve()`, `returnRequest()`
+  and `decline()` gather the reasons before calling `RequestWorkflow`:
+  - The checklist reasons come from the stage's parts (`CheckItem::for`) and their results:
+    parts not yet checked and parts rejected for Approve, no rejected part for Return at the
+    evaluation.
+  - The field reasons are the validation messages (remarks, official receipt number), with
+    friendly wording. The validation error is still thrown, so the field is marked too.
+
+  Any reason fills the locked `$blockedAction` and `$blockers` and opens the `decision-blocked`
+  Flux modal, which lists them with one OK button. `RequestWorkflow` keeps its own guards; this
+  only explains them earlier.
 - `partials.request-record` takes `'ledger'` in `$hide`. The working page always hides it, and
   the Records page keeps it.
 - `partials.visit-actions`: Received → Done button (`:done` label, e.g. "Signed") plus Return.

@@ -22,7 +22,9 @@ use App\Support\ReturnOffices;
 use Closure;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -70,6 +72,14 @@ class Show extends Component
 
     public int|string|null $recipientRepresentativeId = null;
 
+    /** The decision that could not run, and why (REQ-17-17). */
+    #[Locked]
+    public string $blockedAction = '';
+
+    /** @var list<string> */
+    #[Locked]
+    public array $blockers = [];
+
     public function mount(CredentialRequest $credentialRequest): void
     {
         $this->authorize('review', $credentialRequest);
@@ -114,13 +124,13 @@ class Show extends Component
         $optional = ['remarks' => ['nullable', 'string', 'max:500']];
 
         $decision = match ($request->status) {
-            RequestStatus::UnderEvaluation => [$optional,
+            RequestStatus::UnderEvaluation => ['approve', $optional,
                 fn () => $workflow->approveEvaluation($request, $this->actor(), $this->remarks),
                 $request->requires_payment ? 'Approved. Payment instructions were sent to the requester.' : 'Approved and accepted for processing.'],
-            RequestStatus::PaymentVerification => [$optional + ['officialReceiptNo' => ['required', 'string', 'max:50']],
+            RequestStatus::PaymentVerification => ['approve', $optional + ['officialReceiptNo' => ['required', 'string', 'max:50']],
                 fn () => $workflow->verifyPaymentAndAccept($request, $this->actor(), $this->officialReceiptNo, $this->remarks),
                 'Payment verified and request accepted. The processing period has started.'],
-            RequestStatus::ForFinalApproval => [$optional,
+            RequestStatus::ForFinalApproval => ['approve', $optional,
                 fn () => $workflow->approveFinalCheck($request, $this->actor(), $this->remarks),
                 'Approved. The credential is ready for release and the requester was notified.'],
             default => null,
@@ -146,10 +156,10 @@ class Show extends Component
         $rules = ['remarks' => ['required', 'string', 'max:500']];
 
         $decision = match ($request->status) {
-            RequestStatus::UnderEvaluation => [$rules,
+            RequestStatus::UnderEvaluation => ['return', $rules,
                 fn () => $workflow->returnToRequester($request, $this->actor(), $this->remarks),
                 'Returned to the requester with the rejected parts and your remarks.'],
-            RequestStatus::PaymentVerification => [$rules,
+            RequestStatus::PaymentVerification => ['return', $rules,
                 fn () => $workflow->rejectPayment($request, $this->actor(), $this->remarks),
                 'Proof of payment returned. The requester was asked for a valid one.'],
             default => null,
@@ -172,6 +182,7 @@ class Show extends Component
         $this->authorize('evaluate', $this->credentialRequest);
 
         $this->decide(
+            'decline',
             ['remarks' => ['required', 'string', 'max:500']],
             fn () => $workflow->decline($this->credentialRequest, $this->actor(), $this->remarks),
             'Request declined. The requester was notified.',
@@ -287,18 +298,100 @@ class Show extends Component
     }
 
     /**
-     * Validate, run the decision and clear the form on success; a refused decision keeps what was
-     * typed.
+     * Check the decision's conditions, run it and clear the form on success. A decision that can't
+     * run opens a dialog listing every reason and keeps what was typed (REQ-17-17).
      *
+     * @param  string  $action  approve, return or decline
      * @param  array<string, list<string>>  $rules
      */
-    private function decide(array $rules, Closure $decision, string $success): void
+    private function decide(string $action, array $rules, Closure $decision, string $success): void
     {
-        $this->validate($rules, attributes: ['officialReceiptNo' => 'official receipt number']);
+        $blockers = $this->checklistBlockers($action);
+
+        try {
+            $this->validate($rules, [
+                'remarks.required' => 'Write your remarks; the requester sees them.',
+                'officialReceiptNo.required' => 'Enter the official receipt number.',
+            ], ['officialReceiptNo' => 'official receipt number']);
+        } catch (ValidationException $e) {
+            // The field is marked too, so the exception goes on to Livewire.
+            $this->block($action, [...$blockers, ...array_values(Arr::flatten($e->errors()))]);
+
+            throw $e;
+        }
+
+        if ($blockers !== []) {
+            $this->block($action, $blockers);
+
+            return;
+        }
 
         if ($this->attempt($decision, $success)) {
             $this->reset('remarks', 'officialReceiptNo');
         }
+    }
+
+    /**
+     * What the current stage's checklist lacks for the action: every part confirmed to approve,
+     * a rejected part to return at the evaluation (REQ-16-12, 13, 17, 19).
+     *
+     * @return list<string>
+     */
+    private function checklistBlockers(string $action): array
+    {
+        $request = $this->credentialRequest;
+        $stage = match ($request->status) {
+            RequestStatus::UnderEvaluation => CheckStage::Evaluation,
+            RequestStatus::PaymentVerification => CheckStage::Payment,
+            RequestStatus::ForFinalApproval => CheckStage::FinalCheck,
+            default => null,
+        };
+
+        if ($stage === null || $action === 'decline') {
+            return [];
+        }
+
+        $items = CheckItem::for($stage, $request);
+        $results = $request->checkResults($stage);
+        $rejected = array_filter($items, fn (CheckItem $item): bool => ($results[$item->value] ?? null) === CheckResult::Rejected);
+
+        if ($action === 'return') {
+            return $stage === CheckStage::Evaluation && $rejected === []
+                ? ['Reject at least one part of the checklist, so the requester knows what to fix.']
+                : [];
+        }
+
+        $unchecked = array_filter($items, fn (CheckItem $item): bool => ! isset($results[$item->value]));
+        $blockers = [];
+
+        if ($unchecked !== []) {
+            $blockers[] = 'Confirm every part of the checklist. Not checked yet: '.$this->partNames($unchecked).'.';
+        }
+
+        if ($rejected !== []) {
+            $blockers[] = 'Rejected: '.$this->partNames($rejected).'. Confirm '.(count($rejected) > 1 ? 'them' : 'it').' to approve, or '
+                .($stage === CheckStage::FinalCheck ? 'decline' : 'return or decline').' the request.';
+        }
+
+        return $blockers;
+    }
+
+    /**
+     * @param  array<int, CheckItem>  $parts
+     */
+    private function partNames(array $parts): string
+    {
+        return implode(', ', array_map(fn (CheckItem $item): string => $item->label(), $parts));
+    }
+
+    /**
+     * @param  list<string>  $reasons
+     */
+    private function block(string $action, array $reasons): void
+    {
+        $this->blockedAction = $action;
+        $this->blockers = $reasons;
+        Flux::modal('decision-blocked')->show();
     }
 
     private function representative(int $id): RequestRepresentative
