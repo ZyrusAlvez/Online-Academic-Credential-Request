@@ -66,7 +66,7 @@ test('REQ-17-01 Confirm is green and Reject red, and the chosen one is ringed an
     $html = handoffPage($request)->html();
 
     // Reject first, Confirm on its right, on every part.
-    expect(preg_match_all('/data-(reject|confirm)-button/', $html, $order))->toBeGreaterThan(1)
+    expect(preg_match_all('/<button[^>]*?data-(reject|confirm)-button[^>]*>/', $html, $order))->toBeGreaterThan(1)
         ->and(array_chunk($order[1], 2))->each->toBe(['reject', 'confirm']);
 
     // Every part's Confirm is green and its Reject red, chosen or not.
@@ -90,7 +90,7 @@ test('REQ-17-02 the decision buttons are centred under the remarks, Approve on t
     $html = handoffPage($request)->html();
 
     expect($html)->toMatch('/class="flex flex-wrap justify-center gap-2" data-decision-buttons/')
-        ->and(preg_match_all('/data-(decline|return|approve)-button/', $html, $order))->toBe(3)
+        ->and(preg_match_all('/<button[^>]*?data-(decline|return|approve)-button[^>]*>/', $html, $order))->toBe(3)
         ->and($order[1])->toBe(['decline', 'return', 'approve']);
 
     // A representative's Verify is right of Reject too.
