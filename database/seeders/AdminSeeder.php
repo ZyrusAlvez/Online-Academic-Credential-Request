@@ -19,7 +19,7 @@ class AdminSeeder extends Seeder
         $password = config('uphsl.initial_admin.password');
 
         if (blank($email)) {
-            $this->command?->warn('INITIAL_ADMIN_EMAIL is not set: no admin account was created.');
+            $this->command->warn('INITIAL_ADMIN_EMAIL is not set: no admin account was created.');
 
             return;
         }
@@ -29,7 +29,7 @@ class AdminSeeder extends Seeder
         }
 
         if (blank($password)) {
-            $this->command?->warn('INITIAL_ADMIN_PASSWORD is not set: no admin account was created.');
+            $this->command->warn('INITIAL_ADMIN_PASSWORD is not set: no admin account was created.');
 
             return;
         }
