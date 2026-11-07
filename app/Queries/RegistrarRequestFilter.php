@@ -70,7 +70,7 @@ final class RegistrarRequestFilter
             ->whereIn('status', RequestStatus::processing())
             ->whereHas('visits', fn (Builder $q) => $q
                 ->where('department_id', $departmentId)
-                ->whereIn('status', [VisitStatus::InTransit, VisitStatus::Received]));
+                ->whereIn('status', VisitStatus::open()));
     }
 
     /**

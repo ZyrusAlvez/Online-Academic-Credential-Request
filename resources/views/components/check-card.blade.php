@@ -20,11 +20,14 @@
         </div>
         <div class="flex shrink-0 flex-wrap items-center gap-2">
             @if ($editable)
-                <flux:button size="sm" icon="check" :variant="$confirmed ? 'primary' : 'outline'"
+                {{-- Always green and red so they stand out; the chosen one is ringed (REQ-17-01). --}}
+                <flux:button size="sm" icon="check" variant="primary" color="green" data-confirm-button
+                    :class="\Illuminate\Support\Arr::toCssClasses(['[--color-accent:var(--color-green-700)]!', 'ring-2 ring-green-700 ring-offset-2' => $confirmed])"
                     wire:click="check('{{ $item->value }}', 'confirmed')" aria-pressed="{{ $confirmed ? 'true' : 'false' }}">
                     {{ __('Confirm') }}
                 </flux:button>
-                <flux:button size="sm" icon="x-mark" :variant="$rejected ? 'danger' : 'outline'"
+                <flux:button size="sm" icon="x-mark" variant="primary" color="red" data-reject-button
+                    :class="\Illuminate\Support\Arr::toCssClasses(['[--color-accent:var(--color-red-700)]!', 'ring-2 ring-red-700 ring-offset-2' => $rejected])"
                     wire:click="check('{{ $item->value }}', 'rejected')" aria-pressed="{{ $rejected ? 'true' : 'false' }}">
                     {{ __('Reject') }}
                 </flux:button>

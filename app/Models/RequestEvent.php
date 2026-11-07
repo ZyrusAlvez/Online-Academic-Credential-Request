@@ -86,6 +86,7 @@ class RequestEvent extends Model
                 : "Completed by {$office}",
             RequestEventType::DocumentReturned => "Returned for correction by {$office}",
             RequestEventType::DocumentResubmitted => "Corrected and sent back by {$office}",
+            RequestEventType::Corrected => "Corrected by {$office}",
             RequestEventType::DelayRecorded => "Delay recorded at {$office}",
             RequestEventType::StepBypassed => "{$office} step bypassed by the Registrar",
             RequestEventType::ReadyForRelease => 'Ready for release at the Office of the Registrar',

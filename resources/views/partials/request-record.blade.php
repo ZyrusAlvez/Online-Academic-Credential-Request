@@ -2,7 +2,7 @@
     The read-only record of a request for the registrar: details, dates, payments, representatives,
     route, office visits, delays, release and the ledger (REQ-16-07). Requires $request with its
     relations loaded. Sections already shown by the current stage's checklist are skipped:
-    $hide is a list of 'details', 'proofs', 'representatives', 'route'.
+    $hide is a list of 'details', 'proofs', 'representatives', 'route', 'ledger'.
 --}}
 @php($hide ??= [])
 
@@ -118,7 +118,9 @@
     </section>
 @endif
 
-<section aria-labelledby="history-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
-    <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Ledger') }}</h2>
-    <x-request-timeline :events="$request->events" show-actors />
-</section>
+@unless (in_array('ledger', $hide, true))
+    <section aria-labelledby="history-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-ledger>
+        <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Ledger') }}</h2>
+        <x-request-timeline :events="$request->events" show-actors />
+    </section>
+@endunless

@@ -109,6 +109,6 @@ test('REQ-04-14 acceptance starts the clock: due date, route and first hand-off'
         ->and($steps->map(fn ($s) => $s->department->code)->all())->toBe(['REG', 'CCS', 'VPF', 'CHAN', 'REG'])
         ->and($steps->last()->task)->toBe(RouteTask::FinalCheck)
         ->and($steps->first()->status)->toBe(StepStatus::Current)
-        ->and(openVisit($request)->status)->toBe(VisitStatus::InTransit)
+        ->and(openVisit($request)->status)->toBe(VisitStatus::Received)   // at the Registrar (REQ-17-05)
         ->and($request->events()->pluck('type')->all())->toContain(RequestEventType::PaymentVerified, RequestEventType::Accepted, RequestEventType::DocumentForwarded);
 });

@@ -258,11 +258,12 @@ and earlier rows are never overwritten (spec 05).
 | status | varchar(20) | No | | | See [VisitStatus](#visitstatus) |
 | from_department_id | bigint unsigned | Yes | FK → departments | | Office it came from |
 | forwarded_at, forwarded_by | timestamp, bigint unsigned | No | FK → users | | Dispatch |
-| received_at, received_by | timestamp, bigint unsigned | Yes | FK → users | | Accept receipt |
-| completed_at, completed_by | timestamp, bigint unsigned | Yes | FK → users | | Approved, returned or bypassed |
+| received_at, received_by | timestamp, bigint unsigned | Yes | FK → users | | Accept receipt: when the paper was delivered |
+| done_at, done_by | timestamp, bigint unsigned | Yes | FK → users | | The office's task done (prepared, signed, stamped, corrected); the paper may still be there (spec 17) |
+| completed_at, completed_by | timestamp, bigint unsigned | Yes | FK → users | | The paper left (forwarded on), was returned or bypassed, or the final check closed it |
 | returned_to_department_id | bigint unsigned | Yes | FK → departments | | Where it was returned for correction |
 | return_reason, corrective_action, remarks | varchar(500) | Yes | | | |
-| working_days | smallint unsigned | Yes | | | Working days from receipt to completion, frozen when the visit closes |
+| working_days | smallint unsigned | Yes | | | Working days from receipt to leaving, frozen when the visit closes |
 | created_at, updated_at | timestamp | Yes | | | |
 
 ## delay_notes
@@ -536,7 +537,8 @@ Stored as strings; defined in `app/Enums`.
 |---|---|
 | `in_transit` | Forwarded, not yet received |
 | `received` | In the office |
-| `completed` | Approved and released to the next office |
+| `done` | Task done, the paper still in the office until it is forwarded |
+| `completed` | Left the office for the next one (or closed by the final check) |
 | `returned` | Returned to an earlier office for correction |
 | `bypassed` | Closed by a registrar bypass or cancellation |
 

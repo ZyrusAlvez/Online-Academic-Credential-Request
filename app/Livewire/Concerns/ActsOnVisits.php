@@ -12,8 +12,8 @@ use Flux\Flux;
 use Illuminate\Validation\Rule;
 
 /**
- * Office actions on a request's open visit: accept receipt, approve and forward, return for
- * correction, record a delay (spec 05). The using component must expose a
+ * Office actions on a request's open visit: accept receipt, mark done, forward, return for
+ * correction, record a delay (specs 05, 17). The using component must expose a
  * `CredentialRequest $credentialRequest` property.
  *
  * @property CredentialRequest $credentialRequest
@@ -49,9 +49,19 @@ trait ActsOnVisits
         $this->validate(['completeRemarks' => ['nullable', 'string', 'max:500']]);
 
         // A failed attempt keeps the remarks the staff member typed.
-        if ($this->attempt(fn () => $workflow->completeVisit($visit, $this->actor(), $this->completeRemarks), 'Done. The document was forwarded.')) {
+        if ($this->attempt(fn () => $workflow->completeVisit($visit, $this->actor(), $this->completeRemarks), 'Marked done. Forward the document when it leaves your office.')) {
             $this->reset('completeRemarks');
         }
+    }
+
+    /**
+     * The paper leaves the office (REQ-17-07).
+     */
+    public function forwardDocument(RequestWorkflow $workflow): void
+    {
+        $visit = $this->actionableVisit();
+
+        $this->attempt(fn () => $workflow->forwardDocument($visit, $this->actor()), 'Forwarded. The next office confirms when it arrives.');
     }
 
     public function returnVisit(RequestWorkflow $workflow): void

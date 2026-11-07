@@ -17,7 +17,8 @@ the TOR routing example, and section X (return and reprocessing control, deadlin
 ### Route
 - **REQ-05-01** WHEN a request is accepted THE SYSTEM SHALL copy the credential type's route
   (the Dean step resolved to the requester's college), append the Registrar's final quality check
-  as the last step, and forward the document to the first office.
+  as the last step, and forward the document to the first office. *Changed by REQ-17-05:* the
+  paper starts at the Office of the Registrar, received there at once when the route starts there.
 - **REQ-05-02** THE SYSTEM SHALL show office staff, in their queue, the documents forwarded to
   their office and not yet received, the documents in their office, and their office's history.
 
@@ -28,7 +29,8 @@ the TOR routing example, and section X (return and reprocessing control, deadlin
   first office puts it `in_progress` (REQ-16-18).
 - **REQ-05-04** THE SYSTEM SHALL let staff of the office holding a received document approve it
   (prepared, signed, stamped or checked) and release it, which records the completion time and
-  forwards it to the next office on the route.
+  forwards it to the next office on the route. *Changed by REQ-17-06, 07:* marking it done keeps
+  the paper in the office; forwarding is a separate action.
 - **REQ-05-05** WHEN the Registrar completes the final quality check THE SYSTEM SHALL mark the
   request `ready_for_release`.
 - **REQ-05-06** THE SYSTEM SHALL let staff of the office holding a received document return it for
@@ -36,7 +38,8 @@ the TOR routing example, and section X (return and reprocessing control, deadlin
   and the corrective action required (status `returned_for_correction`), and notify that office.
 - **REQ-05-07** WHEN the office a document was returned to has received and corrected it THE
   SYSTEM SHALL let it forward the document back to the office that returned it, which receives it
-  again before the route continues.
+  again before the route continues. *Changed by REQ-17-07:* the corrected document is marked done,
+  then forwarded back.
 - **REQ-05-08** THE SYSTEM SHALL record every office visit (forwarded, received, completed or
   returned, with times, staff and office) as a separate record and SHALL never overwrite an
   earlier visit; the time spent per visit is counted in working days (spec 10).

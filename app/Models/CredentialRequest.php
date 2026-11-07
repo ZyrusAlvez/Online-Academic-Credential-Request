@@ -245,8 +245,20 @@ class CredentialRequest extends Model
     public function openVisit(): HasOne
     {
         return $this->hasOne(OfficeVisit::class)
-            ->whereIn('status', [VisitStatus::InTransit, VisitStatus::Received])
+            ->whereIn('status', VisitStatus::open())
             ->latestOfMany();
+    }
+
+    /**
+     * The office the paper goes to after the one holding it now (REQ-17-11). Reads the loaded
+     * `openVisit.step` and `steps.department`.
+     */
+    public function nextOffice(): ?Department
+    {
+        $visit = $this->openVisit;
+
+        // A copy, so the loaded visit does not point back at this request.
+        return $visit !== null ? (clone $visit)->setRelation('credentialRequest', $this)->nextStep()?->department : null;
     }
 
     /**
