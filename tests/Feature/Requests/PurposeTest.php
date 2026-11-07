@@ -1,7 +1,7 @@
 <?php
 
-use App\Livewire\Forms\CredentialRequestForm;
 use App\Livewire\Admin\Purposes\Index;
+use App\Livewire\Forms\CredentialRequestForm;
 use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
 use App\Models\Purpose;
