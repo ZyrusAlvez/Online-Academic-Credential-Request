@@ -300,10 +300,9 @@
 
             @if ($blockedParts !== [])
                 {{-- Approve: the rule, what blocks it, and how to approve; never Return or Decline. --}}
-                @php
-                    $toConfirm = collect($blockedParts)->where('state', '!==', 'missing')->count();
-                    $receiptMissing = collect($blockedParts)->contains('state', 'missing');
-                @endphp
+                {{-- One-line PHP directives only: a PHP block here would pair with the one-line directive above and swallow the page. --}}
+                @php($toConfirm = collect($blockedParts)->where('state', '!==', 'missing')->count())
+                @php($receiptMissing = collect($blockedParts)->contains('state', 'missing'))
                 <p class="text-sm text-ink">
                     {{ $panel === Page::PANEL_PAYMENT
                         ? __('Approve needs every part of the checklist confirmed and the official receipt number.')
