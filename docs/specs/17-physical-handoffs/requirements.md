@@ -86,7 +86,8 @@ This replaces:
   "Forward to <next office>" button that forwards it (REQ-17-07) after a confirmation. This
   applies when the Registrar's task there is done, or while the paper is received there for the
   Registrar's own route task (preparation, or a correction). In the second case the button marks
-  the task done and forwards the paper in one step. Rows the Office of the Registrar holds SHALL
+  the task done and forwards the paper in one step. The button takes the place of the next
+  office's name in the row, since it names that office. Rows the Office of the Registrar holds SHALL
   open the registrar's working page, and the other rows the read-only record, with no Forward.
 - **REQ-17-13** THE registrar's working page SHALL show, for a paper the Office of the Registrar
   holds, the office it is at, its state there and the next office, with Accept receipt or Done as

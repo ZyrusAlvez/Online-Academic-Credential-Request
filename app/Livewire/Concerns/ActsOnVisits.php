@@ -13,7 +13,7 @@ use Illuminate\Validation\Rule;
 
 /**
  * Office actions on a request's open visit: accept receipt, mark done, forward, return for
- * correction, record a delay (specs 05, 17). The using component must expose a
+ * correction, record a delay (specs 05, 17). Registrars forward from In Progress (REQ-17-16). The using component must expose a
  * `CredentialRequest $credentialRequest` property.
  *
  * @property CredentialRequest $credentialRequest
@@ -49,17 +49,22 @@ trait ActsOnVisits
         $this->validate(['completeRemarks' => ['nullable', 'string', 'max:500']]);
 
         // A failed attempt keeps the remarks the staff member typed.
+        // A failed attempt keeps the remarks the staff member typed.
         if ($this->attempt(fn () => $workflow->completeVisit($visit, $this->actor(), $this->completeRemarks), 'Marked done. Forward the document when it leaves your office.')) {
             $this->reset('completeRemarks');
         }
     }
 
     /**
-     * The paper leaves the office (REQ-17-07).
+     * A department office sends its done paper on (REQ-17-07). Registrars forward the Office of
+     * the Registrar's papers from In Progress only (REQ-17-16).
      */
     public function forwardDocument(RequestWorkflow $workflow): void
     {
+        abort_if($this->actor()->hasRole(Role::Registrar), 403);
+
         $visit = $this->actionableVisit();
+        $this->authorize('forward', $visit);
 
         $this->attempt(fn () => $workflow->forwardDocument($visit, $this->actor()), 'Forwarded. The next office confirms when it arrives.');
     }

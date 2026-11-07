@@ -12,6 +12,6 @@
 
 ## The Registrar forwards from In Progress (2026-11-07)
 
-- [ ] `forwardDocument` also takes the Registrar's received own task; `OfficeVisit::isForwardable`; `OfficeVisitPolicy::forward` (REQ-17-12, 16)
-- [ ] In Progress shows Forward for the Registrar's papers; offices keep Forward on their page; none on the working page (REQ-17-12, 13, 16)
-- [ ] Tests for REQ-17-07, 12, 13, 16
+- [x] `forwardDocument` also takes the Registrar's received own task; `OfficeVisit::isForwardable`; `OfficeVisitPolicy::forward` (REQ-17-12, 16)
+- [x] In Progress shows Forward for the Registrar's papers; offices keep Forward on their page; none on the working page (REQ-17-12, 13, 16)
+- [x] Tests for REQ-17-07, 12, 13, 16
