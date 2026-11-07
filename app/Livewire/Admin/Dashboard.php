@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Registrar;
+namespace App\Livewire\Admin;
 
 use App\Enums\RequestStatus;
 use App\Enums\VisitStatus;
@@ -8,7 +8,6 @@ use App\Models\CredentialRequest;
 use App\Models\Department;
 use App\Models\OfficeVisit;
 use App\Queries\RegistrarRequestFilter;
-use App\Queries\VisitQueue;
 use App\Reports\PerformanceMetrics;
 use App\Reports\ReportFilter;
 use Illuminate\Contracts\View\View;
@@ -18,7 +17,10 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
-#[Title('Registrar Dashboard')]
+/**
+ * The Admin's performance dashboard (spec 07, REQ-18-08). Its links open Records.
+ */
+#[Title('Dashboard')]
 class Dashboard extends Component
 {
     /** Period of the performance indicators (REQ-07-04); this month by default. */
@@ -38,8 +40,6 @@ class Dashboard extends Component
 
     public function render(): View
     {
-        $office = Department::where('code', Department::REGISTRAR_CODE)->first();
-
         /** @var array<string, int> $byStatus */
         $byStatus = CredentialRequest::query()
             ->select('status', DB::raw('count(*) as total'))
@@ -51,27 +51,24 @@ class Dashboard extends Component
 
         $period = new ReportFilter($this->from, $this->to);
 
-        return view('livewire.registrar.dashboard', [
+        // Every tile opens Records with the matching filter (REQ-18-08).
+        return view('livewire.admin.dashboard', [
             'tiles' => [
-                ['label' => __('Needs the Registrar'), 'value' => $count(...RegistrarRequestFilter::needsRegistrar()), 'href' => route('registrar.evaluation')],
-                ['label' => __('Pending compliance'), 'value' => $count(RequestStatus::PendingCompliance, RequestStatus::ReturnedForCustomerAction), 'href' => route('registrar.evaluation', ['waiting' => 1])],
-                ['label' => __('Awaiting payment'), 'value' => $count(RequestStatus::AwaitingPayment), 'href' => route('registrar.records', ['status' => RequestStatus::AwaitingPayment->value])],
-                ['label' => __('Being processed'), 'value' => $count(...RequestStatus::processing()), 'href' => route('registrar.records', ['status' => RegistrarRequestFilter::PROCESSING])],
-                ['label' => __('Ready for release'), 'value' => $count(RequestStatus::ReadyForRelease), 'href' => route('registrar.release')],
+                ['label' => __('Needs the Registrar'), 'value' => $count(...RegistrarRequestFilter::needsRegistrar()), 'href' => route('records', ['status' => RegistrarRequestFilter::NEEDS_REGISTRAR])],
+                ['label' => __('Pending compliance'), 'value' => $count(...RegistrarRequestFilter::waitingForRequester()), 'href' => route('records', ['status' => RegistrarRequestFilter::WAITING_FOR_REQUESTER])],
+                ['label' => __('Awaiting payment'), 'value' => $count(RequestStatus::AwaitingPayment), 'href' => route('records', ['status' => RequestStatus::AwaitingPayment->value])],
+                ['label' => __('Being processed'), 'value' => $count(...RequestStatus::processing()), 'href' => route('records', ['status' => RegistrarRequestFilter::PROCESSING])],
+                ['label' => __('Ready for release'), 'value' => $count(RequestStatus::ReadyForRelease), 'href' => route('records', ['status' => RequestStatus::ReadyForRelease->value])],
             ],
             'overdueCount' => CredentialRequest::overdue()->count(),
             'metrics' => PerformanceMetrics::for($period),
-            'reportsUrl' => route('registrar.reports', ['report' => 'monthly', ...$period->toArray()]),
+            'reportsUrl' => route('admin.reports', ['report' => 'monthly', ...$period->toArray()]),
             'waitingByOffice' => $this->waitingByOffice(),
             'mostOverdue' => CredentialRequest::overdue()
                 ->with(['credentialType:id,name', 'openVisit.department:id,name', 'openVisit.fromDepartment:id,name'])
                 ->orderBy('effective_due_at')
                 ->limit(5)
                 ->get(),
-            'office' => $office,
-            'officeQueue' => $office
-                ? VisitQueue::open($office->id, VisitStatus::InTransit)->get()->concat(VisitQueue::open($office->id, ...VisitStatus::inOffice())->get())
-                : collect(),
         ]);
     }
 

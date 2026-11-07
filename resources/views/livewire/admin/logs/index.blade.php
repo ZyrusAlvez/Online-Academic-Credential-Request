@@ -60,7 +60,7 @@
 
                         @if ($log->reference_no)
                             <div class="mt-1 text-xs md:hidden">
-                                <a href="{{ route('registrar.requests.show', $log->reference_no) }}" wire:navigate class="text-highlight underline underline-offset-2 hover:no-underline">{{ $log->reference_no }}</a>
+                                <a href="{{ route('records.show', $log->reference_no) }}" wire:navigate class="text-highlight underline underline-offset-2 hover:no-underline">{{ $log->reference_no }}</a>
                             </div>
                         @endif
 
@@ -87,7 +87,7 @@
                     </flux:table.cell>
                     <flux:table.cell class="align-top max-md:hidden">
                         @if ($log->reference_no)
-                            <a href="{{ route('registrar.requests.show', $log->reference_no) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $log->reference_no }}</a>
+                            <a href="{{ route('records.show', $log->reference_no) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $log->reference_no }}</a>
                         @else
                             <span class="text-zinc-400">—</span>
                         @endif

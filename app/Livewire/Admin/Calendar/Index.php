@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Registrar\Calendar;
+namespace App\Livewire\Admin\Calendar;
 
 use App\Enums\NonWorkingDayKind;
 use App\Livewire\Concerns\TrimsInput;
@@ -82,7 +82,7 @@ class Index extends Component
             ->orderBy('date')
             ->get();
 
-        return view('livewire.registrar.calendar.index', [
+        return view('livewire.admin.calendar.index', [
             'days' => $days,
             'kinds' => NonWorkingDayKind::cases(),
             'workWeek' => $this->workWeekLabel(),

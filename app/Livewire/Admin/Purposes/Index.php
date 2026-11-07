@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Registrar\Purposes;
+namespace App\Livewire\Admin\Purposes;
 
 use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\PurposeForm;
@@ -90,6 +90,6 @@ class Index extends Component
             ->orderBy('name')
             ->paginate(20);
 
-        return view('livewire.registrar.purposes.index', ['purposes' => $purposes]);
+        return view('livewire.admin.purposes.index', ['purposes' => $purposes]);
     }
 }

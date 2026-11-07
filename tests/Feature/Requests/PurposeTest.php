@@ -1,7 +1,7 @@
 <?php
 
 use App\Livewire\Forms\CredentialRequestForm;
-use App\Livewire\Registrar\Purposes\Index;
+use App\Livewire\Admin\Purposes\Index;
 use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
 use App\Models\Purpose;
@@ -13,7 +13,7 @@ use Livewire\Livewire;
 
 beforeEach(function () {
     Storage::fake('local');
-    $this->registrar = User::factory()->registrar()->create();
+    $this->admin = User::factory()->admin()->create();   // purposes are the Admin's (REQ-18-04)
 });
 
 test('REQ-13-01 a purpose name is unique', function () {
@@ -44,7 +44,7 @@ test('REQ-13-03 the registrar can search and filter purposes', function () {
     Purpose::factory()->inactive()->create(['name' => 'Retired purpose']);
     Purpose::factory()->create(['name' => 'Scholarship application']);
 
-    Livewire::actingAs($this->registrar)->test(Index::class)
+    Livewire::actingAs($this->admin)->test(Index::class)
         ->assertSee('Employment abroad')
         ->assertSee('Scholarship application')
         ->set('search', 'abroad')
@@ -57,7 +57,7 @@ test('REQ-13-03 the registrar can search and filter purposes', function () {
 });
 
 test('REQ-13-04 the registrar can add a purpose and edit it', function () {
-    $component = Livewire::actingAs($this->registrar)->test(Index::class)
+    $component = Livewire::actingAs($this->admin)->test(Index::class)
         ->call('create')
         ->assertDispatched('modal-show', name: 'purpose-form')
         ->set('form.name', 'Visa application')
@@ -80,7 +80,7 @@ test('REQ-13-04 the registrar can add a purpose and edit it', function () {
 test('REQ-13-04 a purpose needs a name with no twin', function () {
     Purpose::factory()->create(['name' => 'Employment']);
 
-    Livewire::actingAs($this->registrar)->test(Index::class)
+    Livewire::actingAs($this->admin)->test(Index::class)
         ->call('create')
         ->call('save')
         ->assertHasErrors(['form.name' => 'required'])
@@ -97,12 +97,12 @@ test('REQ-13-05 the registrar deactivates and reactivates a purpose; inactive on
 
     $owner = requester($org->ccs);
 
-    Livewire::actingAs($this->registrar)->test(Index::class)->call('toggleStatus', $purpose->id);
+    Livewire::actingAs($this->admin)->test(Index::class)->call('toggleStatus', $purpose->id);
     expect($purpose->fresh()->is_active)->toBeFalse();
     Livewire::actingAs($owner)->test(Create::class)
         ->assertViewHas('purposes', fn ($purposes) => ! $purposes->contains('Employment'));
 
-    Livewire::actingAs($this->registrar)->test(Index::class)->call('toggleStatus', $purpose->id);
+    Livewire::actingAs($this->admin)->test(Index::class)->call('toggleStatus', $purpose->id);
     expect($purpose->fresh()->is_active)->toBeTrue();
     Livewire::actingAs($owner)->test(Create::class)
         ->assertViewHas('purposes', fn ($purposes) => $purposes->contains('Employment'));
@@ -111,10 +111,11 @@ test('REQ-13-05 the registrar deactivates and reactivates a purpose; inactive on
 test('REQ-13-06 only registrars can open the Purposes page or change a purpose', function () {
     $purpose = Purpose::factory()->create();
 
-    $this->actingAs($this->registrar)->get(route('registrar.purposes'))->assertOk()->assertSee('Purposes');
-    $this->actingAs(User::factory()->student()->create())->get(route('registrar.purposes'))->assertForbidden();
-    $this->actingAs(User::factory()->departmentStaff()->create())->get(route('registrar.purposes'))->assertForbidden();
-    $this->get(route('registrar.purposes'))->assertForbidden();
+    $this->actingAs($this->admin)->get(route('admin.purposes'))->assertOk()->assertSee('Purposes');
+    $this->actingAs(User::factory()->student()->create())->get(route('admin.purposes'))->assertForbidden();
+    $this->actingAs(User::factory()->departmentStaff()->create())->get(route('admin.purposes'))->assertForbidden();
+    $this->actingAs(User::factory()->registrar()->create())->get(route('admin.purposes'))->assertForbidden();
+    $this->get(route('admin.purposes'))->assertForbidden();
 
     Livewire::actingAs(User::factory()->student()->create())->test(Index::class)->assertForbidden();
     expect($purpose->fresh()->is_active)->toBeTrue();
@@ -151,7 +152,7 @@ test('REQ-13-09 renaming or deactivating a purpose keeps past requests as they w
     $request = submitRequest(requester($org->ccs), $org->free, ['purpose' => 'Employment']);
     $purpose = Purpose::where('name', 'Employment')->firstOrFail();
 
-    Livewire::actingAs($this->registrar)->test(Index::class)
+    Livewire::actingAs($this->admin)->test(Index::class)
         ->call('edit', $purpose->id)
         ->set('form.name', 'Local employment')
         ->call('save')

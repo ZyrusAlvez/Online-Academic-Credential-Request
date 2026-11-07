@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Registrar\CredentialTypes;
+namespace App\Livewire\Admin\CredentialTypes;
 
 use App\Actions\Workflow\AddWorkflowStep;
 use App\Actions\Workflow\MoveWorkflowStep;
@@ -125,7 +125,7 @@ class Workflow extends Component
     {
         $steps = $this->credentialType->steps()->with('department')->get();
 
-        return view('livewire.registrar.credential-types.workflow', [
+        return view('livewire.admin.credential-types.workflow', [
             'steps' => $steps,
             'hasCollegeStep' => $steps->contains('is_student_college', true),
             'tasks' => RouteTask::configurable(),

@@ -13,7 +13,7 @@
         Page::PANEL_PAYMENT => [__('Payment Validation'), 'registrar.payments'],
         Page::PANEL_FINAL_CHECK => [__('Final Quality Check'), 'registrar.final-check'],
         Page::PANEL_RELEASE => [__('Release'), 'registrar.release'],
-        default => [__('Records'), 'registrar.records'],
+        default => [__('Records'), 'records'],
     };
 
     // The decision applies only when every part shown is confirmed (REQ-16-12, 17, 19).

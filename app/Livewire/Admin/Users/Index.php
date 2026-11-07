@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Registrar\Users;
+namespace App\Livewire\Admin\Users;
 
 use App\Actions\Staff\SetAccountStatus;
 use App\Enums\Role;
@@ -134,7 +134,7 @@ class Index extends Component
             ->orderBy('first_name')
             ->paginate(20);
 
-        return view('livewire.registrar.users.index', [
+        return view('livewire.admin.users.index', [
             'accounts' => $accounts,
             'roles' => Role::cases(),
             'departments' => Department::active()->orderBy('type')->orderBy('name')->get(['id', 'name']),

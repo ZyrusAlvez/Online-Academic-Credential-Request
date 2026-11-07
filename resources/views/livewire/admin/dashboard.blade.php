@@ -1,5 +1,5 @@
 <div class="space-y-8">
-    <x-page-header title="Registrar Dashboard" description="Monitor every credential request and where it is waiting." />
+    <x-page-header title="Dashboard" description="Monitor every credential request and where it is waiting." />
 
     <section aria-labelledby="status-heading">
         <h2 id="status-heading" class="sr-only">{{ __('Requests by status') }}</h2>
@@ -10,7 +10,7 @@
                     <p class="mt-1 text-3xl font-bold text-primary tabular-nums">{{ $tile['value'] }}</p>
                 </a>
             @endforeach
-            <a href="{{ route('registrar.records', ['status' => 'overdue']) }}" wire:navigate
+            <a href="{{ route('records', ['status' => 'overdue']) }}" wire:navigate
                 @class([
                     'rounded-xl border p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight',
                     'border-red-700 bg-red-50 hover:bg-red-100' => $overdueCount > 0,
@@ -105,7 +105,7 @@
                 <ul class="space-y-2.5">
                     @foreach ($waitingByOffice as $row)
                         <li>
-                            <a href="{{ route('registrar.records', ['status' => 'processing', 'office' => $row['id']]) }}" wire:navigate
+                            <a href="{{ route('records', ['status' => 'processing', 'office' => $row['id']]) }}" wire:navigate
                                 class="group grid grid-cols-[1fr_2.5rem] items-center gap-x-3 gap-y-1 rounded-md p-1 hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-highlight sm:grid-cols-[minmax(0,15rem)_1fr_2.5rem]"
                                 title="{{ trans_choice(':count request|:count requests', $row['waiting']) }}{{ $row['inTransit'] ? ' · '.__(':n forwarded, not yet received', ['n' => $row['inTransit']]) : '' }}">
                                 <span class="col-span-2 min-w-0 sm:col-span-1">
@@ -137,7 +137,7 @@
                     @foreach ($mostOverdue as $request)
                         <li class="flex flex-wrap items-center justify-between gap-2 p-3">
                             <div class="min-w-0">
-                                <a href="{{ route('registrar.requests.show', $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $request->reference_no }}</a>
+                                <a href="{{ route('records.show', $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $request->reference_no }}</a>
                                 <p class="text-xs text-zinc-600">{{ $request->credentialType->name }} · {{ __('at :office', ['office' => $request->whereabouts()]) }}</p>
                             </div>
                             <flux:badge size="sm" color="red" icon="clock">{{ __('Due :date', ['date' => $request->effective_due_at->format('M j')]) }}</flux:badge>
@@ -147,12 +147,5 @@
             @endif
         </section>
     </div>
-
-    <section aria-labelledby="office-queue-heading" class="space-y-3">
-        <div>
-            <h2 id="office-queue-heading" class="text-lg font-semibold text-primary">{{ __('Office of the Registrar queue') }}</h2>
-            <p class="text-sm text-zinc-600">{{ __('Documents sent to your office for preparation, correction or the final quality check.') }}</p>
-        </div>
-        <x-visit-queue :visits="$officeQueue" link-route="registrar.requests.show" :empty="__('Nothing waiting for the Office of the Registrar.')" />
-    </section>
+    {{-- No Office of the Registrar queue: the Registrar works those papers from In Progress (REQ-18-08). --}}
 </div>

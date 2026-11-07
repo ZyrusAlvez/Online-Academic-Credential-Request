@@ -18,8 +18,13 @@ final class RegistrarRequestFilter
 
     public const OVERDUE = 'overdue';
 
+    /** The dashboard's "Needs the Registrar" and "Pending compliance" tiles (REQ-18-08). */
+    public const NEEDS_REGISTRAR = 'needs_registrar';
+
+    public const WAITING_FOR_REQUESTER = 'waiting_for_requester';
+
     /**
-     * @param  string  $status  'processing', 'open', 'overdue', '' (all) or a RequestStatus value
+     * @param  string  $status  'processing', 'open', 'overdue', 'needs_registrar', 'waiting_for_requester', '' (all) or a RequestStatus value
      */
     public function __construct(
         public string $search = '',
@@ -39,6 +44,8 @@ final class RegistrarRequestFilter
             ->when($this->status === self::PROCESSING, fn (Builder $q) => $q->whereIn('status', RequestStatus::processing()))
             ->when($this->status === self::OPEN, fn (Builder $q) => $q->whereIn('status', RequestStatus::open()))
             ->when($this->status === self::OVERDUE, fn (Builder $q) => $q->overdue())
+            ->when($this->status === self::NEEDS_REGISTRAR, fn (Builder $q) => $q->whereIn('status', self::needsRegistrar()))
+            ->when($this->status === self::WAITING_FOR_REQUESTER, fn (Builder $q) => $q->whereIn('status', self::waitingForRequester()))
             ->when(RequestStatus::tryFrom($this->status), fn (Builder $q, RequestStatus $status) => $q->where('status', $status))
             ->when($this->type !== '', fn (Builder $q) => $q->where('credential_type_id', (int) $this->type))
             ->when($this->office !== '', fn (Builder $q) => self::heldBy($q, (int) $this->office))
@@ -79,5 +86,15 @@ final class RegistrarRequestFilter
     public static function needsRegistrar(): array
     {
         return [RequestStatus::Submitted, RequestStatus::UnderEvaluation, RequestStatus::PaymentVerification];
+    }
+
+    /**
+     * Requests waiting for the requester to comply or respond.
+     *
+     * @return list<RequestStatus>
+     */
+    public static function waitingForRequester(): array
+    {
+        return [RequestStatus::PendingCompliance, RequestStatus::ReturnedForCustomerAction];
     }
 }

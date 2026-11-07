@@ -1,6 +1,6 @@
 <div class="space-y-6">
     <flux:breadcrumbs>
-        <flux:breadcrumbs.item :href="route('registrar.credential-types')" wire:navigate>{{ __('Credential Types') }}</flux:breadcrumbs.item>
+        <flux:breadcrumbs.item :href="route('admin.credential-types')" wire:navigate>{{ __('Credential Types') }}</flux:breadcrumbs.item>
         <flux:breadcrumbs.item>{{ __('Route') }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 

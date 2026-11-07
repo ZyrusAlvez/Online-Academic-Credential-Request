@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Registrar\Departments;
+namespace App\Livewire\Admin\Departments;
 
 use App\Enums\DepartmentType;
 use App\Livewire\Concerns\TrimsInput;
@@ -96,7 +96,7 @@ class Index extends Component
             ->orderBy('name')
             ->paginate(20);
 
-        return view('livewire.registrar.departments.index', [
+        return view('livewire.admin.departments.index', [
             'departments' => $departments,
             'types' => DepartmentType::cases(),
         ]);

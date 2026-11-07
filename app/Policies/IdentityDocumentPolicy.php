@@ -10,11 +10,12 @@ use Illuminate\Auth\Access\Response;
 class IdentityDocumentPolicy
 {
     /**
-     * Only the owner and registrars may open an ID; anyone else sees nothing (REQ-01-20).
+     * Only the owner, registrars and admins may open an ID; anyone else sees nothing (REQ-01-20,
+     * REQ-18-07).
      */
     public function view(User $user, IdentityDocument $document): Response
     {
-        return $user->hasRole(Role::Registrar) || $document->user_id === $user->id
+        return $user->hasRole(Role::Registrar, Role::Admin) || $document->user_id === $user->id
             ? Response::allow()
             : Response::denyAsNotFound();
     }

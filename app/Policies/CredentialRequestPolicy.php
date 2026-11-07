@@ -11,10 +11,13 @@ use Illuminate\Auth\Access\Response;
 
 class CredentialRequestPolicy
 {
-    /** The registrar's list of all requests. */
+    /**
+     * Every request: Records for the Registrar and the Admin, the Admin's dashboard and reports
+     * (REQ-18-06, 08). The stage queues are the Registrar's by their route (REQ-18-05).
+     */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(Role::Registrar);
+        return $user->hasRole(Role::Registrar, Role::Admin);
     }
 
     public function create(User $user): bool
@@ -29,7 +32,7 @@ class CredentialRequestPolicy
     public function view(User $user, CredentialRequest $request): Response
     {
         $allowed = match ($user->role) {
-            Role::Registrar => true,
+            Role::Registrar, Role::Admin => true,
             Role::Student => $request->user_id === $user->id,
             Role::Department => $user->department_id !== null
                 && $request->visits()->where('department_id', $user->department_id)->exists(),

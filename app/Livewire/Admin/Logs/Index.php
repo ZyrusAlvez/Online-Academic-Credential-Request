@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Registrar\Logs;
+namespace App\Livewire\Admin\Logs;
 
 use App\Enums\ActivityCategory;
 use App\Enums\Role;
@@ -61,7 +61,7 @@ class Index extends Component
     {
         $filter = new ActivityLogFilter($this->search, $this->role, $this->category, $this->office, $this->from, $this->to);
 
-        return view('livewire.registrar.logs.index', [
+        return view('livewire.admin.logs.index', [
             'logs' => $filter->query()->with('department:id,name')->paginate(25),
             'roles' => Role::cases(),
             'categories' => ActivityCategory::cases(),

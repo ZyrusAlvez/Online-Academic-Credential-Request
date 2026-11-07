@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Registrar\CredentialTypes;
+namespace App\Livewire\Admin\CredentialTypes;
 
 use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\CredentialTypeForm;
@@ -53,7 +53,7 @@ class Index extends Component
 
         if ($isNew) {
             session()->flash('notify', "{$credentialType->name} created. Now add its workflow steps.");
-            $this->redirectRoute('registrar.credential-types.workflow', $credentialType, navigate: true);
+            $this->redirectRoute('admin.credential-types.workflow', $credentialType, navigate: true);
 
             return;
         }
@@ -72,7 +72,7 @@ class Index extends Component
 
     public function render(): View
     {
-        return view('livewire.registrar.credential-types.index', [
+        return view('livewire.admin.credential-types.index', [
             'credentialTypes' => CredentialType::with('steps.department')->orderBy('name')->get(),
         ]);
     }

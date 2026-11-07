@@ -51,7 +51,7 @@
                     // In Progress: where the Registrar acts next (accepts receipt or forwards), the working
                     // page; the rest, the record (REQ-17-12).
                     $registrarActs = $visit?->department->code === \App\Models\Department::REGISTRAR_CODE;
-                    $rowRoute = $queue === Q::InProgress && ! $registrarActs ? 'registrar.records.show' : $linkRoute;
+                    $rowRoute = $queue === Q::InProgress && ! $registrarActs ? 'records.show' : $linkRoute;
                 @endphp
                 <flux:table.row :key="$request->id">
                     <flux:table.cell class="whitespace-normal">

@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             PurposeSeeder::class,
             CredentialTypeSeeder::class,
             RegistrarSeeder::class,
+            AdminSeeder::class,
             NonWorkingDaySeeder::class,
         ]);
     }

@@ -437,7 +437,7 @@ test('REQ-17-18 the dashboard office counts and the office reports count it at t
     $request = preparedAtRegistrar();
     workflow()->forwardDocument(openVisit($request), $this->registrar);
 
-    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
+    $this->actingAs(User::factory()->admin()->create())->get(route('admin.dashboard'))   // the Admin's dashboard (REQ-18-02)
         ->assertSeeInOrder(['Where requests are waiting', 'Office of the Registrar', '1 forwarded, not yet received']);
 
     $rows = collect((new DepartmentReport)->rows(new ReportFilter))->keyBy(0);
@@ -495,7 +495,7 @@ test('REQ-17-12 rows where the Registrar acts next open the working page, the ot
 
     inProgressQueue()
         ->assertSee(route('registrar.requests.show', $mine), false)
-        ->assertSee(route('registrar.records.show', $elsewhere), false);
+        ->assertSee(route('records.show', $elsewhere), false);
 });
 
 test('REQ-17-13 the working page shows where the Registrar\'s paper is, where it goes next, and the action', function () {

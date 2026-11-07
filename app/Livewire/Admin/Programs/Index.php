@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Registrar\Programs;
+namespace App\Livewire\Admin\Programs;
 
 use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\ProgramForm;
@@ -99,7 +99,7 @@ class Index extends Component
             ->select('programs.*')
             ->paginate(20);
 
-        return view('livewire.registrar.programs.index', [
+        return view('livewire.admin.programs.index', [
             'programs' => $programs,
             'colleges' => Department::active()->colleges()->orderBy('name')->get(['id', 'name']),
         ]);

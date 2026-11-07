@@ -49,13 +49,14 @@ class DemoSeeder extends Seeder
             throw new RuntimeException('The demo seeder only runs in the local and staging environments.');
         }
 
-        $this->call([DepartmentSeeder::class, ProgramSeeder::class, PurposeSeeder::class, CredentialTypeSeeder::class, RegistrarSeeder::class, NonWorkingDaySeeder::class]);
+        $this->call([DepartmentSeeder::class, ProgramSeeder::class, PurposeSeeder::class, CredentialTypeSeeder::class, RegistrarSeeder::class, AdminSeeder::class, NonWorkingDaySeeder::class]);
 
         $this->workflow = $workflow;
         $this->registrar = User::where('role', Role::Registrar)->orderBy('id')->firstOrFail();
 
         $departments = Department::active()->get()->keyBy('code');
         $this->staff = $departments->map(fn (Department $department) => self::staffAccount($department));
+        self::adminAccount();
 
         $requesters = collect([
             ['student@example.com', 'Juan', 'Santos', 'Dela Cruz', 'CCS', 'Bachelor of Science in Computer Science, Specialization in Data Science'],
@@ -215,6 +216,18 @@ class DemoSeeder extends Seeder
         $user = User::firstOrNew(['email' => strtolower($department->code).'@example.com']);
         $user->fill(['first_name' => $department->code, 'middle_name' => null, 'last_name' => 'Staff', 'password' => 'password']);
         $user->forceFill(['role' => Role::Department, 'department_id' => $department->id, 'is_active' => true, 'email_verified_at' => now()])->save();
+
+        return $user;
+    }
+
+    /**
+     * The demo admin, `admin@example.com` with the demo password (REQ-18-12).
+     */
+    public static function adminAccount(): User
+    {
+        $user = User::firstOrNew(['email' => 'admin@example.com']);
+        $user->fill(['first_name' => 'Demo', 'middle_name' => null, 'last_name' => 'Admin', 'password' => 'password']);
+        $user->forceFill(['role' => Role::Admin, 'department_id' => null, 'is_active' => true, 'email_verified_at' => now()])->save();
 
         return $user;
     }

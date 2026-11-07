@@ -30,4 +30,14 @@ return [
         'password' => env('INITIAL_REGISTRAR_PASSWORD'),
     ],
 
+    /*
+    | The first admin account (spec 18), created the same way. Only an admin manages accounts and
+    | setup, so this is how a new install gets administered. Without it the seeder skips the
+    | admin with a warning.
+    */
+    'initial_admin' => [
+        'email' => env('INITIAL_ADMIN_EMAIL'),
+        'password' => env('INITIAL_ADMIN_PASSWORD'),
+    ],
+
 ];

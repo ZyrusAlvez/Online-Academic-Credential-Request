@@ -13,6 +13,7 @@ beforeEach(function () {
     Storage::fake('local');
     $this->org = organisation();
     $this->registrar = User::factory()->registrar()->create();
+    $this->admin = User::factory()->admin()->create();   // the dashboard is the Admin's (REQ-18-02)
     $this->owner = requester($this->org->ccs);
 });
 
@@ -48,7 +49,7 @@ test('REQ-07-03 the dashboard shows the work-queue counts', function () {
     evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar); // awaiting payment
     acceptedAt('2026-01-05 09:00:00');                                      // overdue
 
-    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
+    $this->actingAs($this->admin)->get(route('admin.dashboard'))
         ->assertOk()
         ->assertSeeInOrder(['Needs the Registrar', '1', 'Pending compliance', '0', 'Awaiting payment', '1', 'Being processed', '1', 'Ready for release', '0', 'Overdue', '1']);
 });
@@ -60,16 +61,17 @@ test('REQ-07-05 the dashboard shows which offices hold documents, largest first'
     passOffice($atDean, $this->registrar);
     workflow()->acceptReceipt(openVisit($atDean), User::factory()->departmentStaff($this->org->ccs)->create());   // delivered (REQ-17-18)
 
-    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
+    $this->actingAs($this->admin)->get(route('admin.dashboard'))
         ->assertSeeInOrder(['Where requests are waiting', 'Office of the Registrar', '2', 'College of Computer Studies', '1'])
-        ->assertSee(route('registrar.records', ['status' => 'processing', 'office' => $this->org->ccs->id]));
+        ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->ccs->id]));
 });
 
 test('REQ-07-06 the dashboard lists the most overdue requests', function () {
     $late = acceptedAt('2026-01-05 09:00:00');
 
-    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
-        ->assertSeeInOrder(['Most overdue', $late->reference_no]);
+    $this->actingAs($this->admin)->get(route('admin.dashboard'))
+        ->assertSeeInOrder(['Most overdue', $late->reference_no])
+        ->assertSee(route('records.show', $late), false);   // the read-only record (REQ-18-08)
 });
 
 test('REQ-07-07 the request list can be filtered by the office holding the document', function () {

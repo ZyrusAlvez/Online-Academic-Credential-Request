@@ -42,7 +42,7 @@
                 @endforeach
             </flux:table.columns>
             <flux:table.rows>
-                @forelse (array_slice($rows, 0, \App\Livewire\Registrar\Reports\Index::PAGE_ROWS) as $row)
+                @forelse (array_slice($rows, 0, \App\Livewire\Admin\Reports\Index::PAGE_ROWS) as $row)
                     <flux:table.row :key="$kind->value.'-'.$loop->index">
                         @foreach ($row as $cell)
                             <flux:table.cell @class(['whitespace-normal', 'tabular-nums' => is_numeric($cell)])>{{ $cell ?? '—' }}</flux:table.cell>
@@ -56,8 +56,8 @@
             </flux:table.rows>
         </flux:table>
 
-        @if (count($rows) > \App\Livewire\Registrar\Reports\Index::PAGE_ROWS)
-            <p class="text-sm text-zinc-600">{{ __('Showing the first :n rows. Narrow the dates or filters to see the rest.', ['n' => \App\Livewire\Registrar\Reports\Index::PAGE_ROWS]) }}</p>
+        @if (count($rows) > \App\Livewire\Admin\Reports\Index::PAGE_ROWS)
+            <p class="text-sm text-zinc-600">{{ __('Showing the first :n rows. Narrow the dates or filters to see the rest.', ['n' => \App\Livewire\Admin\Reports\Index::PAGE_ROWS]) }}</p>
         @endif
     </section>
 </div>

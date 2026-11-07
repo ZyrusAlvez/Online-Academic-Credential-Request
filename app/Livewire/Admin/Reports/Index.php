@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Registrar\Reports;
+namespace App\Livewire\Admin\Reports;
 
 use App\Enums\ReportKind;
 use App\Enums\Role;
@@ -59,7 +59,7 @@ class Index extends Component
         $rows = $current->rows($filter);
         $rows = $rows instanceof LazyCollection || $rows instanceof Collection ? $rows : collect($rows);
 
-        return view('livewire.registrar.reports.index', [
+        return view('livewire.admin.reports.index', [
             'kinds' => ReportKind::cases(),
             'kind' => $kind,
             // Not "report": the public $report property (the slug) would shadow it in the view.

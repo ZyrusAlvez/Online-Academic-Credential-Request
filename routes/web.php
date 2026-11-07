@@ -5,6 +5,7 @@ use App\Enums\Role;
 use App\Http\Controllers\IdentityDocumentController;
 use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\RequestDocumentController;
+use App\Livewire\Admin;
 use App\Livewire\Department;
 use App\Livewire\Notifications;
 use App\Livewire\Registrar;
@@ -26,26 +27,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('requests/{credentialRequest}', Student\Requests\Show::class)->name('requests.show');
     });
 
+    // The Registrar works the requests, Initial Evaluation to Release (REQ-16-01..06, REQ-18-03, 05).
     Route::prefix('registrar')->name('registrar.')->middleware('role:registrar')->group(function () {
-        Route::get('/', Registrar\Dashboard::class)->name('dashboard');
-        // One queue per stage (REQ-16-01..06); the working page of a request, and Records (REQ-16-07).
+        Route::redirect('/', '/registrar/evaluation');
         Route::get('evaluation', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Evaluation->value)->name('evaluation');
         Route::get('payments', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Payment->value)->name('payments');
         Route::get('in-progress', Registrar\Queue::class)->defaults('queue', RegistrarQueue::InProgress->value)->name('in-progress');
         Route::get('final-check', Registrar\Queue::class)->defaults('queue', RegistrarQueue::FinalCheck->value)->name('final-check');
         Route::get('release', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Release->value)->name('release');
         Route::get('requests/{credentialRequest}', Registrar\Requests\Show::class)->name('requests.show');
+    });
+
+    // Records, shared by the Registrar and the Admin (REQ-16-07, REQ-18-06).
+    Route::middleware('role:registrar,admin')->group(function () {
         Route::get('records', Registrar\Records\Index::class)->name('records');
         Route::get('records/{credentialRequest}', Registrar\Records\Show::class)->name('records.show');
-        Route::get('reports', Registrar\Reports\Index::class)->name('reports');
-        Route::get('departments', Registrar\Departments\Index::class)->name('departments');
-        Route::get('programs', Registrar\Programs\Index::class)->name('programs');
-        Route::get('purposes', Registrar\Purposes\Index::class)->name('purposes');
-        Route::get('users', Registrar\Users\Index::class)->name('users');
-        Route::get('calendar', Registrar\Calendar\Index::class)->name('calendar');
-        Route::get('logs', Registrar\Logs\Index::class)->name('logs');
-        Route::get('credential-types', Registrar\CredentialTypes\Index::class)->name('credential-types');
-        Route::get('credential-types/{credentialType}/workflow', Registrar\CredentialTypes\Workflow::class)->name('credential-types.workflow');
+    });
+
+    // The Admin: dashboard, reports and administration (REQ-18-02, 04).
+    Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
+        Route::get('/', Admin\Dashboard::class)->name('dashboard');
+        Route::get('reports', Admin\Reports\Index::class)->name('reports');
+        Route::get('credential-types', Admin\CredentialTypes\Index::class)->name('credential-types');
+        Route::get('credential-types/{credentialType}/workflow', Admin\CredentialTypes\Workflow::class)->name('credential-types.workflow');
+        Route::get('departments', Admin\Departments\Index::class)->name('departments');
+        Route::get('programs', Admin\Programs\Index::class)->name('programs');
+        Route::get('purposes', Admin\Purposes\Index::class)->name('purposes');
+        Route::get('users', Admin\Users\Index::class)->name('users');
+        Route::get('calendar', Admin\Calendar\Index::class)->name('calendar');
+        Route::get('logs', Admin\Logs\Index::class)->name('logs');
     });
 
     Route::prefix('department')->name('department.')->middleware('role:department')->group(function () {

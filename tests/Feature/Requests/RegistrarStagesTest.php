@@ -83,14 +83,11 @@ function atFinalCheck(CredentialRequest $request): CredentialRequest
 
 // ── Navigation and queues ───────────────────────────────────────────────────────────────────
 
-test('REQ-16-01 the registrar has one sidebar item per stage, Records and Reports, and no Requests list', function () {
-    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
-        ->assertOk()
-        ->assertSeeInOrder(['Dashboard', 'Initial Evaluation', 'Payment Validation', 'In Progress', 'Final Quality Check', 'Release', 'Records', 'Reports']);
-
+test('REQ-16-01 the registrar has one page per stage and Records, and no Requests list', function () {
+    // The sidebar itself is REQ-18-03 (tests/Feature/Admin/AdminRoleTest.php).
     $this->actingAs($this->registrar)->get('/registrar/requests')->assertNotFound();
 
-    foreach (['registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.final-check', 'registrar.release', 'registrar.records'] as $route) {
+    foreach (['registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.final-check', 'registrar.release', 'records'] as $route) {
         $this->actingAs($this->registrar)->get(route($route))->assertOk();
         $this->actingAs($this->owner)->get(route($route))->assertForbidden();
     }
@@ -126,7 +123,7 @@ test('REQ-16-04 In Progress tracks the office holding each document, filterable 
         ->assertSee($atDean->reference_no)
         ->assertSee('College of Computer Studies')
         ->assertSee('not yet received')
-        ->assertSee(route('registrar.records.show', $atDean), false)
+        ->assertSee(route('records.show', $atDean), false)
         ->assertDontSee($finalCheck->reference_no)
         ->assertDontSee('Approve');
 
@@ -165,14 +162,14 @@ test('REQ-16-07 Records lists every request, searchable and filterable, and a re
         ->assertSee('Ledger')->assertSee('Request details')
         ->assertDontSee('Start evaluation')->assertDontSee('Approve')->assertDontSee('Decline');
 
-    $this->actingAs($this->owner)->get(route('registrar.records.show', $this->request))->assertForbidden();
+    $this->actingAs($this->owner)->get(route('records.show', $this->request))->assertForbidden();
 });
 
 test('REQ-16-08 there is no CSV download of requests or reports', function () {
     $this->actingAs($this->registrar)->get('/registrar/requests/export')->assertNotFound();
     $this->actingAs($this->registrar)->get('/registrar/reports/daily/export')->assertNotFound();
-    $this->actingAs($this->registrar)->get(route('registrar.reports'))->assertOk()->assertDontSee('Export CSV');
-    $this->actingAs($this->registrar)->get(route('registrar.records'))->assertOk()->assertDontSee('Export CSV');
+    $this->actingAs(User::factory()->admin()->create())->get(route('admin.reports'))->assertOk()->assertDontSee('Export CSV');
+    $this->actingAs($this->registrar)->get(route('records'))->assertOk()->assertDontSee('Export CSV');
 });
 
 // ── The evaluation lock ─────────────────────────────────────────────────────────────────────
