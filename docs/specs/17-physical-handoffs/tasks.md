@@ -9,6 +9,6 @@
 - [x] Demo data and test helpers forward after Done
 - [x] Superseded criteria marked in specs 05 and 16
 - [x] Pest tests for every REQ-17 criterion
-- [ ] Reject then Confirm on each part; Decline, Return, Approve in the decision row (REQ-17-01, 02)
-- [ ] Decision buttons always enabled; the `decision-blocked` dialog lists why an action can't run (REQ-17-16)
-- [ ] Pest tests for REQ-17-01, 02 and 16; spec 16 tests expect the dialog instead of the old notice
+- [x] Reject then Confirm on each part; Decline, Return, Approve in the decision row (REQ-17-01, 02)
+- [x] Decision buttons always enabled; the `decision-blocked` dialog lists why an action can't run (REQ-17-16)
+- [x] Pest tests for REQ-17-01, 02 and 16; spec 16 tests expect the dialog instead of the old notice

@@ -1,4 +1,4 @@
-{{-- One part of a Registrar stage's checklist, with Confirm / Reject on its right (REQ-16-10). --}}
+{{-- One part of a Registrar stage's checklist, with Reject / Confirm on its right (REQ-16-10). --}}
 @props(['item', 'result' => null, 'editable' => true])
 
 @php
@@ -20,16 +20,16 @@
         </div>
         <div class="flex shrink-0 flex-wrap items-center gap-2">
             @if ($editable)
-                {{-- Always green and red so they stand out; the chosen one is ringed (REQ-17-01). --}}
-                <flux:button size="sm" icon="check" variant="primary" color="green" data-confirm-button
-                    :class="\Illuminate\Support\Arr::toCssClasses(['[--color-accent:var(--color-green-700)]!', 'ring-2 ring-green-700 ring-offset-2' => $confirmed])"
-                    wire:click="check('{{ $item->value }}', 'confirmed')" aria-pressed="{{ $confirmed ? 'true' : 'false' }}">
-                    {{ __('Confirm') }}
-                </flux:button>
+                {{-- Always red and green so they stand out, Confirm on the right; the chosen one is ringed (REQ-17-01). --}}
                 <flux:button size="sm" icon="x-mark" variant="primary" color="red" data-reject-button
                     :class="\Illuminate\Support\Arr::toCssClasses(['[--color-accent:var(--color-red-700)]!', 'ring-2 ring-red-700 ring-offset-2' => $rejected])"
                     wire:click="check('{{ $item->value }}', 'rejected')" aria-pressed="{{ $rejected ? 'true' : 'false' }}">
                     {{ __('Reject') }}
+                </flux:button>
+                <flux:button size="sm" icon="check" variant="primary" color="green" data-confirm-button
+                    :class="\Illuminate\Support\Arr::toCssClasses(['[--color-accent:var(--color-green-700)]!', 'ring-2 ring-green-700 ring-offset-2' => $confirmed])"
+                    wire:click="check('{{ $item->value }}', 'confirmed')" aria-pressed="{{ $confirmed ? 'true' : 'false' }}">
+                    {{ __('Confirm') }}
                 </flux:button>
             @elseif ($result)
                 <flux:badge size="sm" :color="$result->color()">{{ $result->label() }}</flux:badge>

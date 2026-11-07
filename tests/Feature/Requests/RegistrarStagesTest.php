@@ -228,7 +228,7 @@ test('REQ-16-10 the evaluator sees a read-only checklist of the requester\'s dat
 test('REQ-16-11 remarks are optional to approve and required to return or decline', function () {
     underEvaluation($this->request, [CheckItem::Identity->value => CheckResult::Rejected]);
 
-    stagePage()->assertSeeInOrder(['Remarks', 'Approve', 'Return to requester', 'Decline']);
+    stagePage()->assertSeeInOrder(['Remarks', 'Decline', 'Return to requester', 'Approve']);
     stagePage()->call('returnRequest')->assertHasErrors('remarks');
     stagePage()->call('decline')->assertHasErrors('remarks');
 
@@ -239,7 +239,9 @@ test('REQ-16-12 approving needs every part confirmed, then verifies the ID and r
     workflow()->declareRepresentative($this->request, $this->owner, ['full_name' => 'Rosa Reyes']);
     underEvaluation($this->request, [CheckItem::CredentialRequest->value => CheckResult::Confirmed, CheckItem::Identity->value => CheckResult::Confirmed]);
 
-    stagePage()->call('approve')->assertDispatched('notify', message: 'Confirm every part of the checklist before approving.');
+    stagePage()->call('approve')
+        ->assertDispatched('modal-show', name: 'decision-blocked')
+        ->assertSet('blockers', fn (array $reasons) => str_starts_with($reasons[0], 'Confirm every part of the checklist. Not checked yet: Academic Record Verification'));
     expect($this->request->fresh()->status)->toBe(RequestStatus::UnderEvaluation);
 
     checkAll($this->request, $this->registrar, CheckStage::Evaluation);
@@ -262,7 +264,8 @@ test('REQ-16-13 returning needs a rejected part and sends the request back to th
     checkAll($this->request, $this->registrar, CheckStage::Evaluation);
 
     stagePage()->set('remarks', 'Fix it.')->call('returnRequest')
-        ->assertDispatched('notify', message: 'Reject at least one part so the requester knows what to fix.');
+        ->assertDispatched('modal-show', name: 'decision-blocked')
+        ->assertSet('blockers', ['Reject at least one part of the checklist, so the requester knows what to fix.']);
 
     workflow()->recordCheck($this->request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
     workflow()->recordCheck($this->request, $this->registrar, CheckItem::Representative, CheckResult::Rejected);
@@ -355,9 +358,9 @@ test('REQ-16-17 payment validation: approve with both parts and the OR number; r
     stagePage()->assertSee('Proof of Payment')->assertSee('Amount and Reference')->assertSee('REF-123')->assertSee('Official receipt no.');
 
     stagePage()->set('officialReceiptNo', 'OR-1')->call('approve')
-        ->assertDispatched('notify', message: 'Confirm every part of the checklist before approving.');
+        ->assertSet('blockers', ['Confirm every part of the checklist. Not checked yet: Proof of Payment, Amount and Reference.']);
     checkAll($this->request, $this->registrar, CheckStage::Payment);
-    stagePage()->call('approve')->assertHasErrors('officialReceiptNo');
+    stagePage()->call('approve')->assertHasErrors('officialReceiptNo')->assertSet('blockers', ['Enter the official receipt number.']);
     stagePage()->set('officialReceiptNo', 'OR-1')->call('approve')->assertHasNoErrors();
 
     expect($this->request->fresh())->status->toBe(RequestStatus::AcceptedForProcessing)->due_at->not->toBeNull()
@@ -402,7 +405,7 @@ test('REQ-16-19 the final check is received first, then approved with both parts
     expect($this->request->fresh()->status)->toBe(RequestStatus::ForFinalApproval);
 
     stagePage()->assertSee('Credential Document')->assertSee('Signatures and Stamps')->assertDontSee('Return to requester')
-        ->call('approve')->assertDispatched('notify', message: 'Confirm every part of the checklist before approving.');
+        ->call('approve')->assertSet('blockers', ['Confirm every part of the checklist. Not checked yet: Credential Document, Signatures and Stamps.']);
     checkAll($this->request, $this->registrar, CheckStage::FinalCheck);
     stagePage()->call('approve');
     expect($this->request->fresh()->status)->toBe(RequestStatus::ReadyForRelease);
