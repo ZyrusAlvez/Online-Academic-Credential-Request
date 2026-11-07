@@ -22,3 +22,10 @@
 - [x] Decision buttons always enabled; the `decision-blocked` dialog lists why an action can't run (REQ-17-17)
 - [x] Pest tests for REQ-17-01, 02 and 17; spec 16 tests expect the dialog instead of the old notice
 - [x] Approve dialog: the rule, the blocking parts (✗ rejected, – not checked / not entered yet) and "To approve, …"; no Return or Decline (REQ-17-17)
+
+## A forwarded paper stays with its sender until received (2026-11-07)
+
+- [ ] `Department::registrar()`; `OfficeVisit::holder`, `scopeHeldBy`, `holderSql`; `CredentialRequest::nextOffice` and `whereabouts` use them (REQ-17-18)
+- [ ] `RegistrarRequestFilter::heldBy`, dashboard office counts, `DepartmentReport` pending, `SignatoryReport` by holder (REQ-17-15, 18)
+- [ ] In Progress and the working page: Currently at the holder, "Forwarded :time to :office, not yet received", Next the receiving office (REQ-17-11, 13, 18)
+- [ ] Pest tests for REQ-17-18; REQ-16-04 and REQ-17-11 tests follow the holder
