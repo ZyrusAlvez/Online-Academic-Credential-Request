@@ -23,6 +23,7 @@ use App\Reports\ReportFilter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
@@ -40,6 +41,12 @@ afterEach(fn () => Carbon::setTestNow());
 function handoffPage(CredentialRequest $request): Testable
 {
     return Livewire::actingAs(test()->registrar)->test(Show::class, ['credentialRequest' => $request->fresh()]);
+}
+
+/** The markup of the "why it can't run" dialog only (REQ-17-17). */
+function blockedDialog(Testable $page): string
+{
+    return Str::before(Str::after($page->html(), 'data-decision-blocked'), 'Representative not accepted');
 }
 
 function inProgressQueue(array $query = []): Testable
@@ -113,16 +120,26 @@ test('REQ-17-17 Approve and Return are always enabled; a blocked one lists every
     expect($page->html())->not->toMatch('/<button[^>]*\sdisabled="disabled"[^>]*data-(approve|return|decline)-button/')
         ->toContain('data-decision-blocked');
 
-    // Approve: the unchecked and the rejected parts.
+    // Approve: the rule, the rejected then the unchecked parts, and how to approve; no Return or Decline.
     $page->call('approve')
         ->assertDispatched('modal-show', name: 'decision-blocked')
         ->assertSet('blockedAction', 'approve')
-        ->assertSet('blockers', [
-            'Confirm every part of the checklist. Not checked yet: Credential Request Verification, Academic Record Verification.',
-            'Rejected: User Identity Verification. Confirm it to approve, or return or decline the request.',
+        ->assertSet('blockedParts', [
+            ['label' => 'User Identity Verification', 'state' => 'rejected'],
+            ['label' => 'Credential Request Verification', 'state' => 'unchecked'],
+            ['label' => 'Academic Record Verification', 'state' => 'unchecked'],
         ])
-        ->assertSee("Can't approve yet")
-        ->assertSee('Not checked yet: Credential Request Verification, Academic Record Verification.');
+        ->assertSet('blockers', [])
+        ->assertSeeInOrder([
+            "Can't approve yet",
+            'Approve needs every part of the checklist confirmed.',
+            'User Identity Verification', 'rejected',
+            'Credential Request Verification', 'not checked yet',
+            'Academic Record Verification', 'not checked yet',
+            'To approve, change these to Confirm.',
+        ]);
+
+    expect(blockedDialog($page))->not->toContain('Return')->not->toContain('Decline')->not->toContain('decline');
 
     // Return: missing remarks, also marked on the field; what was typed and checked is kept.
     $page->call('returnRequest')
@@ -148,7 +165,7 @@ test('REQ-17-17 Approve and Return are always enabled; a blocked one lists every
     expect($request->fresh()->status)->toBe(RequestStatus::PendingCompliance);
 });
 
-test('REQ-17-17 at the final check a rejected part points to decline only', function () {
+test('REQ-17-17 at the final check one rejected part says to change it to Confirm', function () {
     // Taken through every office to a received final check.
     $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
     passOffice($request, $this->registrar);
@@ -161,8 +178,35 @@ test('REQ-17-17 at the final check a rejected part points to decline only', func
     workflow()->recordCheck($request, $this->registrar, CheckItem::CredentialDocument, CheckResult::Rejected);
     workflow()->recordCheck($request, $this->registrar, CheckItem::Signatures, CheckResult::Confirmed);
 
+    $page = handoffPage($request)->call('approve')
+        ->assertSet('blockedParts', [['label' => 'Credential Document', 'state' => 'rejected']])
+        ->assertSeeInOrder(["Can't approve yet", 'Approve needs every part of the checklist confirmed.', 'Credential Document', 'rejected', 'To approve, change it to Confirm.']);
+
+    expect(blockedDialog($page))->not->toContain('decline')->not->toContain('Decline');
+});
+
+test('REQ-17-17 at payment validation the missing receipt number is listed with the parts', function () {
+    $request = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    uploadPayment($request);
+
     handoffPage($request)->call('approve')
-        ->assertSet('blockers', ['Rejected: Credential Document. Confirm it to approve, or decline the request.']);
+        ->assertHasErrors('officialReceiptNo')
+        ->assertSet('blockedParts', [
+            ['label' => 'Proof of Payment', 'state' => 'unchecked'],
+            ['label' => 'Amount and Reference', 'state' => 'unchecked'],
+            ['label' => 'Official receipt number', 'state' => 'missing'],
+        ])
+        ->assertSet('blockers', [])
+        ->assertSeeInOrder([
+            'Approve needs every part of the checklist confirmed and the official receipt number.',
+            'Official receipt number', 'not entered yet',
+            'To approve, change the checklist parts to Confirm and enter the official receipt number.',
+        ]);
+
+    checkAll($request, $this->registrar, CheckStage::Payment);
+    handoffPage($request)->call('approve')
+        ->assertSet('blockedParts', [['label' => 'Official receipt number', 'state' => 'missing']])
+        ->assertSee('To approve, enter the official receipt number.');
 });
 
 test('REQ-17-03 the remarks field has no hint but its rules still apply', function () {

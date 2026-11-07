@@ -297,11 +297,56 @@
                     default => __("Can't do that yet"),
                 } }}
             </flux:heading>
-            <ul class="list-disc space-y-2 ps-5 text-sm text-ink" data-blockers>
-                @foreach ($blockers as $blocker)
-                    <li>{{ __($blocker) }}</li>
-                @endforeach
-            </ul>
+
+            @if ($blockedParts !== [])
+                {{-- Approve: the rule, what blocks it, and how to approve; never Return or Decline. --}}
+                @php
+                    $toConfirm = collect($blockedParts)->where('state', '!==', 'missing')->count();
+                    $receiptMissing = collect($blockedParts)->contains('state', 'missing');
+                @endphp
+                <p class="text-sm text-ink">
+                    {{ $panel === Page::PANEL_PAYMENT
+                        ? __('Approve needs every part of the checklist confirmed and the official receipt number.')
+                        : __('Approve needs every part of the checklist confirmed.') }}
+                </p>
+                <ul class="space-y-2 text-sm text-ink" data-blocked-parts>
+                    @foreach ($blockedParts as $part)
+                        <li class="flex items-start gap-2" data-part-state="{{ $part['state'] }}">
+                            @if ($part['state'] === 'rejected')
+                                <flux:icon.x-mark variant="micro" class="mt-0.5 shrink-0 text-red-700" aria-hidden="true" />
+                            @else
+                                <flux:icon.minus variant="micro" class="mt-0.5 shrink-0 text-zinc-500" aria-hidden="true" />
+                            @endif
+                            <span>
+                                <span class="font-medium">{{ __($part['label']) }}</span>
+                                — {{ match ($part['state']) {
+                                    'rejected' => __('rejected'),
+                                    'missing' => __('not entered yet'),
+                                    default => __('not checked yet'),
+                                } }}
+                            </span>
+                        </li>
+                    @endforeach
+                </ul>
+                <p class="text-sm text-ink" data-blocked-hint>
+                    @if ($toConfirm > 0 && $receiptMissing)
+                        {{ __('To approve, change the checklist parts to Confirm and enter the official receipt number.') }}
+                    @elseif ($toConfirm > 0)
+                        {{ $toConfirm === 1 ? __('To approve, change it to Confirm.') : __('To approve, change these to Confirm.') }}
+                    @else
+                        {{ __('To approve, enter the official receipt number.') }}
+                    @endif
+                </p>
+            @endif
+
+            @if ($blockers !== [])
+                <ul class="list-disc space-y-2 ps-5 text-sm text-ink" data-blockers>
+                    @foreach ($blockers as $blocker)
+                        <li>{{ __($blocker) }}</li>
+                    @endforeach
+                </ul>
+            @endif
+
             <div class="flex justify-end">
                 <flux:modal.close><flux:button variant="primary">{{ __('OK') }}</flux:button></flux:modal.close>
             </div>

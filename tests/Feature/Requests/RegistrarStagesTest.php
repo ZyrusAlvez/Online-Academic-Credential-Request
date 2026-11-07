@@ -241,7 +241,7 @@ test('REQ-16-12 approving needs every part confirmed, then verifies the ID and r
 
     stagePage()->call('approve')
         ->assertDispatched('modal-show', name: 'decision-blocked')
-        ->assertSet('blockers', fn (array $reasons) => str_starts_with($reasons[0], 'Confirm every part of the checklist. Not checked yet: Academic Record Verification'));
+        ->assertSet('blockedParts', fn (array $parts) => in_array(['label' => 'Academic Record Verification', 'state' => 'unchecked'], $parts, true));
     expect($this->request->fresh()->status)->toBe(RequestStatus::UnderEvaluation);
 
     checkAll($this->request, $this->registrar, CheckStage::Evaluation);
@@ -358,9 +358,9 @@ test('REQ-16-17 payment validation: approve with both parts and the OR number; r
     stagePage()->assertSee('Proof of Payment')->assertSee('Amount and Reference')->assertSee('REF-123')->assertSee('Official receipt no.');
 
     stagePage()->set('officialReceiptNo', 'OR-1')->call('approve')
-        ->assertSet('blockers', ['Confirm every part of the checklist. Not checked yet: Proof of Payment, Amount and Reference.']);
+        ->assertSet('blockedParts', [['label' => 'Proof of Payment', 'state' => 'unchecked'], ['label' => 'Amount and Reference', 'state' => 'unchecked']]);
     checkAll($this->request, $this->registrar, CheckStage::Payment);
-    stagePage()->call('approve')->assertHasErrors('officialReceiptNo')->assertSet('blockers', ['Enter the official receipt number.']);
+    stagePage()->call('approve')->assertHasErrors('officialReceiptNo')->assertSet('blockedParts', [['label' => 'Official receipt number', 'state' => 'missing']])->assertSet('blockers', []);
     stagePage()->set('officialReceiptNo', 'OR-1')->call('approve')->assertHasNoErrors();
 
     expect($this->request->fresh())->status->toBe(RequestStatus::AcceptedForProcessing)->due_at->not->toBeNull()
@@ -405,7 +405,7 @@ test('REQ-16-19 the final check is received first, then approved with both parts
     expect($this->request->fresh()->status)->toBe(RequestStatus::ForFinalApproval);
 
     stagePage()->assertSee('Credential Document')->assertSee('Signatures and Stamps')->assertDontSee('Return to requester')
-        ->call('approve')->assertSet('blockers', ['Confirm every part of the checklist. Not checked yet: Credential Document, Signatures and Stamps.']);
+        ->call('approve')->assertSet('blockedParts', [['label' => 'Credential Document', 'state' => 'unchecked'], ['label' => 'Signatures and Stamps', 'state' => 'unchecked']]);
     checkAll($this->request, $this->registrar, CheckStage::FinalCheck);
     stagePage()->call('approve');
     expect($this->request->fresh()->status)->toBe(RequestStatus::ReadyForRelease);
