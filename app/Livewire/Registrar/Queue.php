@@ -75,7 +75,7 @@ class Queue extends Component
             'requests' => StageQueue::for($stage, $waiting, $stage === RegistrarQueue::InProgress ? $this->office : '')->paginate(20),
             'showWaiting' => $waiting,
             'waitingCount' => $stage === RegistrarQueue::Evaluation ? StageQueue::for($stage, true)->count() : 0,
-            'offices' => $stage === RegistrarQueue::InProgress ? Department::orderBy('name')->get(['id', 'name']) : collect(),
+            'offices' => $stage === RegistrarQueue::InProgress ? Department::active()->orderBy('name')->get(['id', 'name']) : collect(),
             'linkRoute' => 'registrar.requests.show',
         ])->title(__($stage->label()));
     }

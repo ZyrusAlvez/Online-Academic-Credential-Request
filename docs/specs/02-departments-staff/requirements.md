@@ -23,13 +23,22 @@ Source: *Proposed Workflow*, sections VI–VII (offices and signatories).
   the 11 colleges (list of 2026-11-06, see design):
   - each earlier college becomes its successor under the new name and code, keeping its requests
     and requesters. Requesters of BS Architecture move to Engineering and Architecture;
-  - the College of Law is removed, or only deactivated while a request, requester or log entry
-    still names it;
+  - the College of Law is deleted with everything that names it (REQ-02-18);
   - the earlier colleges' staff accounts are removed. An account that has already acted (a
     request, an office visit, a log entry) is deactivated instead, so the history stays;
   - in local and staging, each college keeps or gets one demo staff account,
     `<code>@example.com`, with the demo password. In production the registrar creates the new
     staff accounts.
+- **REQ-02-18** WHEN a deployment migrates THE SYSTEM SHALL delete the College of Law (code
+  `LAW`) entirely, not keep it as an inactive row (client's decision, 2026-11-07); a college the
+  registrar adds later is left alone:
+  - every request filed under it or routed through it is deleted, with its steps, office visits,
+    ledger, uploads and notifications;
+  - requesters who named it as their college have their college and program cleared, and choose
+    again on their next request;
+  - its staff accounts, programs and route steps are deleted; activity log entries keep their
+    copied names and description but no longer link to it.
+  This is the one exception to the append-only request ledger and activity log.
 - **REQ-02-13** WHEN the offices are seeded THE SYSTEM SHALL deactivate the retired Library,
   Cashier / Finance Office and Student Affairs offices (their clearance is now an evaluation
   requirement), keeping them for the history of earlier requests.
@@ -43,6 +52,10 @@ Source: *Proposed Workflow*, sections VI–VII (offices and signatories).
   Departments SHALL NOT be deletable, so that past requests keep their history.
 - **REQ-02-06** WHILE a department is inactive THE SYSTEM SHALL exclude it from choices for new
   requests and new workflow steps (enforced in specs 03 and 04).
+- **REQ-02-19** THE SYSTEM SHALL list only active offices, colleges, credential types and
+  accounts in the registrar's filter and pick lists (In progress and Records office and type
+  filters, Reports, Activity log, Programs). Inactive rows stay on the management pages
+  (Departments, Credential types, Accounts), where they can be reactivated.
 
 ### Staff accounts
 - **REQ-02-07** THE SYSTEM SHALL let the registrar list all accounts with search by name/email

@@ -58,8 +58,8 @@ class Index extends Component
         return view('livewire.registrar.records.index', [
             'requests' => $requests,
             'statuses' => RequestStatus::cases(),
-            'types' => CredentialType::orderBy('name')->get(['id', 'name']),
-            'offices' => Department::orderBy('name')->get(['id', 'name']),
+            'types' => CredentialType::active()->orderBy('name')->get(['id', 'name']),
+            'offices' => Department::active()->orderBy('name')->get(['id', 'name']),
             'overdueCount' => CredentialRequest::overdue()->count(),
         ]);
     }

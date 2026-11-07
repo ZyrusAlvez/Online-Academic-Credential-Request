@@ -47,7 +47,7 @@ class ReplaceCollegeListSeeder extends Seeder
             $this->moveArchitectureRequesters($colleges);
             $this->replacePrograms();
             $this->replaceStaff($colleges);
-            $this->removeOtherColleges($colleges);
+            $this->removeOtherColleges();
 
             if (app()->environment(['local', 'staging'])) {
                 $colleges->each(fn (Department $college) => DemoSeeder::staffAccount($college));
@@ -144,34 +144,26 @@ class ReplaceCollegeListSeeder extends Seeder
     }
 
     /**
-     * Colleges outside the new list (the College of Law): removed, or deactivated while anything
-     * still refers to them.
-     *
-     * @param  Collection<string, Department>  $colleges
+     * Colleges outside the new list (the College of Law) are deleted with everything that names
+     * them (REQ-02-18).
      */
-    private function removeOtherColleges(Collection $colleges): void
+    private function removeOtherColleges(): void
     {
-        Department::where('type', DepartmentType::College)
-            ->whereNotIn('id', $colleges->pluck('id'))
-            ->get()
-            ->each(fn (Department $college) => $this->removeOrDeactivate($college));
+        (new RemoveCollegeOfLawSeeder)->run();
     }
 
     /**
-     * Deletes in a savepoint; a RESTRICT key (history) rolls it back and the row is deactivated.
+     * Deletes in a savepoint; a RESTRICT key (history) rolls it back and the account is deactivated.
      */
-    private function removeOrDeactivate(User|Department $row): void
+    private function removeOrDeactivate(User $staff): void
     {
         try {
-            DB::transaction(function () use ($row): void {
-                if ($row instanceof User) {
-                    $row->notifications()->delete();
-                }
-
-                $row->delete();
+            DB::transaction(function () use ($staff): void {
+                $staff->notifications()->delete();
+                $staff->delete();
             });
         } catch (QueryException) {
-            $row::whereKey($row->id)->update(['is_active' => false]);
+            User::whereKey($staff->id)->update(['is_active' => false]);
         }
     }
 }
