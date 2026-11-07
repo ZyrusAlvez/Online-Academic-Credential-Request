@@ -443,7 +443,7 @@ test('REQ-12-10 a college without programs tells the requester to contact the Re
         ->assertSee('No programs are listed for this college yet');
 });
 
-test('REQ-01-10 requesters land on the new-request page', function () {
+test('REQ-18-02 requesters land on the new-request page', function () {   // REQ-01-10, superseded by REQ-18-02/03
     $this->actingAs($this->student)->get('/dashboard')->assertRedirect(route('student.requests.create'));
 });
 
