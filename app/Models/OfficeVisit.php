@@ -106,7 +106,7 @@ class OfficeVisit extends Model
     {
         return [
             'CASE WHEN office_visits.status = ? THEN COALESCE(office_visits.from_department_id, ?) ELSE office_visits.department_id END',
-            [VisitStatus::InTransit->value, Department::registrar()?->id ?? 0],
+            [VisitStatus::InTransit->value, Department::registrar()->id ?? 0],
         ];
     }
 
