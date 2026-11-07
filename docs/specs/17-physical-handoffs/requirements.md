@@ -50,14 +50,20 @@ This replaces:
   optional to approve and required to return or decline.
 - **REQ-17-17** THE decision buttons SHALL always be enabled. WHEN the registrar clicks Approve,
   Return or Decline and the action's conditions (spec 16) are not met THE SYSTEM SHALL change
-  nothing, keep what was typed and checked, and open a dialog that lists every reason:
-  - Approve: the parts not yet checked, the parts rejected, and at Payment Validation a missing
-    official receipt number.
+  nothing, keep what was typed and checked, and open a dialog that says why:
+  - Approve: the rule "Approve needs every part of the checklist confirmed" (at Payment
+    Validation, "… and the official receipt number"), then each part that blocks it with its
+    state, rejected first and then not checked yet (and the official receipt number, not entered
+    yet), then how to approve: "To approve, change these to Confirm" (or "it", or "enter the
+    official receipt number"). It SHALL NOT suggest Return or Decline, because the registrar's
+    goal is to approve.
   - Return at the Initial Evaluation: no rejected part.
   - Return and Decline: missing remarks.
 
   A missing field SHALL also be marked on the field itself. *(Added 2026-11-07, user's decision:
-  disabled buttons did not say why.)*
+  disabled buttons did not say why. Approve wording revised the same day: the first version
+  read "Rejected: …. Confirm it to approve, or return or decline the request.", which was
+  unclear.)*
 - **REQ-17-04** THE registrar's working page (`/registrar/requests/{id}`) SHALL NOT show the
   ledger. The Records page (`/registrar/records/{id}`) SHALL keep it.
 

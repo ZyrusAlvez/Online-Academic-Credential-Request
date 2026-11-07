@@ -56,6 +56,9 @@ class Show extends Component
 
     public const PANEL_VIEW = 'view';
 
+    /** Listed as a blocking part of Approve, not as a sentence (REQ-17-17). */
+    private const RECEIPT_REQUIRED = 'Enter the official receipt number.';
+
     #[Locked]
     public CredentialRequest $credentialRequest;
 
@@ -75,6 +78,14 @@ class Show extends Component
     /** The decision that could not run, and why (REQ-17-17). */
     #[Locked]
     public string $blockedAction = '';
+
+    /**
+     * What blocks Approve: each part not confirmed and a missing receipt number (REQ-17-17).
+     *
+     * @var list<array{label: string, state: 'rejected'|'unchecked'|'missing'}>
+     */
+    #[Locked]
+    public array $blockedParts = [];
 
     /** @var list<string> */
     #[Locked]
@@ -306,22 +317,35 @@ class Show extends Component
      */
     private function decide(string $action, array $rules, Closure $decision, string $success): void
     {
-        $blockers = $this->checklistBlockers($action);
+        $parts = [];
+        $blockers = [];
+
+        if ($action === 'approve') {
+            $parts = $this->unconfirmedParts();
+
+            if (array_key_exists('officialReceiptNo', $rules) && blank($this->officialReceiptNo)) {
+                $parts[] = ['label' => 'Official receipt number', 'state' => 'missing'];
+            }
+        } elseif ($action === 'return' && $this->stage() === CheckStage::Evaluation && ! in_array('rejected', array_column($this->stageParts(), 'state'), true)) {
+            $blockers[] = 'Reject at least one part of the checklist, so the requester knows what to fix.';
+        }
 
         try {
             $this->validate($rules, [
                 'remarks.required' => 'Write your remarks; the requester sees them.',
-                'officialReceiptNo.required' => 'Enter the official receipt number.',
+                'officialReceiptNo.required' => self::RECEIPT_REQUIRED,
             ], ['officialReceiptNo' => 'official receipt number']);
         } catch (ValidationException $e) {
-            // The field is marked too, so the exception goes on to Livewire.
-            $this->block($action, [...$blockers, ...array_values(Arr::flatten($e->errors()))]);
+            // The receipt number is already in the parts. The field is marked too, so the exception
+            // goes on to Livewire.
+            $messages = array_values(array_diff(array_map(strval(...), Arr::flatten($e->errors())), [self::RECEIPT_REQUIRED]));
+            $this->block($action, $parts, [...$blockers, ...$messages]);
 
             throw $e;
         }
 
-        if ($blockers !== []) {
-            $this->block($action, $blockers);
+        if ($parts !== [] || $blockers !== []) {
+            $this->block($action, $parts, $blockers);
 
             return;
         }
@@ -331,65 +355,69 @@ class Show extends Component
         }
     }
 
-    /**
-     * What the current stage's checklist lacks for the action: every part confirmed to approve,
-     * a rejected part to return at the evaluation (REQ-16-12, 13, 17, 19).
-     *
-     * @return list<string>
-     */
-    private function checklistBlockers(string $action): array
+    /** The checklist stage the request is at, if any. */
+    private function stage(): ?CheckStage
     {
-        $request = $this->credentialRequest;
-        $stage = match ($request->status) {
+        return match ($this->credentialRequest->status) {
             RequestStatus::UnderEvaluation => CheckStage::Evaluation,
             RequestStatus::PaymentVerification => CheckStage::Payment,
             RequestStatus::ForFinalApproval => CheckStage::FinalCheck,
             default => null,
         };
+    }
 
-        if ($stage === null || $action === 'decline') {
+    /**
+     * Every part of the current stage with its state, in checklist order.
+     *
+     * @return list<array{label: string, state: 'confirmed'|'rejected'|'unchecked'}>
+     */
+    private function stageParts(): array
+    {
+        $stage = $this->stage();
+
+        if ($stage === null) {
             return [];
         }
 
-        $items = CheckItem::for($stage, $request);
-        $results = $request->checkResults($stage);
-        $rejected = array_filter($items, fn (CheckItem $item): bool => ($results[$item->value] ?? null) === CheckResult::Rejected);
+        $results = $this->credentialRequest->checkResults($stage);
 
-        if ($action === 'return') {
-            return $stage === CheckStage::Evaluation && $rejected === []
-                ? ['Reject at least one part of the checklist, so the requester knows what to fix.']
-                : [];
-        }
-
-        $unchecked = array_filter($items, fn (CheckItem $item): bool => ! isset($results[$item->value]));
-        $blockers = [];
-
-        if ($unchecked !== []) {
-            $blockers[] = 'Confirm every part of the checklist. Not checked yet: '.$this->partNames($unchecked).'.';
-        }
-
-        if ($rejected !== []) {
-            $blockers[] = 'Rejected: '.$this->partNames($rejected).'. Confirm '.(count($rejected) > 1 ? 'them' : 'it').' to approve, or '
-                .($stage === CheckStage::FinalCheck ? 'decline' : 'return or decline').' the request.';
-        }
-
-        return $blockers;
+        return array_map(fn (CheckItem $item): array => ['label' => $item->label(), 'state' => match ($results[$item->value] ?? null) {
+            CheckResult::Confirmed => 'confirmed',
+            CheckResult::Rejected => 'rejected',
+            default => 'unchecked',
+        }], CheckItem::for($stage, $this->credentialRequest));
     }
 
     /**
-     * @param  array<int, CheckItem>  $parts
+     * The parts that keep Approve from running: rejected first, then not checked yet
+     * (REQ-16-12, 17, 19).
+     *
+     * @return list<array{label: string, state: 'rejected'|'unchecked'|'missing'}>
      */
-    private function partNames(array $parts): string
+    private function unconfirmedParts(): array
     {
-        return implode(', ', array_map(fn (CheckItem $item): string => $item->label(), $parts));
+        $rejected = [];
+        $unchecked = [];
+
+        foreach ($this->stageParts() as $part) {
+            if ($part['state'] === 'rejected') {
+                $rejected[] = ['label' => $part['label'], 'state' => 'rejected'];
+            } elseif ($part['state'] === 'unchecked') {
+                $unchecked[] = ['label' => $part['label'], 'state' => 'unchecked'];
+            }
+        }
+
+        return [...$rejected, ...$unchecked];
     }
 
     /**
+     * @param  list<array{label: string, state: 'rejected'|'unchecked'|'missing'}>  $parts
      * @param  list<string>  $reasons
      */
-    private function block(string $action, array $reasons): void
+    private function block(string $action, array $parts, array $reasons): void
     {
         $this->blockedAction = $action;
+        $this->blockedParts = $parts;
         $this->blockers = $reasons;
         Flux::modal('decision-blocked')->show();
     }
