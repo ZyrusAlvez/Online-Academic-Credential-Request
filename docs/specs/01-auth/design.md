@@ -90,8 +90,8 @@ Identity code:
   `/registrar`, `/department` behind `auth`, `verified`, `role:*`. Content comes in later specs.
 - Sidebar navigation is chosen by role.
 - `DatabaseSeeder` creates `registrar@uphsl.edu.ph` with password from
-  `INITIAL_REGISTRAR_PASSWORD` in production (renamed from `SEED_REGISTRAR_PASSWORD` for clarity;
-  staging always uses `password`).
+  `INITIAL_REGISTRAR_PASSWORD` in production (renamed from `SEED_REGISTRAR_PASSWORD` for clarity).
+  Demo accounts use `@Test123` (REQ-07-09).
 
 ## Routes
 
@@ -132,4 +132,5 @@ Identity code:
 - Password rules (REQ-01-03) live in one place, `Password::defaults()` in `AppServiceProvider`:
   min. 8 characters, mixed case, a number and a symbol. Register, reset password, change password
   and the staff account form all use `Password::defaults()`. The rules only apply when a password
-  is chosen, so existing accounts (and demo accounts with `password`) still log in.
+  is chosen, so existing accounts with an older, weaker password still log in. Demo accounts
+  use `@Test123`, which meets the rules (REQ-07-09).
