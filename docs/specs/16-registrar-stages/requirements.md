@@ -49,14 +49,16 @@ This replaces:
 - **REQ-16-04** THE In Progress queue SHALL list the requests in progress or returned for correction
   between offices (not those sent for the final check), with the office holding the document now,
   whether it has been received there, since when, the due date and an overdue mark, and SHALL let
-  the registrar filter it by office. It SHALL be for tracking only, with no actions.
+  the registrar filter it by office. It SHALL be for tracking only, with no actions. *Changed by
+  REQ-17-11, 12:* it also lists accepted requests, shows the next office, and lets the registrar
+  forward the papers its office holds.
 - **REQ-16-05** THE Final Quality Check queue SHALL list the requests whose document is sent to, or
   held by, the Registrar for the final quality check, oldest first.
 - **REQ-16-06** THE Release queue SHALL list the credentials ready for release, oldest first.
 - **REQ-16-07** THE Records list SHALL show every request, searchable by tracking number, student
   number or name, and filterable by status (including "Overdue"), credential type and the office
   holding it. A record SHALL open a read-only page with the request's details, route, office visits
-  and ledger, and no actions.
+  and ledger, and no actions. The working page does not show the ledger (REQ-17-04).
 - **REQ-16-08** THE SYSTEM SHALL NOT offer a CSV download of the requests or of any report; the
   former download addresses SHALL respond 404.
 
@@ -82,7 +84,7 @@ This replaces:
   requester entered.
 - **REQ-16-11** BELOW the checklist THE SYSTEM SHALL show a Remarks field and the buttons Approve,
   Return to requester and Decline. Remarks SHALL be optional to approve and required to return or
-  decline.
+  decline. The field shows no hint about this (REQ-17-03).
 - **REQ-16-12** WHEN the evaluator approves THE SYSTEM SHALL require every part shown to be
   confirmed. It SHALL then mark the request's ID and its representatives verified, and move a paid
   request to `awaiting_payment` with payment instructions, or accept a free request directly
