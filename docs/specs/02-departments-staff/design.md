@@ -30,6 +30,20 @@ lets registrar accounts act on its steps.
   the VP for Finance (documentary stamp), `CHAN` Office of the Chancellor, `PRES` Office of the
   President, plus the 11 colleges (Dean's review and signature). Deploys run it through the
   master-list data migration (spec 03).
+- `Database\Seeders\RemoveCollegeOfLawSeeder` (REQ-02-18) — deletes every `college` whose code
+  is not in `DepartmentSeeder::COLLEGES`, in one transaction, through the query builder (the
+  `RequestEvent` and `ActivityLog` models refuse deletes and updates): the requests that name it
+  (`college_id`, a step, a visit, an event or a delay note) with all their rows and the
+  `notifications` whose `data->request_id` is one of them; `users.college_id`/`program` → null;
+  its staff accounts (log entries' `actor_id` → null; an account still referenced elsewhere is
+  deactivated and detached instead); its programs and `workflow_steps`; `activity_logs.department_id`
+  → null. Uploaded receipts and documents are deleted from `RequestWorkflow::proofDisk()` after
+  the commit. Run by `ReplaceCollegeListSeeder` (deploys that have not replaced the list yet)
+  and by the `remove_college_of_law` migration (deploys that only deactivated Law).
+- Filter and pick lists use `Department::active()`, `CredentialType::active()` and
+  `is_active` accounts (REQ-02-19): `Registrar\Queue` (In progress office filter),
+  `Registrar\Records\Index`, `Registrar\Reports\Index`, `Registrar\Logs\Index`,
+  `Registrar\Programs\Index`. A filter value already in the URL still applies.
 - `App\Actions\Staff\SaveStaffAccount` — create/update staff; forces role ∈ {department,
   registrar}, clears `department_id` for registrars, marks new accounts verified.
 - `App\Actions\Staff\SetAccountStatus` — refuses to deactivate the acting registrar.

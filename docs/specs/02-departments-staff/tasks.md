@@ -17,3 +17,8 @@
 - [x] Accounts page: Change role menu item and modal; Edit no longer changes the role (REQ-02-09, 15)
 - [x] Role change wording in the activity log (REQ-02-17)
 - [x] Pest tests for REQ-02-15..17 and the changed REQ-02-09, 11
+- [ ] `RemoveCollegeOfLawSeeder` + `remove_college_of_law` migration; `ReplaceCollegeListSeeder`
+      uses it (REQ-02-14, 18)
+- [ ] Active-only filter and pick lists on In progress, Records, Reports, Activity log, Programs
+      (REQ-02-19)
+- [ ] Pest tests for REQ-02-18, 19 and the changed REQ-02-14
