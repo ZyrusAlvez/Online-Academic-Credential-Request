@@ -24,7 +24,7 @@ final class StageQueue
     {
         $query = CredentialRequest::query()->with([
             'credentialType:id,name', 'evaluator:id,first_name,middle_name,last_name',
-            'openVisit.department:id,name', 'openVisit.step:id,task',
+            'openVisit.department:id,name,code', 'openVisit.step:id,task,position,department_id',
         ]);
 
         return match ($queue) {
@@ -34,8 +34,10 @@ final class StageQueue
             RegistrarQueue::Payment => $query
                 ->where('status', RequestStatus::PaymentVerification)
                 ->orderBy('updated_at')->orderBy('id'),
+            // Where each paper is and goes next, from acceptance on (REQ-17-11).
             RegistrarQueue::InProgress => $query
-                ->whereIn('status', [RequestStatus::InProgress, RequestStatus::ReturnedForCorrection])
+                ->with(['steps:id,credential_request_id,department_id,position,status', 'steps.department:id,name'])
+                ->whereIn('status', [RequestStatus::AcceptedForProcessing, RequestStatus::InProgress, RequestStatus::ReturnedForCorrection])
                 ->whereDoesntHave('visits', self::atFinalCheck(...))
                 ->when($office !== '', fn (Builder $q) => RegistrarRequestFilter::heldBy($q, (int) $office))
                 ->orderBy('effective_due_at')->orderBy('id'),
@@ -56,7 +58,7 @@ final class StageQueue
      */
     private static function atFinalCheck(Builder $visits): void
     {
-        $visits->whereIn('status', [VisitStatus::InTransit, VisitStatus::Received])
+        $visits->whereIn('status', VisitStatus::open())
             ->where('purpose', '!=', VisitPurpose::Correction)
             ->whereHas('step', fn (Builder $q) => $q->where('task', RouteTask::FinalCheck));
     }

@@ -31,6 +31,7 @@
             <flux:table.column class="max-md:hidden">{{ __('Requester') }}</flux:table.column>
             @if ($queue === Q::InProgress)
                 <flux:table.column>{{ __('Currently at') }}</flux:table.column>
+                <flux:table.column>{{ __('Next') }}</flux:table.column>
                 <flux:table.column class="max-sm:hidden">{{ __('Due') }}</flux:table.column>
             @elseif ($queue === Q::FinalCheck)
                 <flux:table.column>{{ __('Document') }}</flux:table.column>
@@ -45,9 +46,15 @@
 
         <flux:table.rows>
             @forelse ($requests as $request)
+                @php
+                    $visit = $request->openVisit;
+                    // In Progress: the Registrar's own papers open the working page, the rest the record (REQ-17-12).
+                    $atRegistrar = $visit?->department->code === \App\Models\Department::REGISTRAR_CODE;
+                    $rowRoute = $queue === Q::InProgress && ! $atRegistrar ? 'registrar.records.show' : $linkRoute;
+                @endphp
                 <flux:table.row :key="$request->id">
                     <flux:table.cell class="whitespace-normal">
-                        <a href="{{ route($linkRoute, $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $request->reference_no }}</a>
+                        <a href="{{ route($rowRoute, $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $request->reference_no }}</a>
                         <div class="text-xs text-zinc-600">{{ $request->credentialType->name }}</div>
                     </flux:table.cell>
                     <flux:table.cell class="max-md:hidden whitespace-normal">
@@ -56,20 +63,36 @@
                     </flux:table.cell>
 
                     @if ($queue === Q::InProgress || $queue === Q::FinalCheck)
-                        @php($visit = $request->openVisit)
-                        <flux:table.cell class="whitespace-normal">
+                        <flux:table.cell class="whitespace-normal" data-current-office>
                             @if ($queue === Q::InProgress)
                                 <div class="font-medium text-ink">{{ $visit?->department->name ?? '—' }}</div>
                             @endif
                             @if ($visit)
                                 <div class="text-xs text-zinc-600">
-                                    {{ $visit->status === VisitStatus::InTransit ? __('Forwarded :time, not yet received', ['time' => $visit->forwarded_at->diffForHumans()]) : __('Received :time', ['time' => $visit->received_at->diffForHumans()]) }}
+                                    {{ match ($visit->status) {
+                                        VisitStatus::InTransit => __('On the way since :time, not yet received', ['time' => $visit->forwarded_at->diffForHumans()]),
+                                        VisitStatus::Done => __('Done :time, not yet forwarded', ['time' => $visit->done_at->diffForHumans()]),
+                                        default => __('Received :time', ['time' => $visit->received_at->diffForHumans()]),
+                                    } }}
                                 </div>
                             @endif
                             @if ($request->status === S::ReturnedForCorrection)
                                 <flux:badge size="sm" color="orange" class="mt-1">{{ __('Returned for correction') }}</flux:badge>
                             @endif
                         </flux:table.cell>
+                        @if ($queue === Q::InProgress)
+                            @php($next = $request->nextOffice())
+                            <flux:table.cell class="whitespace-normal" data-next-office>
+                                <div class="text-ink">{{ $next?->name ?? '—' }}</div>
+                                @if ($next && $atRegistrar && $visit->status === VisitStatus::Done)
+                                    <flux:button size="sm" variant="primary" icon="paper-airplane" class="mt-1"
+                                        wire:click="forward({{ $request->id }})" data-forward
+                                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Has the paper of :ref left the Office of the Registrar for :office? They confirm when it arrives.', ['ref' => $request->reference_no, 'office' => $next->name])">
+                                        {{ __('Forward to :office', ['office' => $next->name]) }}
+                                    </flux:button>
+                                @endif
+                            </flux:table.cell>
+                        @endif
                         <flux:table.cell class="max-sm:hidden">
                             <div class="flex flex-wrap items-center gap-1 text-zinc-700">
                                 {{ $request->effective_due_at?->format('M j, Y') ?? '—' }}
@@ -97,7 +120,7 @@
                 </flux:table.row>
             @empty
                 <flux:table.row>
-                    <flux:table.cell colspan="4" class="py-8 text-center text-zinc-500">{{ __('Nothing here right now.') }}</flux:table.cell>
+                    <flux:table.cell colspan="5" class="py-8 text-center text-zinc-500">{{ __('Nothing here right now.') }}</flux:table.cell>
                 </flux:table.row>
             @endforelse
         </flux:table.rows>

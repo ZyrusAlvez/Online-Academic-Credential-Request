@@ -39,6 +39,7 @@ enum RequestEventType: string
     case StepCompleted = 'step_completed';
     case DocumentReturned = 'document_returned';
     case DocumentResubmitted = 'document_resubmitted';
+    case Corrected = 'corrected';
     case DelayRecorded = 'delay_recorded';
     case StepBypassed = 'step_bypassed';
     case ReadyForRelease = 'ready_for_release';
@@ -66,6 +67,7 @@ enum RequestEventType: string
             self::DocumentForwarded,
             self::DocumentReturned,
             self::DocumentResubmitted,
+            self::Corrected,
             self::DelayRecorded,
             self::StepBypassed,
         ], true);

@@ -322,6 +322,12 @@ class DemoSeeder extends Seeder
             }
 
             $this->workflow->completeVisit($visit, $this->actorFor($code), fake()->optional(0.3)->randomElement(['Signed.', 'Verified.', 'Stamped.']));
+
+            // Done, then the paper is carried on a little later (REQ-17-07).
+            if ($visit->status === VisitStatus::Done) {
+                $this->later(fake()->numberBetween(1, 6));
+                $this->workflow->forwardDocument($visit, $this->actorFor($code));
+            }
         }
     }
 

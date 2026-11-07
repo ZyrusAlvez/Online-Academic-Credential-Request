@@ -17,22 +17,36 @@
             </flux:callout>
         @endif
 
+        @php($next = $visit->nextStep()?->department)
+
         @if ($visit->status === \App\Enums\VisitStatus::InTransit)
             <p class="text-sm text-zinc-700">{{ __('Forwarded :time. Confirm when the document is physically in your office.', ['time' => $visit->forwarded_at->diffForHumans()]) }}</p>
             <flux:button wire:click="acceptReceipt" variant="primary" icon="inbox-arrow-down" class="w-full">{{ __('Accept receipt') }}</flux:button>
+        @elseif ($visit->status === \App\Enums\VisitStatus::Done)
+            {{-- Done, but the paper is still here until it is forwarded (REQ-17-07). --}}
+            <p class="text-sm text-zinc-700" data-done>{{ __('Done :time. The document is still in your office.', ['time' => $visit->done_at->diffForHumans()]) }}</p>
+            @if ($next)
+                <flux:button wire:click="forwardDocument" variant="primary" icon="paper-airplane" class="w-full" data-forward
+                    data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Has the paper left your office for :office? They confirm when it arrives.', ['office' => $next->name])">
+                    {{ __('Forward to :office', ['office' => $next->name]) }}
+                </flux:button>
+            @endif
         @else
             <p class="text-xs text-zinc-600">{{ __('Received :time', ['time' => $visit->received_at->diffForHumans()]) }}</p>
             <form wire:submit="completeVisit" class="space-y-3">
                 <flux:textarea wire:model="completeRemarks" :label="__('Remarks')" badge="Optional" rows="2" />
                 <flux:button type="submit" variant="primary" icon="check" class="w-full">
                     @if ($visit->purpose === \App\Enums\VisitPurpose::Correction)
-                        {{ __('Corrected – send back') }}
+                        {{ __('Corrected') }}
                     @elseif ($visit->step->task === \App\Enums\RouteTask::FinalCheck)
                         {{ __('Checked – ready for release') }}
                     @else
-                        {{ __(':done – release to next office', ['done' => $visit->step->task->doneLabel()]) }}
+                        {{ __($visit->step->task->doneLabel()) }}
                     @endif
                 </flux:button>
+                @if ($next && $next->id !== $visit->department_id)
+                    <p class="text-xs text-zinc-600">{{ __('The document stays here until you forward it to :office.', ['office' => $next->name]) }}</p>
+                @endif
             </form>
 
             @if ($visit->purpose !== \App\Enums\VisitPurpose::Correction && $returnOffices->isNotEmpty())

@@ -2,7 +2,7 @@
 
 use App\Enums\CheckStage;
 use App\Livewire\Department\Requests\Show as OfficeShow;
-use App\Livewire\Registrar\Requests\Show;
+use App\Livewire\Registrar\Records\Show as RecordShow;
 use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -53,8 +53,7 @@ test('REQ-06-01 the tracker is a step bar with the date under each finished mile
     Carbon::setTestNow('2026-10-09 10:00:00');
     acceptRequest($request, $this->registrar);
     Carbon::setTestNow('2026-10-12 14:30:00');
-    passOffice($request, $this->registrar);
-    workflow()->acceptReceipt(openVisit($request), $this->registrar);
+    passOffice($request, $this->registrar);   // prepared; the final check is in the same office, so received at once (REQ-17-07)
 
     $tracker($request)
         ->assertSeeInOrder([
@@ -95,7 +94,8 @@ test('REQ-06-03 the registrar sees the full ledger with actors and the office vi
     passOffice($request, $this->registrar);
     workflow()->acceptReceipt(openVisit($request), $this->dean);
 
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])
+    // The ledger is on the Records page (REQ-17-04).
+    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
         ->assertSee('Rhea Registrar (Registrar)')
         ->assertSee('Forwarded to College of Computer Studies')
         ->assertSeeInOrder(['Office visits', 'Office of the Registrar', 'Same day', 'Completed', 'College of Computer Studies', 'In progress', 'In office']);

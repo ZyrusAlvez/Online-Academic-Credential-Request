@@ -378,11 +378,11 @@ test('REQ-16-17 payment validation: approve with both parts and the OR number; r
 
 test('REQ-16-18 the request is in progress only once the paper leaves the first office', function () {
     acceptRequest($this->request, $this->registrar);
-    workflow()->acceptReceipt(openVisit($this->request), $this->registrar);
+    workflow()->completeVisit($visit = openVisit($this->request), $this->registrar);   // prepared, still at the Registrar
 
     expect($this->request->fresh()->status)->toBe(RequestStatus::AcceptedForProcessing);
 
-    workflow()->completeVisit(openVisit($this->request), $this->registrar);
+    workflow()->forwardDocument($visit, $this->registrar);
 
     expect($this->request->fresh()->status)->toBe(RequestStatus::InProgress)
         ->and(openVisit($this->request)->department_id)->toBe($this->org->ccs->id);

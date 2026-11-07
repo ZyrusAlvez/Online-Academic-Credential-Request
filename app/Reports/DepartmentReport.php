@@ -47,7 +47,7 @@ final class DepartmentReport implements Report
             ->keyBy('department_id');
 
         $pending = $filter->visits()
-            ->whereIn('office_visits.status', [VisitStatus::InTransit, VisitStatus::Received])
+            ->whereIn('office_visits.status', VisitStatus::open())
             ->whereHas('credentialRequest', fn ($q) => $q->whereIn('status', RequestStatus::processing()))
             ->groupBy('office_visits.department_id')->pluck(DB::raw('COUNT(*)'), 'office_visits.department_id');
 

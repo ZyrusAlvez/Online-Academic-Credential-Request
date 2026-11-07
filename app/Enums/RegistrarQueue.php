@@ -29,7 +29,7 @@ enum RegistrarQueue: string
         return match ($this) {
             self::Evaluation => 'New and resubmitted requests to evaluate. Once you start one, it is yours until you decide.',
             self::Payment => 'Proofs of payment to validate against the official payment record.',
-            self::InProgress => 'Where each document is now, between the offices on its route.',
+            self::InProgress => 'Where each paper is now and where it goes next. Forward the ones your office has finished.',
             self::FinalCheck => 'Documents back at the Office of the Registrar for the final quality check.',
             self::Release => 'Credentials ready to be claimed.',
         };

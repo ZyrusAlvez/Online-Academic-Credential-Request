@@ -44,15 +44,17 @@ office as before.
   office as a `resubmission`. A route visit `advance()`s to the next waiting step. `forward()`
   still sets `in_progress` when the paper leaves the first office.
 - `returnVisit()` stays Received-only (REQ-17-10).
-- `nextOffice(CredentialRequest): ?Department` (public, read-only): where the paper goes next.
-  For a correction, it is the office that returned it. Otherwise it is the first waiting step
-  after the open visit's step, or after the last completed step.
+- Where the paper goes next is read, not changed, so it lives on the models:
+  `OfficeVisit::nextStep()` gives the office that returned a correction, or else the first
+  waiting step after the visit's step. `CredentialRequest::nextOffice()` gives that step's
+  office for the open visit. Both read loaded relations. When the next step is in the same
+  office, `completeVisit()` moves the paper on at once.
 
 ## UI
 
 - `x-check-card`: Confirm is `variant="primary" color="green"` and Reject is
-  `variant="primary" color="red"`. The chosen button gets a ring, and the other one is dimmed
-  (`opacity-60`) once a result exists.
+  `variant="primary" color="red"`, with the accent pushed to the 700 shade so white text meets
+  4.5:1. The chosen button gets a ring.
 - Decision row: `justify-center`. The Remarks textarea has no `description`.
 - `partials.request-record` takes `'ledger'` in `$hide`. The working page always hides it, and
   the Records page keeps it.

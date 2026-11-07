@@ -5,6 +5,7 @@ use App\Enums\CheckResult;
 use App\Enums\CheckStage;
 use App\Enums\RouteTask;
 use App\Enums\VisitPurpose;
+use App\Enums\VisitStatus;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
@@ -157,17 +158,25 @@ function openVisit(CredentialRequest $request): OfficeVisit
 }
 
 /**
- * Accept receipt of the open visit and complete it; the final quality check needs its checklist
+ * Take the open visit through its office: accept receipt (unless the paper is already there),
+ * mark it done and forward it (REQ-17-05..07); the final quality check needs its checklist
  * confirmed first (REQ-16-19).
  */
 function passOffice(CredentialRequest $request, User $actor): void
 {
     $visit = openVisit($request);
-    workflow()->acceptReceipt($visit, $actor);
+
+    if ($visit->status === VisitStatus::InTransit) {
+        workflow()->acceptReceipt($visit, $actor);
+    }
 
     if ($visit->step->task === RouteTask::FinalCheck && $visit->purpose !== VisitPurpose::Correction) {
         checkAll($request, $actor, CheckStage::FinalCheck);
     }
 
     workflow()->completeVisit($visit, $actor);
+
+    if ($visit->status === VisitStatus::Done) {
+        workflow()->forwardDocument($visit, $actor);
+    }
 }

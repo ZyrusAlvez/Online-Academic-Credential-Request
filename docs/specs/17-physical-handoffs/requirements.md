@@ -38,8 +38,8 @@ This replaces:
 
 ### The registrar's stage page
 - **REQ-17-01** ON each checklist part THE SYSTEM SHALL show Confirm as a green button and Reject
-  as a red button. The chosen one SHALL be marked (ringed, `aria-pressed="true"`) and the other
-  dimmed.
+  as a red button, both with white text at AA contrast. The chosen one SHALL be marked with a
+  ring and `aria-pressed="true"`.
 - **REQ-17-02** THE decision buttons (Approve, Return, Decline) SHALL be centred under the Remarks
   field.
 - **REQ-17-03** THE Remarks field SHALL have no hint text. The rules stay the same: remarks are
@@ -62,7 +62,9 @@ This replaces:
   document, the office that returned it. Forwarding SHALL record the time and staff member as
   the time the document left. It SHALL count the working days from receipt to leaving as the
   visit's time spent, open a visit at the next office awaiting receipt, and notify that office.
-  Forwarding from the route's first office SHALL set the status `in_progress` (REQ-16-18).
+  Forwarding from the route's first office SHALL set the status `in_progress` (REQ-16-18). WHEN
+  the next office is the same office, marking it done SHALL move the document on at once and
+  receive it there, since the paper does not move.
 - **REQ-17-08** THE next office SHALL still accept the receipt (REQ-05-03). Its receipt time is
   when the paper was delivered there.
 - **REQ-17-09** WHEN the Registrar approves the final quality check (the route's last step) THE

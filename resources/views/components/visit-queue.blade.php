@@ -33,8 +33,12 @@
                         <flux:badge size="sm" :color="$visit->status->color()">{{ $visit->status->label() }}</flux:badge>
                         <div class="text-xs text-zinc-600">{{ $visit->completed_at?->format('M j, Y g:i A') }}@if ($visit->completer) · {{ $visit->completer->name }}@endif</div>
                     @else
-                        @php($since = $visit->received_at ?? $visit->forwarded_at)
+                        @php($since = $visit->done_at ?? $visit->received_at ?? $visit->forwarded_at)
                         <time datetime="{{ $since->toIso8601String() }}" title="{{ $since->format('M j, Y g:i A') }}">{{ $since->diffForHumans(short: true) }}</time>
+                        @if ($visit->status === \App\Enums\VisitStatus::Done)
+                            {{-- Done but the paper has not left yet (REQ-17-15). --}}
+                            <flux:badge size="sm" :color="$visit->status->color()" class="mt-1" data-done>{{ __($visit->status->label()) }}</flux:badge>
+                        @endif
                     @endif
                 </flux:table.cell>
             </flux:table.row>

@@ -214,9 +214,9 @@
                 @if ($panel === Page::PANEL_PAYMENT)
                     <flux:input wire:model="officialReceiptNo" :label="__('Official receipt no.')" :description="__('Needed to approve.')" />
                 @endif
-                <flux:textarea wire:model="remarks" :label="__('Remarks')" :description="$panel === Page::PANEL_FINAL_CHECK ? __('Optional to approve; required to decline.') : __('Optional to approve; required to return or decline.')" rows="3" />
+                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
 
-                <div class="flex flex-wrap gap-2">
+                <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
                     <flux:button wire:click="approve" variant="primary" icon="check" :disabled="! $allConfirmed">{{ __('Approve') }}</flux:button>
                     @if ($panel === Page::PANEL_EVALUATION)
                         <flux:button wire:click="returnRequest" icon="arrow-uturn-left" :disabled="! $anyRejected">{{ __('Return to requester') }}</flux:button>
@@ -259,21 +259,30 @@
 
         @if ($panel === Page::PANEL_OFFICE)
             {{-- The Office of the Registrar's own route step: preparation or a correction (spec 05). --}}
-            <section aria-labelledby="current-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6">
-                <div>
-                    <h2 id="current-heading" class="text-sm font-medium text-zinc-600">{{ __('Currently at') }}</h2>
-                    <p class="text-lg font-semibold text-primary">{{ $visit->department->name }}</p>
-                    <p class="text-xs text-zinc-600">{{ $visit->status->label() }} · {{ ($visit->received_at ?? $visit->forwarded_at)->diffForHumans() }}</p>
-                </div>
+            @php($nextOffice = $request->nextOffice())
+            <section aria-labelledby="current-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-office-panel>
+                {{-- Where the paper is and where it goes next (REQ-17-13). --}}
+                <dl class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <dt id="current-heading" class="text-sm font-medium text-zinc-600">{{ __('Currently at') }}</dt>
+                        <dd class="text-lg font-semibold text-primary">{{ $visit->department->name }}</dd>
+                        <dd class="text-xs text-zinc-600">{{ __($visit->status->label()) }} · {{ ($visit->done_at ?? $visit->received_at ?? $visit->forwarded_at)->diffForHumans() }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-zinc-600">{{ __('Next') }}</dt>
+                        <dd class="text-lg font-semibold text-ink" data-next-office>{{ $nextOffice?->name ?? __('Release') }}</dd>
+                    </div>
+                </dl>
                 @include('partials.visit-actions', ['visit' => $visit, 'returnOffices' => $returnOffices])
             </section>
         @endif
 
-        @include('partials.request-record', ['hide' => match ($panel) {
+        {{-- The ledger is on the Records page only (REQ-17-04). --}}
+        @include('partials.request-record', ['hide' => ['ledger', ...match ($panel) {
             Page::PANEL_EVALUATION => ['details', 'representatives'],
             Page::PANEL_FINAL_CHECK => $visit->status === \App\Enums\VisitStatus::InTransit ? [] : ['route'],
             default => [],
-        }])
+        }]])
     @endif
 
     <flux:modal name="reject-representative" class="w-full md:w-[28rem]">

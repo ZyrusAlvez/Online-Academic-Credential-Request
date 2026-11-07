@@ -427,58 +427,59 @@ class RequestWorkflow
         DB::transaction(function () use ($visit, $actor): void {
             [$locked, $current] = $this->lockVisit($visit, [VisitStatus::InTransit]);
 
-            $current->forceFill(['status' => VisitStatus::Received, 'received_at' => now(), 'received_by' => $actor->id])->save();
+            $this->receive($locked, $current, $actor);
             $visit->setRawAttributes($current->getAttributes(), sync: true);
-
-            if ($current->purpose === VisitPurpose::Correction) {
-                $this->record($locked, $actor, RequestEventType::ReceiptAccepted, null, null, null, visit: $current);
-
-                return;
-            }
-
-            // The first office's receipt keeps the request accepted for processing; it is in
-            // progress once sent on (REQ-16-18). A corrected document received back resumes it.
-            $to = match (true) {
-                $current->step()->firstOrFail()->task === RouteTask::FinalCheck => RequestStatus::ForFinalApproval,
-                $locked->status === RequestStatus::ReturnedForCorrection => RequestStatus::InProgress,
-                default => $locked->status,
-            };
-
-            $locked->status === $to
-                ? $this->record($locked, $actor, RequestEventType::ReceiptAccepted, null, null, null, visit: $current)
-                : $this->transition($locked, $locked, $to, $actor, RequestEventType::ReceiptAccepted, visit: $current);
         });
     }
 
     /**
-     * Approve / release to the next office (REQ-05-04, 05, 07).
+     * The office finished its task: prepared, signed, stamped, checked or corrected (REQ-05-04,
+     * REQ-17-06). The paper stays in the office until it is forwarded (forwardDocument), except
+     * after the final quality check, which makes it ready for release (REQ-17-09), and when the
+     * next office is the same office, since the paper does not move.
      */
     public function completeVisit(OfficeVisit $visit, User $actor, ?string $remarks = null): void
     {
         DB::transaction(function () use ($visit, $actor, $remarks): void {
             [$locked, $current] = $this->lockVisit($visit, [VisitStatus::Received]);
             $step = $current->step()->with('department')->firstOrFail();
+            $correction = $current->purpose === VisitPurpose::Correction;
 
-            if ($step->task === RouteTask::FinalCheck && $current->purpose !== VisitPurpose::Correction) {
+            if ($step->task === RouteTask::FinalCheck && ! $correction) {
                 $this->assertAllConfirmed($locked, CheckStage::FinalCheck);   // REQ-16-19
             }
 
-            $this->closeVisit($current, $actor, VisitStatus::Completed, ['remarks' => filled($remarks) ? $remarks : null]);
-            $visit->setRawAttributes($current->getAttributes(), sync: true);
+            $current->forceFill(['status' => VisitStatus::Done, 'done_at' => now(), 'done_by' => $actor->id, 'remarks' => filled($remarks) ? $remarks : null])->save();
 
-            $office = $current->department()->firstOrFail();
-
-            if ($current->purpose === VisitPurpose::Correction) {
-                // Corrected: back to the office that returned it, which must receive it again.
-                $this->record($locked, $actor, RequestEventType::DocumentResubmitted, null, null, $remarks, visit: $current);
-                $this->forward($locked, $step, $step->department, VisitPurpose::Resubmission, $office, $actor);
-
-                return;
+            if ($correction) {
+                $this->record($locked, $actor, RequestEventType::Corrected, null, null, $remarks, visit: $current);
+            } else {
+                $step->forceFill(['status' => StepStatus::Completed, 'completed_at' => now()])->save();
+                $this->record($locked, $actor, RequestEventType::StepCompleted, null, null, $remarks, $step, $current);
             }
 
-            $step->forceFill(['status' => StepStatus::Completed, 'completed_at' => now()])->save();
-            $this->record($locked, $actor, RequestEventType::StepCompleted, null, null, $remarks, $step, $current);
-            $this->advance($locked, $step, $office, $actor);
+            $next = $current->setRelation('step', $step)->load('credentialRequest.steps')->nextStep();
+
+            if ($next === null || $next->department_id === $current->department_id) {
+                $this->leave($locked, $current, $actor);
+            }
+
+            $visit->setRawAttributes($current->getAttributes(), sync: true);
+        });
+    }
+
+    /**
+     * The paper leaves an office whose task is done: to the next office on the route, or a
+     * corrected document back to the office that returned it. That office still has to accept
+     * its receipt (REQ-17-07, 08).
+     */
+    public function forwardDocument(OfficeVisit $visit, User $actor): void
+    {
+        DB::transaction(function () use ($visit, $actor): void {
+            [$locked, $current] = $this->lockVisit($visit, [VisitStatus::Done]);
+
+            $this->leave($locked, $current, $actor);
+            $visit->setRawAttributes($current->getAttributes(), sync: true);
         });
     }
 
@@ -823,7 +824,58 @@ class RequestWorkflow
     }
 
     /**
-     * Dispatch the document to an office; it still has to be received there (REQ-05-03).
+     * The document is physically in the office: the receiving office, staff member and time are
+     * recorded (REQ-05-03, REQ-17-08).
+     */
+    private function receive(CredentialRequest $locked, OfficeVisit $current, User $actor): void
+    {
+        $current->forceFill(['status' => VisitStatus::Received, 'received_at' => now(), 'received_by' => $actor->id])->save();
+
+        if ($current->purpose === VisitPurpose::Correction) {
+            $this->record($locked, $actor, RequestEventType::ReceiptAccepted, null, null, null, visit: $current);
+
+            return;
+        }
+
+        // The first office's receipt keeps the request accepted for processing; it is in
+        // progress once sent on (REQ-16-18). A corrected document received back resumes it.
+        $to = match (true) {
+            $current->step()->firstOrFail()->task === RouteTask::FinalCheck => RequestStatus::ForFinalApproval,
+            $locked->status === RequestStatus::ReturnedForCorrection => RequestStatus::InProgress,
+            default => $locked->status,
+        };
+
+        $locked->status === $to
+            ? $this->record($locked, $actor, RequestEventType::ReceiptAccepted, null, null, null, visit: $current)
+            : $this->transition($locked, $locked, $to, $actor, RequestEventType::ReceiptAccepted, visit: $current);
+    }
+
+    /**
+     * The paper leaves the office: the visit closes with the time it left and the working days
+     * the office held it, and the document goes on (REQ-17-07, 09).
+     */
+    private function leave(CredentialRequest $locked, OfficeVisit $current, User $actor): void
+    {
+        $this->closeVisit($current, $actor, VisitStatus::Completed);
+
+        $step = $current->step()->with('department')->firstOrFail();
+        $office = $current->department()->firstOrFail();
+
+        if ($current->purpose === VisitPurpose::Correction) {
+            // Corrected: back to the office that returned it, which must receive it again.
+            $this->record($locked, $actor, RequestEventType::DocumentResubmitted, null, null, null, visit: $current);
+            $this->forward($locked, $step, $step->department, VisitPurpose::Resubmission, $office, $actor);
+
+            return;
+        }
+
+        $this->advance($locked, $step, $office, $actor);
+    }
+
+    /**
+     * Dispatch the document to an office; it still has to be received there (REQ-05-03). A paper
+     * that does not move (accepted at the Registrar, or sent on within the same office) is
+     * received at once (REQ-17-05).
      */
     private function forward(CredentialRequest $locked, RequestStep $step, Department $to, VisitPurpose $purpose, ?Department $from, User $actor): OfficeVisit
     {
@@ -844,6 +896,12 @@ class RequestWorkflow
         $from !== null && $locked->status === RequestStatus::AcceptedForProcessing
             ? $this->transition($locked, $locked, RequestStatus::InProgress, $actor, RequestEventType::DocumentForwarded, null, $step, $visit)
             : $this->record($locked, $actor, RequestEventType::DocumentForwarded, null, null, null, $step, $visit);
+
+        $stays = $from !== null ? $from->is($to) : $to->code === Department::REGISTRAR_CODE;
+
+        if ($stays) {
+            $this->receive($locked, $visit, $actor);
+        }
 
         return $visit;
     }

@@ -3,9 +3,11 @@
 namespace App\Livewire\Registrar;
 
 use App\Enums\RegistrarQueue;
+use App\Livewire\Concerns\RunsTransitions;
 use App\Models\CredentialRequest;
 use App\Models\Department;
 use App\Queries\StageQueue;
+use App\Services\RequestWorkflow;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
@@ -17,6 +19,7 @@ use Livewire\WithPagination;
  */
 class Queue extends Component
 {
+    use RunsTransitions;
     use WithPagination;
 
     #[Locked]
@@ -47,6 +50,20 @@ class Queue extends Component
         }
     }
 
+    /**
+     * In Progress: forward a paper the Office of the Registrar has finished (REQ-17-12).
+     */
+    public function forward(int $requestId, RequestWorkflow $workflow): void
+    {
+        abort_unless($this->stage === RegistrarQueue::InProgress, 404);
+
+        $visit = CredentialRequest::findOrFail($requestId)->openVisit()->with(['department', 'step', 'credentialRequest'])->first();
+        abort_if($visit === null, 404);
+        $this->authorize('act', $visit);
+
+        $this->attempt(fn () => $workflow->forwardDocument($visit, $this->actor()), 'Forwarded. The next office confirms when it arrives.');
+    }
+
     public function render(): View
     {
         $stage = $this->stage;
@@ -58,8 +75,7 @@ class Queue extends Component
             'showWaiting' => $waiting,
             'waitingCount' => $stage === RegistrarQueue::Evaluation ? StageQueue::for($stage, true)->count() : 0,
             'offices' => $stage === RegistrarQueue::InProgress ? Department::orderBy('name')->get(['id', 'name']) : collect(),
-            // In Progress is for tracking: its rows open the read-only record (REQ-16-04).
-            'linkRoute' => $stage === RegistrarQueue::InProgress ? 'registrar.records.show' : 'registrar.requests.show',
+            'linkRoute' => 'registrar.requests.show',
         ])->title(__($stage->label()));
     }
 }
