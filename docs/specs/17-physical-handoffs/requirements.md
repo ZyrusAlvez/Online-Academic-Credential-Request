@@ -33,19 +33,34 @@ This replaces:
   so that I can measure each office's time.
 - **US-17-4** As an evaluator, I want Confirm and Reject to stand out, so that I do not miss a
   part.
+- **US-17-5** As an evaluator, I want Approve and Return to always be clickable and to tell me
+  what is still missing, so that I am not left guessing why a button does nothing.
 
 ## Acceptance criteria
 
 ### The registrar's stage page
-- **REQ-17-01** ON each checklist part THE SYSTEM SHALL show Confirm as a green button and Reject
-  as a red button, both with white text at AA contrast. The chosen one SHALL be marked with a
-  ring and `aria-pressed="true"`.
-- **REQ-17-02** THE decision buttons (Approve, Return, Decline) SHALL be centred under the Remarks
-  field.
+- **REQ-17-01** ON each checklist part THE SYSTEM SHALL show Reject as a red button and Confirm
+  as a green button on its right, both with white text at AA contrast. The chosen one SHALL be
+  marked with a ring and `aria-pressed="true"`.
+- **REQ-17-02** THE decision buttons SHALL be centred under the Remarks field in the order
+  Decline, Return, Approve, so the approving action is on the right. *(Order changed 2026-11-07,
+  user's decision: the good action goes on the right.)*
 - **REQ-17-03** THE Remarks field SHALL have no hint text. The rules stay the same: remarks are
   optional to approve and required to return or decline.
+- **REQ-17-16** THE decision buttons SHALL always be enabled. WHEN the registrar clicks Approve,
+  Return or Decline and the action's conditions (spec 16) are not met THE SYSTEM SHALL change
+  nothing, keep what was typed and checked, and open a dialog that lists every reason:
+  - Approve: the parts not yet checked, the parts rejected, and at Payment Validation a missing
+    official receipt number.
+  - Return at the Initial Evaluation: no rejected part.
+  - Return and Decline: missing remarks.
+
+  A missing field SHALL also be marked on the field itself. *(Added 2026-11-07, user's decision:
+  disabled buttons did not say why.)*
 - **REQ-17-04** THE registrar's working page (`/registrar/requests/{id}`) SHALL NOT show the
   ledger. The Records page (`/registrar/records/{id}`) SHALL keep it.
+
+REQ-17-16 sits with the stage page criteria, though it was added after REQ-17-15.
 
 ### Where the paper is
 - **REQ-17-05** WHEN a request is accepted THE SYSTEM SHALL place the paper at the Office of the
