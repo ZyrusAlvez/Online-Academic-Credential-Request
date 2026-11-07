@@ -216,7 +216,7 @@
                 @endif
                 <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
 
-                {{-- Always enabled; a decision that can't run says why (REQ-17-16). The approving one is on the right (REQ-17-02). --}}
+                {{-- Always enabled; a decision that can't run says why (REQ-17-17). The approving one is on the right (REQ-17-02). --}}
                 <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
                     <flux:button wire:click="decline" variant="danger" icon="no-symbol" data-decline-button data-confirm-title="{{ __('Decline request') }}" data-confirm-label="{{ __('Decline') }}" :wire:confirm="__('Decline :ref? The requester is notified with your remarks. This cannot be undone.', ['ref' => $request->reference_no])">{{ __('Decline') }}</flux:button>
                     @if ($panel === Page::PANEL_EVALUATION)
@@ -286,7 +286,7 @@
         }]])
     @endif
 
-    {{-- Why a decision could not run (REQ-17-16). --}}
+    {{-- Why a decision could not run (REQ-17-17). --}}
     <flux:modal name="decision-blocked" class="w-full md:w-[28rem]" data-decision-blocked>
         <div class="space-y-4">
             <flux:heading size="lg">

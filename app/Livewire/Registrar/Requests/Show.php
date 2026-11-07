@@ -72,7 +72,7 @@ class Show extends Component
 
     public int|string|null $recipientRepresentativeId = null;
 
-    /** The decision that could not run, and why (REQ-17-16). */
+    /** The decision that could not run, and why (REQ-17-17). */
     #[Locked]
     public string $blockedAction = '';
 
@@ -299,7 +299,7 @@ class Show extends Component
 
     /**
      * Check the decision's conditions, run it and clear the form on success. A decision that can't
-     * run opens a dialog listing every reason and keeps what was typed (REQ-17-16).
+     * run opens a dialog listing every reason and keeps what was typed (REQ-17-17).
      *
      * @param  string  $action  approve, return or decline
      * @param  array<string, list<string>>  $rules

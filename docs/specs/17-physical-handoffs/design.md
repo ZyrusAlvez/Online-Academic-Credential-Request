@@ -39,7 +39,9 @@ office as before.
     before.
   - Otherwise: `status = done`, `done_at`, `done_by` and `remarks` are set. A route step is marked
     `completed` and `StepCompleted` logged; a correction logs `Corrected`.
-- `forwardDocument(OfficeVisit, User)` (new, Done only): closes the visit `completed`
+- `forwardDocument(OfficeVisit, User)` (new): Done, or Received at the Office of the Registrar for
+  its own route task or a correction (not the final check), which is first marked done in the
+  same transaction (REQ-17-12). It then closes the visit `completed`
   (`completed_at` = left, `working_days`). A correction is then forwarded back to the step's
   office as a `resubmission`. A route visit `advance()`s to the next waiting step. `forward()`
   still sets `in_progress` when the paper leaves the first office.
@@ -58,7 +60,7 @@ office as before.
   the right.
 - Decision row: `justify-center`, in the order Decline, Return, Approve. The Remarks textarea has
   no `description`.
-- Blocked decisions (REQ-17-16): no button is `disabled`. `Show::approve()`, `returnRequest()`
+- Blocked decisions (REQ-17-17): no button is `disabled`. `Show::approve()`, `returnRequest()`
   and `decline()` gather the reasons before calling `RequestWorkflow`:
   - The checklist reasons come from the stage's parts (`CheckItem::for`) and their results:
     parts not yet checked and parts rejected for Approve, no rejected part for Return at the
@@ -72,11 +74,16 @@ office as before.
 - `partials.request-record` takes `'ledger'` in `$hide`. The working page always hides it, and
   the Records page keeps it.
 - `partials.visit-actions`: Received → Done button (`:done` label, e.g. "Signed") plus Return.
-  Done → "Done :time · Forward to <next>" button with a confirmation. In transit → Accept receipt.
+  Done → "Done :time. Forward it to <next> from In Progress." with no button
+  for a registrar, with a link to In Progress. Department staff get the "Forward to <next>"
+  button, which calls `ActsOnVisits::forwardDocument` (refused for registrars, REQ-17-16). In
+  transit → Accept receipt.
 - Registrar In Progress (`StageQueue::InProgress`): adds `accepted_for_processing`. Its columns are
   Request · Requester · Currently at (office, state) · Next · Due. `Queue::forward(int $id)`
-  authorizes `act` on the open visit and calls `forwardDocument`. Rows held by the Registrar link
-  to `registrar.requests.show`.
+  authorizes the new `OfficeVisitPolicy::forward` and calls `forwardDocument`. The policy
+  requires an actionable visit that `OfficeVisit::isForwardable()`, held by the user's office,
+  where a registrar's office is the Office of the Registrar. The row's button shows for
+  forwardable visits the Office of the Registrar holds. Rows held by the Registrar link to `registrar.requests.show`.
 - Working page `PANEL_OFFICE`: "Currently at / Next" header, then `partials.visit-actions`.
 - `x-office-visits`: columns Office · Received · Done · Left · Time spent · Status. Done and Left
   are hidden below `sm`.

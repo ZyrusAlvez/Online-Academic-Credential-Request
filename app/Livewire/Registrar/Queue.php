@@ -51,7 +51,8 @@ class Queue extends Component
     }
 
     /**
-     * In Progress: forward a paper the Office of the Registrar has finished (REQ-17-12).
+     * In Progress: send a paper the Office of the Registrar holds on to the next office; the only
+     * place registrars forward (REQ-17-12, 16).
      */
     public function forward(int $requestId, RequestWorkflow $workflow): void
     {
@@ -59,7 +60,7 @@ class Queue extends Component
 
         $visit = CredentialRequest::findOrFail($requestId)->openVisit()->with(['department', 'step', 'credentialRequest'])->first();
         abort_if($visit === null, 404);
-        $this->authorize('act', $visit);
+        $this->authorize('forward', $visit);
 
         $this->attempt(fn () => $workflow->forwardDocument($visit, $this->actor()), 'Forwarded. The next office confirms when it arrives.');
     }

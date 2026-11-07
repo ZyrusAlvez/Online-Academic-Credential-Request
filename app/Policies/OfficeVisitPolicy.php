@@ -29,6 +29,15 @@ class OfficeVisitPolicy
         return $user->hasRole(Role::Registrar) && $visit->department?->code === Department::REGISTRAR_CODE;
     }
 
+    /**
+     * Send the paper on to the next office: staff of the office holding it, the Office of the
+     * Registrar's papers by registrars (REQ-17-07, 16).
+     */
+    public function forward(User $user, OfficeVisit $visit): bool
+    {
+        return $this->act($user, $visit) && $visit->isForwardable();
+    }
+
     /** Registrar override (REQ-05-10). */
     public function bypass(User $user, OfficeVisit $visit): bool
     {
