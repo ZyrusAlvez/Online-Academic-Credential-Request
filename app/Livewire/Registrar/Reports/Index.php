@@ -65,9 +65,9 @@ class Index extends Component
             // Not "report": the public $report property (the slug) would shadow it in the view.
             'current' => $current,
             'rows' => $rows->take(self::PAGE_ROWS + 1)->values()->all(),
-            'types' => CredentialType::orderBy('name')->get(['id', 'name']),
-            'evaluators' => User::where('role', Role::Registrar)->orderBy('first_name')->get(),
-            'offices' => Department::orderBy('name')->get(['id', 'name']),
+            'types' => CredentialType::active()->orderBy('name')->get(['id', 'name']),
+            'evaluators' => User::where('role', Role::Registrar)->where('is_active', true)->orderBy('first_name')->get(),
+            'offices' => Department::active()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

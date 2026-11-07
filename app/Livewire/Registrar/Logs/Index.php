@@ -65,7 +65,7 @@ class Index extends Component
             'logs' => $filter->query()->with('department:id,name')->paginate(25),
             'roles' => Role::cases(),
             'categories' => ActivityCategory::cases(),
-            'offices' => Department::orderBy('type')->orderBy('name')->get(['id', 'name']),
+            'offices' => Department::active()->orderBy('type')->orderBy('name')->get(['id', 'name']),
             'filtered' => array_filter([$this->search, $this->role, $this->category, $this->office, $this->from, $this->to]) !== [],
         ]);
     }

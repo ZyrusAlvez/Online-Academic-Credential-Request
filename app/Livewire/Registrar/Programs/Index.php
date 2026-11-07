@@ -101,7 +101,7 @@ class Index extends Component
 
         return view('livewire.registrar.programs.index', [
             'programs' => $programs,
-            'colleges' => Department::colleges()->orderBy('name')->get(['id', 'name']),
+            'colleges' => Department::active()->colleges()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 }

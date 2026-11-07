@@ -88,15 +88,15 @@ test('REQ-02-14 the College of Law is removed', function () {
         ->and(Department::colleges()->count())->toBe(11);
 });
 
-test('REQ-02-14 the College of Law is only deactivated while a requester still names it', function () {
+test('REQ-02-14 REQ-02-18 the College of Law is deleted even while a requester still names it', function () {
     $old = earlierColleges();
     $lawyer = User::factory()->withProfile($old['LAW'])->create();
 
     replaceList();
 
-    expect($old['LAW']->fresh()->is_active)->toBeFalse()
-        ->and($lawyer->fresh()->college_id)->toBe($old['LAW']->id)
-        ->and(Department::active()->colleges()->count())->toBe(11);
+    expect(Department::find($old['LAW']->id))->toBeNull()
+        ->and($lawyer->fresh()->college_id)->toBeNull()
+        ->and(Department::colleges()->count())->toBe(11);
 });
 
 test('REQ-02-14 the earlier colleges\' staff accounts are removed; one that acted is deactivated', function () {

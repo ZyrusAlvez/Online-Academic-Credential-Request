@@ -30,8 +30,8 @@ lets registrar accounts act on its steps.
   the VP for Finance (documentary stamp), `CHAN` Office of the Chancellor, `PRES` Office of the
   President, plus the 11 colleges (Dean's review and signature). Deploys run it through the
   master-list data migration (spec 03).
-- `Database\Seeders\RemoveCollegeOfLawSeeder` (REQ-02-18) — deletes every `college` whose code
-  is not in `DepartmentSeeder::COLLEGES`, in one transaction, through the query builder (the
+- `Database\Seeders\RemoveCollegeOfLawSeeder` (REQ-02-18) — deletes the `college` with code
+  `LAW`, in one transaction, through the query builder (the
   `RequestEvent` and `ActivityLog` models refuse deletes and updates): the requests that name it
   (`college_id`, a step, a visit, an event or a delay note) with all their rows and the
   `notifications` whose `data->request_id` is one of them; `users.college_id`/`program` → null;

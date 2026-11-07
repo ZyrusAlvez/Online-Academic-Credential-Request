@@ -29,9 +29,9 @@ Source: *Proposed Workflow*, sections VI–VII (offices and signatories).
   - in local and staging, each college keeps or gets one demo staff account,
     `<code>@example.com`, with the demo password. In production the registrar creates the new
     staff accounts.
-- **REQ-02-18** WHEN a deployment migrates THE SYSTEM SHALL delete the College of Law (and any
-  other college outside the 11) entirely, not keep it as an inactive row (client's decision,
-  2026-11-07):
+- **REQ-02-18** WHEN a deployment migrates THE SYSTEM SHALL delete the College of Law (code
+  `LAW`) entirely, not keep it as an inactive row (client's decision, 2026-11-07); a college the
+  registrar adds later is left alone:
   - every request filed under it or routed through it is deleted, with its steps, office visits,
     ledger, uploads and notifications;
   - requesters who named it as their college have their college and program cleared, and choose
