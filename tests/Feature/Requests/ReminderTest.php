@@ -49,7 +49,8 @@ test('REQ-06-12 the holding office is alerted once when the document is overdue,
     Notification::assertSentTo($this->dean, DueReminder::class, fn (DueReminder $n) => $n->overdue && $n->toArray($this->dean)['title'] === "{$this->request->reference_no} is overdue");
 
     workflow()->acceptReceipt(openVisit($this->request), $this->dean);
-    workflow()->completeVisit(openVisit($this->request), $this->dean);   // forwarded to VP Finance
+    workflow()->completeVisit($visit = openVisit($this->request), $this->dean);
+    workflow()->forwardDocument($visit, $this->dean);   // forwarded to VP Finance
     remindAt('2026-10-20 07:00:00');
 
     Notification::assertSentToTimes($this->vpf, DueReminder::class, 1);

@@ -37,3 +37,13 @@
 - [x] Name locked after verification; registrar corrects it on Identity Checks (REQ-01-27, 28)
 - [x] Profile, consent and ID saved in one transaction (REQ-01-29)
 - [x] Pest tests for REQ-01-27..29 and the changed REQ-01-22, 25
+- [x] Remove the settings Profile page; `/settings` opens Email notifications (requesters) or Password (staff) (REQ-01-12)
+- [x] Pest tests for the changed REQ-01-12
+- [x] Stronger password rules: `Password::defaults()` = `min(8)->mixedCase()->numbers()->symbols()`;
+      field hints updated (REQ-01-03, REQ-09-02)
+- [x] Pest tests for the changed REQ-01-03 and REQ-09-02
+- [x] No ID upload while one is pending or verified, only after a rejection (REQ-01-17)
+- [x] My Profile: drop the visible "Step N of 2" label, keep it for screen readers
+- [x] Pest tests for the changed REQ-01-17
+- [x] Whole My Profile read-only while the identity check is pending or verified (REQ-01-30)
+- [x] Pest tests for REQ-01-30

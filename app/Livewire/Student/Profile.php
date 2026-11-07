@@ -4,28 +4,31 @@ namespace App\Livewire\Student;
 
 use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
-use App\Enums\IdentityStatus;
 use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\RequesterProfileForm;
 use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\Program;
 use App\Models\User;
+use App\Services\RequestWorkflow;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Throwable;
 
 /**
- * The requester's personal and academic information, valid ID and privacy consent (spec 01): a
- * form, then a summary to confirm it all on.
+ * Settings → Profile (REQ-15-07): the saved personal and academic information and valid ID that
+ * fill in the next request. A form, then a summary to confirm it on; never locked, as submitted
+ * requests keep their own copy (REQ-15-08).
  */
-#[Title('My Profile')]
+#[Title('Profile')]
 class Profile extends Component
 {
     use TrimsInput;
@@ -50,7 +53,7 @@ class Profile extends Component
     }
 
     /**
-     * Check the whole form and show the summary; nothing is saved yet (REQ-01-22, REQ-01-25).
+     * Check the whole form and show the summary; nothing is saved yet (REQ-01-26).
      */
     public function review(): void
     {
@@ -71,8 +74,8 @@ class Profile extends Component
     }
 
     /**
-     * One save for the whole profile, from the summary: personal and academic details, privacy
-     * consent and, when chosen, a new valid ID, all or nothing (REQ-01-25, REQ-01-29).
+     * One save for the whole profile, from the summary: details, privacy consent and, when chosen,
+     * a new valid ID, all or nothing (REQ-01-29).
      */
     public function save(SubmitIdentityDocument $submit): void
     {
@@ -81,20 +84,26 @@ class Profile extends Component
         }
 
         $user = $this->user();
+        $stored = null;
 
         try {
-            $id = DB::transaction(function () use ($user, $submit): ?array {
+            DB::transaction(function () use ($user, $submit, &$stored): void {
                 $id = $this->form->save($user);
 
                 if ($id !== null) {
-                    $submit->handle($user, $id['type'], $id['file']);
+                    $stored = $submit->handle($user, $id['type'], $id['file']);
                 }
-
-                return $id;
             });
-        } catch (ValidationException $e) {
-            // The model still holds what the rolled-back save filled in.
-            $user->refresh();
+        } catch (Throwable $e) {
+            $user->refresh();   // the model still holds what the rolled-back save filled in
+
+            if ($stored !== null) {
+                Storage::disk(RequestWorkflow::proofDisk())->delete($stored->path);
+            }
+
+            if (! $e instanceof ValidationException) {
+                throw $e;
+            }
 
             if (isset($e->errors()['idFile'])) {
                 $this->addError('form.id_file', $e->validator->errors()->first());
@@ -113,14 +122,9 @@ class Profile extends Component
             throw $e;
         }
 
-        if ($id !== null) {
-            $this->form->reset('id_type', 'id_file');
-        }
-
+        $this->form->reset('id_type', 'id_file', 'privacy_consent');   // the next save asks again (REQ-15-07)
         $this->showStep(reviewing: false);
-        $this->dispatch('notify', message: $id !== null
-            ? 'Profile saved. The Office of the Registrar will verify your ID.'
-            : 'Profile saved.');
+        $this->dispatch('notify', message: 'Profile saved. Your next request will use these details.');
     }
 
     public function render(): View
@@ -135,8 +139,7 @@ class Profile extends Component
                 ? Program::active()->where('department_id', (int) $this->form->college_id)->orderBy('name')->pluck('name')
                 : collect(),
             'idTypes' => IdentityDocument::ID_TYPES,
-            'documents' => $user->identityDocuments()->get(),
-            'canUpload' => $user->identity_status !== IdentityStatus::Verified,
+            'savedId' => $user->latestIdentityDocument()->first(),
             'summary' => $this->reviewing ? $this->form->summary() : [],
         ]);
     }

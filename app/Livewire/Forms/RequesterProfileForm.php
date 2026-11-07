@@ -4,7 +4,6 @@ namespace App\Livewire\Forms;
 
 use App\Enums\AcademicStatus;
 use App\Enums\DepartmentType;
-use App\Enums\IdentityStatus;
 use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\User;
@@ -16,7 +15,8 @@ use Livewire\Form;
 
 /**
  * A requester's name, contact number, academic information, valid ID and privacy consent, checked
- * first and then saved together from the summary (REQ-01-16, REQ-01-17, REQ-01-22, REQ-01-25).
+ * first and then saved together from the summary. Shared by New Request and Settings → Profile
+ * (REQ-01-16, REQ-15-03..07); never locked, as each request keeps its own copy (REQ-15-08).
  */
 class RequesterProfileForm extends Form
 {
@@ -73,7 +73,7 @@ class RequesterProfileForm extends Form
     protected function rules(): array
     {
         $thisYear = (int) now()->year;
-        $user = $this->user();
+        $needsId = ! $this->user()->latestIdentityDocument()->exists();
 
         return [
             'first_name' => ['required', 'string', 'max:100'],
@@ -93,14 +93,11 @@ class RequesterProfileForm extends Form
             'student_number' => ['nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9-]+$/'],
             'attended_from' => ['required', 'integer', 'between:1950,'.$thisYear],
             'attended_to' => ['required', 'integer', 'between:1950,'.$thisYear, 'gte:attended_from'],
-            // An ID on file, pending or verified, needs no new one (REQ-01-22).
-            'id_type' => [Rule::requiredIf($user->needsValidId()), 'nullable', 'required_with:id_file', Rule::in(IdentityDocument::ID_TYPES)],
-            'id_file' => [
-                Rule::prohibitedIf($user->identity_status === IdentityStatus::Verified),
-                Rule::requiredIf($user->needsValidId()),
-                'nullable', 'required_with:id_type', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120',
-            ],
-            'privacy_consent' => $user->privacy_consented_at === null ? ['accepted'] : [],
+            // A saved ID is used unless another is chosen; without one, an ID is required (REQ-15-04).
+            'id_type' => [Rule::requiredIf($needsId), 'nullable', 'required_with:id_file', Rule::in(IdentityDocument::ID_TYPES)],
+            'id_file' => [Rule::requiredIf($needsId), 'nullable', 'required_with:id_type', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+            // Ticked on every summary before anything is saved or submitted (REQ-15-05, 07).
+            'privacy_consent' => ['accepted'],
         ];
     }
 
@@ -127,17 +124,15 @@ class RequesterProfileForm extends Form
     {
         return [
             'contact_number.regex' => self::PHONE_MESSAGE,
-            'privacy_consent.accepted' => 'You must agree to the processing of your personal data to save your profile.',
+            'privacy_consent.accepted' => 'Tick the box to agree to the processing of your personal data before you continue.',
         ];
     }
 
     /**
-     * Check every entry on the form; the consent comes later, on the summary (REQ-01-22).
+     * Check every entry on the form; the consent comes later, on the summary (REQ-15-05).
      */
     public function validateDetails(): void
     {
-        $this->keepLockedName();
-
         $this->validate(Arr::except($this->rules(), 'privacy_consent'));
     }
 
@@ -158,7 +153,7 @@ class RequesterProfileForm extends Form
             'Academic information' => [
                 'Status' => (string) AcademicStatus::tryFrom($this->academic_status)?->label(),
                 'College' => (string) Department::query()->whereKey($this->college_id)->value('name'),
-                'Program or strand' => $this->program,
+                'Program' => $this->program,
                 'Student number' => filled($this->student_number) ? $this->student_number : 'Not provided',
                 'Years attended' => "{$this->attended_from} to {$this->attended_to}",
             ],
@@ -173,8 +168,6 @@ class RequesterProfileForm extends Form
      */
     public function save(User $user): ?array
     {
-        $this->keepLockedName();
-
         $validated = $this->validate();
 
         $user->fill([
@@ -199,20 +192,6 @@ class RequesterProfileForm extends Form
         return $this->id_file instanceof UploadedFile
             ? ['type' => $this->id_type, 'file' => $this->id_file]
             : null;
-    }
-
-    /**
-     * The inputs are disabled, but a forged request could still send a new name (REQ-01-27).
-     */
-    private function keepLockedName(): void
-    {
-        $user = $this->user();
-
-        if ($user->hasLockedName()) {
-            $this->first_name = (string) $user->first_name;
-            $this->middle_name = $user->middle_name ?? '';
-            $this->last_name = (string) $user->last_name;
-        }
     }
 
     private function user(): User

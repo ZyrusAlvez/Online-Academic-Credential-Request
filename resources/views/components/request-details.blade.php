@@ -3,7 +3,7 @@
 <dl {{ $attributes->class('grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2') }}>
     <div>
         <dt class="text-zinc-500">{{ __('Credential') }}</dt>
-        <dd class="font-medium text-ink">{{ $request->credentialType->name }} &times; {{ $request->copies }}</dd>
+        <dd class="font-medium text-ink">{{ $request->credentialType->name }}</dd>
     </div>
     <div>
         <dt class="text-zinc-500">{{ __('Purpose') }}</dt>
@@ -15,6 +15,11 @@
             <dd class="font-medium text-ink">{{ $request->receiving_institution }}</dd>
         </div>
     @endif
+    {{-- The request's own copy of the name (REQ-15-08); the contact number is for the Registrar only. --}}
+    <div class="sm:col-span-2">
+        <dt class="text-zinc-500">{{ __('Requester') }}</dt>
+        <dd class="font-medium break-words text-ink">{{ $request->requester_name }}</dd>
+    </div>
     <div>
         <dt class="text-zinc-500">{{ __('Status') }}</dt>
         <dd class="font-medium text-ink">{{ $request->academic_status->label() }} · {{ $request->attended_from }}–{{ $request->attended_to }}</dd>
@@ -44,9 +49,6 @@
         <dd class="font-medium text-ink">
             @if ($request->requires_payment)
                 {{ $request->amount_due !== null ? '₱'.number_format((float) $request->amount_due, 2) : __('Required') }}
-                @if ($request->fee !== null && $request->copies > 1)
-                    <span class="text-xs text-zinc-500">({{ $request->copies }} &times; ₱{{ number_format((float) $request->fee, 2) }})</span>
-                @endif
             @else
                 {{ __('None required') }}
             @endif

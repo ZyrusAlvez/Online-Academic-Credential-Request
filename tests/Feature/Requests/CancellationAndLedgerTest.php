@@ -3,7 +3,6 @@
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Exceptions\InvalidTransition;
-use App\Livewire\Registrar\Requests\Show;
 use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\RequestEvent;
 use App\Models\User;
@@ -34,17 +33,12 @@ test('REQ-04-16 the owner cannot cancel an accepted request', function () {
         ->and(fn () => workflow()->cancel($request, $this->owner))->toThrow(InvalidTransition::class);
 });
 
-test('REQ-04-16 the registrar can cancel any open request with a reason, closing its open visit', function () {
-    $request = acceptRequest(submitRequest($this->owner, $this->org->free), $this->registrar);
+test('REQ-04-16 only the owner cancels: the registrar cannot', function () {
+    $request = submitRequest($this->owner, $this->org->free);
 
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])
-        ->call('cancel')->assertHasErrors('cancelReason')
-        ->set('cancelReason', 'Duplicate request')->call('cancel');
-
-    expect($request->fresh())
-        ->status->toBe(RequestStatus::Cancelled)
-        ->cancel_reason->toBe('Duplicate request')
-        ->and($request->openVisit()->exists())->toBeFalse();
+    expect($this->registrar->can('cancel', $request))->toBeFalse()
+        ->and(fn () => workflow()->cancel($request, $this->registrar, 'Duplicate request'))->toThrow(InvalidTransition::class)
+        ->and($request->fresh()->status)->toBe(RequestStatus::Submitted);
 });
 
 test('REQ-04-17 every action is in the append-only ledger with actor and statuses', function () {
@@ -66,7 +60,7 @@ test('REQ-04-17 every action is in the append-only ledger with actor and statuse
 test('REQ-04-17 actions not allowed in the current status are refused', function () {
     $request = submitRequest($this->owner, $this->org->tor);
 
-    expect(fn () => workflow()->completeEvaluation($request, $this->registrar))->toThrow(InvalidTransition::class)
+    expect(fn () => workflow()->approveEvaluation($request, $this->registrar))->toThrow(InvalidTransition::class)
         ->and(fn () => workflow()->verifyPaymentAndAccept($request, $this->registrar, 'OR-1'))->toThrow(InvalidTransition::class)
         ->and(fn () => uploadPayment($request))->toThrow(InvalidTransition::class)
         ->and($request->fresh()->status)->toBe(RequestStatus::Submitted);

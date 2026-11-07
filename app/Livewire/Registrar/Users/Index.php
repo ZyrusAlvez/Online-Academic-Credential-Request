@@ -5,6 +5,7 @@ namespace App\Livewire\Registrar\Users;
 use App\Actions\Staff\SetAccountStatus;
 use App\Enums\Role;
 use App\Livewire\Concerns\TrimsInput;
+use App\Livewire\Forms\RoleForm;
 use App\Livewire\Forms\StaffForm;
 use App\Models\Department;
 use App\Models\User;
@@ -23,6 +24,8 @@ class Index extends Component
     use WithPagination;
 
     public StaffForm $form;
+
+    public RoleForm $roleForm;
 
     #[Url(except: '')]
     public string $search = '';
@@ -75,6 +78,30 @@ class Index extends Component
         $this->dispatch('notify', message: "{$account->name}'s account saved.");
     }
 
+    public function editRole(User $account): void
+    {
+        $this->authorize('changeRole', $account);
+
+        $this->resetValidation();
+        $this->roleForm->edit($account);
+        Flux::modal('change-role')->show();
+    }
+
+    public function changeRole(): void
+    {
+        /** @var User|null $account */
+        $account = $this->roleForm->account;
+        abort_if($account === null, 404);
+        $this->authorize('changeRole', $account);
+
+        if (! $this->roleForm->save($this->actor())) {
+            return;
+        }
+
+        Flux::modal('change-role')->close();
+        $this->dispatch('notify', message: "{$account->name} is now {$account->role->label()}.");
+    }
+
     public function toggleStatus(User $account, SetAccountStatus $setStatus): void
     {
         $this->authorize('setStatus', $account);
@@ -92,12 +119,15 @@ class Index extends Component
 
     public function render(): View
     {
+        $term = trim($this->search);
+
         $accounts = User::query()
             ->with('department:id,name,code')
-            ->when($this->search !== '', fn ($query) => $query->where(fn ($query) => $query
-                ->where('first_name', 'like', "%{$this->search}%")
-                ->orWhere('last_name', 'like', "%{$this->search}%")
-                ->orWhere('email', 'like', "%{$this->search}%")))
+            ->when($term !== '', fn ($query) => $query->where(fn ($query) => $query
+                ->where('first_name', 'like', "%{$term}%")
+                ->orWhere('last_name', 'like', "%{$term}%")
+                ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$term}%"])
+                ->orWhere('email', 'like', "%{$term}%")))
             ->when(Role::tryFrom($this->role), fn ($query, $role) => $query->where('role', $role))
             ->when($this->status !== '', fn ($query) => $query->where('is_active', $this->status === 'active'))
             ->orderBy('last_name')

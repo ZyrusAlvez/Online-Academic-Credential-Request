@@ -22,6 +22,7 @@ erDiagram
     departments |o--o{ workflow_steps : "acts at"
     credential_types ||--o{ credential_requests : "requested as"
     credential_requests ||--o{ request_deficiencies : "missing"
+    credential_requests ||--o{ request_checks : "checked by"
     credential_requests ||--o{ payment_proofs : has
     credential_requests ||--o{ request_steps : "routed through"
     request_steps ||--o{ office_visits : "visited as"
@@ -34,14 +35,16 @@ erDiagram
     credential_requests ||--o{ request_events : "ledger of"
     users |o--o{ request_events : performs
     users |o--o{ non_working_days : "added"
+    users |o--o{ activity_logs : performs
+    departments |o--o{ activity_logs : involves
 ```
 
 - A **requester** owns **credential requests**, uploads **identity documents**; a **department staff** user belongs to one **office**.
 - A **credential type** has an ordered **route** (`workflow_steps`) of offices with tasks.
 - On acceptance the route is copied into **request_steps** (plus the Registrar's final check);
   each physical stay at an office is an **office_visit**.
-- Deficiencies, payment proofs, delay notes, pauses, representatives (with their documents), the
-  release record and the **request_events** ledger all belong to a request.
+- Checklist results, deficiencies, payment proofs, delay notes, pauses, representatives (with their
+  documents), the release record and the **request_events** ledger all belong to a request.
 
 Nothing that belongs to a request can be deleted: all request foreign keys are `RESTRICT`.
 
@@ -54,13 +57,13 @@ Accounts for all three roles.
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
-| first_name | varchar(100) | Yes | | | Requesters give it in My Profile after signing up |
+| first_name | varchar(100) | Yes | | | Requesters give it on their first request; edited in Settings → Profile |
 | middle_name | varchar(100) | Yes | | | Shown as an initial: "Juan S. Dela Cruz" |
-| last_name | varchar(100) | Yes | | | Requesters give it in My Profile after signing up |
+| last_name | varchar(100) | Yes | | | Requesters give it on their first request; edited in Settings → Profile |
 | email | varchar(255) | No | UQ | | Login name |
 | google_id | varchar(64) | Yes | UQ | | Google account ID once the user signs in with Google (REQ-01-24) |
-| contact_number | varchar(20) | Yes | | | Requesters: 11 digits, given in My Profile |
-| privacy_consented_at | timestamp | Yes | | | When the requester agreed to the Data Privacy Act notice (first My Profile save) |
+| contact_number | varchar(20) | Yes | | | Requesters: 11 digits, the saved profile's (each request keeps its own copy) |
+| privacy_consented_at | timestamp | Yes | | | When the requester agreed to the Data Privacy Act notice (first request or profile save) |
 | role | varchar(20) | No | IX | `student` | `student`, `registrar`, `department` (see [Role](#role)) |
 | department_id | bigint unsigned | Yes | FK → departments | | Only for `department` staff |
 | academic_status | varchar(20) | Yes | | | Requesters: `current`, `graduate`, `former` (see [AcademicStatus](#academicstatus)) |
@@ -68,8 +71,6 @@ Accounts for all three roles.
 | program | varchar(150) | Yes | | | Requesters: program or strand |
 | student_number | varchar(30) | Yes | | | Requesters: optional |
 | attended_from, attended_to | smallint unsigned | Yes | | | Requesters: years attended |
-| identity_status | varchar(20) | No | IX | `unsubmitted` | See [IdentityStatus](#identitystatus); set by uploads and the registrar's review only |
-| identity_verified_at | timestamp | Yes | | | When the registrar verified the requester's ID |
 | is_active | tinyint(1) | No | | 1 | 0 = deactivated by the registrar; cannot log in |
 | email_verified_at | timestamp | Yes | | | Required before a student can submit a request |
 | password | varchar(255) | Yes | | | Bcrypt hash; empty for accounts made through Google |
@@ -78,7 +79,7 @@ Accounts for all three roles.
 
 ## departments
 
-Offices on credential routes (spec 02): the colleges (as the Dean), Registrar, VP Finance, Chancellor and President. Never deleted, only deactivated.
+Offices on credential routes (spec 02): the 11 colleges (as the Dean), Registrar, VP Finance, Chancellor and President. Never deleted, only deactivated, except once: the 2026-11-06 list replacement renamed the earlier colleges in place and removed the unused College of Law (REQ-02-14).
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
@@ -92,7 +93,7 @@ Offices on credential routes (spec 02): the colleges (as the Dean), Registrar, V
 
 ## programs
 
-Programs and strands by college (spec 12), kept by the registrar and offered on My Profile. Never deleted, only deactivated. `users.program` and `credential_requests.program` hold a copy of the name, so a later rename doesn't change past requests.
+Programs and strands by college (spec 12), kept by the registrar and offered on New Request and Settings → Profile. Never deleted, only deactivated, except when the 2026-11-06 list replaced the earlier one (REQ-12-12). `users.program` and `credential_requests.program` hold a copy of the name, so a later rename doesn't change past requests.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
@@ -100,6 +101,17 @@ Programs and strands by college (spec 12), kept by the registrar and offered on 
 | department_id | bigint unsigned | No | FK, UQ | | The college (`RESTRICT`) |
 | name | varchar(150) | No | UQ | | e.g. "Bachelor of Science in Accountancy"; unique within the college |
 | is_active | tinyint(1) | No | IX | 1 | Inactive programs are not offered to requesters |
+| created_at, updated_at | timestamp | Yes | | | |
+
+## purposes
+
+Request purposes (spec 13), kept by the registrar and offered on New Request. Never deleted, only deactivated. `credential_requests.purpose` holds a copy of the name, so a later rename doesn't change past requests.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| name | varchar(150) | No | UQ | | e.g. "Employment abroad" |
+| is_active | tinyint(1) | No | IX | 1 | Inactive purposes are not offered to requesters |
 | created_at, updated_at | timestamp | Yes | | | |
 
 ## credential_types
@@ -112,7 +124,7 @@ The credential master list (spec 03): documents requesters can ask for. Never de
 | name | varchar(150) | No | UQ | | e.g. "Transcript of Records (TOR)" |
 | description | text | Yes | | | Shown to requesters on the request form |
 | requires_payment | tinyint(1) | No | | 0 | 1 = student must pay on the UPHSL portal and upload a receipt |
-| fee | decimal(10,2) | Yes | | | Fee per copy in pesos; only kept when payment is required |
+| fee | decimal(10,2) | Yes | | | Fee in pesos for one document; only kept when payment is required |
 | processing_days | tinyint unsigned | No | | 5 | Processing period in working days (spec 10), used for the due date |
 | requirements | json | Yes | | | List of documentary requirements, shown before submitting and checked by the evaluator |
 | special_conditions | text | Yes | | | Shown before submitting |
@@ -147,18 +159,24 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 | reference_no | varchar(20) | Yes | UQ | | Tracking number `CR-YYYY-NNNNNN` (set right after insert) |
 | user_id | bigint unsigned | No | FK → users, IX (with created_at) | | The document owner (requester) |
 | credential_type_id | bigint unsigned | No | FK → credential_types | | |
-| copies | tinyint unsigned | No | | 1 | 1–10 |
-| purpose | varchar(500) | No | | | |
+| purpose | varchar(500) | No | | | A copy of the chosen purpose's name (spec 13); older requests keep their free text |
 | receiving_institution | varchar(255) | Yes | | | Receiving school (required for transfer credentials) |
 | college_id | bigint unsigned | No | FK → departments | | Snapshot of the requester's college; resolves the Dean step |
 | academic_status | varchar(20) | No | | | Snapshot (see [AcademicStatus](#academicstatus)) |
 | program | varchar(150) | No | | | Snapshot: program or strand |
 | student_number | varchar(30) | Yes | | | Snapshot |
 | attended_from, attended_to | smallint unsigned | No | | | Snapshot: years attended |
+| requester_name | varchar(150) | No | | | Snapshot: "First Middle Last" with the full middle name, to compare with the ID (spec 15) |
+| contact_number | varchar(20) | Yes | | | Snapshot of the requester's contact number |
+| identity_document_id | bigint unsigned | Yes | FK → identity_documents | | The ID sent with this request (`RESTRICT`); a replacement after a rejection points here |
+| identity_status | varchar(20) | No | IX | pending | The request's identity check: `pending`, `verified`, `rejected` (see [ReviewStatus](#reviewstatus)) |
+| identity_reviewed_by | bigint unsigned | Yes | FK → users | | Registrar who verified or rejected the ID |
+| identity_reviewed_at | timestamp | Yes | | | |
+| identity_remarks | varchar(500) | Yes | | | Reason for a rejection, shown to the requester |
 | requester_mode | varchar(20) | No | | personal | `personal` or `representative` (see [RequesterMode](#requestermode)) |
 | requires_payment | tinyint(1) | No | | 0 | Snapshot of the credential type |
-| fee | decimal(10,2) | Yes | | | Snapshot: fee per copy |
-| amount_due | decimal(10,2) | Yes | | | fee × copies |
+| fee | decimal(10,2) | Yes | | | Snapshot of the credential's fee |
+| amount_due | decimal(10,2) | Yes | | | The fee (one document per request) |
 | status | varchar(30) | No | IX | | See [RequestStatus](#requeststatus) |
 | submitted_at | timestamp | Yes | IX (with status) | | |
 | evaluation_started_at | timestamp | Yes | | | When an evaluator took it up |
@@ -176,9 +194,25 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 | cancelled_at, cancel_reason | timestamp, varchar(500) | Yes | | | |
 | created_at, updated_at | timestamp | Yes | | | |
 
+## request_checks
+
+The current result of each part of a Registrar stage's checklist (spec 16). A result changes until
+the stage's decision; rejected parts are cleared when the request comes back for evaluation. The
+decision's `request_events` entry keeps the history.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| credential_request_id | bigint unsigned | No | FK → credential_requests, UQ with item | | |
+| item | varchar(30) | No | UQ with credential_request_id | | See [CheckItem](#checkitem) |
+| result | varchar(20) | No | | | See [CheckResult](#checkresult) |
+| checked_by | bigint unsigned | No | FK → users | | Staff member who confirmed or rejected it |
+| checked_at | timestamp | No | | | |
+
 ## request_deficiencies
 
-Missing requirements found during evaluation (spec 04).
+Missing requirements found during evaluation (spec 04). Requests from before spec 16 only: a
+return now records the rejected checklist parts instead.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
@@ -224,11 +258,12 @@ and earlier rows are never overwritten (spec 05).
 | status | varchar(20) | No | | | See [VisitStatus](#visitstatus) |
 | from_department_id | bigint unsigned | Yes | FK → departments | | Office it came from |
 | forwarded_at, forwarded_by | timestamp, bigint unsigned | No | FK → users | | Dispatch |
-| received_at, received_by | timestamp, bigint unsigned | Yes | FK → users | | Accept receipt |
-| completed_at, completed_by | timestamp, bigint unsigned | Yes | FK → users | | Approved, returned or bypassed |
+| received_at, received_by | timestamp, bigint unsigned | Yes | FK → users | | Accept receipt: when the paper was delivered |
+| done_at, done_by | timestamp, bigint unsigned | Yes | FK → users | | The office's task done (prepared, signed, stamped, corrected); the paper may still be there (spec 17) |
+| completed_at, completed_by | timestamp, bigint unsigned | Yes | FK → users | | The paper left (forwarded on), was returned or bypassed, or the final check closed it |
 | returned_to_department_id | bigint unsigned | Yes | FK → departments | | Where it was returned for correction |
 | return_reason, corrective_action, remarks | varchar(500) | Yes | | | |
-| working_days | smallint unsigned | Yes | | | Working days from receipt to completion, frozen when the visit closes |
+| working_days | smallint unsigned | Yes | | | Working days from receipt to leaving, frozen when the visit closes |
 | created_at, updated_at | timestamp | Yes | | | |
 
 ## delay_notes
@@ -319,8 +354,8 @@ The release acknowledgment, one per released request (spec 11).
 | credential_request_id | bigint unsigned | No | FK → credential_requests, UQ | | |
 | recipient_type | varchar(20) | No | | | See [RecipientType](#recipienttype) |
 | request_representative_id | bigint unsigned | Yes | FK → request_representatives | | Verified representative who claimed it |
-| recipient_name | varchar(150) | No | | | |
-| id_presented | varchar(100) | No | | | |
+| recipient_name | varchar(150) | No | | | The owner's or the representative's name |
+| id_presented | varchar(100) | Yes | | | Recorded before spec 16 only |
 | acknowledged | tinyint(1) | No | | | Recipient acknowledged receipt |
 | released_by | bigint unsigned | No | FK → users | | |
 | released_at | timestamp | No | | | |
@@ -343,6 +378,28 @@ The append-only ledger: every action on a request. Rows are never updated or del
 | department_id | bigint unsigned | Yes | FK → departments | | Office involved |
 | remarks | text | Yes | | | |
 | created_at | timestamp | No | | CURRENT_TIMESTAMP | |
+
+## activity_logs
+
+The system-wide audit log (spec 14): request actions, account and setup changes, ID reviews and
+sign-ins. Append-only; rows are never updated or deleted. Name and role are copied in at the time
+of the action.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| actor_id | bigint unsigned | Yes | FK → users, IX (with created_at) | | Who did it; null for a failed sign-in or a scheduled job |
+| actor_name | varchar(255) | Yes | | | The actor's name at the time |
+| actor_role | varchar(20) | Yes | | | The actor's [Role](#role) at the time |
+| category | varchar(20) | No | IX (with created_at) | | See [ActivityCategory](#activitycategory) |
+| action | varchar(60) | No | | | e.g. `request.payment_verified`, `credential_type.updated`, `sign_in.failed` |
+| description | varchar(500) | No | | | One line shown on the Logs page |
+| reference_no | varchar(20) | Yes | IX | | The request's reference no. (transaction ID) |
+| department_id | bigint unsigned | Yes | FK → departments | | Office involved |
+| subject_type, subject_id | varchar, bigint unsigned | Yes | | | The record acted on |
+| changes | json | Yes | | | `{field: [old, new]}`; never passwords or tokens |
+| ip_address | varchar(45) | Yes | | | |
+| created_at | timestamp | No | IX | CURRENT_TIMESTAMP | |
 
 ## reminder_logs
 
@@ -372,7 +429,9 @@ Laravel database notifications (the bell). `id` is a UUID.
 ## identity_documents
 
 Requesters' uploaded valid IDs (spec 01). Files live privately on the receipts disk under
-`identity-documents/{user_id}/`; only the owner and registrars can open them. Every upload is kept.
+`identity-documents/{user_id}/`; only the owner and registrars can open them. Every upload is kept;
+the newest is the requester's saved ID. The ID is reviewed on each request that uses it
+(`credential_requests.identity_status`, spec 15), not here.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
@@ -383,10 +442,6 @@ Requesters' uploaded valid IDs (spec 01). Files live privately on the receipts d
 | original_name | varchar(255) | No | | | File name as uploaded |
 | mime_type | varchar(100) | No | | | |
 | size | int unsigned | No | | | Bytes |
-| status | varchar(20) | No | IX | | `pending`, `verified`, `rejected` (see [ReviewStatus](#reviewstatus)) |
-| reviewed_by | bigint unsigned | Yes | FK → users | | Registrar who reviewed it |
-| reviewed_at | timestamp | Yes | | | |
-| remarks | varchar(500) | Yes | | | Reason for a rejection, shown to the requester |
 | created_at, updated_at | timestamp | Yes | | | |
 
 ## email_verification_codes
@@ -482,7 +537,8 @@ Stored as strings; defined in `app/Enums`.
 |---|---|
 | `in_transit` | Forwarded, not yet received |
 | `received` | In the office |
-| `completed` | Approved and released to the next office |
+| `done` | Task done, the paper still in the office until it is forwarded |
+| `completed` | Left the office for the next one (or closed by the final check) |
 | `returned` | Returned to an earlier office for correction |
 | `bypassed` | Closed by a registrar bypass or cancellation |
 
@@ -504,14 +560,29 @@ Stored as strings; defined in `app/Enums`.
 
 ### RequestEventType
 
-Submission and evaluation: `submitted`, `evaluation_started`, `compliance_requested`,
-`deficiency_resolved`, `customer_action_requested`, `customer_responded`, `requirements_completed`,
-`declined`, `college_changed`. Payment and acceptance: `payment_submitted`, `payment_rejected`,
+Submission and evaluation: `submitted`, `evaluation_started`, `compliance_requested` (returned to
+the requester), `resubmitted`, `evaluation_reopened`, `requirements_completed`, `declined`; and,
+from before spec 16 only, `deficiency_resolved`, `customer_action_requested`, `customer_responded`,
+`college_changed`. Payment and acceptance: `payment_submitted`, `payment_rejected`,
 `payment_verified`, `accepted`. Routing: `document_forwarded`, `receipt_accepted`,
-`step_completed`, `document_returned`, `document_resubmitted`, `delay_recorded`, `step_bypassed`,
-`ready_for_release`. Representatives and release: `representative_declared`,
+`step_completed`, `document_returned`, `document_resubmitted`, `delay_recorded`, `step_bypassed`
+(before spec 16 only), `ready_for_release`. Representatives and release: `representative_declared`,
 `representative_verified`, `representative_rejected`, `released`. And `cancelled`. Internal
 entries hidden from requesters: forwarding, returns, resubmissions, delay notes, bypasses.
+
+### CheckItem
+
+The parts of each Registrar stage's checklist (spec 16):
+
+| Stage | Values |
+|---|---|
+| Initial Evaluation | `credential_request`, `identity`, `academic_record`, `representative` (only when the requester transacts through one) |
+| Payment Validation | `payment_proof`, `payment_amount` |
+| Final Quality Check | `credential_document`, `signatures` |
+
+### CheckResult
+
+`confirmed`, `rejected`.
 
 ### DelayCategory
 
@@ -556,14 +627,15 @@ client's delay categories, *Proposed Workflow* IX-D).
 | `graduate` | Graduate |
 | `former` | Former student (did not graduate) |
 
-### IdentityStatus
+### ActivityCategory
 
 | Value | Meaning |
 |---|---|
-| `unsubmitted` | No valid ID uploaded yet |
-| `pending` | ID uploaded, awaiting the registrar |
-| `verified` | The registrar verified the ID |
-| `rejected` | The registrar rejected the latest ID; the requester may upload another |
+| `request` | An action on a request (copied from its ledger) |
+| `account` | An account created or changed |
+| `setup` | A credential type, route step, office, program, purpose or non-working day changed |
+| `identity` | A valid ID uploaded, verified or rejected |
+| `sign_in` | Signed in, signed out, or a failed sign-in |
 
 ### ReviewStatus
 

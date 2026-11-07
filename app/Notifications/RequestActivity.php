@@ -24,6 +24,8 @@ class RequestActivity extends Notification implements ShouldQueue
         RequestEventType::Submitted,
         RequestEventType::ComplianceRequested,
         RequestEventType::CustomerActionRequested,
+        RequestEventType::IdentityVerified,
+        RequestEventType::IdentityRejected,
         RequestEventType::RequirementsCompleted,
         RequestEventType::PaymentRejected,
         RequestEventType::Accepted,
@@ -39,7 +41,9 @@ class RequestActivity extends Notification implements ShouldQueue
      */
     public function via(User $notifiable): array
     {
-        $mail = $notifiable->hasRole(Role::Student) && in_array($this->event->type, self::MAILED_TO_REQUESTERS, true);
+        $mail = $notifiable->hasRole(Role::Student)
+            && $notifiable->wantsEmailNotifications()
+            && in_array($this->event->type, self::MAILED_TO_REQUESTERS, true);
 
         return $mail ? ['database', 'mail'] : ['database'];
     }

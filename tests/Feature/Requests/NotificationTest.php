@@ -1,5 +1,8 @@
 <?php
 
+use App\Enums\CheckItem;
+use App\Enums\CheckResult;
+use App\Enums\CheckStage;
 use App\Enums\RequestEventType;
 use App\Livewire\NotificationBell;
 use App\Livewire\Notifications\Index;
@@ -39,12 +42,14 @@ test('REQ-06-05 the requester is emailed at the client\'s key moments', function
 
     $request = submitRequest($this->owner, $this->org->tor);
     workflow()->startEvaluation($request, $this->registrar);
-    workflow()->requestCompliance($request, $this->registrar, ['Original Form 137']);
-    workflow()->resolveDeficiency($request->deficiencies()->sole(), $this->registrar, 'Received');
-    workflow()->completeEvaluation($request, $this->registrar);
+    workflow()->recordCheck($request, $this->registrar, CheckItem::AcademicRecord, CheckResult::Rejected);
+    workflow()->returnToRequester($request, $this->registrar, 'Bring the original Form 137.');
+    workflow()->resubmit($request, $this->owner);   // their own action: not sent to them
+    evaluate($request, $this->registrar);
     uploadPayment($request);
     workflow()->rejectPayment($request, $this->registrar, 'No matching transaction');
     uploadPayment($request);
+    checkAll($request, $this->registrar, CheckStage::Payment);
     workflow()->verifyPaymentAndAccept($request, $this->registrar, 'OR-1');
 
     expect(mailedTypes())->toBe([
@@ -56,7 +61,7 @@ test('REQ-06-05 the requester is emailed at the client\'s key moments', function
     ]);
 });
 
-test('REQ-06-05 ready-for-release, declined and cancelled are emailed with the details', function () {
+test('REQ-06-05 ready-for-release and declined are emailed with the details', function () {
     $request = acceptRequest(submitRequest($this->owner, $this->org->free), $this->registrar);
     passOffice($request, $this->registrar);
     passOffice($request, $this->registrar);
@@ -70,11 +75,10 @@ test('REQ-06-05 ready-for-release, declined and cancelled are emailed with the d
 
     Notification::fake();
     $declined = submitRequest($this->owner, $this->org->tor);
+    workflow()->startEvaluation($declined, $this->registrar);
     workflow()->decline($declined, $this->registrar, 'Not eligible');
-    $cancelled = submitRequest($this->owner, $this->org->tor);
-    workflow()->cancel($cancelled, $this->registrar, 'Duplicate');
 
-    expect(mailedTypes())->toContain(RequestEventType::Declined, RequestEventType::Cancelled);
+    expect(mailedTypes())->toContain(RequestEventType::Declined);
 });
 
 test('REQ-06-15 emails carry the UPHSL crest, brand colours and the registrar footer', function () {
@@ -122,7 +126,7 @@ test('REQ-06-07 offices are told when a document is forwarded or returned to the
     Notification::assertSentTo($this->vpf, RequestActivity::class, fn ($n) => $n->title === "{$request->reference_no} was corrected and sent back to you");
 });
 
-test('REQ-06-08 registrars are told about new requests, payments, replies and representatives', function () {
+test('REQ-06-08 registrars are told about new and resubmitted requests, payments and representatives', function () {
     Notification::fake();
 
     $request = submitRequest($this->owner, $this->org->tor);
@@ -137,9 +141,10 @@ test('REQ-06-08 registrars are told about new requests, payments, replies and re
 
     $other = submitRequest($this->owner, $this->org->tor);
     workflow()->startEvaluation($other, $this->registrar);
-    workflow()->requestCustomerAction($other, $this->registrar, 'Clarify');
-    workflow()->customerResponded($other, $this->owner, 'Done');
-    Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "The requester replied on {$other->reference_no}");
+    workflow()->recordCheck($other, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
+    workflow()->returnToRequester($other, $this->registrar, 'Blurred ID.');
+    workflow()->resubmit($other, $this->owner, 'Done');
+    Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "{$other->reference_no} was resubmitted for evaluation");
     Notification::assertNotSentTo($this->inactiveRegistrar, RequestActivity::class);
 });
 

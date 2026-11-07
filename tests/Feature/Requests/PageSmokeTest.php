@@ -27,17 +27,23 @@ test('every request page renders in every status for each role that can see it',
         }
     }
 
-    foreach (['registrar.dashboard', 'registrar.requests', 'registrar.identities'] as $page) {
+    foreach (['registrar.dashboard', 'registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.final-check', 'registrar.release', 'registrar.records'] as $page) {
         $this->actingAs($registrar)->get(route($page))->assertOk();
     }
+
+    foreach (CredentialRequest::all() as $request) {
+        $this->actingAs($registrar)->get(route('registrar.records.show', $request))->assertOk();
+    }
+
+    $this->actingAs($registrar)->get(route('registrar.evaluation', ['waiting' => 1]))->assertOk();
 
     foreach (ReportKind::cases() as $kind) {
         $period = ['from' => now()->subDays(60)->format('Y-m-d'), 'to' => now()->format('Y-m-d')];
         $this->actingAs($registrar)->get(route('registrar.reports', ['report' => $kind->value, ...$period]))->assertOk();
-        expect($this->actingAs($registrar)->get(route('registrar.reports.export', ['report' => $kind->value, ...$period]))->assertOk()->streamedContent())->toContain(',');
     }
 
     $this->actingAs(User::where('email', 'vpf@example.com')->firstOrFail())->get(route('department.dashboard'))->assertOk();
     $this->actingAs(User::where('email', 'student@example.com')->firstOrFail())->get(route('student.dashboard'))->assertOk();
     $this->actingAs(User::where('email', 'student@example.com')->firstOrFail())->get(route('student.requests.create'))->assertOk();
+    $this->actingAs(User::where('email', 'student@example.com')->firstOrFail())->get(route('settings.profile'))->assertOk();
 });

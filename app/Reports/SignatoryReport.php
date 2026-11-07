@@ -33,7 +33,7 @@ final class SignatoryReport implements Report
         $calendar = app(WorkingCalendar::class);
 
         return $filter->visits()
-            ->whereIn('office_visits.status', [VisitStatus::InTransit, VisitStatus::Received])
+            ->whereIn('office_visits.status', VisitStatus::open())
             ->whereHas('credentialRequest', fn ($q) => $q->whereIn('status', RequestStatus::processing()))
             ->with(['department', 'step', 'credentialRequest.credentialType'])
             ->get()

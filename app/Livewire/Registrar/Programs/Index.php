@@ -14,7 +14,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
- * The programs and strands offered to requesters on My Profile (spec 12).
+ * The programs and strands offered to requesters on New Request and Settings → Profile (spec 12).
  */
 #[Title('Programs')]
 class Index extends Component
@@ -86,9 +86,11 @@ class Index extends Component
 
     public function render(): View
     {
+        $term = trim($this->search);
+
         $programs = Program::query()
             ->with('college:id,name,code')
-            ->when($this->search !== '', fn ($query) => $query->where('programs.name', 'like', "%{$this->search}%"))
+            ->when($term !== '', fn ($query) => $query->where('programs.name', 'like', "%{$term}%"))
             ->when($this->college !== '', fn ($query) => $query->where('programs.department_id', (int) $this->college))
             ->when($this->status !== '', fn ($query) => $query->where('programs.is_active', $this->status === 'active'))
             ->join('departments', 'departments.id', '=', 'programs.department_id')
@@ -99,7 +101,7 @@ class Index extends Component
 
         return view('livewire.registrar.programs.index', [
             'programs' => $programs,
-            'colleges' => Department::colleges()->orderBy('name')->get(['id', 'name']),
+            'colleges' => Department::active()->colleges()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 }

@@ -10,7 +10,7 @@
                     <p class="mt-1 text-3xl font-bold text-primary tabular-nums">{{ $tile['value'] }}</p>
                 </a>
             @endforeach
-            <a href="{{ route('registrar.requests', ['status' => 'overdue']) }}" wire:navigate
+            <a href="{{ route('registrar.records', ['status' => 'overdue']) }}" wire:navigate
                 @class([
                     'rounded-xl border p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight',
                     'border-red-700 bg-red-50 hover:bg-red-100' => $overdueCount > 0,
@@ -78,8 +78,8 @@
                 @php($maxDays = max(1, $metrics->byOffice->max('days')))
                 <ul class="space-y-2.5">
                     @foreach ($metrics->byOffice as $row)
-                        <li class="grid grid-cols-[minmax(0,10rem)_1fr_7rem] items-center gap-3 sm:grid-cols-[minmax(0,15rem)_1fr_8rem]">
-                            <span class="truncate text-sm text-ink">{{ $row['name'] }}</span>
+                        <li class="grid grid-cols-[1fr_7rem] items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,15rem)_1fr_8rem]">
+                            <span class="col-span-2 truncate text-sm text-ink sm:col-span-1">{{ $row['name'] }}</span>
                             <span class="h-3 rounded-e bg-primary/10" aria-hidden="true">
                                 <span @class(['block h-3 rounded-e', 'bg-amber-600' => $loop->first && $metrics->byOffice->count() > 1, 'bg-primary' => ! ($loop->first && $metrics->byOffice->count() > 1)]) style="width: {{ round($row['days'] / $maxDays * 100, 1) }}%"></span>
                             </span>
@@ -105,10 +105,10 @@
                 <ul class="space-y-2.5">
                     @foreach ($waitingByOffice as $row)
                         <li>
-                            <a href="{{ route('registrar.requests', ['status' => 'processing', 'office' => $row['id']]) }}" wire:navigate
-                                class="group grid grid-cols-[minmax(0,10rem)_1fr_2.5rem] items-center gap-3 rounded-md p-1 hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-highlight sm:grid-cols-[minmax(0,15rem)_1fr_2.5rem]"
+                            <a href="{{ route('registrar.records', ['status' => 'processing', 'office' => $row['id']]) }}" wire:navigate
+                                class="group grid grid-cols-[1fr_2.5rem] items-center gap-x-3 gap-y-1 rounded-md p-1 hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-highlight sm:grid-cols-[minmax(0,15rem)_1fr_2.5rem]"
                                 title="{{ trans_choice(':count request|:count requests', $row['waiting']) }}{{ $row['inTransit'] ? ' · '.__(':n not yet received', ['n' => $row['inTransit']]) : '' }}">
-                                <span class="min-w-0">
+                                <span class="col-span-2 min-w-0 sm:col-span-1">
                                     <span class="block truncate text-sm text-ink">{{ $row['name'] }}</span>
                                     @if ($row['inTransit'])
                                         <span class="block text-xs text-sky-800">{{ __(':n not yet received', ['n' => $row['inTransit']]) }}</span>

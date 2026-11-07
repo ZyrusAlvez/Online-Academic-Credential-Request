@@ -31,7 +31,7 @@ test('REQ-12-02 the seeder installs every college\'s programs without duplicates
     $count = Program::count();
     $this->seed(ProgramSeeder::class);
 
-    expect($count)->toBe(34)
+    expect($count)->toBe(27)
         ->and(Program::count())->toBe($count)
         ->and(Program::whereDoesntHave('college', fn ($query) => $query->colleges())->count())->toBe(0);
 });
@@ -63,6 +63,19 @@ test('REQ-12-03 the registrar can search and filter programs', function () {
         ->set('status', 'inactive')
         ->assertSee('Bachelor of Closed Studies')
         ->assertDontSee('Bachelor of Arts in Communication');
+});
+
+test('REQ-12-03 the Programs page calls a college a department', function () {
+    Program::factory()->for($this->college, 'college')->create(['name' => 'Bachelor of Arts']);
+
+    Livewire::actingAs($this->registrar)->test(Index::class)
+        ->assertSee('All departments')
+        ->assertDontSee('All colleges')
+        ->call('create')
+        ->set('form.department_id', $this->college->id)
+        ->set('form.name', 'Bachelor of Arts')
+        ->call('save')
+        ->assertHasErrors(['form.name' => 'This department already has a program with that name.']);
 });
 
 test('REQ-12-04 the registrar can add a program and edit it', function () {

@@ -16,7 +16,8 @@ There are exactly three environments. Any other `APP_ENV` value stops the app at
 | Data | Base data + demo accounts and requests | Base data + demo accounts and requests | Base data + one registrar account; real data only |
 | Email | Sent through Gmail, all redirected to your own inbox | Sent through Gmail | Sent through Gmail |
 
-Base data = the 15 offices, the 17 credential types with their routes, the holiday calendar, and the registrar account.
+Base data = the 15 offices (11 colleges and 4 offices), the 27 programs, the 17 credential types
+with their routes, the request purposes, the holiday calendar, and the registrar account.
 
 To reload the demo data (local or staging): `php artisan app:reset-demo`.
 
@@ -37,12 +38,15 @@ requests are evaluated, accepted, prepared, checked and released by this account
 
 Each requester already has requests in different states, so every screen has data to show.
 
-| Name | Email | Password | Requests to look at |
-|---|---|---|---|
-| Juan S. Dela Cruz | `student@example.com` | `password` | TOR just submitted; payment to verify; TOR **returned for correction** by VP Finance; Certification of Enrollment released; diploma paused for his action |
-| Maria Reyes | `maria@example.com` | `password` | Certification under evaluation; Course Description awaiting payment; TOR at the Dean of CBA; Copy of Grades ready for release to her verified representative; TOR **overdue** at the Chancellor |
-| Jose L. Garcia | `jose@example.com` | `password` | TOR pending compliance; Certification of Graduation just accepted; Transfer Certificate at the final check; TOR released late; one cancelled |
-| Ana Mendoza | `ana@example.com` | `password` | ID still **awaiting verification** (Identity Checks); Copy of Grades waiting for her clarification; Authentication declined |
+| Name | Email | Password | College and program | Requests to look at |
+|---|---|---|---|---|
+| Juan S. Dela Cruz | `student@example.com` | `password` | CCS · Bachelor of Science in Computer Science, Specialization in Data Science | TOR just submitted; payment to verify; TOR **returned for correction** by VP Finance; Certification of Enrollment released; diploma paused for his action |
+| Maria Reyes | `maria@example.com` | `password` | CBAA · Bachelor of Science in Accountancy | Certification under evaluation; Course Description awaiting payment; TOR at the Dean of CBAA; Copy of Grades ready for release to her verified representative; TOR **overdue** at the Chancellor |
+| Jose L. Garcia | `jose@example.com` | `password` | CEA · Bachelor of Science in Civil Engineering | TOR pending compliance; Certification of Graduation just accepted; Transfer Certificate at the final check; TOR released late; one cancelled |
+| Ana Mendoza | `ana@example.com` | `password` | CTE · Bachelor of Secondary Education | ID still **awaiting verification** (Identity Checks); Copy of Grades waiting for her clarification; Authentication declined |
+
+Juan, Maria and Jose are verified, so their My Profile is read-only. Ana's is read-only while her ID
+waits; reject it on Identity Checks to see the profile open up again.
 
 ### Department staff
 
@@ -54,20 +58,43 @@ to it, so demo data can't bounce or use up the Gmail sending limit.
 | Office | Code | Email |
 |---|---|---|
 | College of Arts and Sciences | CAS | `cas@example.com` |
-| College of Business and Accountancy | CBA | `cba@example.com` |
+| School of Aviation | SOA | `soa@example.com` |
+| Basic Education Department | BED | `bed@example.com` |
+| College of Business Administration and Accountancy | CBAA | `cbaa@example.com` |
 | College of Computer Studies | CCS | `ccs@example.com` |
-| College of Criminology | CRIM | `crim@example.com` |
-| College of Education | COED | `coed@example.com` |
-| College of Engineering | COE | `coe@example.com` |
-| College of International Hospitality Management | CIHM | `cihm@example.com` |
-| College of Maritime Education | CME | `cme@example.com` |
-| College of Law | LAW | `law@example.com` |
+| College of Criminal Justice Education | CCJE | `ccje@example.com` |
+| College of Teacher Education | CTE | `cte@example.com` |
+| College of Engineering and Architecture | CEA | `cea@example.com` |
 | Graduate School | GS | `gs@example.com` |
-| Architecture and Aviation | CAA | `caa@example.com` |
+| College of Nutrition, Hospitality and Tourism Management | CNHTM | `cnhtm@example.com` |
+| College of Maritime Education | CME | `cme@example.com` |
 | Office of the VP for Finance | VPF | `vpf@example.com` |
 | Office of the Chancellor | CHAN | `chan@example.com` |
 | Office of the President | PRES | `pres@example.com` |
 | Office of the Registrar | REG | `reg@example.com` |
+
+The college list changed on 2026-11-06. The old addresses (`cba@`, `crim@`, `coed@`, `coe@`,
+`cihm@`, `caa@`, `law@`) no longer exist. On staging the deploy moved each demo account to its
+college's new address, keeping its history, and removed `law@`. Any other college staff account,
+such as the Basic Education starter account, was deleted, or deactivated if it had already acted.
+Production gets the same clean-up and no new accounts: the registrar creates the college staff
+accounts under **Administration → Accounts**.
+
+### Programs
+
+| College | Programs |
+|---|---|
+| CAS | Bachelor of Arts in Communication · Bachelor of Arts in Political Science · Bachelor of Arts/Science in Psychology |
+| SOA | Bachelor of Science in Aircraft Maintenance and Technology · Bachelor of Science in Aviation Electronics Technology |
+| BED | Basic Education |
+| CBAA | Bachelor of Science in Accountancy · Bachelor of Science in Business Administration · Bachelor of Science in Real Estate Management |
+| CCS | Bachelor of Information Technology in Cybersecurity and Forensics · Bachelor of Science in Computer Science, Specialization in Data Science · Bachelor of Science in Entertainment and Multimedia Computing |
+| CCJE | Bachelor of Science in Criminology |
+| CTE | Bachelor of Early Childhood Education · Bachelor of Elementary Education · Bachelor of Library and Information Science · Bachelor of Physical Education · Bachelor of Secondary Education |
+| CEA | Bachelor of Science in Architecture · Bachelor of Science in Civil Engineering · Bachelor of Science in Computer Engineering · Bachelor of Science in Industrial Engineering |
+| GS | Graduate School |
+| CNHTM | Bachelor of Science in Hospitality Management · Bachelor of Science in Nutrition & Dietetics · Bachelor of Science in Tourism Management |
+| CME | Bachelor of Science in Marine Transportation |
 
 Registrar accounts also act on the Office of the Registrar's steps (preparation and the final
 quality check).
@@ -120,7 +147,7 @@ logged in as several roles at once.
 |---|---|---|---|
 | 1 | Requester (new account) | Register with a real address and consent, verify the email, fill in **My Profile** and upload an ID | **New Request** opens only after the profile and ID are done |
 | 2 | Registrar | **Identity Checks** → verify the new ID | The requester is emailed |
-| 3 | Requester | **New Request** → Transcript of Records, 2 copies | Sees requirements, ₱1,060.00 due, offices, the incomplete-requirements notice; status *Submitted* |
+| 3 | Requester | **New Request** → Transcript of Records | Sees requirements, ₱530.00 due, offices, the incomplete-requirements notice; status *Submitted* |
 | 4 | Registrar | **Requests** → open it → **Start evaluation** → **Requirements incomplete** (tick the PSA birth certificate) | Requester sees the deficiency and the compliance notice |
 | 5 | Registrar | **Record compliance** → **Requirements complete** | Requester gets payment instructions |
 | 6 | Requester | Upload a proof with reference, amount and date | *Payment verification* |

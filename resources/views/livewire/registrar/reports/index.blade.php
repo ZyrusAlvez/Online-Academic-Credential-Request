@@ -1,9 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Reports" description="The Registrar's performance and monitoring reports. Choose a report and filter it; export the full report as CSV.">
-        <x-slot:actions>
-            <flux:button icon="arrow-down-tray" :href="$exportUrl">{{ __('Export CSV') }}</flux:button>
-        </x-slot:actions>
-    </x-page-header>
+    <x-page-header title="Reports" description="The Registrar's performance and monitoring reports. Choose a report and filter it." />
 
     <div class="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <flux:select wire:model.live="report" :label="__('Report')" class="xl:col-span-2">
@@ -61,7 +57,7 @@
         </flux:table>
 
         @if (count($rows) > \App\Livewire\Registrar\Reports\Index::PAGE_ROWS)
-            <p class="text-sm text-zinc-600">{{ __('Showing the first :n rows. Export the CSV for the full report.', ['n' => \App\Livewire\Registrar\Reports\Index::PAGE_ROWS]) }}</p>
+            <p class="text-sm text-zinc-600">{{ __('Showing the first :n rows. Narrow the dates or filters to see the rest.', ['n' => \App\Livewire\Registrar\Reports\Index::PAGE_ROWS]) }}</p>
         @endif
     </section>
 </div>

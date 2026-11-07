@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Programs" description="Programs and strands that requesters choose from on My Profile, by college.">
+    <x-page-header title="Programs" description="Programs and strands that requesters choose from on New Request and Settings → Profile, by department.">
         <x-slot:actions>
             <flux:button variant="primary" icon="plus" wire:click="create">{{ __('Add program') }}</flux:button>
         </x-slot:actions>
@@ -7,8 +7,8 @@
 
     <div class="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
         <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" label:sr-only placeholder="Search name" clearable />
-        <flux:select wire:model.live="college" :label="__('College')" label:sr-only>
-            <flux:select.option value="">{{ __('All colleges') }}</flux:select.option>
+        <flux:select wire:model.live="college" :label="__('Department')" label:sr-only>
+            <flux:select.option value="">{{ __('All departments') }}</flux:select.option>
             @foreach ($colleges as $option)
                 <flux:select.option :value="$option->id">{{ $option->name }}</flux:select.option>
             @endforeach
@@ -23,7 +23,7 @@
     <flux:table :paginate="$programs">
         <flux:table.columns>
             <flux:table.column>{{ __('Program or strand') }}</flux:table.column>
-            <flux:table.column class="max-sm:hidden">{{ __('College') }}</flux:table.column>
+            <flux:table.column class="max-sm:hidden">{{ __('Department') }}</flux:table.column>
             <flux:table.column>{{ __('Status') }}</flux:table.column>
             <flux:table.column><span class="sr-only">{{ __('Actions') }}</span></flux:table.column>
         </flux:table.columns>
@@ -44,7 +44,7 @@
                             <flux:button size="sm" variant="ghost" icon="ellipsis-horizontal" :aria-label="__('Actions for :name', ['name' => $program->name])" />
                             <flux:menu>
                                 <flux:menu.item icon="pencil-square" wire:click="edit({{ $program->id }})">{{ __('Edit') }}</flux:menu.item>
-                                <flux:menu.item :icon="$program->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $program->id }})" :wire:confirm="$program->is_active ? __('Deactivate :name? Requesters will no longer be able to choose it.', ['name' => $program->name]) : null">
+                                <flux:menu.item :icon="$program->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $program->id }})" data-confirm-title="{{ __('Deactivate program') }}" data-confirm-label="{{ __('Deactivate') }}" data-confirm-variant="danger" :wire:confirm="$program->is_active ? __('Deactivate :name? Requesters will no longer be able to choose it.', ['name' => $program->name]) : null">
                                     {{ $program->is_active ? __('Deactivate') : __('Activate') }}
                                 </flux:menu.item>
                             </flux:menu>
@@ -63,7 +63,7 @@
         <form wire:submit="save" class="space-y-6">
             <flux:heading size="lg">{{ $form->program ? __('Edit program') : __('Add program') }}</flux:heading>
 
-            <flux:select wire:model="form.department_id" :label="__('College')" required>
+            <flux:select wire:model="form.department_id" :label="__('Department')" required>
                 <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
                 @foreach ($colleges as $option)
                     <flux:select.option :value="$option->id">{{ $option->name }}</flux:select.option>

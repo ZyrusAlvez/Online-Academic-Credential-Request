@@ -18,6 +18,15 @@ enum RequestEventType: string
     case Declined = 'declined';
     case CollegeChanged = 'college_changed';
 
+    // Registrar stages (spec 16)
+    case Resubmitted = 'resubmitted';
+    case EvaluationReopened = 'evaluation_reopened';
+
+    // The request's valid ID (spec 15)
+    case IdentityVerified = 'identity_verified';
+    case IdentityRejected = 'identity_rejected';
+    case IdentityResubmitted = 'identity_resubmitted';
+
     // Payment and acceptance (spec 04)
     case PaymentSubmitted = 'payment_submitted';
     case PaymentRejected = 'payment_rejected';
@@ -30,6 +39,7 @@ enum RequestEventType: string
     case StepCompleted = 'step_completed';
     case DocumentReturned = 'document_returned';
     case DocumentResubmitted = 'document_resubmitted';
+    case Corrected = 'corrected';
     case DelayRecorded = 'delay_recorded';
     case StepBypassed = 'step_bypassed';
     case ReadyForRelease = 'ready_for_release';
@@ -57,6 +67,7 @@ enum RequestEventType: string
             self::DocumentForwarded,
             self::DocumentReturned,
             self::DocumentResubmitted,
+            self::Corrected,
             self::DelayRecorded,
             self::StepBypassed,
         ], true);

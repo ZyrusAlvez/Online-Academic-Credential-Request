@@ -1,7 +1,8 @@
 <?php
 
+use App\Enums\CheckStage;
 use App\Livewire\Department\Requests\Show as OfficeShow;
-use App\Livewire\Registrar\Requests\Show;
+use App\Livewire\Registrar\Records\Show as RecordShow;
 use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -38,6 +39,38 @@ test('REQ-06-01 the requester sees the tracker, the holding office and the expec
         ->assertSee('Saturday, Oct 17, 2026');
 });
 
+test('REQ-06-01 the tracker is a step bar with the date under each finished milestone', function () {
+    $tracker = fn ($request) => $this->blade('<x-request-tracker :request="$request" :events="$events" />', [
+        'request' => $request->fresh(), 'events' => $request->events()->get(),
+    ]);
+    $request = submitRequest($this->owner, $this->org->free);
+
+    $tracker($request)
+        ->assertSeeInOrder(['Request submitted and evaluated', '(current)', 'Current step', 'Payment verified', '(not yet)'])
+        ->assertSee('aria-current="step"', false)
+        ->assertDontSee('bg-green-600', false);
+
+    Carbon::setTestNow('2026-10-09 10:00:00');
+    acceptRequest($request, $this->registrar);
+    Carbon::setTestNow('2026-10-12 14:30:00');
+    passOffice($request, $this->registrar);   // prepared; the final check is in the same office, so received at once (REQ-17-07)
+
+    $tracker($request)
+        ->assertSeeInOrder([
+            'Request submitted and evaluated', '(done)', 'Oct 9, 2026', '10:00 AM',
+            'Payment verified', '(done)', 'Oct 9, 2026',
+            'Processing in progress', '(done)', 'Oct 12, 2026', '2:30 PM',
+            'Final approval and quality check', '(current)', 'Current step',
+            'Ready for release', '(not yet)',
+        ])
+        ->assertSee('bg-green-600', false);
+
+    checkAll($request, $this->registrar, CheckStage::FinalCheck);   // REQ-16-19
+    workflow()->completeVisit(openVisit($request), $this->registrar);
+
+    $tracker($request)->assertSeeInOrder(['Final approval and quality check', '(done)', 'Ready for release', '(current)']);
+});
+
 test('REQ-06-02 the requester history names offices, never staff, and hides internal entries', function () {
     $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
     passOffice($request, $this->registrar);
@@ -61,7 +94,8 @@ test('REQ-06-03 the registrar sees the full ledger with actors and the office vi
     passOffice($request, $this->registrar);
     workflow()->acceptReceipt(openVisit($request), $this->dean);
 
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])
+    // The ledger is on the Records page (REQ-17-04).
+    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
         ->assertSee('Rhea Registrar (Registrar)')
         ->assertSee('Forwarded to College of Computer Studies')
         ->assertSeeInOrder(['Office visits', 'Office of the Registrar', 'Same day', 'Completed', 'College of Computer Studies', 'In progress', 'In office']);

@@ -8,3 +8,5 @@
 - [x] Pest tests for every REQ-04 criterion
 - [x] Credential picker is a dropdown; the details panel (with description, fee and period badges)
       appears once a credential is chosen (REQ-04-02)
+- [x] Drop `copies`: form, workflow, views, CSV, factory, seeders; migration resets unpaid amounts (REQ-04-01..03)
+- [x] Pest tests for the changed REQ-04-01..03

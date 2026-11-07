@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\RouteTask;
+use App\Enums\StepStatus;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use Illuminate\Database\Eloquent\Model;
@@ -21,7 +23,8 @@ use Illuminate\Support\Carbon;
  * @property ?int $from_department_id
  * @property Carbon $forwarded_at
  * @property ?Carbon $received_at
- * @property ?Carbon $completed_at
+ * @property ?Carbon $done_at the office's task was done (spec 17)
+ * @property ?Carbon $completed_at the paper left the office, or the final check closed it
  * @property ?int $returned_to_department_id
  * @property ?string $return_reason
  * @property ?string $corrective_action
@@ -40,9 +43,41 @@ class OfficeVisit extends Model
             'status' => VisitStatus::class,
             'forwarded_at' => 'datetime',
             'received_at' => 'datetime',
+            'done_at' => 'datetime',
             'completed_at' => 'datetime',
             'working_days' => 'integer',
         ];
+    }
+
+    /**
+     * Where the paper goes when it leaves this office: a corrected document back to the office
+     * that returned it (its step), otherwise the route's next waiting step; null after the final
+     * quality check (REQ-17-07). Reads the loaded `step` and `credentialRequest.steps`.
+     */
+    public function nextStep(): ?RequestStep
+    {
+        $steps = $this->credentialRequest->steps->sortBy('position');
+
+        if ($this->purpose === VisitPurpose::Correction) {
+            return $steps->firstWhere('id', $this->request_step_id);
+        }
+
+        return $steps->first(fn (RequestStep $step): bool => $step->position > $this->step->position && $step->status === StepStatus::Waiting);
+    }
+
+    /**
+     * The registrar can send the paper on from here: its office's task is done, or it is the
+     * Office of the Registrar's own task (preparation or a correction, not the final quality
+     * check), which forwarding marks done (REQ-17-12). Reads the loaded `department` and `step`.
+     */
+    public function isForwardable(): bool
+    {
+        return match ($this->status) {
+            VisitStatus::Done => true,
+            VisitStatus::Received => $this->department->code === Department::REGISTRAR_CODE
+                && ($this->purpose === VisitPurpose::Correction || $this->step->task !== RouteTask::FinalCheck),
+            default => false,
+        };
     }
 
     /**
@@ -91,6 +126,14 @@ class OfficeVisit extends Model
     public function receiver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'received_by');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function doer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'done_by');
     }
 
     /**

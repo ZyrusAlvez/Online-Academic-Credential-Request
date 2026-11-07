@@ -9,7 +9,7 @@ use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * The filters shared by the dashboard indicators, the reports and their CSV exports (spec 07):
+ * The filters shared by the dashboard indicators and the reports (spec 07):
  * a date range (this month by default), credential type, evaluator and office.
  */
 final class ReportFilter
@@ -30,20 +30,8 @@ final class ReportFilter
     }
 
     /**
-     * @param  array<string, mixed>  $input
-     */
-    public static function fromArray(array $input): self
-    {
-        return new self(
-            from: (string) ($input['from'] ?? ''),
-            to: (string) ($input['to'] ?? ''),
-            type: (string) ($input['type'] ?? ''),
-            evaluator: (string) ($input['evaluator'] ?? ''),
-            office: (string) ($input['office'] ?? ''),
-        );
-    }
-
-    /**
+     * The filters as URL query parameters (the dashboard's link to the reports).
+     *
      * @return array<string, string>
      */
     public function toArray(): array

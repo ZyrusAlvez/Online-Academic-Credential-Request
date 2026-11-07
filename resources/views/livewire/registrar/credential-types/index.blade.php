@@ -48,7 +48,7 @@
                             <flux:menu>
                                 <flux:menu.item icon="arrows-right-left" :href="route('registrar.credential-types.workflow', $type)" wire:navigate>{{ __('Edit route') }}</flux:menu.item>
                                 <flux:menu.item icon="pencil-square" wire:click="edit({{ $type->id }})">{{ __('Edit details') }}</flux:menu.item>
-                                <flux:menu.item :icon="$type->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $type->id }})" :wire:confirm="$type->is_active ? __('Deactivate :name? Requesters will no longer be able to request it.', ['name' => $type->name]) : null">
+                                <flux:menu.item :icon="$type->is_active ? 'no-symbol' : 'check-circle'" wire:click="toggleStatus({{ $type->id }})" data-confirm-title="{{ __('Deactivate credential type') }}" data-confirm-label="{{ __('Deactivate') }}" data-confirm-variant="danger" :wire:confirm="$type->is_active ? __('Deactivate :name? Requesters will no longer be able to request it.', ['name' => $type->name]) : null">
                                     {{ $type->is_active ? __('Deactivate') : __('Activate') }}
                                 </flux:menu.item>
                             </flux:menu>
@@ -74,7 +74,7 @@
 
             <div class="grid gap-6 sm:grid-cols-2">
                 @if ($form->requires_payment)
-                    <flux:input wire:model="form.fee" type="number" step="0.01" min="0" inputmode="decimal" :label="__('Fee per copy (₱)')" badge="Optional" />
+                    <flux:input wire:model="form.fee" type="number" step="0.01" min="0" inputmode="decimal" :label="__('Fee (₱)')" badge="Optional" />
                 @endif
                 <flux:input wire:model="form.processing_days" type="number" min="1" max="60" :label="__('Processing period')" :description="__('Working days from acceptance')" required />
             </div>

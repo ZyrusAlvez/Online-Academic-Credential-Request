@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\CheckStage;
 use App\Enums\DelayCategory;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
@@ -9,7 +10,6 @@ use App\Enums\VisitStatus;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Department\Dashboard;
 use App\Livewire\Department\Requests\Show as OfficeShow;
-use App\Livewire\Registrar\Requests\Show;
 use App\Models\CredentialRequest;
 use App\Models\OfficeVisit;
 use App\Models\User;
@@ -43,7 +43,8 @@ test('REQ-05-01 acceptance copies the route with the Dean resolved and the final
     $steps = $this->request->steps()->with('department')->get();
 
     expect($steps->pluck('department.code')->all())->toBe(['REG', 'CCS', 'VPF', 'CHAN', 'REG'])
-        ->and(openVisit($this->request))->department_id->toBe($this->org->registrarOffice->id)->status->toBe(VisitStatus::InTransit);
+        // The paper starts at the Registrar, received there at once (REQ-17-05).
+        ->and(openVisit($this->request))->department_id->toBe($this->org->registrarOffice->id)->status->toBe(VisitStatus::Received);
 });
 
 test('REQ-05-02 the office queue shows incoming, in-office and history', function () {
@@ -60,7 +61,8 @@ test('REQ-05-02 the office queue shows incoming, in-office and history', functio
         ->assertSee('In our office (1)')
         ->set('tab', 'in_office')->assertSee($this->request->reference_no);
 
-    workflow()->completeVisit(openVisit($this->request), $this->dean);
+    workflow()->completeVisit($visit = openVisit($this->request), $this->dean);
+    workflow()->forwardDocument($visit, $this->dean);
 
     Livewire::actingAs($this->dean)->test(Dashboard::class)
         ->set('tab', 'history')->assertSee($this->request->reference_no)->assertSee('Completed');
@@ -68,15 +70,17 @@ test('REQ-05-02 the office queue shows incoming, in-office and history', functio
 });
 
 test('REQ-05-03 receipt is confirmed separately from forwarding', function () {
+    passOffice($this->request, $this->registrar);
     $visit = openVisit($this->request);
-    expect($visit->received_at)->toBeNull();
+    expect($visit)->status->toBe(VisitStatus::InTransit)->received_at->toBeNull();
 
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request])->call('acceptReceipt');
+    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $this->request])->call('acceptReceipt');
 
     expect($visit->fresh())
         ->status->toBe(VisitStatus::Received)
-        ->received_by->toBe($this->registrar->id)
+        ->received_by->toBe($this->dean->id)
         ->received_at->not->toBeNull()
+        // In progress once sent on from the first office (REQ-16-18).
         ->and($this->request->fresh()->status)->toBe(RequestStatus::InProgress);
 });
 
@@ -86,13 +90,26 @@ test('REQ-05-04 approving releases the document to the next office, which must r
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $this->request])
         ->call('acceptReceipt')
         ->set('completeRemarks', 'Signed')
-        ->call('completeVisit');
+        ->call('completeVisit')
+        ->call('forwardDocument');   // a separate action since spec 17
 
     $visits = $this->request->visits()->get();
     expect($visits->pluck('status')->all())->toBe([VisitStatus::Completed, VisitStatus::Completed, VisitStatus::InTransit])
-        ->and($visits[1])->completed_by->toBe($this->dean->id)->remarks->toBe('Signed')
+        ->and($visits[1])->done_by->toBe($this->dean->id)->completed_by->toBe($this->dean->id)->remarks->toBe('Signed')
         ->and($visits[2])->department_id->toBe($this->org->vpf->id)->from_department_id->toBe($this->org->ccs->id)
         ->and($this->request->steps()->where('status', StepStatus::Completed)->count())->toBe(2);
+});
+
+test('REQ-05-04 approving before receipt is refused and keeps the remarks typed', function () {
+    passOffice($this->request, $this->registrar);
+
+    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $this->request])
+        ->set('completeRemarks', 'Signed')
+        ->call('completeVisit')
+        ->assertDispatched('notify')
+        ->assertSet('completeRemarks', 'Signed');
+
+    expect($this->request->openVisit()->sole()->status)->toBe(VisitStatus::InTransit);
 });
 
 test('REQ-05-05 the final quality check makes the request ready for release', function () {
@@ -103,6 +120,7 @@ test('REQ-05-05 the final quality check makes the request ready for release', fu
     workflow()->acceptReceipt(openVisit($request), $this->registrar);
     expect($request->fresh()->status)->toBe(RequestStatus::ForFinalApproval);
 
+    checkAll($request, $this->registrar, CheckStage::FinalCheck);   // REQ-16-19
     workflow()->completeVisit(openVisit($request), $this->registrar);
     expect($request->fresh())
         ->status->toBe(RequestStatus::ReadyForRelease)
@@ -155,6 +173,7 @@ test('REQ-05-07 the corrected document goes back and is received again before th
     expect($request->fresh()->status)->toBe(RequestStatus::InProgress);
 
     workflow()->completeVisit($resubmission, $this->vpf);
+    workflow()->forwardDocument($resubmission, $this->vpf);
     expect(openVisit($request)->department_id)->toBe($this->org->chancellor->id);
 });
 
@@ -175,7 +194,7 @@ test('REQ-05-08 every visit is kept with working days spent', function () {
         ->and($vpfVisits[0]->received_at->toDateTimeString())->toBe('2026-10-23 09:00:00');
 });
 
-test('REQ-05-09 office staff and the registrar record delay reasons without changing the status', function () {
+test('REQ-05-09 office staff record delay reasons without changing the status', function () {
     $request = toVpFinance();
 
     Livewire::actingAs($this->vpf)->test(OfficeShow::class, ['credentialRequest' => $request])
@@ -194,22 +213,6 @@ test('REQ-05-09 office staff and the registrar record delay reasons without chan
     // The Dean has seen the document but no longer holds it.
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request])
         ->set('delayCategory', 'other')->set('delayReason', 'x')->call('recordDelay')->assertForbidden();
-});
-
-test('REQ-05-10 the registrar can bypass a step, but not the final check', function () {
-    passOffice($this->request, $this->registrar);
-
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request])
-        ->call('bypass')->assertHasErrors('bypassReason')
-        ->set('bypassReason', 'Dean on leave; approved by the VP')->call('bypass')->assertHasNoErrors();
-
-    expect($this->request->steps()->where('department_id', $this->org->ccs->id)->sole()->status)->toBe(StepStatus::Bypassed)
-        ->and(openVisit($this->request)->department_id)->toBe($this->org->vpf->id)
-        ->and($this->request->events()->pluck('type')->all())->toContain(RequestEventType::StepBypassed);
-
-    passOffice($this->request, $this->vpf);
-    passOffice($this->request, $this->chancellor);
-    expect(fn () => workflow()->bypassStep($this->request, $this->registrar, 'No'))->toThrow(InvalidTransition::class);
 });
 
 test('REQ-05-11 only the office concerned acts, and the first action wins', function () {
@@ -238,29 +241,7 @@ test('REQ-05-12 requests being processed past their effective due date are overd
     expect($this->request->fresh()->isOverdue())->toBeTrue()
         ->and(CredentialRequest::overdue()->pluck('id')->all())->toBe([$this->request->id]);
 
-    $this->actingAs($this->registrar)->get(route('registrar.requests', ['status' => 'overdue']))->assertSee($this->request->reference_no);
-});
-
-test('REQ-05-13 customer action pauses the clock; the original due date stays and an adjusted one is set', function () {
-    Carbon::setTestNow('2026-10-09 10:00:00');
-    $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
-    passOffice($request, $this->registrar);
-    $due = $request->fresh()->due_at->toDateTimeString();
-
-    Carbon::setTestNow('2026-10-12 09:00:00');   // Monday
-    workflow()->requestCustomerAction($request, $this->registrar, 'Submit an affidavit of loss.');
-    expect($request->fresh()->status)->toBe(RequestStatus::ReturnedForCustomerAction)
-        ->and($request->fresh()->isOverdue())->toBeFalse();
-
-    Carbon::setTestNow('2026-10-15 09:00:00');   // Thursday: 3 working days later
-    workflow()->customerResponded($request, $this->owner, 'Brought it today.');
-
-    $request = $request->fresh();
-    expect($request->status)->toBe(RequestStatus::InProgress)
-        ->and($request->due_at->toDateTimeString())->toBe($due)
-        ->and($request->adjusted_due_at->toDateTimeString())->toBe('2026-10-21 23:59:59')   // 17th + 3 working days
-        ->and($request->effective_due_at->toDateTimeString())->toBe('2026-10-21 23:59:59')
-        ->and($request->pauses()->sole()->working_days)->toBe(3);
+    $this->actingAs($this->registrar)->get(route('registrar.records', ['status' => 'overdue']))->assertSee($this->request->reference_no);
 });
 
 test('REQ-05-14 office actions are in the ledger', function () {

@@ -42,7 +42,7 @@ class ProgramForm extends Form
     protected function validationAttributes(): array
     {
         return [
-            'department_id' => 'college',
+            'department_id' => 'department',
         ];
     }
 
@@ -52,7 +52,7 @@ class ProgramForm extends Form
     protected function messages(): array
     {
         return [
-            'name.unique' => 'This college already has a program with that name.',
+            'name.unique' => 'This department already has a program with that name.',
         ];
     }
 

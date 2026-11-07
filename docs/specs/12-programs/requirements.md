@@ -14,17 +14,27 @@
   college, with a name that is unique within that college.
 - **REQ-12-02** WHEN a deployment migrates THE SYSTEM SHALL install the university's published
   programs without duplicating or overwriting what the registrar has changed.
+- **REQ-12-12** WHEN a deployment migrates THE SYSTEM SHALL replace the earlier program list with
+  the 27 programs of the 2026-11-06 list (see design), deleting the earlier programs, and SHALL
+  rename a requester's saved program to its new name where the program continues; a program that
+  is no longer offered stays on the requester's profile (REQ-12-09). Past requests keep the
+  program they were made with.
+- **REQ-12-11** WHEN a deployment migrates AND a registrar exists AND the Basic Education Department
+  has no staff account THE SYSTEM SHALL create one that reaches the first registrar's inbox through
+  a `+bed` address, with a random password that only Forgot Password can replace.
 
 ### Registrar
 - **REQ-12-03** THE SYSTEM SHALL let the registrar list programs, search them by name and filter
-  them by college and status.
+  them by college and status. The Programs page calls a college a "department" (filter "All
+  departments", column and form field "Department", validation messages), as the Registrar's
+  Office does.
 - **REQ-12-04** THE SYSTEM SHALL let the registrar add a program and edit its name or college.
 - **REQ-12-05** THE SYSTEM SHALL let the registrar deactivate and reactivate a program instead of
   deleting it; an inactive program SHALL NOT be offered to requesters.
 - **REQ-12-06** IF anyone but a registrar opens the Programs page THEN THE SYSTEM SHALL respond 403.
 
 ### Requester
-- **REQ-12-07** THE SYSTEM SHALL show My Profile's "Program or strand" as a dropdown of the active
+- **REQ-12-07** THE SYSTEM SHALL show My Profile's "Program" as a dropdown of the active
   programs of the chosen college, disabled until a college is chosen; choosing another college
   SHALL clear the chosen program.
 - **REQ-12-08** THE SYSTEM SHALL accept only an active program of the chosen college.

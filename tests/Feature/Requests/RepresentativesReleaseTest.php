@@ -37,28 +37,17 @@ function readyRequest(): CredentialRequest
     return $request->fresh();
 }
 
-function releaseClaim(array $overrides = []): array
-{
-    return array_merge([
-        'recipient_type' => RecipientType::Owner,
-        'recipient_name' => test()->owner->name,
-        'id_presented' => 'Passport P1234567',
-        'identity_checked' => true,
-        'acknowledged' => true,
-    ], $overrides);
-}
-
 test('REQ-11-01 the owner declares a representative with SPA and ID when submitting', function () {
     Livewire::actingAs($this->owner)->test(Create::class)
         ->set('form.credential_type_id', $this->org->free->id)
         ->set('form.purpose', 'Employment')
         ->set('form.requester_mode', 'representative')
-        ->call('submit')->assertHasErrors('form.representative_name')
+        ->set('profile.privacy_consent', true)->call('review')->call('submit')->assertHasErrors('form.representative_name')
         ->set('form.representative_name', 'Rosa Dela Cruz')
         ->set('form.representative_relationship', 'Mother')
         ->set('spa', UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'))
         ->set('representativeId', UploadedFile::fake()->image('id.jpg'))
-        ->call('submit')
+        ->set('profile.privacy_consent', true)->call('review')->call('submit')
         ->assertHasNoErrors();
 
     $request = CredentialRequest::sole();
@@ -144,57 +133,18 @@ test('REQ-11-05 the requester is told the credential is ready and what to bring'
         ->assertSee('Bring a valid ID');
 });
 
-test('REQ-11-06 the registrar records who received the credential', function () {
-    $request = readyRequest();
-
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])
-        ->set('idPresented', 'Passport P1234567')
-        ->set('identityChecked', true)
-        ->set('acknowledged', true)
-        ->call('release')
-        ->assertHasNoErrors();
-
-    $release = $request->release()->sole();
-    expect($request->fresh())->status->toBe(RequestStatus::Released)->released_at->not->toBeNull()
-        ->and($release)
-        ->recipient_type->toBe(RecipientType::Owner)
-        ->recipient_name->toBe($this->owner->name)
-        ->id_presented->toBe('Passport P1234567')
-        ->released_by->toBe($this->registrar->id)
-        ->acknowledged->toBeTrue();
-});
-
-test('REQ-11-06 a verified representative can claim', function () {
+test('REQ-11-07 no release to an unverified representative; a verified one can claim', function () {
     $request = readyRequest();
     $representative = workflow()->declareRepresentative($request, $this->owner, ['full_name' => 'Rosa Dela Cruz']);
+
+    expect(fn () => workflow()->release($request, $this->registrar, RecipientType::Representative, $representative->id))
+        ->toThrow(InvalidTransition::class, 'must be verified')
+        ->and($request->fresh()->status)->toBe(RequestStatus::ReadyForRelease);
+
     workflow()->reviewRepresentative($representative, $this->registrar, true);
+    workflow()->release($request, $this->registrar, RecipientType::Representative, $representative->id);
 
-    workflow()->release($request, $this->registrar, releaseClaim([
-        'recipient_type' => RecipientType::Representative,
-        'representative_id' => $representative->id,
-        'recipient_name' => 'Rosa Dela Cruz',
-    ]));
-
-    expect($request->release()->sole()->request_representative_id)->toBe($representative->id);
-});
-
-test('REQ-11-07 no release to an unverified representative or without confirmations', function () {
-    $request = readyRequest();
-    $representative = workflow()->declareRepresentative($request, $this->owner, ['full_name' => 'Rosa Dela Cruz']);
-
-    expect(fn () => workflow()->release($request, $this->registrar, releaseClaim([
-        'recipient_type' => RecipientType::Representative, 'representative_id' => $representative->id, 'recipient_name' => 'Rosa',
-    ])))->toThrow(InvalidTransition::class, 'must be verified');
-
-    expect(fn () => workflow()->release($request, $this->registrar, releaseClaim(['acknowledged' => false])))->toThrow(InvalidTransition::class)
-        ->and(fn () => workflow()->release($request, $this->registrar, releaseClaim(['identity_checked' => false])))->toThrow(InvalidTransition::class);
-
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])
-        ->set('idPresented', 'Passport')
-        ->call('release')
-        ->assertHasErrors(['identityChecked', 'acknowledged']);
-
-    expect($request->fresh()->status)->toBe(RequestStatus::ReadyForRelease);
+    expect($request->release()->sole())->request_representative_id->toBe($representative->id)->recipient_name->toBe('Rosa Dela Cruz');
 });
 
 test('REQ-11-08 the processing time in working days is stored at release', function () {
@@ -202,7 +152,7 @@ test('REQ-11-08 the processing time in working days is stored at release', funct
     $request = readyRequest();
 
     Carbon::setTestNow('2026-10-14 15:00:00');   // Wednesday
-    workflow()->release($request, $this->registrar, releaseClaim());
+    workflow()->release($request, $this->registrar, RecipientType::Owner);
 
     expect($request->fresh()->processing_working_days)->toBe(4);   // Sat, Mon, Tue, Wed
 });

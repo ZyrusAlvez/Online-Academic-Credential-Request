@@ -53,11 +53,11 @@ class Dashboard extends Component
 
         return view('livewire.registrar.dashboard', [
             'tiles' => [
-                ['label' => __('Needs the Registrar'), 'value' => $count(...RegistrarRequestFilter::needsRegistrar()), 'href' => route('registrar.requests', ['status' => 'review'])],
-                ['label' => __('Pending compliance'), 'value' => $count(RequestStatus::PendingCompliance, RequestStatus::ReturnedForCustomerAction), 'href' => route('registrar.requests', ['status' => RequestStatus::PendingCompliance->value])],
-                ['label' => __('Awaiting payment'), 'value' => $count(RequestStatus::AwaitingPayment), 'href' => route('registrar.requests', ['status' => RequestStatus::AwaitingPayment->value])],
-                ['label' => __('Being processed'), 'value' => $count(...RequestStatus::processing()), 'href' => route('registrar.requests', ['status' => 'processing'])],
-                ['label' => __('Ready for release'), 'value' => $count(RequestStatus::ReadyForRelease), 'href' => route('registrar.requests', ['status' => RequestStatus::ReadyForRelease->value])],
+                ['label' => __('Needs the Registrar'), 'value' => $count(...RegistrarRequestFilter::needsRegistrar()), 'href' => route('registrar.evaluation')],
+                ['label' => __('Pending compliance'), 'value' => $count(RequestStatus::PendingCompliance, RequestStatus::ReturnedForCustomerAction), 'href' => route('registrar.evaluation', ['waiting' => 1])],
+                ['label' => __('Awaiting payment'), 'value' => $count(RequestStatus::AwaitingPayment), 'href' => route('registrar.records', ['status' => RequestStatus::AwaitingPayment->value])],
+                ['label' => __('Being processed'), 'value' => $count(...RequestStatus::processing()), 'href' => route('registrar.records', ['status' => RegistrarRequestFilter::PROCESSING])],
+                ['label' => __('Ready for release'), 'value' => $count(RequestStatus::ReadyForRelease), 'href' => route('registrar.release')],
             ],
             'overdueCount' => CredentialRequest::overdue()->count(),
             'metrics' => PerformanceMetrics::for($period),
@@ -70,7 +70,7 @@ class Dashboard extends Component
                 ->get(),
             'office' => $office,
             'officeQueue' => $office
-                ? VisitQueue::open($office->id, VisitStatus::InTransit)->get()->concat(VisitQueue::open($office->id, VisitStatus::Received)->get())
+                ? VisitQueue::open($office->id, VisitStatus::InTransit)->get()->concat(VisitQueue::open($office->id, ...VisitStatus::inOffice())->get())
                 : collect(),
         ]);
     }
@@ -86,7 +86,7 @@ class Dashboard extends Component
             ->join('credential_requests', 'credential_requests.id', '=', 'office_visits.credential_request_id')
             ->join('departments', 'departments.id', '=', 'office_visits.department_id')
             ->whereIn('credential_requests.status', RequestStatus::processing())
-            ->whereIn('office_visits.status', [VisitStatus::InTransit, VisitStatus::Received])
+            ->whereIn('office_visits.status', VisitStatus::open())
             ->groupBy('departments.id', 'departments.name')
             ->orderByDesc(DB::raw('count(*)'))
             ->orderBy('departments.name')

@@ -25,7 +25,7 @@ class DueReminder extends Notification implements ShouldQueue
      */
     public function via(User $notifiable): array
     {
-        return $notifiable->hasRole(Role::Student) ? ['database', 'mail'] : ['database'];
+        return $notifiable->hasRole(Role::Student) && $notifiable->wantsEmailNotifications() ? ['database', 'mail'] : ['database'];
     }
 
     public function toMail(User $notifiable): MailMessage

@@ -41,7 +41,7 @@ final class ComplianceReport implements Report
 
         return $filter->requests()
             ->whereIn('status', self::WAITING)
-            ->with(['student', 'credentialType', 'deficiencies', 'events'])
+            ->with(['credentialType', 'deficiencies', 'events'])
             ->orderBy('id')
             ->get()
             ->map(function (CredentialRequest $request) use ($calendar): array {
@@ -49,8 +49,8 @@ final class ComplianceReport implements Report
 
                 return [
                     $request->reference_no,
-                    $request->student->name,
-                    $request->student->contact_number,
+                    $request->requester_name,
+                    $request->contact_number,
                     $request->credentialType->name,
                     $request->status->label(),
                     $this->waitingFor($request),
@@ -64,7 +64,10 @@ final class ComplianceReport implements Report
     private function waitingFor(CredentialRequest $request): string
     {
         return match ($request->status) {
-            RequestStatus::PendingCompliance => 'Missing: '.$request->deficiencies->whereNull('resolved_at')->pluck('description')->implode('; '),
+            // The return's ledger line: the rejected parts and the remarks (REQ-16-13).
+            RequestStatus::PendingCompliance => $request->deficiencies->whereNull('resolved_at')->isNotEmpty()
+                ? 'Missing: '.$request->deficiencies->whereNull('resolved_at')->pluck('description')->implode('; ')
+                : str_replace("\n", ' – ', (string) $request->events->last(fn ($event) => $event->type === RequestEventType::ComplianceRequested)?->remarks),
             RequestStatus::ReturnedForCustomerAction => (string) $request->events->last(fn ($event) => $event->type === RequestEventType::CustomerActionRequested)?->remarks,
             RequestStatus::AwaitingPayment => 'Payment of ₱'.number_format((float) $request->amount_due, 2),
             default => 'Verification of the proof of payment',

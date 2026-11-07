@@ -83,11 +83,13 @@ class Index extends Component
 
     public function render(): View
     {
+        $term = trim($this->search);
+
         $departments = Department::query()
             ->withCount('staff')
-            ->when($this->search !== '', fn ($query) => $query->where(fn ($query) => $query
-                ->where('name', 'like', "%{$this->search}%")
-                ->orWhere('code', 'like', "%{$this->search}%")))
+            ->when($term !== '', fn ($query) => $query->where(fn ($query) => $query
+                ->where('name', 'like', "%{$term}%")
+                ->orWhere('code', 'like', "%{$term}%")))
             ->when(DepartmentType::tryFrom($this->type), fn ($query, $type) => $query->where('type', $type))
             ->when($this->status !== '', fn ($query) => $query->where('is_active', $this->status === 'active'))
             ->orderBy('type')

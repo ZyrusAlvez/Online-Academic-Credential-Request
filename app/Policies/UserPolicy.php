@@ -26,13 +26,13 @@ class UserPolicy
         return $user->hasRole(Role::Registrar) && ! $account->hasRole(Role::Student);
     }
 
-    /** A verified requester's name is locked to them, so the registrar corrects it (REQ-01-28). */
-    public function correctName(User $user, User $requester): bool
+    public function setStatus(User $user, User $account): bool
     {
-        return $user->hasRole(Role::Registrar) && $requester->hasLockedName();
+        return $user->hasRole(Role::Registrar) && ! $account->is($user);
     }
 
-    public function setStatus(User $user, User $account): bool
+    /** Any account's role, students included, but never the registrar's own (REQ-02-15). */
+    public function changeRole(User $user, User $account): bool
     {
         return $user->hasRole(Role::Registrar) && ! $account->is($user);
     }

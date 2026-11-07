@@ -35,37 +35,55 @@
 
     @if ($request->status === \App\Enums\RequestStatus::PendingCompliance)
         <section aria-labelledby="compliance-heading" class="space-y-4 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6">
-            <h2 id="compliance-heading" class="text-lg font-semibold text-amber-900">{{ __('Important notice: incomplete requirements') }}</h2>
-            <p class="text-sm text-amber-950">{{ __('The Office of the Registrar found the following requirements incomplete. Submit the original documents and accomplish the clearance at the Registrar\'s Office of UPHSL, personally or through an authorized representative with a Special Power of Attorney (SPA) and the valid IDs of both of you.') }}</p>
-            <ul class="space-y-2">
-                @foreach ($request->deficiencies as $deficiency)
-                    <li class="flex items-start gap-2 text-sm">
-                        @if ($deficiency->resolved_at)
-                            <flux:icon.check-circle variant="mini" class="mt-0.5 shrink-0 text-green-700" />
-                            <span><span class="line-through">{{ $deficiency->description }}</span> <span class="text-green-800">{{ __('— complied :date', ['date' => $deficiency->resolved_at->format('M j')]) }}</span></span>
-                        @else
-                            <flux:icon.exclamation-circle variant="mini" class="mt-0.5 shrink-0 text-amber-700" />
-                            <span class="font-medium text-ink">{{ $deficiency->description }}</span>
-                        @endif
-                    </li>
-                @endforeach
-            </ul>
-            <p class="text-sm font-medium text-amber-950">{{ __('Your request remains pending until these are resolved and verified. The processing period starts only after your requirements and payment are verified and the request is accepted.') }}</p>
-        </section>
-    @endif
-
-    @if ($request->status === \App\Enums\RequestStatus::ReturnedForCustomerAction)
-        <section aria-labelledby="action-heading" class="space-y-4 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6">
-            <h2 id="action-heading" class="text-lg font-semibold text-amber-900">{{ __('Your action is needed') }}</h2>
-            <p class="rounded-md bg-white p-3 text-sm text-ink">{{ $actionMessage }}</p>
-            @can('respond', $request)
-                <form wire:submit="respond" class="space-y-3">
-                    <flux:textarea wire:model="reply" :label="__('Your reply')" :description="__('If you need to submit something in person, say when you will come.')" rows="3" required />
-                    <flux:button type="submit" variant="primary" icon="paper-airplane">{{ __('Send reply') }}</flux:button>
+            {{-- Returned by the evaluator: what was rejected and why (REQ-16-15). --}}
+            <h2 id="compliance-heading" class="text-lg font-semibold text-amber-900">{{ __('Your request was returned to you') }}</h2>
+            @if ($rejectedParts !== [])
+                <div>
+                    <p class="text-sm text-amber-950">{{ __('The Office of the Registrar could not confirm:') }}</p>
+                    <ul class="mt-1 space-y-1" data-rejected-parts>
+                        @foreach ($rejectedParts as $part)
+                            <li class="flex items-start gap-2 text-sm">
+                                <flux:icon.exclamation-circle variant="mini" class="mt-0.5 shrink-0 text-amber-700" />
+                                <span class="font-medium text-ink">{{ __($part->label()) }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            @if ($returnRemarks)
+                <p class="rounded-md bg-white p-3 text-sm whitespace-pre-line text-ink"><span class="font-semibold">{{ __('Remarks:') }}</span> {{ \Illuminate\Support\Str::contains($returnRemarks, "\n") ? \Illuminate\Support\Str::after($returnRemarks, "\n") : $returnRemarks }}</p>
+            @endif
+            <p class="text-sm text-amber-950">{{ __('If original documents or clearance are missing, submit them at the Registrar\'s Office of UPHSL, personally or through an authorized representative with a Special Power of Attorney (SPA) and the valid IDs of both of you. The processing period starts only after your requirements and payment are verified and the request is accepted.') }}</p>
+            @can('resubmit', $request)
+                <form wire:submit="resubmit" class="space-y-3">
+                    <flux:textarea wire:model="note" :label="__('Note to the Office of the Registrar')" badge="Optional" :description="__('What you fixed, or when you will come in person.')" rows="2" />
+                    <flux:button type="submit" variant="primary" icon="paper-airplane">{{ __('Resubmit for evaluation') }}</flux:button>
                 </form>
             @endcan
         </section>
     @endif
+
+    @can('replaceIdentity', $request)
+        {{-- The Registrar rejected the ID sent with this request (REQ-15-11). --}}
+        <section aria-labelledby="new-id-heading" class="space-y-4 rounded-xl border border-red-600 bg-red-50 p-5 sm:p-6" data-replace-id>
+            <h2 id="new-id-heading" class="text-lg font-semibold text-red-900">{{ __('Your valid ID was not accepted') }}</h2>
+            <p class="rounded-md bg-white p-3 text-sm text-ink"><span class="font-semibold">{{ __('Reason:') }}</span> {{ $request->identity_remarks }}</p>
+            <form wire:submit="replaceIdentity" class="space-y-4">
+                <p class="text-sm text-red-950">{{ __('Upload another valid ID (JPG, PNG, WebP or PDF, up to 5 MB). It is also saved for your next request.') }}</p>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <flux:select wire:model="newIdType" :label="__('Type of ID')" required>
+                        <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
+                        @foreach ($idTypes as $type)
+                            <flux:select.option :value="$type">{{ $type }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    <flux:input type="file" wire:model="newIdFile" :label="__('Valid ID')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
+                </div>
+                <div wire:loading wire:target="newIdFile" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
+                <flux:button type="submit" variant="primary" icon="arrow-up-tray" wire:loading.attr="disabled" wire:target="newIdFile,replaceIdentity">{{ __('Upload valid ID') }}</flux:button>
+            </form>
+        </section>
+    @endcan
 
     @if ($request->requires_payment && in_array($request->status, [\App\Enums\RequestStatus::AwaitingPayment, \App\Enums\RequestStatus::PaymentVerification], true))
         <section aria-labelledby="payment-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6">
@@ -101,7 +119,7 @@
                             <p class="text-sm">{{ __('Upload your proof of payment (JPG, PNG, WebP or PDF, up to 5 MB).') }}</p>
                             <flux:input type="file" wire:model="receipt" :label="__('Proof of payment')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
                             <div wire:loading wire:target="receipt" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
-                            <div class="grid gap-4 sm:grid-cols-3">
+                            <div class="grid gap-4 md:grid-cols-3">
                                 <flux:input wire:model="paymentReference" :label="__('Payment reference no.')" required />
                                 <flux:input wire:model="amountPaid" type="number" step="0.01" min="0" inputmode="decimal" :label="__('Amount paid (₱)')" required />
                                 <flux:input wire:model="paidOn" type="date" :max="now()->format('Y-m-d')" :label="__('Date paid')" required />
@@ -134,7 +152,7 @@
 
     <section aria-labelledby="tracker-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="tracker-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Progress') }}</h2>
-        <x-request-tracker :request="$request" />
+        <x-request-tracker :request="$request" :events="$events" />
     </section>
 
     @if ($request->representatives->isNotEmpty() || auth()->user()->can('declareRepresentative', $request))
@@ -163,6 +181,18 @@
     <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request details') }}</h2>
         <x-request-details :request="$request" />
+        @if ($request->identityDocument)
+            {{-- The ID sent with this request and its check (REQ-15-08, 09). --}}
+            <div class="mt-4 flex flex-wrap items-start justify-between gap-3 border-t border-secondary/50 pt-4 text-sm" data-request-id>
+                <div class="min-w-0">
+                    <p class="text-zinc-500">{{ __('Valid ID') }}</p>
+                    <x-file-link :href="route('identity-documents.show', $request->identityDocument)" :name="$request->identityDocument->id_type.': '.$request->identityDocument->original_name" :type="$request->identityDocument->mime_type" class="font-medium break-all">
+                        {{ $request->identityDocument->id_type }}: {{ $request->identityDocument->original_name }}
+                    </x-file-link>
+                </div>
+                <flux:badge size="sm" :color="$request->identity_status->color()">{{ $request->identity_status->label() }}</flux:badge>
+            </div>
+        @endif
     </section>
 
     @can('declareRepresentative', $request)
