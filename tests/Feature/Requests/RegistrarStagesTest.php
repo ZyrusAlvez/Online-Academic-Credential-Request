@@ -83,8 +83,8 @@ function atFinalCheck(CredentialRequest $request): CredentialRequest
 
 // ── Navigation and queues ───────────────────────────────────────────────────────────────────
 
-test('REQ-16-01 the registrar has one page per stage and Records, and no Requests list', function () {
-    // The sidebar itself is REQ-18-03 (tests/Feature/Admin/AdminRoleTest.php).
+test('REQ-18-03 the registrar has one page per stage and Records, and no Requests list', function () {
+    // REQ-16-01, superseded by REQ-18-03; the sidebar itself is in tests/Feature/Admin/AdminRoleTest.php.
     $this->actingAs($this->registrar)->get('/registrar/requests')->assertNotFound();
 
     foreach (['registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.final-check', 'registrar.release', 'records'] as $route) {
