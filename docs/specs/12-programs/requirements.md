@@ -9,6 +9,9 @@
 
 ## Acceptance criteria
 
+*Since spec 18 (2026-11-07), the Programs page is the Admin's, at `/admin/programs`. Read "the
+registrar" as "the Admin" in REQ-12-03..06 (REQ-18-04).*
+
 ### Master list
 - **REQ-12-01** THE SYSTEM SHALL keep programs and strands in the database, each belonging to one
   college, with a name that is unique within that college.

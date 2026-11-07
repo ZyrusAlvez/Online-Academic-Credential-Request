@@ -15,6 +15,10 @@ periods, routing) and section III-A (requirements shown before submitting).
 
 ## Acceptance criteria
 
+*Since spec 18 (2026-11-07), credential types and routes are managed by the Admin, at
+`/admin/credential-types`. Below, read "the registrar" as "the Admin" and "a non-registrar" as
+"anyone but the Admin" (REQ-18-04).*
+
 ### Credential master list
 - **REQ-03-01** THE SYSTEM SHALL seed the 17 credential types of the overview's master list with
   their fee, processing period in working days, documentary requirements, special conditions,

@@ -62,8 +62,9 @@ at acceptance.
 | Role | Who | Can |
 |---|---|---|
 | `student` (shown as *Requester*) | Current students, graduates and former students (self-registered) | Register and upload an ID, request credentials, declare a representative, upload proof of payment, track requests, cancel before acceptance |
-| `registrar` | Office of the Registrar staff | Everything on the Registrar's side, one queue per stage: evaluate requests (identity, academic record, representative), validate payments and accept, act on the Registrar's preparation step, do the final quality check, release; track requests at the offices and view all records; manage offices, credential types, the working calendar and staff accounts; view reports and the activity log. One role for all Registrar staff; every action records the staff member. |
-| `department` | Staff of a signing office: a college (the Dean), VP Finance, Chancellor, President | Accept receipt of documents sent to their office, approve and release them to the next office, return them for correction, record delay reasons |
+| `registrar` | Office of the Registrar staff | Work the requests, one queue per stage from Initial Evaluation to Release: evaluate requests (identity, academic record, representative), validate payments and accept, act on the Registrar's preparation step and forward its papers, do the final quality check, release. Look any request up in Records. One role for all Registrar staff; every action records the staff member. |
+| `department` (shown as *Department Staff*) | Staff of a signing office: a college (the Dean), VP Finance, Chancellor, President | Accept receipt of documents sent to their office, approve and release them to the next office, return them for correction, record delay reasons |
+| `admin` (shown as *Admin*) | The system's authorized administrators (BRD module 12, sections IX–X) | Manage credential types (fees, routes, processing periods), offices, programs, purposes, accounts and roles, and the working calendar; read the activity logs; view the performance dashboard and reports; look any request up in Records. Does not act on requests (spec 18). |
 
 ## Glossary
 
@@ -249,7 +250,8 @@ Every environment works the same way in everything else:
   file otherwise. On local, every email is redirected to the developer's own inbox. Mail to
   reserved example domains (`example.com`, `.test`, …), which demo accounts use, is never sent.
 - **The first registrar** comes from `INITIAL_REGISTRAR_EMAIL` and `INITIAL_REGISTRAR_PASSWORD`
-  (REQ-01-15).
+  (REQ-01-15). **The first admin** comes from `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`
+  (REQ-18-11).
 - **Installed packages** are the same: no development tools on the server.
 
 Automated tests run in Laravel's internal `testing` mode on their own database,
@@ -277,3 +279,5 @@ All feature specs describe this model.
 | 14 | Activity logs (audit trail) | in progress |
 | 15 | Identity checked on the request; Settings → Profile | done |
 | 16 | Registrar stages: checklists, evaluation lock, stage queues | done |
+| 17 | Physical hand-offs and the stage page | done |
+| 18 | The Admin account: administration, dashboard and reports | in progress |

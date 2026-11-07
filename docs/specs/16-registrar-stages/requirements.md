@@ -38,9 +38,10 @@ This replaces:
 ## Acceptance criteria
 
 ### Navigation and queues
-- **REQ-16-01** THE SYSTEM SHALL give the registrar the sidebar items Dashboard, Initial Evaluation,
-  Payment Validation, In Progress, Final Quality Check, Release, Records and Reports. THE SYSTEM
-  SHALL NOT have the Requests list; `/registrar/requests` SHALL respond 404.
+- ~~REQ-16-01~~ *Superseded by REQ-18-03:* the registrar's sidebar items are Initial Evaluation,
+  Payment Validation, In Progress, Final Quality Check, Release and Records. Dashboard and
+  Reports are the Admin's (REQ-18-02). THE SYSTEM SHALL NOT have the Requests list;
+  `/registrar/requests` SHALL respond 404.
 - **REQ-16-02** THE Initial Evaluation queue SHALL list the submitted requests and the requests
   under evaluation, oldest first, showing who is evaluating each one. A "Waiting for the requester"
   view SHALL list the requests pending compliance.
