@@ -13,6 +13,8 @@ use Database\Seeders\AdminSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -206,7 +208,15 @@ test('REQ-18-12 the demo data includes the admin@example.com admin', function ()
 
     $demo = User::where('email', 'admin@example.com')->sole();
     expect($demo)->role->toBe(Role::Admin)->is_active->toBeTrue()
-        ->and(Hash::check('password', $demo->password))->toBeTrue();
+        ->and(Hash::check('@Test123', $demo->password))->toBeTrue();
+});
+
+test('REQ-07-09 every demo account uses @Test123, which meets the password rules', function () {
+    expect(DemoSeeder::PASSWORD)->toBe('@Test123')
+        ->and(Validator::make(['password' => DemoSeeder::PASSWORD], ['password' => Password::defaults()])->passes())->toBeTrue();
+
+    $office = DemoSeeder::staffAccount($this->org->vpf);
+    expect(Hash::check(DemoSeeder::PASSWORD, $office->password))->toBeTrue();
 });
 
 test('REQ-18-05 the admin cannot forward from In Progress', function () {
