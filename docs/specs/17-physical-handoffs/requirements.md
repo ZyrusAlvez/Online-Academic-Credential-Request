@@ -24,6 +24,9 @@ This replaces:
 - REQ-16-04's "tracking only, with no actions" and its list of statuses.
 - REQ-16-07's ledger on the working page (it stays on the Records page).
 
+REQ-17-18 (added 2026-11-07) defines which office holds a forwarded paper. It applies wherever
+another criterion says "the office holding the document", REQ-07-07's office filter included.
+
 ## User stories
 
 - **US-17-1** As an office, I want to mark my task done separately from sending the paper on, so
@@ -100,19 +103,20 @@ REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16
 ### In Progress
 - **REQ-17-11** THE In Progress queue SHALL list the requests `accepted_for_processing`,
   `in_progress` or `returned_for_correction` whose paper is not at the final quality check. For
-  each, it SHALL show the office holding the paper and its state there (on the way since, received
-  since, or done since), the next office, the due date with an overdue mark, and a filter by
-  office.
+  each, it SHALL show the office holding the paper (REQ-17-18) and its state there (forwarded to
+  the next office and not yet received, received since, or done since), the next office, the due
+  date with an overdue mark, and a filter by the office holding it.
 - **REQ-17-12** WHERE the Office of the Registrar holds a paper, its In Progress row SHALL show a
   "Forward to <next office>" button that forwards it (REQ-17-07) after a confirmation. This
   applies when the Registrar's task there is done, or while the paper is received there for the
   Registrar's own route task (preparation, or a correction). In the second case the button marks
   the task done and forwards the paper in one step. The button takes the place of the next
-  office's name in the row, since it names that office. Rows the Office of the Registrar holds SHALL
-  open the registrar's working page, and the other rows the read-only record, with no Forward.
+  office's name in the row, since it names that office. Rows where the Office of the Registrar
+  acts next (it holds the paper there, or is to accept its receipt) SHALL open the registrar's
+  working page. The other rows SHALL open the read-only record, with no Forward.
 - **REQ-17-13** THE registrar's working page SHALL show, for a paper the Office of the Registrar
-  holds, the office it is at, its state there and the next office, with Accept receipt or Done as
-  the state allows. It SHALL NOT offer Forward.
+  holds or is to receive, the office holding it (REQ-17-18), its state there and the next office,
+  with Accept receipt or Done as the state allows. It SHALL NOT offer Forward.
 - **REQ-17-16** THE SYSTEM SHALL let department office staff forward only the done documents their
   own office holds, from their request page. Registrars SHALL forward only the documents the
   Office of the Registrar holds, and only from the In Progress page. Any other forward SHALL be
@@ -124,4 +128,18 @@ REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16
   the time spent and the status.
 - **REQ-17-15** THE office queue's "In office" tab, the registrar dashboard's office counts and
   the office reports SHALL count a done document still in the office as held by that office.
-  The "In office" tab SHALL mark it "Done, not yet forwarded".
+  The "In office" tab SHALL mark it "Done, not yet forwarded". The dashboard's office counts and
+  the office reports SHALL count a forwarded document not yet received at the office that
+  forwarded it (REQ-17-18).
+
+### Who holds the paper
+- **REQ-17-18** WHILE a forwarded document is not yet received THE SYSTEM SHALL treat it as held
+  by the office that forwarded it. For the forward made at acceptance, that is the Office of the
+  Registrar. Its state there SHALL read "Forwarded <time> to <office>, not yet received", and its
+  next office SHALL be the office it was forwarded to. This SHALL apply everywhere that shows or
+  filters where a document is: In Progress, Records, the working page, the requester's pages and
+  emails, the dashboard's office counts and the office reports. The receiving office's Incoming
+  list and its Accept receipt SHALL NOT change. *(User's decision, 2026-11-07: "there is no on the
+  way". An office approves the paper, and it is delivered when the next office accepts receipt.
+  Before this, a forwarded paper showed as at the receiving office, "on the way", which said it
+  was somewhere it was not.)*

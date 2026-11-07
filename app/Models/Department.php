@@ -51,6 +51,14 @@ class Department extends Model
     }
 
     /**
+     * The Office of the Registrar, where every accepted paper starts (REQ-17-05).
+     */
+    public static function registrar(): ?self
+    {
+        return static::where('code', self::REGISTRAR_CODE)->first();
+    }
+
+    /**
      * @return HasMany<Program, $this>
      */
     public function programs(): HasMany

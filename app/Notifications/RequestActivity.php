@@ -100,7 +100,7 @@ class RequestActivity extends Notification implements ShouldQueue
     {
         $this->event->loadMissing(['department', 'step']);
 
-        return $this->event->credentialRequest()->with(['credentialType', 'openVisit.department'])->firstOrFail();
+        return $this->event->credentialRequest()->with(['credentialType', 'openVisit.department', 'openVisit.fromDepartment'])->firstOrFail();
     }
 
     private function url(User $notifiable, CredentialRequest $request): string

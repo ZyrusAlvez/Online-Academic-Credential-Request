@@ -6,6 +6,7 @@ use App\Enums\RouteTask;
 use App\Enums\StepStatus;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -63,6 +64,50 @@ class OfficeVisit extends Model
         }
 
         return $steps->first(fn (RequestStep $step): bool => $step->position > $this->step->position && $step->status === StepStatus::Waiting);
+    }
+
+    /**
+     * The office that has the paper during this visit. A forwarded paper stays with the office
+     * that sent it until this office accepts receipt; the forward made at acceptance leaves the
+     * Office of the Registrar (REQ-17-18). Reads the loaded `fromDepartment` and `department`.
+     */
+    public function holder(): Department
+    {
+        if ($this->status !== VisitStatus::InTransit) {
+            return $this->department;
+        }
+
+        return $this->fromDepartment ?? Department::registrar() ?? $this->department;
+    }
+
+    /**
+     * Open visits whose paper the office has now (REQ-17-18): in the office, or forwarded by it
+     * and not yet received.
+     *
+     * @param  Builder<OfficeVisit>  $query
+     */
+    public static function whereHeldBy(Builder $query, int $departmentId): void
+    {
+        $fromRegistrar = Department::registrar()?->id === $departmentId;
+
+        $query->where(fn (Builder $q) => $q
+            ->where(fn (Builder $q) => $q->whereIn('office_visits.status', VisitStatus::inOffice())->where('office_visits.department_id', $departmentId))
+            ->orWhere(fn (Builder $q) => $q->where('office_visits.status', VisitStatus::InTransit)
+                ->where(fn (Builder $q) => $q->where('office_visits.from_department_id', $departmentId)
+                    ->when($fromRegistrar, fn (Builder $q) => $q->orWhereNull('office_visits.from_department_id')))));
+    }
+
+    /**
+     * The office holding the paper as SQL, for counts grouped by office (REQ-17-18).
+     *
+     * @return array{0: string, 1: list<int|string>}
+     */
+    public static function holderSql(): array
+    {
+        return [
+            'CASE WHEN office_visits.status = ? THEN COALESCE(office_visits.from_department_id, ?) ELSE office_visits.department_id END',
+            [VisitStatus::InTransit->value, Department::registrar()?->id ?? 0],
+        ];
     }
 
     /**

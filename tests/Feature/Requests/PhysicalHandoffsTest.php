@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Notifications\RequestActivity;
 use App\Reports\DepartmentReport;
 use App\Reports\ReportFilter;
+use App\Reports\SignatoryReport;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -377,18 +378,75 @@ test('REQ-17-10 a done document can no longer be returned for correction', funct
 
 test('REQ-17-11 In Progress lists accepted papers with where they are and where they go next', function () {
     $atRegistrar = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
-    $onTheWay = preparedAtRegistrar();
-    workflow()->forwardDocument(openVisit($onTheWay), $this->registrar);
+    $atDean = preparedAtRegistrar();
+    workflow()->forwardDocument(openVisit($atDean), $this->registrar);
+    workflow()->acceptReceipt(openVisit($atDean), $this->dean);
     $notYetAccepted = submitRequest($this->owner, $this->org->tor);
 
     inProgressQueue()
         ->assertSee($atRegistrar->reference_no)
-        ->assertSee($onTheWay->reference_no)
+        ->assertSee($atDean->reference_no)
         ->assertDontSee($notYetAccepted->reference_no)
         ->assertSeeInOrder([$atRegistrar->reference_no, 'Office of the Registrar', 'Received', 'College of Computer Studies'])
-        ->assertSeeInOrder([$onTheWay->reference_no, 'College of Computer Studies', 'On the way since', 'Office of the VP for Finance']);
+        ->assertSeeInOrder([$atDean->reference_no, 'College of Computer Studies', 'Received', 'Office of the VP for Finance']);
 
-    inProgressQueue(['office' => $this->org->ccs->id])->assertSee($onTheWay->reference_no)->assertDontSee($atRegistrar->reference_no);
+    inProgressQueue(['office' => $this->org->ccs->id])->assertSee($atDean->reference_no)->assertDontSee($atRegistrar->reference_no);
+});
+
+test('REQ-17-18 a forwarded paper is still with the office that sent it until it is received', function () {
+    $request = preparedAtRegistrar();
+    workflow()->forwardDocument(openVisit($request), $this->registrar);
+
+    // Not at the Dean yet: still with the Registrar, going to the Dean next.
+    inProgressQueue()
+        ->assertSeeInOrder([$request->reference_no, 'Office of the Registrar', 'to College of Computer Studies, not yet received', 'College of Computer Studies'])
+        ->assertDontSee('On the way');
+    inProgressQueue(['office' => $this->org->registrarOffice->id])->assertSee($request->reference_no);
+    inProgressQueue(['office' => $this->org->ccs->id])->assertDontSee($request->reference_no);
+
+    expect($request->fresh()->load('openVisit.department', 'openVisit.fromDepartment')->whereabouts())->toBe('Office of the Registrar');
+
+    // Delivered: now at the Dean.
+    workflow()->acceptReceipt(openVisit($request), $this->dean);
+    inProgressQueue(['office' => $this->org->ccs->id])->assertSee($request->reference_no);
+    inProgressQueue(['office' => $this->org->registrarOffice->id])->assertDontSee($request->reference_no);
+    expect($request->fresh()->load('openVisit.department', 'openVisit.fromDepartment')->whereabouts())->toBe('College of Computer Studies');
+});
+
+test('REQ-17-18 a paper the Dean forwarded to the Registrar shows at the Dean, next the Registrar, with Accept receipt', function () {
+    $request = preparedAtRegistrar();
+    workflow()->forwardDocument(openVisit($request), $this->registrar);
+    workflow()->acceptReceipt(openVisit($request), $this->dean);
+    workflow()->returnVisit(openVisit($request), $this->dean, $this->org->registrarOffice, 'Wrong name', 'Reprint');
+
+    // Sent back to the Registrar for correction, not yet received there.
+    expect(openVisit($request))->department_id->toBe($this->org->registrarOffice->id)->status->toBe(VisitStatus::InTransit);
+
+    inProgressQueue()->assertSeeInOrder([$request->reference_no, 'College of Computer Studies', 'to Office of the Registrar, not yet received', 'Office of the Registrar']);
+
+    handoffPage($request)
+        ->assertSeeInOrder(['Currently at', 'College of Computer Studies', 'to Office of the Registrar, not yet received', 'Next', 'Office of the Registrar'])
+        ->assertSee('Accept receipt');
+
+    // The requester's pages and emails say where the paper is.
+    expect($request->fresh()->load('openVisit.department', 'openVisit.fromDepartment')->whereabouts())->toBe('College of Computer Studies');
+    $this->actingAs($this->owner)->get(route('student.requests.show', $request))->assertSee('Currently with College of Computer Studies.');
+});
+
+test('REQ-17-18 the dashboard office counts and the office reports count it at the sender', function () {
+    $request = preparedAtRegistrar();
+    workflow()->forwardDocument(openVisit($request), $this->registrar);
+
+    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
+        ->assertSeeInOrder(['Where requests are waiting', 'Office of the Registrar', '1 forwarded, not yet received']);
+
+    $rows = collect((new DepartmentReport)->rows(new ReportFilter))->keyBy(0);
+    expect($rows['Office of the Registrar'][4])->toBe(1)
+        ->and($rows->has('College of Computer Studies') ? $rows['College of Computer Studies'][4] : 0)->toBe(0);
+
+    $pending = collect((new SignatoryReport)->rows(new ReportFilter))->firstWhere(1, $request->reference_no);
+    expect($pending[0])->toBe('Office of the Registrar')
+        ->and($pending[4])->toBe('Forwarded to College of Computer Studies, not yet received');
 });
 
 test('REQ-17-11 a done paper shows it has not been forwarded yet', function () {
@@ -430,7 +488,7 @@ test('REQ-17-12 at Accepted for processing one Forward marks the preparation don
         ->and($request->fresh()->status)->toBe(RequestStatus::InProgress);
 });
 
-test('REQ-17-12 rows the Registrar holds open the working page, the others the record', function () {
+test('REQ-17-12 rows where the Registrar acts next open the working page, the others the record', function () {
     $mine = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
     $elsewhere = preparedAtRegistrar();
     workflow()->forwardDocument(openVisit($elsewhere), $this->registrar);

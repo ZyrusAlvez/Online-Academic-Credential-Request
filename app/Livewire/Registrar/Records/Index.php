@@ -52,7 +52,7 @@ class Index extends Component
     public function render(): View
     {
         $requests = (new RegistrarRequestFilter($this->search, $this->status, $this->type, $this->office))->query()
-            ->with(['credentialType:id,name', 'openVisit.department:id,name'])
+            ->with(['credentialType:id,name', 'openVisit.department:id,name', 'openVisit.fromDepartment:id,name'])
             ->paginate(20);
 
         return view('livewire.registrar.records.index', [

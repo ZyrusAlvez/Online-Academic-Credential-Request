@@ -94,6 +94,37 @@ office as before.
   dashboards, `SignatoryReport`, `DepartmentReport`, `StageQueue::atFinalCheck`) includes `done`.
   Department "In office" shows `received` and `done`.
 
+## Who holds the paper (REQ-17-18)
+
+The data already records it: an `in_transit` visit has `from_department_id`, the office that
+forwarded it. That column is null only for the forward made at acceptance, which leaves the
+Office of the Registrar. No migration is needed. The rule lives in one place:
+
+- `Department::registrar()` finds the Office of the Registrar by `REGISTRAR_CODE`. It is not
+  memoized: tests share a process while ids change.
+- `OfficeVisit::holder()` returns `fromDepartment ?? Department::registrar()` for `in_transit`,
+  and `department` otherwise.
+- `OfficeVisit::whereHeldBy($query, $id)` matches in-office visits (`received`, `done`) at
+  `department_id`, or `in_transit` visits whose `from_department_id` is `$id`. When `$id` is
+  the Registrar, a null `from_department_id` matches too.
+- `OfficeVisit::holderSql()` is the same rule as a SQL `CASE`, with its bindings, for group-by
+  counts.
+- `CredentialRequest::nextOffice()` returns the visit's own office for an `in_transit` open
+  visit, and `nextStep()`'s office otherwise. `whereabouts()` names `holder()`.
+
+Using it:
+
+- `RegistrarRequestFilter::heldBy` (In Progress and Records filters) is `whereHas('visits',
+  OfficeVisit::whereHeldBy)`.
+- The dashboard's `waitingByOffice` and `DepartmentReport`'s pending count group by
+  `holderSql()`. `SignatoryReport` lists a visit under `holder()`.
+- In Progress and the working page show `holder()->name`. An `in_transit` state reads
+  "Forwarded :time to :office, not yet received".
+- The In Progress row links to the working page when the open visit's office is the Registrar
+  (it accepts receipt or forwards there).
+- The receiving office's Incoming tab, Accept receipt, the Registrar's own office queue and
+  the office visits table are not changed. They are to-do lists and history, not "where is it".
+
 ## Demo data
 
 `DemoSeeder::advanceUntil` forwards after each Done, so its scenarios end the same way.

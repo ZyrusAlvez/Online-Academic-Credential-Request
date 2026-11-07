@@ -260,7 +260,7 @@ class Show extends Component
     {
         $request = $this->credentialRequest->load([
             'student', 'identityDocument', 'credentialType', 'college', 'evaluator', 'checks',
-            'openVisit.department', 'openVisit.step', 'openVisit.credentialRequest.visits', 'openVisit.credentialRequest.steps.department',
+            'openVisit.department', 'openVisit.fromDepartment', 'openVisit.step', 'openVisit.credentialRequest.visits', 'openVisit.credentialRequest.steps.department',
             'paymentProofs.reviewer', 'deficiencies.resolver', 'representatives.documents', 'release.releaser',
             'steps.department', 'visits.department', 'visits.step', 'visits.returnedTo', 'visits.receiver', 'visits.doer', 'visits.completer',
             'delayNotes.department', 'delayNotes.recorder', 'pauses',
