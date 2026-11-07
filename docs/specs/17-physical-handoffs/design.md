@@ -100,11 +100,11 @@ The data already records it: an `in_transit` visit has `from_department_id`, the
 forwarded it. That column is null only for the forward made at acceptance, which leaves the
 Office of the Registrar. No migration is needed. The rule lives in one place:
 
-- `Department::registrar()` finds the Office of the Registrar by `REGISTRAR_CODE`, memoized
-  with `once()`.
+- `Department::registrar()` finds the Office of the Registrar by `REGISTRAR_CODE`. It is not
+  memoized: tests share a process while ids change.
 - `OfficeVisit::holder()` returns `fromDepartment ?? Department::registrar()` for `in_transit`,
   and `department` otherwise.
-- `OfficeVisit::scopeHeldBy($id)` matches in-office visits (`received`, `done`) at
+- `OfficeVisit::whereHeldBy($query, $id)` matches in-office visits (`received`, `done`) at
   `department_id`, or `in_transit` visits whose `from_department_id` is `$id`. When `$id` is
   the Registrar, a null `from_department_id` matches too.
 - `OfficeVisit::holderSql()` is the same rule as a SQL `CASE`, with its bindings, for group-by
@@ -115,7 +115,7 @@ Office of the Registrar. No migration is needed. The rule lives in one place:
 Using it:
 
 - `RegistrarRequestFilter::heldBy` (In Progress and Records filters) is `whereHas('visits',
-  heldBy)`.
+  OfficeVisit::whereHeldBy)`.
 - The dashboard's `waitingByOffice` and `DepartmentReport`'s pending count group by
   `holderSql()`. `SignatoryReport` lists a visit under `holder()`.
 - In Progress and the working page show `holder()->name`. An `in_transit` state reads

@@ -266,8 +266,15 @@
                 <dl class="grid gap-4 sm:grid-cols-2">
                     <div>
                         <dt id="current-heading" class="text-sm font-medium text-zinc-600">{{ __('Currently at') }}</dt>
-                        <dd class="text-lg font-semibold text-primary">{{ $visit->department->name }}</dd>
-                        <dd class="text-xs text-zinc-600">{{ __($visit->status->label()) }} · {{ ($visit->done_at ?? $visit->received_at ?? $visit->forwarded_at)->diffForHumans() }}</dd>
+                        {{-- A forwarded paper stays with its sender until it is received (REQ-17-18). --}}
+                        <dd class="text-lg font-semibold text-primary" data-holder>{{ $visit->holder()->name }}</dd>
+                        <dd class="text-xs text-zinc-600">
+                            @if ($visit->status === \App\Enums\VisitStatus::InTransit)
+                                {{ __('Forwarded :time to :office, not yet received', ['time' => $visit->forwarded_at->diffForHumans(), 'office' => $visit->department->name]) }}
+                            @else
+                                {{ __($visit->status->label()) }} · {{ ($visit->done_at ?? $visit->received_at)->diffForHumans() }}
+                            @endif
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-zinc-600">{{ __('Next') }}</dt>

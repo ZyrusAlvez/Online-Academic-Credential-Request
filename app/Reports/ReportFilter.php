@@ -2,6 +2,8 @@
 
 namespace App\Reports;
 
+use App\Enums\RequestStatus;
+use App\Enums\VisitStatus;
 use App\Models\CredentialRequest;
 use App\Models\OfficeVisit;
 use Carbon\CarbonImmutable;
@@ -74,8 +76,32 @@ final class ReportFilter
      */
     public function visits(): Builder
     {
-        return OfficeVisit::query()
-            ->when($this->office !== '', fn (Builder $q) => $q->where('office_visits.department_id', (int) $this->office))
+        return $this->matching(OfficeVisit::query()
+            ->when($this->office !== '', fn (Builder $q) => $q->where('office_visits.department_id', (int) $this->office)));
+    }
+
+    /**
+     * Open visits of matching requests being processed, restricted to the office holding the
+     * paper when one is chosen: a forwarded paper not yet received is held by its sender
+     * (REQ-17-18).
+     *
+     * @return Builder<OfficeVisit>
+     */
+    public function heldVisits(): Builder
+    {
+        return $this->matching(OfficeVisit::query()
+            ->whereIn('office_visits.status', VisitStatus::open())
+            ->whereHas('credentialRequest', fn (Builder $r) => $r->whereIn('status', RequestStatus::processing()))
+            ->when($this->office !== '', fn (Builder $q) => OfficeVisit::whereHeldBy($q, (int) $this->office)));
+    }
+
+    /**
+     * @param  Builder<OfficeVisit>  $visits
+     * @return Builder<OfficeVisit>
+     */
+    private function matching(Builder $visits): Builder
+    {
+        return $visits
             ->when($this->type !== '' || $this->evaluator !== '', fn (Builder $q) => $q->whereHas('credentialRequest', fn (Builder $r) => $r
                 ->when($this->type !== '', fn (Builder $r) => $r->where('credential_type_id', (int) $this->type))
                 ->when($this->evaluator !== '', fn (Builder $r) => $r->where('evaluated_by', (int) $this->evaluator))));

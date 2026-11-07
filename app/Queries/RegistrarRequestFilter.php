@@ -3,8 +3,8 @@
 namespace App\Queries;
 
 use App\Enums\RequestStatus;
-use App\Enums\VisitStatus;
 use App\Models\CredentialRequest;
+use App\Models\OfficeVisit;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -58,8 +58,8 @@ final class RegistrarRequestFilter
     }
 
     /**
-     * Requests being processed whose document an office has now, forwarded or received
-     * (REQ-07-07).
+     * Requests being processed whose document an office has now: in the office, or forwarded by
+     * it and not yet received (REQ-07-07, REQ-17-18).
      *
      * @param  Builder<CredentialRequest>  $query
      * @return Builder<CredentialRequest>
@@ -68,9 +68,7 @@ final class RegistrarRequestFilter
     {
         return $query
             ->whereIn('status', RequestStatus::processing())
-            ->whereHas('visits', fn (Builder $q) => $q
-                ->where('department_id', $departmentId)
-                ->whereIn('status', VisitStatus::open()));
+            ->whereHas('visits', fn (Builder $q) => OfficeVisit::whereHeldBy($q, $departmentId));
     }
 
     /**

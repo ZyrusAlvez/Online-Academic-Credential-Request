@@ -25,7 +25,7 @@
 
 ## A forwarded paper stays with its sender until received (2026-11-07)
 
-- [ ] `Department::registrar()`; `OfficeVisit::holder`, `scopeHeldBy`, `holderSql`; `CredentialRequest::nextOffice` and `whereabouts` use them (REQ-17-18)
-- [ ] `RegistrarRequestFilter::heldBy`, dashboard office counts, `DepartmentReport` pending, `SignatoryReport` by holder (REQ-17-15, 18)
-- [ ] In Progress and the working page: Currently at the holder, "Forwarded :time to :office, not yet received", Next the receiving office (REQ-17-11, 13, 18)
-- [ ] Pest tests for REQ-17-18; REQ-16-04 and REQ-17-11 tests follow the holder
+- [x] `Department::registrar()`; `OfficeVisit::holder`, `whereHeldBy`, `holderSql`; `CredentialRequest::nextOffice` and `whereabouts` use them (REQ-17-18)
+- [x] `RegistrarRequestFilter::heldBy`, dashboard office counts, `DepartmentReport` pending, `SignatoryReport` by holder (REQ-17-15, 18)
+- [x] In Progress and the working page: Currently at the holder, "Forwarded :time to :office, not yet received", Next the receiving office (REQ-17-11, 13, 18)
+- [x] Pest tests for REQ-17-18; REQ-16-04 and REQ-17-11 tests follow the holder

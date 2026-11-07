@@ -64,7 +64,7 @@ class Dashboard extends Component
             'reportsUrl' => route('registrar.reports', ['report' => 'monthly', ...$period->toArray()]),
             'waitingByOffice' => $this->waitingByOffice(),
             'mostOverdue' => CredentialRequest::overdue()
-                ->with(['credentialType:id,name', 'openVisit.department:id,name'])
+                ->with(['credentialType:id,name', 'openVisit.department:id,name', 'openVisit.fromDepartment:id,name'])
                 ->orderBy('effective_due_at')
                 ->limit(5)
                 ->get(),
@@ -76,32 +76,35 @@ class Dashboard extends Component
     }
 
     /**
-     * Offices holding documents now (forwarded or received), largest first.
+     * Offices holding documents now, largest first. A forwarded document not yet received counts
+     * at the office that forwarded it (REQ-17-15, 18).
      *
      * @return Collection<int, array{id: int, name: string, waiting: int, inTransit: int}>
      */
     private function waitingByOffice(): Collection
     {
+        [$holder, $bindings] = OfficeVisit::holderSql();
+
         $rows = OfficeVisit::query()
             ->join('credential_requests', 'credential_requests.id', '=', 'office_visits.credential_request_id')
-            ->join('departments', 'departments.id', '=', 'office_visits.department_id')
             ->whereIn('credential_requests.status', RequestStatus::processing())
             ->whereIn('office_visits.status', VisitStatus::open())
-            ->groupBy('departments.id', 'departments.name')
-            ->orderByDesc(DB::raw('count(*)'))
-            ->orderBy('departments.name')
-            ->get([
-                'departments.id',
-                'departments.name',
-                DB::raw('count(*) as waiting'),
-                DB::raw("sum(office_visits.status = 'in_transit') as in_transit"),
-            ]);
+            ->selectRaw("{$holder} as holder_id", $bindings)
+            ->selectRaw('count(*) as waiting')
+            ->selectRaw("sum(office_visits.status = 'in_transit') as in_transit")
+            ->groupBy('holder_id')
+            ->get();
 
-        return $rows->map(fn ($row) => [
-            'id' => (int) $row->getAttribute('id'),
-            'name' => (string) $row->getAttribute('name'),
-            'waiting' => (int) $row->getAttribute('waiting'),
-            'inTransit' => (int) $row->getAttribute('in_transit'),
-        ]);
+        $names = Department::whereIn('id', $rows->map(fn ($row) => (int) $row->getAttribute('holder_id')))->pluck('name', 'id');
+
+        return $rows
+            ->map(fn ($row) => [
+                'id' => (int) $row->getAttribute('holder_id'),
+                'name' => (string) ($names[(int) $row->getAttribute('holder_id')] ?? ''),
+                'waiting' => (int) $row->getAttribute('waiting'),
+                'inTransit' => (int) $row->getAttribute('in_transit'),
+            ])
+            ->sortBy([['waiting', 'desc'], ['name', 'asc']])
+            ->values();
     }
 }

@@ -250,12 +250,17 @@ class CredentialRequest extends Model
     }
 
     /**
-     * The office the paper goes to after the one holding it now (REQ-17-11). Reads the loaded
-     * `openVisit.step` and `steps.department`.
+     * The office the paper goes to after the one holding it now (REQ-17-11): for a forwarded
+     * paper not yet received, the office it was forwarded to (REQ-17-18). Reads the loaded
+     * `openVisit.department`, `openVisit.step` and `steps.department`.
      */
     public function nextOffice(): ?Department
     {
         $visit = $this->openVisit;
+
+        if ($visit?->status === VisitStatus::InTransit) {
+            return $visit->department;
+        }
 
         // A copy, so the loaded visit does not point back at this request.
         return $visit !== null ? (clone $visit)->setRelation('credentialRequest', $this)->nextStep()?->department : null;
@@ -318,12 +323,14 @@ class CredentialRequest extends Model
     }
 
     /**
-     * Where the request is, in words a requester understands (office names only).
-     * Expects `openVisit.department` to be loaded for requests being processed.
+     * Where the request is, in words a requester understands (office names only): the office
+     * holding the paper, the sender of one not yet received (REQ-17-18). Expects
+     * `openVisit.department` and `openVisit.fromDepartment` to be loaded for requests being
+     * processed.
      */
     public function whereabouts(): string
     {
-        $office = $this->openVisit?->department->name;
+        $office = $this->openVisit?->holder()->name;
 
         return match ($this->status) {
             RequestStatus::Submitted => 'Office of the Registrar – received for evaluation',

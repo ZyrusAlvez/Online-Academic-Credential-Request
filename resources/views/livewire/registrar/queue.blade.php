@@ -48,9 +48,10 @@
             @forelse ($requests as $request)
                 @php
                     $visit = $request->openVisit;
-                    // In Progress: the Registrar's own papers open the working page, the rest the record (REQ-17-12).
-                    $atRegistrar = $visit?->department->code === \App\Models\Department::REGISTRAR_CODE;
-                    $rowRoute = $queue === Q::InProgress && ! $atRegistrar ? 'registrar.records.show' : $linkRoute;
+                    // In Progress: where the Registrar acts next (accepts receipt or forwards), the working
+                    // page; the rest, the record (REQ-17-12).
+                    $registrarActs = $visit?->department->code === \App\Models\Department::REGISTRAR_CODE;
+                    $rowRoute = $queue === Q::InProgress && ! $registrarActs ? 'registrar.records.show' : $linkRoute;
                 @endphp
                 <flux:table.row :key="$request->id">
                     <flux:table.cell class="whitespace-normal">
@@ -64,13 +65,14 @@
 
                     @if ($queue === Q::InProgress || $queue === Q::FinalCheck)
                         <flux:table.cell class="whitespace-normal" data-current-office>
+                            {{-- A forwarded paper stays with its sender until it is received (REQ-17-18). --}}
                             @if ($queue === Q::InProgress)
-                                <div class="font-medium text-ink">{{ $visit?->department->name ?? '—' }}</div>
+                                <div class="font-medium text-ink">{{ $visit?->holder()->name ?? '—' }}</div>
                             @endif
                             @if ($visit)
                                 <div class="text-xs text-zinc-600">
                                     {{ match ($visit->status) {
-                                        VisitStatus::InTransit => __('On the way since :time, not yet received', ['time' => $visit->forwarded_at->diffForHumans()]),
+                                        VisitStatus::InTransit => __('Forwarded :time to :office, not yet received', ['time' => $visit->forwarded_at->diffForHumans(), 'office' => $visit->department->name]),
                                         VisitStatus::Done => __('Done :time, not yet forwarded', ['time' => $visit->done_at->diffForHumans()]),
                                         default => __('Received :time', ['time' => $visit->received_at->diffForHumans()]),
                                     } }}
@@ -84,7 +86,7 @@
                             @php($next = $request->nextOffice())
                             <flux:table.cell class="whitespace-normal" data-next-office>
                                 {{-- The Registrar's own papers are forwarded here only (REQ-17-12); the button names the next office. --}}
-                                @if ($next && $atRegistrar && $visit->isForwardable())
+                                @if ($next && $registrarActs && $visit->isForwardable())
                                     <flux:button size="sm" variant="primary" icon="paper-airplane"
                                         wire:click="forward({{ $request->id }})" data-forward
                                         data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Is the paper of :ref leaving :from for :office now? They confirm when it arrives.', ['ref' => $request->reference_no, 'from' => $visit->department->name, 'office' => $next->name])">

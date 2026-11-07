@@ -25,7 +25,7 @@ class Show extends Component
     public function render(): View
     {
         $request = $this->credentialRequest->load([
-            'student', 'identityDocument', 'credentialType', 'college', 'openVisit.department',
+            'student', 'identityDocument', 'credentialType', 'college', 'openVisit.department', 'openVisit.fromDepartment',
             'paymentProofs.reviewer', 'deficiencies', 'representatives.documents', 'release.releaser',
             'steps.department', 'visits.department', 'visits.step', 'visits.returnedTo', 'visits.receiver', 'visits.doer', 'visits.completer',
             'delayNotes.department', 'delayNotes.recorder', 'pauses',

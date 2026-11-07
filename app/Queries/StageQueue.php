@@ -24,7 +24,7 @@ final class StageQueue
     {
         $query = CredentialRequest::query()->with([
             'credentialType:id,name', 'evaluator:id,first_name,middle_name,last_name',
-            'openVisit.department:id,name,code', 'openVisit.step:id,task,position,department_id',
+            'openVisit.department:id,name,code', 'openVisit.fromDepartment:id,name', 'openVisit.step:id,task,position,department_id',
         ]);
 
         return match ($queue) {

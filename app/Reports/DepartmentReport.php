@@ -2,9 +2,9 @@
 
 namespace App\Reports;
 
-use App\Enums\RequestStatus;
 use App\Enums\VisitStatus;
 use App\Models\Department;
+use App\Models\OfficeVisit;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -46,10 +46,14 @@ final class DepartmentReport implements Report
             ])
             ->keyBy('department_id');
 
-        $pending = $filter->visits()
-            ->whereIn('office_visits.status', VisitStatus::open())
-            ->whereHas('credentialRequest', fn ($q) => $q->whereIn('status', RequestStatus::processing()))
-            ->groupBy('office_visits.department_id')->pluck(DB::raw('COUNT(*)'), 'office_visits.department_id');
+        // Pending at the office holding the paper: its sender until it is received (REQ-17-18).
+        [$holder, $bindings] = OfficeVisit::holderSql();
+        $pending = $filter->heldVisits()
+            ->selectRaw("{$holder} as holder_id", $bindings)
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('holder_id')
+            ->get()
+            ->mapWithKeys(fn (OfficeVisit $row): array => [(int) $row->getAttribute('holder_id') => (int) $row->getAttribute('total')]);
 
         $ids = $received->keys()->merge($closed->keys())->merge($pending->keys())->unique();
 

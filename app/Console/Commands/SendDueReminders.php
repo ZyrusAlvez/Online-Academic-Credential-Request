@@ -35,7 +35,7 @@ class SendDueReminders extends Command
         CredentialRequest::query()
             ->whereIn('status', RequestStatus::processing())
             ->where('effective_due_at', '<=', $calendar->addWorkingDays(now(), 1))
-            ->with(['openVisit.department', 'student', 'credentialType'])
+            ->with(['openVisit.department', 'openVisit.fromDepartment', 'student', 'credentialType'])
             ->chunkById(100, function (Collection $requests) use (&$sent): void {
                 foreach ($requests as $request) {
                     /** @var CredentialRequest $request */

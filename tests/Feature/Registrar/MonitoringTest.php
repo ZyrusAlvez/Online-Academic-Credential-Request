@@ -58,6 +58,7 @@ test('REQ-07-05 the dashboard shows which offices hold documents, largest first'
     acceptedAt(now()->toDateTimeString(), $this->org->tor);
     $atDean = acceptedAt(now()->toDateTimeString(), $this->org->tor);
     passOffice($atDean, $this->registrar);
+    workflow()->acceptReceipt(openVisit($atDean), User::factory()->departmentStaff($this->org->ccs)->create());   // delivered (REQ-17-18)
 
     $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
         ->assertSeeInOrder(['Where requests are waiting', 'Office of the Registrar', '2', 'College of Computer Studies', '1'])
@@ -74,6 +75,7 @@ test('REQ-07-06 the dashboard lists the most overdue requests', function () {
 test('REQ-07-07 the request list can be filtered by the office holding the document', function () {
     $atDean = acceptedAt(now()->toDateTimeString(), $this->org->tor);
     passOffice($atDean, $this->registrar);
+    workflow()->acceptReceipt(openVisit($atDean), User::factory()->departmentStaff($this->org->ccs)->create());   // delivered (REQ-17-18)
     $atRegistrar = acceptedAt(now()->toDateTimeString());
 
     Livewire::actingAs($this->registrar)->test(Index::class)

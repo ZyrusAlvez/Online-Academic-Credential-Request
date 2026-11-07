@@ -130,8 +130,10 @@ test('REQ-16-04 In Progress tracks the office holding each document, filterable 
         ->assertDontSee($finalCheck->reference_no)
         ->assertDontSee('Approve');
 
+    // Forwarded to the Dean but not yet received: still with the Registrar (REQ-17-18).
     queuePage('in_progress', ['office' => (string) $this->org->vpf->id])->assertDontSee($atDean->reference_no);
-    queuePage('in_progress', ['office' => (string) $this->org->ccs->id])->assertSee($atDean->reference_no);
+    queuePage('in_progress', ['office' => (string) $this->org->ccs->id])->assertDontSee($atDean->reference_no);
+    queuePage('in_progress', ['office' => (string) $this->org->registrarOffice->id])->assertSee($atDean->reference_no);
 });
 
 test('REQ-16-05 Final Quality Check lists the documents back at the Registrar for the final check', function () {

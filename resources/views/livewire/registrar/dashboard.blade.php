@@ -95,7 +95,7 @@
         <section aria-labelledby="waiting-heading" class="space-y-3">
             <div>
                 <h2 id="waiting-heading" class="text-lg font-semibold text-primary">{{ __('Where requests are waiting') }}</h2>
-                <p class="text-sm text-zinc-600">{{ __('Documents each office holds now, including those forwarded but not yet received.') }}</p>
+                <p class="text-sm text-zinc-600">{{ __('Documents each office holds now. A forwarded document stays with its office until the next office accepts receipt.') }}</p>
             </div>
 
             @if ($waitingByOffice->isEmpty())
@@ -107,11 +107,11 @@
                         <li>
                             <a href="{{ route('registrar.records', ['status' => 'processing', 'office' => $row['id']]) }}" wire:navigate
                                 class="group grid grid-cols-[1fr_2.5rem] items-center gap-x-3 gap-y-1 rounded-md p-1 hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-highlight sm:grid-cols-[minmax(0,15rem)_1fr_2.5rem]"
-                                title="{{ trans_choice(':count request|:count requests', $row['waiting']) }}{{ $row['inTransit'] ? ' · '.__(':n not yet received', ['n' => $row['inTransit']]) : '' }}">
+                                title="{{ trans_choice(':count request|:count requests', $row['waiting']) }}{{ $row['inTransit'] ? ' · '.__(':n forwarded, not yet received', ['n' => $row['inTransit']]) : '' }}">
                                 <span class="col-span-2 min-w-0 sm:col-span-1">
                                     <span class="block truncate text-sm text-ink">{{ $row['name'] }}</span>
                                     @if ($row['inTransit'])
-                                        <span class="block text-xs text-sky-800">{{ __(':n not yet received', ['n' => $row['inTransit']]) }}</span>
+                                        <span class="block text-xs text-sky-800">{{ __(':n forwarded, not yet received', ['n' => $row['inTransit']]) }}</span>
                                     @endif
                                 </span>
                                 <span class="h-3 rounded-e bg-primary/10" aria-hidden="true">
