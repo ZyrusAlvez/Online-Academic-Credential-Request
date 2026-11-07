@@ -62,15 +62,18 @@ office as before.
   no `description`.
 - Blocked decisions (REQ-17-17): no button is `disabled`. `Show::approve()`, `returnRequest()`
   and `decline()` gather the reasons before calling `RequestWorkflow`:
-  - The checklist reasons come from the stage's parts (`CheckItem::for`) and their results:
-    parts not yet checked and parts rejected for Approve, no rejected part for Return at the
-    evaluation.
-  - The field reasons are the validation messages (remarks, official receipt number), with
-    friendly wording. The validation error is still thrown, so the field is marked too.
+  - Approve: the parts that block it come from the stage's parts (`CheckItem::for`) and their
+    results, rejected first and then not checked yet. They go in the locked `$blockedParts`
+    (`label`, `state`: `rejected` / `unchecked` / `missing`), with a missing official receipt
+    number added as `missing`. The dialog shows the rule, that list (✗ rejected, – not checked
+    yet / not entered yet) and "To approve, …".
+  - Return and Decline: the reasons are sentences in the locked `$blockers`: no rejected part
+    for Return at the evaluation, and the validation messages (remarks), with friendly wording.
+    Any other validation message for Approve (e.g. remarks too long) goes there too.
+  - The validation error is still thrown, so the field is marked too.
 
-  Any reason fills the locked `$blockedAction` and `$blockers` and opens the `decision-blocked`
-  Flux modal, which lists them with one OK button. `RequestWorkflow` keeps its own guards; this
-  only explains them earlier.
+  Any reason fills `$blockedAction` and opens the `decision-blocked` Flux modal, with one OK
+  button. `RequestWorkflow` keeps its own guards; this only explains them earlier.
 - `partials.request-record` takes `'ledger'` in `$hide`. The working page always hides it, and
   the Records page keeps it.
 - `partials.visit-actions`: Received → Done button (`:done` label, e.g. "Signed") plus Return.
