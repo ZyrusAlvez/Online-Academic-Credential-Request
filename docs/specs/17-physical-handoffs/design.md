@@ -61,13 +61,16 @@ office as before.
 - `partials.request-record` takes `'ledger'` in `$hide`. The working page always hides it, and
   the Records page keeps it.
 - `partials.visit-actions`: Received → Done button (`:done` label, e.g. "Signed") plus Return.
-  Done → "Done :time. The Office of the Registrar forwards it to <next>." with no button
-  (REQ-17-16). In transit → Accept receipt. `ActsOnVisits` has no forward action.
+  Done → "Done :time. Forward it to <next> from In Progress." with no button
+  for a registrar, with a link to In Progress. Department staff get the "Forward to <next>"
+  button, which calls `ActsOnVisits::forwardDocument` (refused for registrars, REQ-17-16). In
+  transit → Accept receipt.
 - Registrar In Progress (`StageQueue::InProgress`): adds `accepted_for_processing`. Its columns are
   Request · Requester · Currently at (office, state) · Next · Due. `Queue::forward(int $id)`
-  authorizes the new `OfficeVisitPolicy::forward` (a registrar, an actionable visit, and
-  `OfficeVisit::isForwardable()`) and calls `forwardDocument`. The row's button shows when
-  `isForwardable()`. Rows held by the Registrar link to `registrar.requests.show`.
+  authorizes the new `OfficeVisitPolicy::forward` and calls `forwardDocument`. The policy
+  requires an actionable visit that `OfficeVisit::isForwardable()`, held by the user's office,
+  where a registrar's office is the Office of the Registrar. The row's button shows for
+  forwardable visits the Office of the Registrar holds. Rows held by the Registrar link to `registrar.requests.show`.
 - Working page `PANEL_OFFICE`: "Currently at / Next" header, then `partials.visit-actions`.
 - `x-office-visits`: columns Office · Received · Done · Left · Time spent · Status. Done and Left
   are hidden below `sm`.
