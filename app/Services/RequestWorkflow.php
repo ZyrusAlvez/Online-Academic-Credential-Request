@@ -442,25 +442,8 @@ class RequestWorkflow
     {
         DB::transaction(function () use ($visit, $actor, $remarks): void {
             [$locked, $current] = $this->lockVisit($visit, [VisitStatus::Received]);
-            $step = $current->step()->with('department')->firstOrFail();
-            $correction = $current->purpose === VisitPurpose::Correction;
 
-            if ($step->task === RouteTask::FinalCheck && ! $correction) {
-                $this->assertAllConfirmed($locked, CheckStage::FinalCheck);   // REQ-16-19
-            }
-
-            $current->forceFill(['status' => VisitStatus::Done, 'done_at' => now(), 'done_by' => $actor->id, 'remarks' => filled($remarks) ? $remarks : null])->save();
-
-            if ($correction) {
-                $this->record($locked, $actor, RequestEventType::Corrected, null, null, $remarks, visit: $current);
-            } else {
-                $step->forceFill(['status' => StepStatus::Completed, 'completed_at' => now()])->save();
-                $this->record($locked, $actor, RequestEventType::StepCompleted, null, null, $remarks, $step, $current);
-            }
-
-            $next = $current->setRelation('step', $step)->load('credentialRequest.steps')->nextStep();
-
-            if ($next === null || $next->department_id === $current->department_id) {
+            if ($this->markDone($locked, $current, $actor, $remarks)) {
                 $this->leave($locked, $current, $actor);
             }
 
@@ -469,14 +452,23 @@ class RequestWorkflow
     }
 
     /**
-     * The paper leaves an office whose task is done: to the next office on the route, or a
-     * corrected document back to the office that returned it. That office still has to accept
-     * its receipt (REQ-17-07, 08).
+     * The registrar sends the paper on from an office whose task is done: to the next office on
+     * the route, or a corrected document back to the office that returned it. That office still
+     * has to accept its receipt (REQ-17-07, 08). The Registrar's own received task is marked done
+     * in the same step (REQ-17-12). Only registrars forward, from In Progress (REQ-17-16).
      */
     public function forwardDocument(OfficeVisit $visit, User $actor): void
     {
         DB::transaction(function () use ($visit, $actor): void {
-            [$locked, $current] = $this->lockVisit($visit, [VisitStatus::Done]);
+            [$locked, $current] = $this->lockVisit($visit, [VisitStatus::Done, VisitStatus::Received]);
+
+            if (! $current->load(['department', 'step'])->isForwardable()) {
+                throw new InvalidTransition('The office has to finish its task before the document is forwarded.');
+            }
+
+            if ($current->status === VisitStatus::Received) {
+                $this->markDone($locked, $current, $actor);
+            }
 
             $this->leave($locked, $current, $actor);
             $visit->setRawAttributes($current->getAttributes(), sync: true);
@@ -848,6 +840,34 @@ class RequestWorkflow
         $locked->status === $to
             ? $this->record($locked, $actor, RequestEventType::ReceiptAccepted, null, null, null, visit: $current)
             : $this->transition($locked, $locked, $to, $actor, RequestEventType::ReceiptAccepted, visit: $current);
+    }
+
+    /**
+     * Record the office's task done and keep the paper there (REQ-17-06). Returns whether the
+     * paper moves on at once: after the final quality check, or when the next office is the same
+     * office.
+     */
+    private function markDone(CredentialRequest $locked, OfficeVisit $current, User $actor, ?string $remarks = null): bool
+    {
+        $step = $current->step()->with('department')->firstOrFail();
+        $correction = $current->purpose === VisitPurpose::Correction;
+
+        if ($step->task === RouteTask::FinalCheck && ! $correction) {
+            $this->assertAllConfirmed($locked, CheckStage::FinalCheck);   // REQ-16-19
+        }
+
+        $current->forceFill(['status' => VisitStatus::Done, 'done_at' => now(), 'done_by' => $actor->id, 'remarks' => filled($remarks) ? $remarks : null])->save();
+
+        if ($correction) {
+            $this->record($locked, $actor, RequestEventType::Corrected, null, null, $remarks, visit: $current);
+        } else {
+            $step->forceFill(['status' => StepStatus::Completed, 'completed_at' => now()])->save();
+            $this->record($locked, $actor, RequestEventType::StepCompleted, null, null, $remarks, $step, $current);
+        }
+
+        $next = $current->setRelation('step', $step)->load('credentialRequest.steps')->nextStep();
+
+        return $next === null || $next->department_id === $current->department_id;
     }
 
     /**

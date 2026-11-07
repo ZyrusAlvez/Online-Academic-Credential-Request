@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RouteTask;
 use App\Enums\StepStatus;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
@@ -62,6 +63,21 @@ class OfficeVisit extends Model
         }
 
         return $steps->first(fn (RequestStep $step): bool => $step->position > $this->step->position && $step->status === StepStatus::Waiting);
+    }
+
+    /**
+     * The registrar can send the paper on from here: its office's task is done, or it is the
+     * Office of the Registrar's own task (preparation or a correction, not the final quality
+     * check), which forwarding marks done (REQ-17-12). Reads the loaded `department` and `step`.
+     */
+    public function isForwardable(): bool
+    {
+        return match ($this->status) {
+            VisitStatus::Done => true,
+            VisitStatus::Received => $this->department->code === Department::REGISTRAR_CODE
+                && ($this->purpose === VisitPurpose::Correction || $this->step->task !== RouteTask::FinalCheck),
+            default => false,
+        };
     }
 
     /**

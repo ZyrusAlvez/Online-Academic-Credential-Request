@@ -83,13 +83,15 @@
                         @if ($queue === Q::InProgress)
                             @php($next = $request->nextOffice())
                             <flux:table.cell class="whitespace-normal" data-next-office>
-                                <div class="text-ink">{{ $next?->name ?? '—' }}</div>
-                                @if ($next && $atRegistrar && $visit->status === VisitStatus::Done)
-                                    <flux:button size="sm" variant="primary" icon="paper-airplane" class="mt-1"
+                                {{-- The Registrar's own papers are forwarded here only (REQ-17-12); the button names the next office. --}}
+                                @if ($next && $atRegistrar && $visit->isForwardable())
+                                    <flux:button size="sm" variant="primary" icon="paper-airplane"
                                         wire:click="forward({{ $request->id }})" data-forward
-                                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Has the paper of :ref left the Office of the Registrar for :office? They confirm when it arrives.', ['ref' => $request->reference_no, 'office' => $next->name])">
+                                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Is the paper of :ref leaving :from for :office now? They confirm when it arrives.', ['ref' => $request->reference_no, 'from' => $visit->department->name, 'office' => $next->name])">
                                         {{ __('Forward to :office', ['office' => $next->name]) }}
                                     </flux:button>
+                                @else
+                                    <div class="text-ink" data-next-name>{{ $next?->name ?? '—' }}</div>
                                 @endif
                             </flux:table.cell>
                         @endif

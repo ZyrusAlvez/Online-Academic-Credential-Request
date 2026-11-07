@@ -23,13 +23,20 @@
             <p class="text-sm text-zinc-700">{{ __('Forwarded :time. Confirm when the document is physically in your office.', ['time' => $visit->forwarded_at->diffForHumans()]) }}</p>
             <flux:button wire:click="acceptReceipt" variant="primary" icon="inbox-arrow-down" class="w-full">{{ __('Accept receipt') }}</flux:button>
         @elseif ($visit->status === \App\Enums\VisitStatus::Done)
-            {{-- Done, but the paper is still here until it is forwarded (REQ-17-07). --}}
+            {{-- Done, but the paper is still here until it is forwarded (REQ-17-07, 16). --}}
             <p class="text-sm text-zinc-700" data-done>{{ __('Done :time. The document is still in your office.', ['time' => $visit->done_at->diffForHumans()]) }}</p>
-            @if ($next)
-                <flux:button wire:click="forwardDocument" variant="primary" icon="paper-airplane" class="w-full" data-forward
-                    data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Has the paper left your office for :office? They confirm when it arrives.', ['office' => $next->name])">
-                    {{ __('Forward to :office', ['office' => $next->name]) }}
-                </flux:button>
+            @if ($next && auth()->user()->hasRole(\App\Enums\Role::Registrar))
+                <p class="text-sm text-zinc-700">
+                    {{ __('Forward it to :office from', ['office' => $next->name]) }}
+                    <a href="{{ route('registrar.in-progress') }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ __('In Progress') }}</a>.
+                </p>
+            @elseif ($next)
+                @can('forward', $visit)
+                    <flux:button wire:click="forwardDocument" variant="primary" icon="paper-airplane" class="w-full" data-forward
+                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Is the paper leaving your office for :office now? They confirm when it arrives.', ['office' => $next->name])">
+                        {{ __('Forward to :office', ['office' => $next->name]) }}
+                    </flux:button>
+                @endcan
             @endif
         @else
             <p class="text-xs text-zinc-600">{{ __('Received :time', ['time' => $visit->received_at->diffForHumans()]) }}</p>
@@ -45,7 +52,7 @@
                     @endif
                 </flux:button>
                 @if ($next && $next->id !== $visit->department_id)
-                    <p class="text-xs text-zinc-600">{{ __('The document stays here until you forward it to :office.', ['office' => $next->name]) }}</p>
+                    <p class="text-xs text-zinc-600">{{ __('The document stays here until it is forwarded to :office.', ['office' => $next->name]) }}</p>
                 @endif
             </form>
 
