@@ -39,7 +39,9 @@ office as before.
     before.
   - Otherwise: `status = done`, `done_at`, `done_by` and `remarks` are set. A route step is marked
     `completed` and `StepCompleted` logged; a correction logs `Corrected`.
-- `forwardDocument(OfficeVisit, User)` (new, Done only): closes the visit `completed`
+- `forwardDocument(OfficeVisit, User)` (new): Done, or Received at the Office of the Registrar for
+  its own route task or a correction (not the final check), which is first marked done in the
+  same transaction (REQ-17-12). It then closes the visit `completed`
   (`completed_at` = left, `working_days`). A correction is then forwarded back to the step's
   office as a `resubmission`. A route visit `advance()`s to the next waiting step. `forward()`
   still sets `in_progress` when the paper leaves the first office.
@@ -59,11 +61,13 @@ office as before.
 - `partials.request-record` takes `'ledger'` in `$hide`. The working page always hides it, and
   the Records page keeps it.
 - `partials.visit-actions`: Received → Done button (`:done` label, e.g. "Signed") plus Return.
-  Done → "Done :time · Forward to <next>" button with a confirmation. In transit → Accept receipt.
+  Done → "Done :time. The Office of the Registrar forwards it to <next>." with no button
+  (REQ-17-16). In transit → Accept receipt. `ActsOnVisits` has no forward action.
 - Registrar In Progress (`StageQueue::InProgress`): adds `accepted_for_processing`. Its columns are
   Request · Requester · Currently at (office, state) · Next · Due. `Queue::forward(int $id)`
-  authorizes `act` on the open visit and calls `forwardDocument`. Rows held by the Registrar link
-  to `registrar.requests.show`.
+  authorizes the new `OfficeVisitPolicy::forward` (a registrar, an actionable visit, and
+  `OfficeVisit::isForwardable()`) and calls `forwardDocument`. The row's button shows when
+  `isForwardable()`. Rows held by the Registrar link to `registrar.requests.show`.
 - Working page `PANEL_OFFICE`: "Currently at / Next" header, then `partials.visit-actions`.
 - `x-office-visits`: columns Office · Received · Done · Left · Time spent · Status. Done and Left
   are hidden below `sm`.

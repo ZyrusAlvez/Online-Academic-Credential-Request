@@ -9,3 +9,9 @@
 - [x] Demo data and test helpers forward after Done
 - [x] Superseded criteria marked in specs 05 and 16
 - [x] Pest tests for every REQ-17 criterion
+
+## Registrar-only forwarding (2026-11-07)
+
+- [ ] `forwardDocument` also takes the Registrar's received own task; `OfficeVisit::isForwardable`; `OfficeVisitPolicy::forward` (REQ-17-12, 16)
+- [ ] In Progress shows Forward for every forwardable paper; no Forward on office pages or the working page (REQ-17-12, 13, 16)
+- [ ] Demo data forwards as the registrar; tests for REQ-17-07, 12, 13, 16
