@@ -91,4 +91,4 @@ This replaces:
     Existing installs keep seeding until they add the settings.
   - `INITIAL_REGISTRAR_*` (REQ-01-15) is unchanged.
 - **REQ-18-12** THE demo data (local and staging only, REQ-07-09) SHALL include an Admin account,
-  `admin@example.com` with the demo password.
+  `admin@example.com` with the demo password `@Test123` (REQ-07-09).

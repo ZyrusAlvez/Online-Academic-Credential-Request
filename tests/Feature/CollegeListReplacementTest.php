@@ -8,6 +8,7 @@ use App\Models\CredentialRequest;
 use App\Models\Department;
 use App\Models\Program;
 use App\Models\User;
+use Database\Seeders\DemoSeeder;
 use Database\Seeders\DepartmentSeeder;
 use Database\Seeders\ProgramSeeder;
 use Database\Seeders\ReplaceCollegeListSeeder;
@@ -131,7 +132,7 @@ test('REQ-02-14 in local and staging every college keeps or gets one demo staff 
         ->toBe(collect(DepartmentSeeder::COLLEGES)->keys()->map(fn (string $code) => [strtolower($code).'@example.com', $code])->sortBy(0)->values()->all())
         // The CRIM account carries on as CCJE's, with its history.
         ->and($crim->fresh())->email->toBe('ccje@example.com')->is_active->toBeTrue()
-        ->and(Hash::check('password', $crim->fresh()->password))->toBeTrue()
+        ->and(Hash::check(DemoSeeder::PASSWORD, $crim->fresh()->password))->toBeTrue()
         ->and(User::find($law->id))->toBeNull()
         ->and(User::find($real->id))->toBeNull();
 });

@@ -500,7 +500,7 @@ changes, everyone is logged out. Each environment gets its own.
 ### 8.3 Create the app database users
 
 Each environment gets its **own** MySQL user, which can access only its own database. Staging has
-demo accounts with the password `password`, so it's the weaker side. If its database password leaked, it still
+demo accounts with a shared, published password (`@Test123`), so it's the weaker side. If its database password leaked, it still
 couldn't open production. This is the **principle of least privilege**.
 
 These blocks generate a random password, create the user with it, and write the same password
@@ -594,7 +594,7 @@ their own JavaScript.
 | `CredentialTypeSeeder` | The 7 credential types and their signing order (`workflow_steps`) |
 | `RegistrarSeeder` | The first registrar account, from `INITIAL_REGISTRAR_EMAIL` / `INITIAL_REGISTRAR_PASSWORD` |
 | `AdminSeeder` | The first admin account, from `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`; skipped with a warning when they are not set |
-| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff, a demo admin (`admin@example.com`) and requests in every status, all at `@example.com` with the password `password`. The demo requests are approved by your registrar |
+| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff, a demo admin (`admin@example.com`) and requests in every status, all at `@example.com` with the password `@Test123`. The demo requests are approved by your registrar |
 
 The first admin is needed because someone has to be able to log in and create every other
 account: only an admin manages accounts and setup (spec 18). `AdminSeeder` works like
@@ -1080,7 +1080,7 @@ These steps go beyond the base setup, but are worth doing before real users arri
 ### 16.1 Put staging behind a password
 
 Both apps run as `www-data`, so a break-in through staging could read production's `.env`. Staging
-is also the weaker side: public, showing error details (debug mode), with demo logins using `password`. Nginx basic
+is also the weaker side: public, showing error details (debug mode), with demo logins sharing the published password `@Test123`. Nginx basic
 auth makes the browser ask for a username and password before showing anything on staging:
 
 ```bash

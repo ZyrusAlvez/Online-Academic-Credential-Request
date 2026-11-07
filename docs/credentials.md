@@ -1,6 +1,7 @@
 # Credentials & Testing
 
-> **Local and staging only.** Every account below uses the password `password` and exists only
+> **Local and staging only.** Every account below uses the password `@Test123` (it meets the
+> app's password rules) and exists only
 > in the **local** and **staging** environments. Production has no demo data; the demo seeder and
 > `app:reset-demo` refuse to run there.
 
@@ -41,7 +42,7 @@ Records.
 
 | Email | Password | Sees |
 |---|---|---|
-| `admin@example.com` | `password` | Dashboard, Records, Reports, and Administration (Credential Types, Departments, Programs, Purposes, Accounts, Working Calendar, Logs) |
+| `admin@example.com` | `@Test123` | Dashboard, Records, Reports, and Administration (Credential Types, Departments, Programs, Purposes, Accounts, Working Calendar, Logs) |
 
 Production has no demo admin. Its first admin comes from `INITIAL_ADMIN_EMAIL` /
 `INITIAL_ADMIN_PASSWORD` (spec 18).
@@ -52,17 +53,17 @@ Each requester already has requests in different states, so every screen has dat
 
 | Name | Email | Password | College and program | Requests to look at |
 |---|---|---|---|---|
-| Juan S. Dela Cruz | `student@example.com` | `password` | CCS · Bachelor of Science in Computer Science, Specialization in Data Science | TOR just submitted; payment to verify; TOR **returned for correction** by VP Finance; Certification of Enrollment released; diploma paused for his action |
-| Maria Reyes | `maria@example.com` | `password` | CBAA · Bachelor of Science in Accountancy | Certification under evaluation; Course Description awaiting payment; TOR at the Dean of CBAA; Copy of Grades ready for release to her verified representative; TOR **overdue** at the Chancellor |
-| Jose L. Garcia | `jose@example.com` | `password` | CEA · Bachelor of Science in Civil Engineering | TOR pending compliance; Certification of Graduation just accepted; Transfer Certificate at the final check; TOR released late; one cancelled |
-| Ana Mendoza | `ana@example.com` | `password` | CTE · Bachelor of Secondary Education | ID still **awaiting verification** (Identity Checks); Copy of Grades waiting for her clarification; Authentication declined |
+| Juan S. Dela Cruz | `student@example.com` | `@Test123` | CCS · Bachelor of Science in Computer Science, Specialization in Data Science | TOR just submitted; payment to verify; TOR **returned for correction** by VP Finance; Certification of Enrollment released; diploma paused for his action |
+| Maria Reyes | `maria@example.com` | `@Test123` | CBAA · Bachelor of Science in Accountancy | Certification under evaluation; Course Description awaiting payment; TOR at the Dean of CBAA; Copy of Grades ready for release to her verified representative; TOR **overdue** at the Chancellor |
+| Jose L. Garcia | `jose@example.com` | `@Test123` | CEA · Bachelor of Science in Civil Engineering | TOR pending compliance; Certification of Graduation just accepted; Transfer Certificate at the final check; TOR released late; one cancelled |
+| Ana Mendoza | `ana@example.com` | `@Test123` | CTE · Bachelor of Secondary Education | ID still **awaiting verification** (Identity Checks); Copy of Grades waiting for her clarification; Authentication declined |
 
 Juan, Maria and Jose are verified, so their My Profile is read-only. Ana's is read-only while her ID
 waits; reject it on Identity Checks to see the profile open up again.
 
 ### Department staff
 
-One account per office: `<office code in lower case>@example.com`, password `password`.
+One account per office: `<office code in lower case>@example.com`, password `@Test123`.
 
 All demo accounts use `example.com`, a domain reserved for examples. The app never sends email
 to it, so demo data can't bounce or use up the Gmail sending limit.

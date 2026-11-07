@@ -27,12 +27,15 @@ use RuntimeException;
 /**
  * Local and staging only. Demo accounts and requests in every status of the client's workflow,
  * driven through the real RequestWorkflow so the ledger, office visits and notifications are
- * realistic. Password for every account: "password".
+ * realistic. Password for every account: DemoSeeder::PASSWORD.
  *
  *   php artisan migrate:fresh --seed && php artisan db:seed --class=DemoSeeder
  */
 class DemoSeeder extends Seeder
 {
+    /** Every demo account's password; it meets the password rules (REQ-07-09, REQ-01-03). */
+    public const PASSWORD = '@Test123';
+
     /** A 1×1 PNG. */
     private const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
@@ -214,7 +217,7 @@ class DemoSeeder extends Seeder
     public static function staffAccount(Department $department): User
     {
         $user = User::firstOrNew(['email' => strtolower($department->code).'@example.com']);
-        $user->fill(['first_name' => $department->code, 'middle_name' => null, 'last_name' => 'Staff', 'password' => 'password']);
+        $user->fill(['first_name' => $department->code, 'middle_name' => null, 'last_name' => 'Staff', 'password' => self::PASSWORD]);
         $user->forceFill(['role' => Role::Department, 'department_id' => $department->id, 'is_active' => true, 'email_verified_at' => now()])->save();
 
         return $user;
@@ -226,7 +229,7 @@ class DemoSeeder extends Seeder
     public static function adminAccount(): User
     {
         $user = User::firstOrNew(['email' => 'admin@example.com']);
-        $user->fill(['first_name' => 'Demo', 'middle_name' => null, 'last_name' => 'Admin', 'password' => 'password']);
+        $user->fill(['first_name' => 'Demo', 'middle_name' => null, 'last_name' => 'Admin', 'password' => self::PASSWORD]);
         $user->forceFill(['role' => Role::Admin, 'department_id' => null, 'is_active' => true, 'email_verified_at' => now()])->save();
 
         return $user;
@@ -239,7 +242,7 @@ class DemoSeeder extends Seeder
             'first_name' => $first,
             'middle_name' => $middle,
             'last_name' => $last,
-            'password' => 'password',
+            'password' => self::PASSWORD,
             'contact_number' => '0917'.fake()->numerify('#######'),
             'academic_status' => AcademicStatus::Graduate,
             'college_id' => $college->id,
