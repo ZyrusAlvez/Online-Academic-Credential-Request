@@ -27,6 +27,7 @@ use App\Models\IdentityDocument;
 use App\Models\OfficeVisit;
 use App\Models\PaymentProof;
 use App\Models\RequestCheck;
+use App\Models\RequestDocument;
 use App\Models\RequestEvent;
 use App\Models\RequestRepresentative;
 use App\Models\RequestStep;
@@ -553,6 +554,69 @@ class RequestWorkflow
             $this->record($locked, $actor, RequestEventType::DelayRecorded, null, null,
                 "{$category->label()}: {$reason}".(filled($correctiveAction) ? "\nCorrective action: {$correctiveAction}" : ''), visit: $visit);
         });
+    }
+
+    /**
+     * The owner's copies of the credential's documentary requirements, sent with a new request
+     * (REQ-04-18, 19): only for requirements the credential lists, at most
+     * RequestDocument::MAX_PER_REQUIREMENT each. No ledger entry of its own: the files arrive with
+     * the Submitted entry. Returns the rows so a caller whose own transaction fails can delete the
+     * stored files.
+     *
+     * @param  array<string, list<UploadedFile>>  $files  requirement => its files
+     * @return list<RequestDocument>
+     */
+    public function attachRequirementDocuments(CredentialRequest $request, User $owner, array $files): array
+    {
+        if ($request->user_id !== $owner->id) {
+            throw new InvalidTransition('Only the requester can send copies of the requirements.');
+        }
+
+        $listed = $request->credentialType->requirements ?? [];
+
+        foreach ($files as $requirement => $list) {
+            if (! in_array($requirement, $listed, true)) {
+                throw new InvalidTransition('This credential does not list that requirement.');
+            }
+
+            if (count($list) > RequestDocument::MAX_PER_REQUIREMENT) {
+                throw new InvalidTransition('Upload at most '.RequestDocument::MAX_PER_REQUIREMENT.' files for each requirement.');
+            }
+        }
+
+        /** @var list<array{string, UploadedFile, string}> $stored requirement, file, path */
+        $stored = [];
+
+        try {
+            foreach ($files as $requirement => $list) {
+                foreach ($list as $file) {
+                    $stored[] = [$requirement, $file, $this->store($file, "request-documents/{$request->id}")];
+                }
+            }
+
+            return DB::transaction(function () use ($request, $owner, $stored): array {
+                $locked = $this->lock($request, [RequestStatus::Submitted], 'Copies of the requirements are sent with a new request only.');
+                $documents = [];
+
+                foreach ($stored as [$requirement, $file, $path]) {
+                    $documents[] = $locked->documents()->create([
+                        'kind' => DocumentKind::Requirement,
+                        'requirement' => $requirement,
+                        'path' => $path,
+                        'original_name' => Str::limit($file->getClientOriginalName(), 250, ''),
+                        'mime_type' => (string) $file->getMimeType(),
+                        'size' => (int) $file->getSize(),
+                        'uploaded_by' => $owner->id,
+                    ]);
+                }
+
+                return $documents;
+            });
+        } catch (Throwable $e) {
+            Storage::disk(self::proofDisk())->delete(array_column($stored, 2));
+
+            throw $e;
+        }
     }
 
     // ── Representatives and release (spec 11) ──────────────────────────────────────────────

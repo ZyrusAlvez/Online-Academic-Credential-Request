@@ -27,6 +27,16 @@ period starts only at acceptance.
   requirements, fee, processing period, offices on its route and special
   conditions; THE SYSTEM SHALL also show the *Incomplete requirements* notice of the client's
   workflow.
+- **REQ-04-18** WHERE the chosen credential lists documentary requirements THE SYSTEM SHALL offer,
+  on New Request, one file field per requirement, labelled with the requirement, taking up to 5
+  files of JPG, PNG, WebP or PDF, 5 MB each. Every field is optional and SHALL NOT be marked
+  "Optional"; each file is checked as soon as it is chosen. Files chosen for another credential
+  SHALL NOT be sent. *(User's decision, 2026-11-10: copies help the evaluator; the originals are
+  still checked at the Registrar's Office, REQ-16-15.)*
+- **REQ-04-19** THE SYSTEM SHALL store the requirement files privately with the request, each
+  under its requirement, and SHALL let only the owner, registrars and admins open them; the
+  evaluator sees them under *Academic Record Verification*, and they appear on the Records page
+  and the owner's request page.
 - **REQ-04-03** WHEN a request is submitted THE SYSTEM SHALL give it the status `submitted`, a
   unique tracking number `CR-<year>-<6-digit id>`, a snapshot of the requester's name, contact
   number, academic profile and ID (REQ-15-06) and of the fee (the amount due is the fee: one request is one document), and confirm that it was received for evaluation.

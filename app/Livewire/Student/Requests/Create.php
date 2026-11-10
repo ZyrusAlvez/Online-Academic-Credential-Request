@@ -16,14 +16,17 @@ use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\Program;
 use App\Models\Purpose;
+use App\Models\RequestDocument;
 use App\Models\User;
 use App\Models\WorkflowStep;
 use App\Services\RequestWorkflow;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -51,6 +54,24 @@ class Create extends Component
     #[Locked]
     public bool $reviewing = false;
 
+    /**
+     * Copies of the documentary requirements: credential type id => requirement index => files
+     * (REQ-04-18). Keyed by credential so switching credentials never moves a file to another
+     * credential's requirement; only the chosen credential's files are checked and sent.
+     *
+     * @var array<int|string, array<int|string, mixed>>
+     */
+    public array $requirementFiles = [];
+
+    /**
+     * How often each requirement's files were removed: part of the field's key, so the file
+     * picker starts empty again.
+     *
+     * @var array<string, int>
+     */
+    #[Locked]
+    public array $requirementResets = [];
+
     public function mount(): void
     {
         $this->authorize('create', CredentialRequest::class);
@@ -67,6 +88,36 @@ class Create extends Component
     }
 
     /**
+     * Check a requirement's files as soon as they are chosen (REQ-04-18). The key is
+     * "<credential type id>.<requirement index>".
+     */
+    public function updatedRequirementFiles(mixed $value, string $key): void
+    {
+        [$typeId, $index] = array_map(intval(...), array_pad(explode('.', $key), 2, '0'));
+        $requirement = CredentialType::requestable()->find($typeId)?->requirements[$index] ?? null;
+        $field = "requirementFiles.{$typeId}.{$index}";
+
+        $this->resetErrorBag($field);
+
+        if ($requirement !== null && ($message = $this->requirementFilesError($typeId, $index, $requirement)) !== null) {
+            $this->addError($field, $message);
+        }
+    }
+
+    /**
+     * Drop the files chosen for one requirement.
+     */
+    public function clearRequirementFiles(int $typeId, int $index): void
+    {
+        $field = "requirementFiles.{$typeId}.{$index}";
+
+        unset($this->requirementFiles[$typeId][$index]);
+        $this->requirementResets[$field] = ($this->requirementResets[$field] ?? 0) + 1;
+
+        $this->resetErrorBag($field);
+    }
+
+    /**
      * Check every entry and show the summary; nothing is saved yet (REQ-15-05).
      */
     public function review(): void
@@ -80,6 +131,7 @@ class Create extends Component
             fn () => $this->form->validatedRequest(),
             fn () => $this->profile->validateDetails(),
             fn () => $this->validateRepresentativeFiles(),
+            fn () => $this->validateRequirementFiles(),
         ] as $check) {
             try {
                 $check();
@@ -123,14 +175,17 @@ class Create extends Component
 
         $owner = $this->owner();
         $stored = null;
+        $requirementDocuments = [];
 
         try {
             $data = $this->form->validatedRequest();
             $representative = $this->form->representative();
             $this->validateRepresentativeFiles();
+            $this->validateRequirementFiles();
             $documents = $representative !== null ? $this->representativeDocuments() : null;
+            $requirementFiles = $this->chosenRequirementFiles();
 
-            $request = DB::transaction(function () use ($owner, $data, $representative, $documents, $workflow, $submitIdentity, &$stored): CredentialRequest {
+            $request = DB::transaction(function () use ($owner, $data, $representative, $documents, $requirementFiles, $workflow, $submitIdentity, &$stored, &$requirementDocuments): CredentialRequest {
                 $chosen = $this->profile->save($owner);
 
                 if ($chosen !== null) {
@@ -139,6 +194,10 @@ class Create extends Component
 
                 $request = $workflow->submit($owner, $data, $stored);
 
+                if ($requirementFiles !== []) {
+                    $requirementDocuments = $workflow->attachRequirementDocuments($request, $owner, $requirementFiles);
+                }
+
                 if ($representative !== null && $documents !== null) {
                     $workflow->declareRepresentative($request, $owner, $representative, ...$documents);
                 }
@@ -146,7 +205,7 @@ class Create extends Component
                 return $request;
             });
         } catch (Throwable $e) {
-            $this->undo($owner, $stored);
+            $this->undo($owner, $stored, $requirementDocuments);
             $this->showFailure($e);
 
             return;
@@ -196,15 +255,105 @@ class Create extends Component
     }
 
     /**
-     * Nothing of a failed submission stays: the database rolled back, so drop what the model
-     * still holds and the ID file stored on the way (REQ-15-06).
+     * The chosen credential's requirement files, each checked: JPG, PNG, WebP or PDF, 5 MB each,
+     * at most RequestDocument::MAX_PER_REQUIREMENT per requirement (REQ-04-18).
+     *
+     * @throws ValidationException listing every requirement whose files need attention
      */
-    private function undo(User $owner, ?IdentityDocument $stored): void
+    private function validateRequirementFiles(): void
+    {
+        $type = $this->chosenType();
+        $errors = [];
+
+        if ($type === null) {
+            return;
+        }
+
+        foreach ($type->requirements ?? [] as $index => $requirement) {
+            $message = $this->requirementFilesError($type->id, $index, $requirement);
+
+            if ($message !== null) {
+                $errors["requirementFiles.{$type->id}.{$index}"] = $message;
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * The first problem with the files chosen for one requirement, or null when they are fine
+     * (or there are none: every requirement is optional).
+     */
+    private function requirementFilesError(int $typeId, int $index, string $requirement): ?string
+    {
+        $files = $this->requirementFiles[$typeId][$index] ?? [];
+        $max = RequestDocument::MAX_PER_REQUIREMENT;
+
+        $validator = Validator::make(['files' => is_array($files) ? array_values($files) : $files], [
+            'files' => ['array', "max:{$max}"],
+            'files.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+        ], [
+            'files.array' => 'Choose the files for “:requirement” again.',
+            'files.max' => 'Upload at most :max files for “:requirement”.',
+            'files.*.file' => 'Each file for “:requirement” must be a file.',
+            'files.*.uploaded' => 'A file for “:requirement” could not be uploaded. Use a JPG, PNG, WebP or PDF file of 5 MB or smaller.',
+            'files.*.mimes' => 'Each file for “:requirement” must be a JPG, PNG, WebP or PDF file.',
+            'files.*.max' => 'Each file for “:requirement” must be 5 MB or smaller.',
+        ]);
+
+        $message = $validator->errors()->first();
+
+        return $message === '' ? null : str_replace(':requirement', $requirement, $message);
+    }
+
+    /**
+     * The chosen credential's requirement files after validation, by requirement, for the workflow.
+     *
+     * @return array<string, list<UploadedFile>>
+     */
+    private function chosenRequirementFiles(): array
+    {
+        $type = $this->chosenType();
+        $files = [];
+
+        if ($type === null) {
+            return [];
+        }
+
+        foreach ($type->requirements ?? [] as $index => $requirement) {
+            $chosen = array_filter((array) ($this->requirementFiles[$type->id][$index] ?? []), fn ($file): bool => $file instanceof UploadedFile);
+
+            if ($chosen !== []) {
+                $files[$requirement] = [...($files[$requirement] ?? []), ...array_values($chosen)];
+            }
+        }
+
+        return $files;
+    }
+
+    private function chosenType(): ?CredentialType
+    {
+        return filled($this->form->credential_type_id) ? CredentialType::requestable()->find((int) $this->form->credential_type_id) : null;
+    }
+
+    /**
+     * Nothing of a failed submission stays: the database rolled back, so drop what the model
+     * still holds and the files stored on the way (REQ-15-06, REQ-04-18).
+     *
+     * @param  list<RequestDocument>  $requirementDocuments
+     */
+    private function undo(User $owner, ?IdentityDocument $stored, array $requirementDocuments = []): void
     {
         $owner->refresh();
 
         if ($stored !== null) {
             Storage::disk(RequestWorkflow::proofDisk())->delete($stored->path);
+        }
+
+        if ($requirementDocuments !== []) {
+            Storage::disk(RequestWorkflow::proofDisk())->delete(array_map(fn (RequestDocument $document): string => $document->path, $requirementDocuments));
         }
     }
 
@@ -241,11 +390,15 @@ class Create extends Component
     {
         $purpose = $this->form->purpose === CredentialRequestForm::OTHER_PURPOSE ? $this->form->purpose_other : $this->form->purpose;
         $representative = $this->form->representative();
+        $copies = array_sum(array_map(count(...), $this->chosenRequirementFiles()));
 
         return array_filter([
             'Credential' => (string) $type?->name,
             'Purpose' => $purpose,
             'Receiving school, employer or agency' => $this->form->receiving_institution,
+            'Requirement files' => $type?->requirements
+                ? ($copies > 0 ? trans_choice(':count file|:count files', $copies) : __('None uploaded'))
+                : '',
             'Transacting' => $representative !== null
                 ? __('Through :name, your authorized representative', ['name' => $representative['full_name']])
                 : __('Personally'),

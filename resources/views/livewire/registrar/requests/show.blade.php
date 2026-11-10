@@ -85,9 +85,6 @@
                                 <div><dt class="text-zinc-500">{{ __('Transacting') }}</dt><dd class="font-medium text-ink">{{ $request->requester_mode->label() }}</dd></div>
                                 <div><dt class="text-zinc-500">{{ __('Submitted') }}</dt><dd class="font-medium text-ink">{{ $request->submitted_at?->format('M j, Y g:i A') }}</dd></div>
                             </dl>
-                            @if ($request->credentialType->requirements)
-                                <p class="mt-3 text-xs text-zinc-600">{{ __('Documentary requirements: :list', ['list' => implode('; ', $request->credentialType->requirements)]) }}</p>
-                            @endif
                             @break
 
                         @case(Item::Identity)
@@ -118,6 +115,13 @@
                                 <div><dt class="text-zinc-500">{{ __('College') }}</dt><dd class="font-medium text-ink">{{ $request->college->name }}</dd></div>
                                 <div><dt class="text-zinc-500">{{ __('Program or strand') }}</dt><dd class="font-medium text-ink">{{ $request->program }}</dd></div>
                             </dl>
+                            @if ($request->requirementFiles() !== [])
+                                {{-- The requirements and the copies the requester sent (REQ-04-19). --}}
+                                <div class="mt-4 border-t border-secondary/50 pt-4">
+                                    <p class="mb-2 text-sm text-zinc-500">{{ __('Documentary requirements') }}</p>
+                                    <x-requirement-document-list :request="$request" />
+                                </div>
+                            @endif
                             @break
 
                         @case(Item::Representative)

@@ -210,7 +210,7 @@ class Show extends Component
     {
         $request = $this->credentialRequest->load([
             'credentialType', 'college', 'identityDocument', 'openVisit.department', 'openVisit.fromDepartment', 'paymentProofs', 'deficiencies',
-            'representatives.documents', 'release', 'steps.department', 'checks',
+            'representatives.documents', 'requirementDocuments', 'release', 'steps.department', 'checks',
         ]);
 
         $events = $request->events()->with(['department', 'step'])->get()

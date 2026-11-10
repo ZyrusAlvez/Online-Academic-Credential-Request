@@ -5,12 +5,14 @@ namespace App\Models;
 use App\Enums\AcademicStatus;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
+use App\Enums\DocumentKind;
 use App\Enums\RequesterMode;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
 use App\Enums\VisitStatus;
 use Database\Factories\CredentialRequestFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -304,6 +306,36 @@ class CredentialRequest extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(RequestDocument::class)->orderBy('id');
+    }
+
+    /**
+     * The requester's copies of the credential's documentary requirements (REQ-04-19).
+     *
+     * @return HasMany<RequestDocument, $this>
+     */
+    public function requirementDocuments(): HasMany
+    {
+        return $this->documents()->where('kind', DocumentKind::Requirement);
+    }
+
+    /**
+     * Each documentary requirement with its files: the credential's current list, then any
+     * requirement a file was sent for that the list no longer has. Expects `credentialType` and
+     * `requirementDocuments` to be loaded.
+     *
+     * @return array<string, Collection<int, RequestDocument>>
+     */
+    public function requirementFiles(): array
+    {
+        $documents = $this->requirementDocuments;
+        $sent = $documents->pluck('requirement')->filter()->map(fn ($requirement): string => (string) $requirement)->all();
+        $files = [];
+
+        foreach (array_unique([...($this->credentialType->requirements ?? []), ...$sent]) as $requirement) {
+            $files[$requirement] = $documents->where('requirement', $requirement)->values();
+        }
+
+        return $files;
     }
 
     /**
