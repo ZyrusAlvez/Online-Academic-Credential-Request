@@ -30,3 +30,6 @@
 - [x] Title Case section headings and report names; "Tracking History" replaces "Ledger" and
       "History" (REQ-09-19)
 - [x] Pest tests for REQ-09-19
+- [ ] My Requests: drop the "Your Requests" heading; `search` (`#[Url]`) on credential name or
+      tracking number, trimmed, back to page 1, "No matching requests" with Clear search (REQ-09-12, 20)
+- [ ] Pest tests for REQ-09-20

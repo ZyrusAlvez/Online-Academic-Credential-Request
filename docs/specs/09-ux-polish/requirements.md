@@ -79,7 +79,13 @@
   section 2 of New Request, no longer in the card.)*
 - **REQ-09-12** THE SYSTEM SHALL lay out New Request and My Requests alike: one centred
   column of the same width, with the content in bordered sections that share their padding and
-  heading style; My Requests lists the requests inside a "Your requests" section.
+  heading style; My Requests lists the requests inside one section, with no heading of its own
+  above the list *(user's request, 2026-11-11: the "Your Requests" heading is removed)*.
+- **REQ-09-20** THE SYSTEM SHALL show a search box at the top of My Requests that, as the requester
+  types, narrows their list to the requests whose credential name or tracking number contains the
+  text (any case), back to the first page; the search stays in the address so a reload keeps it.
+  WHEN nothing matches THE SYSTEM SHALL say so and offer to clear the search. It only ever searches
+  the requester's own requests. *(User's request, 2026-11-11.)*
 
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the
