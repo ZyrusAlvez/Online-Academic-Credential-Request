@@ -47,12 +47,21 @@ identity, and My Profile in REQ-09-09/12.
   can be seen and chosen on any screen; it SHALL work with the keyboard (arrows, Enter, Escape) and
   with screen readers. *(User's report, 2026-11-10: the browser's own list ran off the screen.)*
 - **REQ-15-04** WHEN the requester has a saved ID THE SYSTEM SHALL show it (type, upload date, a
-  link that opens it in the file viewer) and use it, unless they choose a different one (type of ID
-  and an image or PDF file of at most 5 MB). WHEN they have none THE SYSTEM SHALL require one.
-  WHEN an ID file is chosen THE SYSTEM SHALL show its name as a link that opens the chosen file in
+  link that opens it in the file viewer) and use it. A requester has one saved ID at most: while
+  one is saved THE SYSTEM SHALL NOT show the type of ID and file fields, and another ID can be
+  given only after removing it (REQ-15-18). WHEN they have none THE SYSTEM SHALL require one (type
+  of ID and an image or PDF file of at most 5 MB). *(User's request, 2026-11-10: replaces "unless
+  they choose a different one".)* A request returned because its ID was not accepted still asks for
+  another one (REQ-20-06). WHEN an ID file is chosen THE SYSTEM SHALL show its name as a link that opens the chosen file in
   the file viewer, in their own browser, before anything is uploaded. The name SHALL appear once,
   next to a "Choose file" (then "Change file") button; the browser's own picker, which repeats it,
   is hidden, and the upload shows the progress bar of REQ-04-18. *(User's report, 2026-11-10.)*
+- **REQ-15-18** WHEN the requester has a saved ID THE SYSTEM SHALL show a "Remove" button beside it,
+  on New Request, Edit Request and Settings → Profile, and remove it from their profile once they
+  confirm, at once and without the summary step; the type of ID and file fields then appear and an
+  ID is required again. Requests already sent with that ID SHALL keep it (REQ-15-08), so the
+  registrar can still open it; an ID no request uses SHALL be deleted with its file. The removal is
+  recorded in the activity log. *(User's request, 2026-11-10.)*
 - **REQ-15-05** WHEN the requester chooses "Review request" THE SYSTEM SHALL check every entry and
   save nothing. IF an entry is missing or invalid THEN THE SYSTEM SHALL show the errors modal of
   REQ-01-26. Otherwise THE SYSTEM SHALL show a "Summary" of the request, the personal and academic
