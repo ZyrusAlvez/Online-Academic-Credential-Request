@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\CheckItem;
+use App\Enums\CheckResult;
 use App\Enums\DocumentKind;
 use App\Enums\RecipientType;
 use App\Enums\RequesterMode;
@@ -66,8 +68,57 @@ test('REQ-11-01 the owner declares a representative with SPA and ID when submitt
     $request->documents->each(fn ($document) => Storage::disk(RequestWorkflow::proofDisk())->assertExists($document->path));
 });
 
-test('REQ-11-01 a representative added later needs the SPA and their valid ID', function () {
+/** A TOR request the evaluator sent to the office for an original (REQ-20-04). */
+function officeVisitRequest(): CredentialRequest
+{
+    $request = submitRequest(test()->owner, test()->org->tor);
+    workflow()->startEvaluation($request, test()->registrar);
+    workflow()->recordCheck($request, test()->registrar, CheckItem::AcademicRecord, CheckResult::Rejected);
+    workflow()->requireOfficeVisit($request, test()->registrar, ['PSA-authenticated birth certificate'], 'Bring the original.');
+
+    return $request->fresh();
+}
+
+test('REQ-11-01 after submitting, a representative can be added only while an office visit is required', function () {
     $request = submitRequest($this->owner, $this->org->tor);
+
+    // Submitted, then under evaluation: no Add representative, and the server refuses it.
+    foreach ([fn () => null, fn () => workflow()->startEvaluation($request, $this->registrar)] as $step) {
+        $step();
+
+        $this->actingAs($this->owner)->get(route('student.requests.show', $request))
+            ->assertOk()
+            ->assertDontSee('Authorized Representative')
+            ->assertDontSee('Add representative');
+
+        Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])
+            ->set('representativeName', 'Pedro Santos')
+            ->set('spa', UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'))
+            ->set('representativeId', UploadedFile::fake()->image('id.jpg'))
+            ->call('declareRepresentative')
+            ->assertForbidden();
+    }
+
+    // Sent to the office: now the owner may send a representative.
+    workflow()->recordCheck($request, $this->registrar, CheckItem::AcademicRecord, CheckResult::Rejected);
+    workflow()->requireOfficeVisit($request, $this->registrar, ['PSA-authenticated birth certificate'], 'Bring the original.');
+
+    $this->actingAs($this->owner)->get(route('student.requests.show', $request))->assertSee('Add representative');
+    expect($request->representatives()->count())->toBe(0);
+});
+
+test('REQ-11-01 a representative declared earlier stays listed, without the Add button', function () {
+    $request = submitRequest($this->owner, $this->org->tor);
+    declareRepresentative($request, $this->owner, ['full_name' => 'Pedro Santos']);
+
+    $this->actingAs($this->owner)->get(route('student.requests.show', $request))
+        ->assertSee('Authorized Representative')
+        ->assertSee('Pedro Santos')
+        ->assertDontSee('Add representative');
+});
+
+test('REQ-11-01 a representative added later needs the SPA and their valid ID', function () {
+    $request = officeVisitRequest();
 
     $page = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])
         ->assertSeeHtml('wire:model="spa"')->assertSeeHtml('wire:model="representativeId"')
@@ -102,7 +153,7 @@ test('REQ-11-01 the workflow takes no representative without both documents', fu
 });
 
 test('REQ-11-09 a wrong file type or a file over 5 MB is reported as soon as it is chosen, on both screens', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
+    $request = officeVisitRequest();
     $show = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request]);
     $create = Livewire::actingAs($this->owner)->test(Create::class)->set('form.requester_mode', 'representative');
 
@@ -124,7 +175,7 @@ test('REQ-11-09 a wrong file type or a file over 5 MB is reported as soon as it 
 });
 
 test('REQ-11-10 the SPA and representative\'s ID use the valid ID\'s picker, its name a link to the viewer, on both screens', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
+    $request = officeVisitRequest();
     $show = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])->html();
     $create = Livewire::actingAs($this->owner)->test(Create::class)->set('form.requester_mode', 'representative')->html();
 
@@ -146,7 +197,7 @@ test('REQ-11-10 the SPA and representative\'s ID use the valid ID\'s picker, its
 });
 
 test('REQ-11-01 a representative\'s contact number, when given, must be exactly 11 digits', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
+    $request = officeVisitRequest();
 
     Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])
         ->set('representativeName', 'Pedro Santos')

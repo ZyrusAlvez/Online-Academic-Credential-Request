@@ -155,6 +155,7 @@
         <x-request-tracker :request="$request" :events="$events" />
     </section>
 
+    {{-- Shown when a representative was named, or while an office visit lets the owner add one (REQ-11-01). --}}
     @if ($request->representatives->isNotEmpty() || auth()->user()->can('declareRepresentative', $request))
         <section aria-labelledby="representatives-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <div class="flex flex-wrap items-center justify-between gap-3">

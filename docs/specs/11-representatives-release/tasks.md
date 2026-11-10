@@ -8,5 +8,5 @@
       workflow; type and 5 MB checks as soon as a file is chosen, with plain messages (REQ-11-01, 09)
 - [x] SPA and representative's ID use the valid ID's picker (`x-file-picker`), on New Request and
       the request page; linked with sizes on the summary (REQ-11-10, REQ-15-17)
-- [ ] `CredentialRequestPolicy::declareRepresentative`: the owner only while `pending_compliance`;
+- [x] `CredentialRequestPolicy::declareRepresentative`: the owner only while `pending_compliance`;
       the request page shows Add representative only then (REQ-11-01)
