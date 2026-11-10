@@ -106,50 +106,47 @@
         @endif
 
         @if ($panel === Page::PANEL_EVALUATION)
-            {{-- The evaluation checklist (REQ-16-10). --}}
+            {{-- The evaluation checklist (REQ-16-10); each part's data as summary rows (REQ-16-24). --}}
             @foreach ($items as $item)
                 <x-check-card :item="$item" :result="$results[$item->value] ?? null" wire:key="check-{{ $item->value }}">
                     @switch($item)
                         @case(Item::CredentialRequest)
-                            <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-                                <div><dt class="text-zinc-500">{{ __('Credential') }}</dt><dd class="font-medium text-ink">{{ $request->credentialType->name }}</dd></div>
-                                <div><dt class="text-zinc-500">{{ __('Purpose') }}</dt><dd class="font-medium text-ink">{{ $request->purpose }}</dd></div>
+                            <dl class="divide-y divide-zinc-200 text-sm">
+                                <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
+                                <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
                                 @if ($request->receiving_institution)
-                                    <div class="sm:col-span-2"><dt class="text-zinc-500">{{ __('Receiving school') }}</dt><dd class="font-medium text-ink">{{ $request->receiving_institution }}</dd></div>
+                                    <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
                                 @endif
-                                <div><dt class="text-zinc-500">{{ __('Amount due') }}</dt><dd class="font-medium text-ink">{{ $request->requires_payment ? '₱'.number_format((float) $request->amount_due, 2) : __('None required') }}</dd></div>
-                                <div><dt class="text-zinc-500">{{ __('Transacting') }}</dt><dd class="font-medium text-ink">{{ $request->requester_mode->label() }}</dd></div>
-                                <div><dt class="text-zinc-500">{{ __('Submitted') }}</dt><dd class="font-medium text-ink">{{ $request->submitted_at?->format('M j, Y g:i A') }}</dd></div>
+                                <x-summary-row :label="__('Amount due')">{{ $request->requires_payment ? '₱'.number_format((float) $request->amount_due, 2) : __('None required') }}</x-summary-row>
+                                <x-summary-row :label="__('Transacting')">{{ $request->requester_mode->label() }}</x-summary-row>
+                                <x-summary-row :label="__('Submitted')">{{ $request->submitted_at?->format('M j, Y g:i A') }}</x-summary-row>
                             </dl>
                             @break
 
                         @case(Item::Identity)
-                            <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-                                <div class="sm:col-span-2"><dt class="text-zinc-500">{{ __('Name') }}</dt><dd class="font-medium break-words text-ink">{{ $request->requester_name }}</dd></div>
-                                <div><dt class="text-zinc-500">{{ __('Email') }}</dt><dd class="font-medium break-all text-ink"><a href="mailto:{{ $owner->email }}" class="text-highlight underline underline-offset-2">{{ $owner->email }}</a></dd></div>
-                                <div><dt class="text-zinc-500">{{ __('Contact number') }}</dt><dd class="font-medium text-ink">{{ $request->contact_number ?? '—' }}</dd></div>
-                                <div class="sm:col-span-2">
-                                    <dt class="text-zinc-500">{{ __('Valid ID') }}</dt>
-                                    <dd class="font-medium text-ink">
-                                        @if ($idDocument)
-                                            <x-file-link :href="route('identity-documents.show', $idDocument)" :name="$idDocument->id_type.' – '.$request->requester_name" :type="$idDocument->mime_type">
-                                                {{ __('Open :type', ['type' => $idDocument->id_type]) }}
-                                            </x-file-link>
-                                            <span class="font-normal text-zinc-500">· {{ __('uploaded :date', ['date' => $idDocument->created_at->format('M j, Y')]) }}</span>
-                                        @else
-                                            {{ __('No valid ID was sent with this request.') }}
-                                        @endif
-                                    </dd>
-                                </div>
+                            <dl class="divide-y divide-zinc-200 text-sm">
+                                <x-summary-row :label="__('Name')">{{ $request->requester_name }}</x-summary-row>
+                                <x-summary-row :label="__('Email')" class="[&_dd]:break-all"><a href="mailto:{{ $owner->email }}" class="text-highlight underline underline-offset-2">{{ $owner->email }}</a></x-summary-row>
+                                <x-summary-row :label="__('Contact number')">{{ $request->contact_number ?? '—' }}</x-summary-row>
+                                <x-summary-row :label="__('Valid ID')">
+                                    @if ($idDocument)
+                                        <x-file-link :href="route('identity-documents.show', $idDocument)" :name="$idDocument->id_type.' – '.$request->requester_name" :type="$idDocument->mime_type">
+                                            {{ __('Open :type', ['type' => $idDocument->id_type]) }}
+                                        </x-file-link>
+                                        <span class="font-normal text-zinc-500">· {{ __('uploaded :date', ['date' => $idDocument->created_at->format('M j, Y')]) }}</span>
+                                    @else
+                                        {{ __('No valid ID was sent with this request.') }}
+                                    @endif
+                                </x-summary-row>
                             </dl>
                             @break
 
                         @case(Item::AcademicRecord)
-                            <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-                                <div><dt class="text-zinc-500">{{ __('Status') }}</dt><dd class="font-medium text-ink">{{ $request->academic_status->label() }} · {{ $request->attended_from }}–{{ $request->attended_to }}</dd></div>
-                                <div><dt class="text-zinc-500">{{ __('Student number') }}</dt><dd class="font-medium text-ink">{{ $request->student_number ?? '—' }}</dd></div>
-                                <div><dt class="text-zinc-500">{{ __('College') }}</dt><dd class="font-medium text-ink">{{ $request->college->name }}</dd></div>
-                                <div><dt class="text-zinc-500">{{ __('Program or strand') }}</dt><dd class="font-medium text-ink">{{ $request->program }}</dd></div>
+                            <dl class="divide-y divide-zinc-200 text-sm">
+                                <x-summary-row :label="__('Status')">{{ $request->academic_status->label() }} · {{ $request->attended_from }}–{{ $request->attended_to }}</x-summary-row>
+                                <x-summary-row :label="__('Student number')">{{ $request->student_number ?? '—' }}</x-summary-row>
+                                <x-summary-row :label="__('College')">{{ $request->college->name }}</x-summary-row>
+                                <x-summary-row :label="__('Program or strand')">{{ $request->program }}</x-summary-row>
                             </dl>
                             @if ($request->requirementFiles() !== [])
                                 {{-- The requirements and the copies the requester sent (REQ-04-19). --}}
@@ -191,11 +188,11 @@
                             <p class="text-sm text-zinc-600">{{ __('No proof of payment uploaded yet.') }}</p>
                         @endif
                     @else
-                        <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                            <div><dt class="text-zinc-500">{{ __('Amount due') }}</dt><dd class="font-medium text-ink">₱{{ number_format((float) $request->amount_due, 2) }}</dd></div>
-                            <div><dt class="text-zinc-500">{{ __('Amount paid') }}</dt><dd class="font-medium text-ink">{{ $pendingProof?->amount !== null ? '₱'.number_format((float) $pendingProof->amount, 2) : '—' }}</dd></div>
-                            <div><dt class="text-zinc-500">{{ __('Reference') }}</dt><dd class="min-w-0 font-medium break-all text-ink">{{ $pendingProof?->reference_no ?? '—' }}</dd></div>
-                            <div><dt class="text-zinc-500">{{ __('Date paid') }}</dt><dd class="font-medium text-ink">{{ $pendingProof?->paid_on?->format('M j, Y') ?? '—' }}</dd></div>
+                        <dl class="divide-y divide-zinc-200 text-sm">
+                            <x-summary-row :label="__('Amount due')">₱{{ number_format((float) $request->amount_due, 2) }}</x-summary-row>
+                            <x-summary-row :label="__('Amount paid')">{{ $pendingProof?->amount !== null ? '₱'.number_format((float) $pendingProof->amount, 2) : '—' }}</x-summary-row>
+                            <x-summary-row :label="__('Reference')" class="[&_dd]:break-all">{{ $pendingProof?->reference_no ?? '—' }}</x-summary-row>
+                            <x-summary-row :label="__('Date paid')">{{ $pendingProof?->paid_on?->format('M j, Y') ?? '—' }}</x-summary-row>
                         </dl>
                     @endif
                 </x-check-card>
@@ -216,12 +213,12 @@
                 @foreach ($items as $item)
                     <x-check-card :item="$item" :result="$results[$item->value] ?? null" wire:key="check-{{ $item->value }}">
                         @if ($item === Item::CredentialDocument)
-                            <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-                                <div><dt class="text-zinc-500">{{ __('Credential') }}</dt><dd class="font-medium text-ink">{{ $request->credentialType->name }}</dd></div>
-                                <div><dt class="text-zinc-500">{{ __('Issued to') }}</dt><dd class="font-medium break-words text-ink">{{ $request->requester_name }}</dd></div>
-                                <div><dt class="text-zinc-500">{{ __('Purpose') }}</dt><dd class="font-medium text-ink">{{ $request->purpose }}</dd></div>
+                            <dl class="divide-y divide-zinc-200 text-sm">
+                                <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
+                                <x-summary-row :label="__('Issued to')">{{ $request->requester_name }}</x-summary-row>
+                                <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
                                 @if ($request->receiving_institution)
-                                    <div><dt class="text-zinc-500">{{ __('Receiving school') }}</dt><dd class="font-medium text-ink">{{ $request->receiving_institution }}</dd></div>
+                                    <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
                                 @endif
                             </dl>
                         @else
