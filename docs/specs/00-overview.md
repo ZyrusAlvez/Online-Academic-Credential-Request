@@ -146,6 +146,9 @@ owns a request while it is under evaluation.
 
 ### Request statuses
 
+The database lists these in the `request_statuses` table, and refuses any other status
+(spec 19).
+
 | Status | Meaning |
 |---|---|
 | `submitted` | Online request received |
@@ -281,3 +284,4 @@ All feature specs describe this model.
 | 16 | Registrar stages: checklists, evaluation lock, stage queues | done |
 | 17 | Physical hand-offs and the stage page | done |
 | 18 | The Admin account: administration, dashboard and reports | in progress |
+| 19 | Request status table | in progress |
