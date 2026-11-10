@@ -239,13 +239,16 @@
         <section aria-labelledby="rep-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <h2 id="rep-heading" class="text-lg font-semibold text-primary">{{ __('6. Who Will Transact?') }}</h2>
 
-            <flux:radio.group wire:model.live="form.requester_mode" :label="__('Submitting documents and claiming the credential')">
+            {{-- Deferred: the choice shows or hides the representative's fields in the browser at once,
+                 without a trip to the server (REQ-11-11). --}}
+            <flux:radio.group wire:model="form.requester_mode" :label="__('Submitting documents and claiming the credential')">
                 @foreach (\App\Enums\RequesterMode::cases() as $mode)
                     <flux:radio :value="$mode->value" :label="$mode === \App\Enums\RequesterMode::Personal ? __('I will transact personally') : __('Through an authorized representative')" />
                 @endforeach
             </flux:radio.group>
 
-            @if ($form->requester_mode === 'representative')
+            <div class="space-y-6" data-representative-fields
+                x-show="$wire.form.requester_mode === 'representative'" @if ($form->requester_mode !== 'representative') x-cloak style="display: none" @endif>
                 <flux:text>{{ __('They present the originals, with your valid ID, in person. Files: JPG, PNG, WebP or PDF, up to 5 MB each.') }}</flux:text>
                 <flux:input wire:model="form.representative_name" :label="__('Representative\'s full name')" required />
                 <div class="grid gap-6 sm:grid-cols-2">
@@ -257,7 +260,7 @@
                     <x-file-picker model="spa" :label="__('SPA')" data-spa-picker />
                     <x-file-picker model="representativeId" :label="__('Representative\'s valid ID')" data-representative-id-picker />
                 </div>
-            @endif
+            </div>
         </section>
         @endunless
 
