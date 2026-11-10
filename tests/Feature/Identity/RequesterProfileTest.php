@@ -109,6 +109,30 @@ test('REQ-15-04 the chosen ID file name is a link that previews it in the file v
         ->assertSee("\$dispatch('open-file', chosen)", false);
 });
 
+test('REQ-15-04 the chosen ID\'s name shows once, beside its own button, and the upload shows its progress', function () {
+    $field = Str::after($this->actingAs($this->student)->get(route('settings.profile'))->assertOk()->getContent(), 'data-id-preview');
+
+    // The browser's picker, which repeats the name, is hidden; the name is the one link.
+    expect($field)->toMatch('/<input type="file" wire:model="form\.id_file"[^>]*class="sr-only"/')
+        ->toContain('Choose file')->toContain('Change file')->toContain('No file chosen')
+        ->toMatch('/<a href="#"[^>]*data-chosen-id[^>]*x-text="chosen\?\.name"/')
+        ->not->toContain('Chosen:')
+        ->toContain('x-on:livewire-upload-progress="progress = $event.detail.progress"')
+        ->toMatch('/<div x-show="uploading"[^>]*role="status"[^>]*data-upload-progress>/')
+        ->not->toContain('wire:loading wire:target="form.id_file"');
+});
+
+test('REQ-15-04 an invalid ID file shows its error under the field and marks it for the errors modal', function () {
+    $html = Livewire::actingAs($this->student)->test(Profile::class)
+        ->set('form.id_type', 'Passport')
+        ->set('form.id_file', UploadedFile::fake()->create('id.docx', 10, 'application/msword'))
+        ->call('review')
+        ->assertHasErrors('form.id_file')
+        ->html();
+
+    expect($html)->toMatch('/<input type="file" wire:model="form\.id_file"[^>]*data-invalid aria-invalid="true"/');
+});
+
 test('REQ-15-05 the summary has a Summary heading and shows a chosen image ID as a picture that opens in the viewer', function () {
     $html = reviewProfile()->assertSee('Summary')->assertSeeHtml('data-summary-title')->html();
 
