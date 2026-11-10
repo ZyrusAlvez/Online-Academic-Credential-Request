@@ -171,13 +171,13 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * The saved ID: the newest upload, used on the next request unless another is chosen (REQ-15-04).
+     * The saved ID, one at most: the newest upload not removed from the profile (REQ-15-04, 18).
      *
      * @return HasOne<IdentityDocument, $this>
      */
     public function latestIdentityDocument(): HasOne
     {
-        return $this->hasOne(IdentityDocument::class)->latestOfMany();
+        return $this->hasOne(IdentityDocument::class)->ofMany(['id' => 'max'], fn ($query) => $query->whereNull('removed_at'));
     }
 
     /**

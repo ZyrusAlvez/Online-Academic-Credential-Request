@@ -86,15 +86,47 @@ test('REQ-15-07 the profile is never locked: a requester with requests can still
     $this->actingAs($student)->get(route('settings.profile'))
         ->assertOk()
         ->assertSeeHtml('wire:model="form.first_name"')
-        ->assertSeeHtml('wire:model="form.id_file"')
+        ->assertSeeHtml('data-remove-saved-id')
         ->assertSee('Your Saved ID');
+
+    Livewire::actingAs($student)->test(Profile::class)->call('removeSavedId');
 
     fillProfile(['form.first_name' => 'Mariel', 'form.id_type' => 'UMID', 'form.id_file' => UploadedFile::fake()->image('umid.jpg')], $student)
         ->assertHasNoErrors();
 
     expect($student->fresh()->first_name)->toBe('Mariel')
-        ->and($student->identityDocuments()->count())->toBe(2)
+        ->and($student->identityDocuments()->count())->toBe(1)
         ->and($student->latestIdentityDocument()->first()->id_type)->toBe('UMID');
+});
+
+test('REQ-15-18 Settings → Profile shows the ID fields only without a saved ID, and removes the saved one once confirmed', function () {
+    $saved = IdentityDocument::factory()->for($this->student)->create(['id_type' => 'UMID', 'original_name' => 'umid.jpg']);
+
+    $html = Livewire::actingAs($this->student)->test(Profile::class)
+        ->assertSee('UMID: umid.jpg')
+        ->assertDontSeeHtml('wire:model="form.id_file"')
+        ->html();
+    expect($html)->toMatch('/<button[^>]*wire:click="removeSavedId"[^>]*data-confirm-title="Remove saved ID"/');
+
+    Livewire::actingAs($this->student)->test(Profile::class)
+        ->call('removeSavedId')
+        ->assertDispatched('notify')
+        ->assertDontSee('Your Saved ID')
+        ->assertSeeHtml('wire:model="form.id_file"');
+
+    expect(IdentityDocument::find($saved->id))->toBeNull();
+
+    reviewProfile(['form.id_type' => '', 'form.id_file' => null])
+        ->assertHasErrors(['form.id_type' => 'required', 'form.id_file' => 'required']);
+});
+
+test('REQ-15-18 removing with no saved ID does nothing, and only the requester\'s own ID is ever removed', function () {
+    $other = IdentityDocument::factory()->for(User::factory()->student())->create();
+
+    Livewire::actingAs($this->student)->test(Profile::class)->call('removeSavedId')->assertHasNoErrors();
+
+    expect($other->fresh())->not->toBeNull()
+        ->and($other->fresh()->removed_at)->toBeNull();
 });
 
 test('REQ-12-07 Settings → Profile labels the program dropdown "Program"', function () {
@@ -258,13 +290,13 @@ test('REQ-01-26 the browser\'s own validation does not replace the modal', funct
 });
 
 test('REQ-01-26 a type of ID needs a file, and a file needs a type', function () {
-    IdentityDocument::factory()->for($this->student)->create();
-
-    reviewProfile(['form.id_type' => 'Passport'])
-        ->assertHasErrors(['form.id_file' => 'required_with'])
+    reviewProfile(['form.id_file' => null])
+        ->assertHasErrors('form.id_file')
+        ->assertHasNoErrors('form.id_type')
         ->assertDispatched('modal-show', name: 'profile-errors');
-    reviewProfile(['form.id_file' => UploadedFile::fake()->image('id.jpg')])
-        ->assertHasErrors(['form.id_type' => 'required_with']);
+    reviewProfile(['form.id_type' => ''])
+        ->assertHasErrors('form.id_type')
+        ->assertHasNoErrors('form.id_file');
 });
 
 test('REQ-01-26 an entry that fails on saving returns to the form with the modal', function () {
@@ -394,8 +426,7 @@ test('REQ-15-04 a requester with no saved ID must give one; with one, none is ne
     reviewProfile()->assertHasNoErrors()->assertSet('reviewing', true);
 });
 
-test('REQ-01-17 an uploaded ID is stored privately and becomes the saved ID; earlier uploads are kept', function () {
-    fillProfile()->assertHasNoErrors();
+test('REQ-01-17 an uploaded ID is stored privately and becomes the saved ID', function () {
     fillProfile(['form.id_type' => 'UMID', 'form.id_file' => UploadedFile::fake()->image('umid.jpg')])->assertHasNoErrors();
 
     $saved = $this->student->latestIdentityDocument()->firstOrFail();
@@ -403,7 +434,7 @@ test('REQ-01-17 an uploaded ID is stored privately and becomes the saved ID; ear
     Storage::disk(RequestWorkflow::proofDisk())->assertExists($saved->path);
     expect($saved->path)->toStartWith("identity-documents/{$this->student->id}/")
         ->and($saved->id_type)->toBe('UMID')
-        ->and($this->student->identityDocuments()->count())->toBe(2);
+        ->and($this->student->identityDocuments()->count())->toBe(1);
 });
 
 test('REQ-01-17 the ID must be an image or PDF of at most 5 MB with a known type', function () {

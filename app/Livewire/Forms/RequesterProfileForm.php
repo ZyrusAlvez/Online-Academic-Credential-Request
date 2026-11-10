@@ -53,6 +53,12 @@ class RequesterProfileForm extends Form
 
     public bool $privacy_consent = false;
 
+    /**
+     * Set for each check: a new ID may be given beside the saved one only on Edit Request after
+     * the request's ID was not accepted (REQ-20-06). Not public, so never sent to the browser.
+     */
+    private bool $mayReplaceSavedId = false;
+
     public function load(User $user): void
     {
         $this->first_name = $user->first_name ?? '';
@@ -74,6 +80,7 @@ class RequesterProfileForm extends Form
     {
         $thisYear = (int) now()->year;
         $needsId = ! $this->user()->latestIdentityDocument()->exists();
+        $savedIdKept = ! $needsId && ! $this->mayReplaceSavedId;
 
         return [
             'first_name' => ['required', 'string', 'max:100'],
@@ -93,9 +100,10 @@ class RequesterProfileForm extends Form
             'student_number' => ['nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9-]+$/'],
             'attended_from' => ['required', 'integer', 'between:1950,'.$thisYear],
             'attended_to' => ['required', 'integer', 'between:1950,'.$thisYear, 'gte:attended_from'],
-            // A saved ID is used unless another is chosen; without one, an ID is required (REQ-15-04).
-            'id_type' => [Rule::requiredIf($needsId), 'nullable', 'required_with:id_file', Rule::in(IdentityDocument::ID_TYPES)],
-            'id_file' => [Rule::requiredIf($needsId), 'nullable', 'required_with:id_type', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+            // One saved ID at most: it is used, and another can be given only once it is removed;
+            // without one, an ID is required (REQ-15-04, 18).
+            'id_type' => [Rule::requiredIf($needsId), Rule::prohibitedIf($savedIdKept), 'nullable', 'required_with:id_file', Rule::in(IdentityDocument::ID_TYPES)],
+            'id_file' => [Rule::requiredIf($needsId), Rule::prohibitedIf($savedIdKept), 'nullable', 'required_with:id_type', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
             // Ticked on every summary before anything is saved or submitted (REQ-15-05, 07).
             'privacy_consent' => ['accepted'],
         ];
@@ -124,6 +132,8 @@ class RequesterProfileForm extends Form
     {
         return [
             'contact_number.regex' => self::PHONE_MESSAGE,
+            'id_type.prohibited' => 'Remove your saved ID first to use a different one.',
+            'id_file.prohibited' => 'Remove your saved ID first to use a different one.',
             'privacy_consent.accepted' => 'Tick the box to agree to the processing of your personal data before you continue.',
         ];
     }
@@ -131,8 +141,10 @@ class RequesterProfileForm extends Form
     /**
      * Check every entry on the form; the consent comes later, on the summary (REQ-15-05).
      */
-    public function validateDetails(): void
+    public function validateDetails(bool $mayReplaceSavedId = false): void
     {
+        $this->mayReplaceSavedId = $mayReplaceSavedId;
+
         $this->validate(Arr::except($this->rules(), 'privacy_consent'));
     }
 
@@ -166,8 +178,10 @@ class RequesterProfileForm extends Form
      *
      * @return ?array{type: string, file: UploadedFile}
      */
-    public function save(User $user): ?array
+    public function save(User $user, bool $mayReplaceSavedId = false): ?array
     {
+        $this->mayReplaceSavedId = $mayReplaceSavedId;
+
         $validated = $this->validate();
 
         $user->fill([

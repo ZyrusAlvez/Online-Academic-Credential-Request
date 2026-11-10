@@ -5,6 +5,7 @@ use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Student\Requests\Create;
+use App\Models\ActivityLog;
 use App\Models\CredentialRequest;
 use App\Models\IdentityDocument;
 use App\Models\User;
@@ -113,16 +114,46 @@ test('REQ-15-04 a saved ID is shown and used; without one an ID is required', fu
     Livewire::actingAs($owner)->test(Create::class)
         ->assertSee('Your Saved ID')
         ->assertSee("{$saved->id_type}: {$saved->original_name}")
-        ->assertSee('To use a different ID, upload it below')
-        ->assertSeeHtml('data-id-preview');
+        ->assertSee('To use a different ID, remove this one first.')
+        ->assertSeeHtml('data-remove-saved-id')
+        ->assertDontSeeHtml('data-id-preview')
+        ->assertDontSeeHtml('wire:model="profile.id_type"');
 
     reviewRequest($owner)->assertHasNoErrors()->call('submit');
 
     expect(CredentialRequest::sole()->identity_document_id)->toBe($saved->id);
 });
 
-test('REQ-15-04 a different ID can be chosen for the request, and it becomes the saved ID', function () {
+test('REQ-15-04 with a saved ID no second ID is accepted, even sent from the browser', function () {
     $owner = User::factory()->withProfile($this->org->ccs)->create(['program' => 'BS Computer Science']);
+
+    reviewRequest($owner, ['profile.id_type' => 'UMID', 'profile.id_file' => UploadedFile::fake()->image('umid.jpg')])
+        ->assertHasErrors(['profile.id_type' => 'prohibited', 'profile.id_file' => 'prohibited'])
+        ->assertSee('Remove your saved ID first to use a different one.')
+        ->assertSet('reviewing', false);
+
+    expect($owner->identityDocuments()->count())->toBe(1);
+});
+
+test('REQ-15-18 New Request removes the saved ID once confirmed; then an ID is required and the new one becomes the saved ID', function () {
+    $owner = User::factory()->withProfile($this->org->ccs)->create(['program' => 'BS Computer Science']);
+    $old = $owner->latestIdentityDocument()->firstOrFail();
+
+    $html = Livewire::actingAs($owner)->test(Create::class)->html();
+    expect($html)->toMatch('/<button[^>]*wire:click="removeSavedId"[^>]*data-confirm-variant="danger"[^>]*wire:confirm="Remove your saved ID\?/');
+
+    $component = Livewire::actingAs($owner)->test(Create::class)
+        ->call('removeSavedId')
+        ->assertDispatched('notify')
+        ->assertDontSee('Your Saved ID')
+        ->assertSeeHtml('wire:model="profile.id_type"')
+        ->assertSeeHtml('data-id-preview');
+
+    expect(IdentityDocument::find($old->id))->toBeNull();
+    Storage::disk(RequestWorkflow::proofDisk())->assertMissing($old->path);
+
+    reviewRequest($owner, ['profile.id_type' => '', 'profile.id_file' => null])
+        ->assertHasErrors(['profile.id_type' => 'required', 'profile.id_file' => 'required']);
 
     reviewRequest($owner, ['profile.id_type' => 'UMID', 'profile.id_file' => UploadedFile::fake()->image('umid.jpg')])
         ->assertSeeInOrder(['5. Valid ID', 'Type of ID', 'UMID', 'New upload', 'umid.jpg'])
@@ -132,7 +163,25 @@ test('REQ-15-04 a different ID can be chosen for the request, and it becomes the
     $new = $owner->latestIdentityDocument()->firstOrFail();
     expect($new->id_type)->toBe('UMID')
         ->and(CredentialRequest::sole()->identity_document_id)->toBe($new->id)
-        ->and($owner->identityDocuments()->count())->toBe(2);
+        ->and($owner->identityDocuments()->count())->toBe(1);
+});
+
+test('REQ-15-18 a removed ID that a request was sent with stays on that request, and the registrar can still open it', function () {
+    $owner = User::factory()->withProfile($this->org->ccs)->create(['program' => 'BS Computer Science']);
+    reviewRequest($owner)->call('submit')->assertHasNoErrors();
+    $sent = CredentialRequest::sole()->identityDocument;
+    Storage::disk(RequestWorkflow::proofDisk())->put($sent->path, 'id');
+
+    Livewire::actingAs($owner)->test(Create::class)->call('removeSavedId');
+
+    expect($owner->latestIdentityDocument()->first())->toBeNull()
+        ->and($sent->fresh()->removed_at)->not->toBeNull()
+        ->and(CredentialRequest::sole()->identity_document_id)->toBe($sent->id)
+        ->and(ActivityLog::query()->where('action', 'identity_document.updated')->sole()->description)
+        ->toBe("Removed their saved valid ID ({$sent->id_type})");
+    Storage::disk(RequestWorkflow::proofDisk())->assertExists($sent->path);
+
+    $this->actingAs($this->registrar)->get(route('identity-documents.show', $sent))->assertOk();
 });
 
 test('REQ-15-05 reviewing checks every entry, lists the errors in the modal and saves nothing', function () {

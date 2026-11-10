@@ -6,6 +6,7 @@ use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
 use App\Enums\RouteTask;
 use App\Exceptions\InvalidTransition;
+use App\Livewire\Concerns\RemovesSavedId;
 use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Concerns\ValidatesRepresentativeDocuments;
 use App\Livewire\Forms\CredentialRequestForm;
@@ -44,6 +45,7 @@ use Throwable;
 #[Title('New Request')]
 class Create extends Component
 {
+    use RemovesSavedId;
     use TrimsInput;
     use ValidatesRepresentativeDocuments;
     use WithFileUploads;
@@ -145,7 +147,7 @@ class Create extends Component
 
         foreach ([
             fn () => $this->form->validatedRequest(),
-            fn () => $this->profile->validateDetails(),
+            fn () => $this->profile->validateDetails($this->mayReplaceSavedId()),
             fn () => $this->validateRepresentativeFiles(),
             fn () => $this->validateRequirementFiles(),
             ...$this->extraChecks(),
@@ -203,7 +205,7 @@ class Create extends Component
             $requirementFiles = $this->chosenRequirementFiles();
 
             $request = DB::transaction(function () use ($owner, $data, $representative, $documents, $requirementFiles, $workflow, $submitIdentity, &$stored, &$requirementDocuments): CredentialRequest {
-                $chosen = $this->profile->save($owner);
+                $chosen = $this->profile->save($owner, $this->mayReplaceSavedId());
 
                 if ($chosen !== null) {
                     $stored = $submitIdentity->handle($owner, $chosen['type'], $chosen['file']);
@@ -269,6 +271,14 @@ class Create extends Component
     protected function authorizeForm(): void
     {
         $this->authorize('create', CredentialRequest::class);
+    }
+
+    /**
+     * Whether a new ID may be given although one is saved (REQ-15-04): never on New Request.
+     */
+    protected function mayReplaceSavedId(): bool
+    {
+        return false;
     }
 
     /**
