@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\DocumentKind;
 use App\Livewire\Registrar\Requests\Show;
 use App\Livewire\Student\Profile;
 use App\Livewire\Student\Requests\Show as RequesterShow;
@@ -7,7 +8,6 @@ use App\Models\CredentialRequest;
 use App\Models\IdentityDocument;
 use App\Models\User;
 use App\Services\RequestWorkflow;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -25,8 +25,7 @@ function requestWithFiles(): CredentialRequest
 {
     $request = evaluate(submitRequest(test()->owner, test()->org->tor), test()->registrar);
     uploadPayment($request);
-    workflow()->declareRepresentative($request, test()->owner, ['full_name' => 'Pedro Santos'],
-        UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'));
+    declareRepresentative($request, test()->owner, ['full_name' => 'Pedro Santos']);
 
     return $request->fresh();
 }
@@ -84,7 +83,7 @@ test('REQ-09-14 every uploaded file opens in the viewer and stays a real link to
     $id = $request->identityDocument;   // the ID sent with the request, also the saved ID (spec 15)
     $id->update(['mime_type' => 'image/jpeg']);
     $proof = $request->paymentProofs()->sole();
-    $spa = $request->documents()->sole();
+    $spa = $request->documents()->where('kind', DocumentKind::Spa)->sole();
 
     $requestPage = Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])->html();
     $ownRequestPage = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])->html();
@@ -116,7 +115,7 @@ test('REQ-09-15 a file is served inline for the viewer, or as a download when as
     $files = [
         route('identity-documents.show', storedId($this->owner)),
         route('payment-proofs.show', $request->paymentProofs()->sole()),
-        route('request-documents.show', $request->documents()->sole()),
+        route('request-documents.show', $request->documents()->where('kind', DocumentKind::Spa)->sole()),
     ];
 
     foreach ($files as $url) {

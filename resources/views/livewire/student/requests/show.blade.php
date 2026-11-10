@@ -200,15 +200,19 @@
             <form wire:submit="declareRepresentative" class="space-y-6">
                 <div>
                     <flux:heading size="lg">{{ __('Add an authorized representative') }}</flux:heading>
-                    <flux:text class="mt-2">{{ __('They must present a Special Power of Attorney (SPA) and the valid IDs of both of you. Uploading them now is optional and lets the Registrar check them ahead.') }}</flux:text>
+                    <flux:text class="mt-2">{{ __('Upload their Special Power of Attorney (SPA) and their valid ID so the Registrar can check them. They still present the originals, with your valid ID, in person.') }}</flux:text>
                 </div>
                 <flux:input wire:model="representativeName" :label="__('Full name')" required />
                 <div class="grid gap-4 sm:grid-cols-2">
                     <flux:input wire:model="representativeRelationship" :label="__('Relationship to you')" badge="Optional" />
                     <flux:input wire:model="representativeContact" type="tel" :label="__('Contact number')" badge="Optional" inputmode="numeric" maxlength="11" placeholder="09171234567" />
                 </div>
-                <flux:input type="file" wire:model="spa" :label="__('SPA')" badge="Optional" accept=".jpg,.jpeg,.png,.webp,.pdf" />
-                <flux:input type="file" wire:model="representativeId" :label="__('Representative\'s valid ID')" badge="Optional" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+                <div class="space-y-4">
+                    <flux:text>{{ __('JPG, PNG, WebP or PDF, up to 5 MB each.') }}</flux:text>
+                    <flux:input type="file" wire:model="spa" :label="__('SPA')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
+                    <flux:input type="file" wire:model="representativeId" :label="__('Representative\'s valid ID')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
+                    <div wire:loading wire:target="spa,representativeId" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
+                </div>
                 <div class="flex justify-end gap-2">
                     <flux:modal.close><flux:button variant="ghost">{{ __('Back') }}</flux:button></flux:modal.close>
                     <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:target="spa,representativeId,declareRepresentative">{{ __('Add representative') }}</flux:button>

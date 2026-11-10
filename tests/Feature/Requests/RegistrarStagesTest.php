@@ -217,7 +217,7 @@ test('REQ-16-10 the evaluator sees a read-only checklist of the requester\'s dat
 
     // Through a representative: the fourth part appears.
     $represented = submitRequest($this->owner, $this->org->free);
-    workflow()->declareRepresentative($represented, $this->owner, ['full_name' => 'Rosa Reyes']);
+    declareRepresentative($represented, $this->owner, ['full_name' => 'Rosa Reyes']);
     underEvaluation($represented);
     stagePage($represented)->assertSee('Representative Verification')->assertSee('Rosa Reyes');
 
@@ -235,7 +235,7 @@ test('REQ-16-11 remarks are optional to approve and required to return or declin
 });
 
 test('REQ-16-12 approving needs every part confirmed, then verifies the ID and representatives', function () {
-    workflow()->declareRepresentative($this->request, $this->owner, ['full_name' => 'Rosa Reyes']);
+    declareRepresentative($this->request, $this->owner, ['full_name' => 'Rosa Reyes']);
     underEvaluation($this->request, [CheckItem::CredentialRequest->value => CheckResult::Confirmed, CheckItem::Identity->value => CheckResult::Confirmed]);
 
     stagePage()->call('approve')
@@ -258,7 +258,7 @@ test('REQ-16-12 approving needs every part confirmed, then verifies the ID and r
 
 test('REQ-16-13 returning needs a rejected part and sends the request back to the requester', function () {
     Notification::fake();
-    workflow()->declareRepresentative($this->request, $this->owner, ['full_name' => 'Rosa Reyes']);
+    declareRepresentative($this->request, $this->owner, ['full_name' => 'Rosa Reyes']);
     underEvaluation($this->request);
     checkAll($this->request, $this->registrar, CheckStage::Evaluation);
 
@@ -425,7 +425,7 @@ test('REQ-16-20 release records who claimed it; a representative must be verifie
     $ready = atFinalCheck($this->request);
     checkAll($ready, $this->registrar, CheckStage::FinalCheck);
     workflow()->approveFinalCheck($ready, $this->registrar);
-    $representative = workflow()->declareRepresentative($ready, $this->owner, ['full_name' => 'Rosa Reyes']);
+    $representative = declareRepresentative($ready, $this->owner, ['full_name' => 'Rosa Reyes']);
 
     stagePage()->assertSee('Mark released')->assertDontSee('ID presented')->assertSee('Rosa Reyes')
         ->set('recipientType', 'representative')->set('recipientRepresentativeId', $representative->id)->call('release')

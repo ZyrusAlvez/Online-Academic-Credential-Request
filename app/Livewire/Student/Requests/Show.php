@@ -10,6 +10,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\RequestEventType;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\TrimsInput;
+use App\Livewire\Concerns\ValidatesRepresentativeDocuments;
 use App\Livewire\Forms\RequesterProfileForm;
 use App\Models\CredentialRequest;
 use App\Models\IdentityDocument;
@@ -34,6 +35,7 @@ use Livewire\WithFileUploads;
 class Show extends Component
 {
     use TrimsInput;
+    use ValidatesRepresentativeDocuments;
     use WithFileUploads;
 
     #[Locked]
@@ -57,12 +59,6 @@ class Show extends Component
     public string $representativeRelationship = '';
 
     public string $representativeContact = '';
-
-    /** @var UploadedFile|null */
-    public $spa = null;
-
-    /** @var UploadedFile|null */
-    public $representativeId = null;
 
     public string $newIdType = '';
 
@@ -123,20 +119,28 @@ class Show extends Component
     {
         $this->authorize('declareRepresentative', $this->credentialRequest);
 
+        // Every field at once, so all that needs attention shows together (REQ-11-01, 09).
         $this->validate([
             'representativeName' => ['required', 'string', 'max:150'],
             'representativeRelationship' => ['nullable', 'string', 'max:100'],
             'representativeContact' => ['nullable', 'string', 'max:20', RequesterProfileForm::PHONE_RULE],
-            'spa' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
-            'representativeId' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
-        ], ['representativeContact.regex' => RequesterProfileForm::PHONE_MESSAGE], ['representativeName' => "representative's full name", 'spa' => 'SPA', 'representativeId' => "representative's ID"]);
+            ...$this->representativeDocumentRules(),
+        ], [
+            'representativeContact.regex' => RequesterProfileForm::PHONE_MESSAGE,
+            ...$this->representativeDocumentMessages(),
+        ], [
+            'representativeName' => "representative's full name",
+            ...$this->representativeDocumentAttributes(),
+        ]);
+
+        [$spa, $idFile] = $this->representativeDocuments();
 
         try {
             $workflow->declareRepresentative($this->credentialRequest, $this->owner(), [
                 'full_name' => $this->representativeName,
                 'relationship' => filled($this->representativeRelationship) ? $this->representativeRelationship : null,
                 'contact_number' => filled($this->representativeContact) ? $this->representativeContact : null,
-            ], $this->spa, $this->representativeId);
+            ], $spa, $idFile);
         } catch (InvalidTransition $e) {
             $this->addError('representativeName', $e->getMessage());
 

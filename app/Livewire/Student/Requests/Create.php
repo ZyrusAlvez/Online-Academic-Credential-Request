@@ -7,6 +7,7 @@ use App\Enums\AcademicStatus;
 use App\Enums\RouteTask;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\TrimsInput;
+use App\Livewire\Concerns\ValidatesRepresentativeDocuments;
 use App\Livewire\Forms\CredentialRequestForm;
 use App\Livewire\Forms\RequesterProfileForm;
 use App\Models\CredentialRequest;
@@ -20,7 +21,6 @@ use App\Models\WorkflowStep;
 use App\Services\RequestWorkflow;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -33,24 +33,20 @@ use Throwable;
 
 /**
  * Request a credential (spec 04) with the requester's details and valid ID on the same form,
- * filled in from their saved profile (spec 15); optionally declare a representative (spec 11).
+ * filled in from their saved profile (spec 15); optionally declare a representative, with their
+ * SPA and valid ID (spec 11).
  * A form, then a summary to submit from.
  */
 #[Title('New Request')]
 class Create extends Component
 {
     use TrimsInput;
+    use ValidatesRepresentativeDocuments;
     use WithFileUploads;
 
     public CredentialRequestForm $form;
 
     public RequesterProfileForm $profile;
-
-    /** @var UploadedFile|null */
-    public $spa = null;
-
-    /** @var UploadedFile|null */
-    public $representativeId = null;
 
     #[Locked]
     public bool $reviewing = false;
@@ -132,8 +128,9 @@ class Create extends Component
             $data = $this->form->validatedRequest();
             $representative = $this->form->representative();
             $this->validateRepresentativeFiles();
+            $documents = $representative !== null ? $this->representativeDocuments() : null;
 
-            $request = DB::transaction(function () use ($owner, $data, $representative, $workflow, $submitIdentity, &$stored): CredentialRequest {
+            $request = DB::transaction(function () use ($owner, $data, $representative, $documents, $workflow, $submitIdentity, &$stored): CredentialRequest {
                 $chosen = $this->profile->save($owner);
 
                 if ($chosen !== null) {
@@ -142,8 +139,8 @@ class Create extends Component
 
                 $request = $workflow->submit($owner, $data, $stored);
 
-                if ($representative !== null) {
-                    $workflow->declareRepresentative($request, $owner, $representative, $this->spa, $this->representativeId);
+                if ($representative !== null && $documents !== null) {
+                    $workflow->declareRepresentative($request, $owner, $representative, ...$documents);
                 }
 
                 return $request;
@@ -186,12 +183,16 @@ class Create extends Component
         ]);
     }
 
+    /**
+     * The SPA and the representative's ID, needed only when transacting through one (REQ-11-01).
+     */
     private function validateRepresentativeFiles(): void
     {
-        $this->validate([
-            'spa' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
-            'representativeId' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
-        ], attributes: ['spa' => 'SPA', 'representativeId' => "representative's ID"]);
+        if ($this->form->representative() === null) {
+            return;
+        }
+
+        $this->validate($this->representativeDocumentRules(), $this->representativeDocumentMessages(), $this->representativeDocumentAttributes());
     }
 
     /**

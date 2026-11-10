@@ -20,9 +20,23 @@ them (`no-store`) for the owner and registrars only.
 
 | Method | Ledger |
 |---|---|
-| `declareRepresentative(owner, data, spa?, id?)` | representative_declared |
+| `declareRepresentative(owner, data, spa, id)` — both files required (REQ-11-01) | representative_declared |
 | `reviewRepresentative(rep, registrar, verified, remarks)` | representative_verified / representative_rejected |
 | `release(request, registrar, claim)` — ready_for_release → released; guards REQ-11-07; freezes `processing_working_days` | released |
+
+## Upload checks (REQ-11-01, 09)
+
+`App\Livewire\Concerns\ValidatesRepresentativeDocuments` holds the `spa` and `representativeId`
+properties and their rules (`required`, `file`, `mimes:jpg,jpeg,png,webp,pdf`, `max:5120`) with
+plain messages ("The SPA must be a JPG, PNG, WebP or PDF file.", "… must be 5 MB or smaller.").
+New Request and the request page both use it; `updatedSpa()`/`updatedRepresentativeId()` check a
+file as soon as it is chosen, and submit checks both again.
+
+A file too big for Livewire's temporary upload (12 MB) or for PHP on the server (8 MB) fails
+before those rules run; `validation.custom.files.*` and `validation.attributes` in
+`lang/en/validation.php` word that failure plainly ("The file could not be uploaded. Use a JPG,
+PNG, WebP or PDF file of 5 MB or smaller.") instead of "The spa field must not be greater than
+12288 kilobytes".
 
 ## Screens
 

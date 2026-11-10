@@ -17,8 +17,10 @@ claiming procedure).
 ### Representatives
 - **REQ-11-01** THE SYSTEM SHALL let the owner declare, when submitting or later while the request
   is open, that they act through an authorized representative, giving the representative's full
-  name, relationship and contact number (exactly 11 digits when given), and optionally uploading the Special Power of Attorney
-  (SPA) and the representative's valid ID (images or PDF, max 5 MB each, stored privately).
+  name, relationship and contact number (exactly 11 digits when given), and uploading the Special
+  Power of Attorney (SPA) and the representative's valid ID (JPG, PNG, WebP or PDF, max 5 MB each,
+  stored privately). Both uploads are required, on New Request and on the request page alike; a
+  representative without them is not saved.
 - **REQ-11-02** THE SYSTEM SHALL record the representative's identity separately from the owner's
   account and show the owner and the registrar the representative and their verification status.
 - **REQ-11-03** THE SYSTEM SHALL let the registrar verify a representative (SPA and IDs checked,
@@ -27,6 +29,10 @@ claiming procedure).
   reason (REQ-16-20).
 - **REQ-11-04** THE SYSTEM SHALL let only the owner and registrars open a representative's
   documents (404 for others), without letting browsers cache them.
+- **REQ-11-09** WHEN the owner chooses an SPA or representative's ID that is not a JPG, PNG, WebP
+  or PDF file, or is larger than 5 MB, THE SYSTEM SHALL say so under that field as soon as it is
+  chosen, naming the accepted types or the 5 MB limit, and SHALL NOT save the representative
+  until both files are acceptable. The form states the accepted types and the limit beforehand.
 
 ### Release
 - **REQ-11-05** WHILE a request is `ready_for_release` THE SYSTEM SHALL show the requester that the
