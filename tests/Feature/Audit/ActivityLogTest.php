@@ -124,14 +124,14 @@ test('REQ-14-04 uploading, verifying and rejecting a valid ID are logged', funct
     $this->actingAs($this->registrar);
     workflow()->startEvaluation($request, $this->registrar);
     workflow()->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
-    workflow()->returnToRequester($request, $this->registrar, 'Blurry photo');
+    workflow()->returnForClarification($request, $this->registrar, 'Blurry photo');
 
     $upload = ActivityLog::where('category', ActivityCategory::Identity)->sole();
     expect($upload->description)->toBe('Uploaded a valid ID (Passport)')
         ->and($upload->actor_id)->toBe($owner->id);
 
     $review = ActivityLog::where('category', ActivityCategory::Request)->latest('id')->firstOrFail();
-    expect($review->description)->toBe("Compliance requested: Rejected: User Identity Verification\nBlurry photo")
+    expect($review->description)->toBe("Customer action requested: Rejected: User Identity Verification\nBlurry photo")
         ->and($review->reference_no)->toBe($request->reference_no)
         ->and($review->actor_id)->toBe($this->registrar->id);
 });

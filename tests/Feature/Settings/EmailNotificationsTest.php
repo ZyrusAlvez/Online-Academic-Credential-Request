@@ -49,9 +49,8 @@ test('REQ-06-16 with email off the requester is still notified in-app but not em
 
     $request = submitRequest($this->owner, $this->org->tor);
     workflow()->startEvaluation($request, $this->registrar);
-    workflow()->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
-    workflow()->returnToRequester($request, $this->registrar, 'Blurred');
-    workflow()->reopenEvaluation($request, $this->registrar);
+    workflow()->recordCheck($request, $this->registrar, CheckItem::AcademicRecord, CheckResult::Rejected);
+    workflow()->requireOfficeVisit($request, $this->registrar, ['Form 137'], 'Bring the original.');
     workflow()->decline($request, $this->registrar, 'Not eligible');
 
     $sent = Notification::sent($this->owner, RequestActivity::class);

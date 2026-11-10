@@ -90,23 +90,35 @@ class DemoSeeder extends Seeder
                 $this->workflow->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
             });
 
-            // Pending compliance: returned with the academic record rejected (missing originals).
+            // Pending compliance: the originals are missing, so the requester must visit the office;
+            // one of the two was already received (spec 20).
             $this->at(3, function () use ($jose, $tor): void {
                 $request = $this->submit($jose, $tor, 'Board or licensure examination');
                 $this->workflow->startEvaluation($request, $this->registrar);
                 $this->check($request, CheckStage::Evaluation, reject: CheckItem::AcademicRecord);
-                $this->workflow->returnToRequester($request, $this->registrar,
-                    'Please submit the originals of your Form 137 and PSA-authenticated birth certificate at the Registrar\'s Office.');
+                $this->workflow->requireOfficeVisit($request, $this->registrar, array_slice($tor->requirements ?? [], 0, 2) ?: ['Form 137'],
+                    'Please submit the originals at the Registrar\'s Office, personally or through a representative with an SPA.');
+                $this->later(24);
+                $this->workflow->markReceived($request->deficiencies()->firstOrFail(), $this->registrar);
             });
 
-            // Resubmitted: returned for a blurred ID, the requester replied and sent it back.
+            // Returned for clarification: the ID is too blurred; waiting for the requester to edit it.
+            $this->at(1, function () use ($jose, $type): void {
+                $request = $this->submit($jose, $type('Certification of Graduation'), 'Further studies');
+                $this->workflow->startEvaluation($request, $this->registrar);
+                $this->check($request, CheckStage::Evaluation, reject: CheckItem::Identity);
+                $this->workflow->returnForClarification($request, $this->registrar, 'The photo of your ID is too blurred to read the name.');
+            });
+
+            // Resubmitted: returned for a blurred ID, the requester uploaded another and sent it back.
             $this->at(2, function () use ($ana, $type): void {
                 $request = $this->submit($ana, $type('Copy of Grades'), 'Employment');
                 $this->workflow->startEvaluation($request, $this->registrar);
                 $this->check($request, CheckStage::Evaluation, reject: CheckItem::Identity);
-                $this->workflow->returnToRequester($request, $this->registrar, 'The photo of your ID is too blurred to read the name.');
+                $this->workflow->returnForClarification($request, $this->registrar, 'The photo of your ID is too blurred to read the name.');
                 $this->later(20);
-                $this->workflow->resubmit($request, $ana, 'I will bring the original ID on Monday.');
+                $identity = app(SubmitIdentityDocument::class)->handle($ana, 'Passport', $this->image('passport.png'));
+                $this->workflow->resubmit($request, $ana, 'I uploaded a clearer photo of my passport.', identity: $identity);
             });
 
             // Awaiting payment.

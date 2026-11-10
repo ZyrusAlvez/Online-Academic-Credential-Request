@@ -18,9 +18,12 @@ enum RequestEventType: string
     case Declined = 'declined';
     case CollegeChanged = 'college_changed';
 
-    // Registrar stages (spec 16)
+    // Registrar stages (spec 16); evaluation_reopened is in older ledgers only (spec 20)
     case Resubmitted = 'resubmitted';
     case EvaluationReopened = 'evaluation_reopened';
+
+    // Edit Request (spec 20)
+    case CredentialChanged = 'credential_changed';
 
     // The request's valid ID (spec 15)
     case IdentityVerified = 'identity_verified';

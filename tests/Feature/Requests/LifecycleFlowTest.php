@@ -23,14 +23,19 @@ test('a TOR request follows the client\'s flowchart from portal to release', fun
     $vpf = User::factory()->departmentStaff($org->vpf)->create();
     $chancellor = User::factory()->departmentStaff($org->chancellor)->create();
 
-    // Submit → evaluate: academic record rejected → returned → complies in person → reopened → approved.
+    // Submit → evaluate: the purpose needs clarifying → returned → corrected and resubmitted →
+    // originals missing → office visit → received → compliance confirmed (spec 20).
     $request = submitRequest($owner, $org->tor);
     workflow()->startEvaluation($request, $registrar);
+    workflow()->recordCheck($request, $registrar, CheckItem::CredentialRequest, CheckResult::Rejected);
+    workflow()->returnForClarification($request, $registrar, 'Name the board examination.');
+    workflow()->resubmit($request, $owner, null, ['credential_type_id' => $org->tor->id, 'purpose' => 'Nursing board examination']);
+    workflow()->startEvaluation($request, $registrar);
     workflow()->recordCheck($request, $registrar, CheckItem::AcademicRecord, CheckResult::Rejected);
-    workflow()->returnToRequester($request, $registrar, 'Submit the original PSA birth certificate.');
-    workflow()->reopenEvaluation($request, $registrar);
-    checkAll($request, $registrar, CheckStage::Evaluation);
-    workflow()->approveEvaluation($request, $registrar);
+    workflow()->requireOfficeVisit($request, $registrar, ['PSA-authenticated birth certificate'], 'Submit the original.');
+    workflow()->markReceived($request->deficiencies()->firstOrFail(), $registrar);
+    workflow()->confirmCompliance($request, $registrar);
+    expect($request->fresh())->status->toBe(RequestStatus::AwaitingPayment)->purpose->toBe('Nursing board examination');
 
     // Payment returned → valid proof → validated and accepted (clock starts).
     uploadPayment($request);

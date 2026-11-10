@@ -29,7 +29,7 @@ final class StageQueue
 
         return match ($queue) {
             RegistrarQueue::Evaluation => $query
-                ->whereIn('status', $waiting ? [RequestStatus::PendingCompliance] : [RequestStatus::Submitted, RequestStatus::UnderEvaluation])
+                ->whereIn('status', $waiting ? RequestStatus::waitingForRequester() : [RequestStatus::Submitted, RequestStatus::UnderEvaluation])
                 ->orderBy('submitted_at')->orderBy('id'),
             RegistrarQueue::Payment => $query
                 ->where('status', RequestStatus::PaymentVerification)

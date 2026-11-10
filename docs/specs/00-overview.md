@@ -289,4 +289,4 @@ All feature specs describe this model.
 | 17 | Physical hand-offs and the stage page | done |
 | 18 | The Admin account: administration, dashboard and reports | in progress |
 | 19 | Request status table | done |
-| 20 | Initial Evaluation decisions: clarification and office visit | in progress |
+| 20 | Initial Evaluation decisions: clarification and office visit | done |

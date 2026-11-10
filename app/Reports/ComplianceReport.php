@@ -14,6 +14,7 @@ use App\Services\WorkingCalendar;
 final class ComplianceReport implements Report
 {
     private const WAITING = [
+        RequestStatus::ReturnedForClarification,
         RequestStatus::PendingCompliance,
         RequestStatus::ReturnedForCustomerAction,
         RequestStatus::AwaitingPayment,
@@ -64,11 +65,13 @@ final class ComplianceReport implements Report
     private function waitingFor(CredentialRequest $request): string
     {
         return match ($request->status) {
-            // The return's ledger line: the rejected parts and the remarks (REQ-16-13).
+            // What is still missing at the office, else the return's ledger line (REQ-20-12).
             RequestStatus::PendingCompliance => $request->deficiencies->whereNull('resolved_at')->isNotEmpty()
                 ? 'Missing: '.$request->deficiencies->whereNull('resolved_at')->pluck('description')->implode('; ')
                 : str_replace("\n", ' – ', (string) $request->events->last(fn ($event) => $event->type === RequestEventType::ComplianceRequested)?->remarks),
-            RequestStatus::ReturnedForCustomerAction => (string) $request->events->last(fn ($event) => $event->type === RequestEventType::CustomerActionRequested)?->remarks,
+            // The rejected parts and the remarks (REQ-20-12).
+            RequestStatus::ReturnedForClarification, RequestStatus::ReturnedForCustomerAction => str_replace("\n", ' – ',
+                (string) $request->events->last(fn ($event) => $event->type === RequestEventType::CustomerActionRequested)?->remarks),
             RequestStatus::AwaitingPayment => 'Payment of ₱'.number_format((float) $request->amount_due, 2),
             default => 'Verification of the proof of payment',
         };

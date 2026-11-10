@@ -1,6 +1,5 @@
 <?php
 
-use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
@@ -19,9 +18,6 @@ use App\Models\CredentialRequest;
 use App\Models\RequestCheck;
 use App\Models\User;
 use App\Notifications\RequestActivity;
-use App\Reports\ComplianceReport;
-use App\Reports\ReportFilter;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportTesting\Testable;
@@ -96,7 +92,7 @@ test('REQ-18-03 the registrar has one page per stage and Records, and no Request
 test('REQ-16-02 Initial Evaluation lists submitted and evaluated requests with their evaluator; returned ones wait apart', function () {
     $evaluating = underEvaluation(submitRequest($this->owner, $this->org->free));
     $returned = underEvaluation(submitRequest($this->owner, $this->org->free), [CheckItem::Identity->value => CheckResult::Rejected]);
-    workflow()->returnToRequester($returned, $this->registrar, 'Blurred ID.');
+    workflow()->returnForClarification($returned, $this->registrar, 'Blurred ID.');
 
     queuePage('evaluation')
         ->assertSeeInOrder([$this->request->reference_no, $evaluating->reference_no])
@@ -168,16 +164,16 @@ test('REQ-16-07 Records lists every request, searchable and filterable, and a re
 test('REQ-16-23 staff see where a request is in the requester\'s terms, the requester in their own', function () {
     $paying = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar)->fresh();
     $returned = underEvaluation(submitRequest($this->owner, $this->org->free), [CheckItem::Identity->value => CheckResult::Rejected]);
-    workflow()->returnToRequester($returned, $this->registrar, 'Blurred ID.');
+    workflow()->returnForClarification($returned, $this->registrar, 'Blurred ID.');
 
     expect($paying->status)->toBe(RequestStatus::AwaitingPayment)
-        ->and($returned->fresh()->status)->toBe(RequestStatus::PendingCompliance);
+        ->and($returned->fresh()->status)->toBe(RequestStatus::ReturnedForClarification);
 
     Livewire::actingAs($this->registrar)->test(RecordsIndex::class)
         ->assertSee("Waiting for the requester's payment")
-        ->assertSee('Waiting for the requester to complete the requirements')
+        ->assertSee('Waiting for the requester to correct the request')
         ->assertDontSee('Waiting for your payment')
-        ->assertDontSee('Waiting for you to complete');
+        ->assertDontSee('Waiting for you to correct');
 
     Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $paying])
         ->assertSee("Where it is now: Waiting for the requester's payment");
@@ -186,7 +182,7 @@ test('REQ-16-23 staff see where a request is in the requester\'s terms, the requ
         ->assertSee('Waiting for your payment')->assertDontSee("the requester's payment");
 
     expect($paying->staffWhereabouts())->toBe("Waiting for the requester's payment")
-        ->and($returned->fresh()->staffWhereabouts())->toBe('Waiting for the requester to complete the requirements')
+        ->and($returned->fresh()->staffWhereabouts())->toBe('Waiting for the requester to correct the request')
         ->and($this->request->staffWhereabouts())->toBe($this->request->whereabouts());
 });
 
@@ -252,8 +248,9 @@ test('REQ-16-10 the evaluator sees a read-only checklist of the requester\'s dat
 test('REQ-16-11 remarks are optional to approve and required to return or decline', function () {
     underEvaluation($this->request, [CheckItem::Identity->value => CheckResult::Rejected]);
 
-    stagePage()->assertSeeInOrder(['Remarks', 'Decline', 'Return to requester', 'Approve']);
+    // The buttons themselves are REQ-20-02's.
     stagePage()->call('returnRequest')->assertHasErrors('remarks');
+    stagePage()->call('requireOfficeVisit')->assertHasErrors('remarks');
     stagePage()->call('decline')->assertHasErrors('remarks');
 
     expect($this->request->fresh()->status)->toBe(RequestStatus::UnderEvaluation);
@@ -281,37 +278,6 @@ test('REQ-16-12 approving needs every part confirmed, then verifies the ID and r
     expect($free->fresh())->status->toBe(RequestStatus::AcceptedForProcessing)->accepted_at->not->toBeNull();
 });
 
-test('REQ-16-13 returning needs a rejected part and sends the request back to the requester', function () {
-    Notification::fake();
-    declareRepresentative($this->request, $this->owner, ['full_name' => 'Rosa Reyes']);
-    underEvaluation($this->request);
-    checkAll($this->request, $this->registrar, CheckStage::Evaluation);
-
-    stagePage()->set('remarks', 'Fix it.')->call('returnRequest')
-        ->assertDispatched('modal-show', name: 'decision-blocked')
-        ->assertSet('blockers', ['Reject at least one part of the checklist, so the requester knows what to fix.']);
-
-    workflow()->recordCheck($this->request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
-    workflow()->recordCheck($this->request, $this->registrar, CheckItem::Representative, CheckResult::Rejected);
-    stagePage()->set('remarks', 'The ID photo is blurred; the SPA is unsigned.')->call('returnRequest')->assertHasNoErrors();
-
-    $request = $this->request->fresh();
-    expect($request)
-        ->status->toBe(RequestStatus::PendingCompliance)
-        ->identity_status->toBe(ReviewStatus::Rejected)
-        ->identity_remarks->toBe('The ID photo is blurred; the SPA is unsigned.')
-        ->and($request->representatives()->first()->status)->toBe(ReviewStatus::Rejected)
-        ->and($request->events()->get()->last())
-        ->type->toBe(RequestEventType::ComplianceRequested)
-        ->remarks->toContain('User Identity Verification')->remarks->toContain('Representative Verification');
-
-    Notification::assertSentTo($this->owner, RequestActivity::class, fn ($n) => $n->event->type === RequestEventType::ComplianceRequested);
-
-    // The customer compliance report says what to fix (REQ-07-19).
-    expect(collect((new ComplianceReport)->rows(new ReportFilter))->firstWhere(0, $request->reference_no)[5])
-        ->toBe('Rejected: User Identity Verification; Representative Verification – The ID photo is blurred; the SPA is unsigned.');
-});
-
 test('REQ-16-14 declining ends the request with the remarks as the reason and tells the requester', function () {
     Notification::fake();
     underEvaluation($this->request);
@@ -320,58 +286,6 @@ test('REQ-16-14 declining ends the request with the remarks as the reason and te
 
     expect($this->request->fresh())->status->toBe(RequestStatus::Declined)->decline_reason->toBe('Not a UPHSL graduate.');
     Notification::assertSentTo($this->owner, RequestActivity::class, fn ($n) => $n->event->type === RequestEventType::Declined);
-});
-
-test('REQ-16-15 the requester sees what was rejected, can fix it and resubmit', function () {
-    Notification::fake();
-    underEvaluation($this->request, [CheckItem::CredentialRequest->value => CheckResult::Confirmed, CheckItem::Identity->value => CheckResult::Rejected]);
-    workflow()->returnToRequester($this->request, $this->registrar, 'The ID photo is blurred.');
-
-    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $this->request])
-        ->assertSee('Your Request Was Returned to You')
-        ->assertSee('User Identity Verification')
-        ->assertSee('The ID photo is blurred.')
-        ->assertSee('Your Valid ID Was Not Accepted')
-        ->assertSee('Add representative')
-        ->set('note', 'New ID uploaded.')
-        ->call('resubmit')
-        ->assertHasNoErrors();
-
-    $request = $this->request->fresh();
-    expect($request->status)->toBe(RequestStatus::Submitted)
-        ->and($request->checks()->pluck('result', 'item')->map->value->all())->toBe([CheckItem::CredentialRequest->value => 'confirmed']);
-
-    $registrars = User::where('role', 'registrar')->get();
-    Notification::assertSentTo($registrars, RequestActivity::class, fn ($n) => $n->event->type === RequestEventType::Resubmitted);
-
-    queuePage('evaluation')->assertSee($request->reference_no);
-
-    // Only the owner, only while returned.
-    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $this->request])->call('resubmit')->assertForbidden();
-});
-
-test('REQ-16-15 a new ID clears the identity check', function () {
-    underEvaluation($this->request, [CheckItem::Identity->value => CheckResult::Rejected]);
-    workflow()->returnToRequester($this->request, $this->registrar, 'Blurred.');
-
-    $identity = app(SubmitIdentityDocument::class)->handle($this->owner, 'Passport', UploadedFile::fake()->image('passport.jpg'));
-    workflow()->replaceIdentity($this->request, $this->owner, $identity);
-
-    expect($this->request->fresh()->checks()->where('item', CheckItem::Identity)->exists())->toBeFalse();
-});
-
-test('REQ-16-16 a registrar reopens a returned request when the requester complies in person', function () {
-    underEvaluation($this->request, [CheckItem::CredentialRequest->value => CheckResult::Confirmed, CheckItem::AcademicRecord->value => CheckResult::Rejected]);
-    workflow()->returnToRequester($this->request, $this->registrar, 'Bring the original Form 137.');
-    $other = User::factory()->registrar()->create();
-
-    stagePage(as: $other)->assertSee('Returned to the Requester')->assertSee('Bring the original Form 137.')
-        ->call('reopenEvaluation')->assertDispatched('notify');
-
-    expect($this->request->fresh())
-        ->status->toBe(RequestStatus::UnderEvaluation)
-        ->evaluated_by->toBe($other->id)
-        ->and($this->request->checks()->pluck('item')->map->value->all())->toBe([CheckItem::CredentialRequest->value]);
 });
 
 // ── Payment Validation ──────────────────────────────────────────────────────────────────────
@@ -503,7 +417,7 @@ test('REQ-16-22 each part\'s result is kept with the staff member and time, and 
     expect($check)->item->toBe(CheckItem::AcademicRecord)->result->toBe(CheckResult::Rejected)
         ->checked_by->toBe($this->registrar->id)->checked_at->not->toBeNull();
 
-    workflow()->returnToRequester($this->request, $this->registrar, 'Bring the original Form 137.');
+    workflow()->returnForClarification($this->request, $this->registrar, 'Bring the original Form 137.');
 
     $event = $this->request->events()->get()->last();
     expect($event)->actor_id->toBe($this->registrar->id)

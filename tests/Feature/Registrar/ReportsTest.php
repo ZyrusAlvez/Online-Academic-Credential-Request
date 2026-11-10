@@ -199,7 +199,8 @@ test('REQ-07-14 the periodic reports count per day, week and month', function ()
 });
 
 test('REQ-07-15 the evaluator report', function () {
-    expect(reportRows(new EvaluatorReport))->toBe([['Eva Luator', 3, 2, 1, 0, 4.0, 1]]);
+    // Taken up, complete, returned for clarification, sent for compliance (REQ-20-12), declined.
+    expect(reportRows(new EvaluatorReport))->toBe([['Eva Luator', 3, 2, 0, 1, 0, 4.0, 1]]);
 });
 
 test('REQ-07-16 the department and signatory monitoring reports', function () {

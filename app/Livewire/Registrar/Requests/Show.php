@@ -44,7 +44,9 @@ class Show extends Component
 
     public const PANEL_EVALUATION = 'evaluation';
 
-    public const PANEL_RETURNED = 'returned';
+    public const PANEL_CLARIFICATION = 'clarification';
+
+    public const PANEL_COMPLIANCE = 'compliance';
 
     public const PANEL_PAYMENT = 'payment';
 
@@ -65,6 +67,16 @@ class Show extends Component
     public string $remarks = '';
 
     public string $officialReceiptNo = '';
+
+    /**
+     * Require Office Visit: the credential's requirements ticked as missing (REQ-20-04).
+     *
+     * @var list<string>
+     */
+    public array $missing = [];
+
+    /** Require Office Visit: anything else missing, in the evaluator's words. */
+    public string $otherMissing = '';
 
     #[Locked]
     public ?int $rejectingRepresentativeId = null;
@@ -157,8 +169,8 @@ class Show extends Component
     }
 
     /**
-     * Return: to the requester at the evaluation, the proof of payment at the payment validation
-     * (REQ-16-13, 17).
+     * Return: for clarification at the evaluation, the proof of payment at the payment validation
+     * (REQ-20-03, REQ-16-17).
      */
     public function returnRequest(RequestWorkflow $workflow): void
     {
@@ -168,8 +180,8 @@ class Show extends Component
 
         $decision = match ($request->status) {
             RequestStatus::UnderEvaluation => ['return', $rules,
-                fn () => $workflow->returnToRequester($request, $this->actor(), $this->remarks),
-                'Returned to the requester with the rejected parts and your remarks.'],
+                fn () => $workflow->returnForClarification($request, $this->actor(), $this->remarks),
+                'Returned to the requester for clarification. They can edit the request and resubmit it.'],
             RequestStatus::PaymentVerification => ['return', $rules,
                 fn () => $workflow->rejectPayment($request, $this->actor(), $this->remarks),
                 'Proof of payment returned. The requester was asked for a valid one.'],
@@ -201,13 +213,60 @@ class Show extends Component
     }
 
     /**
-     * The requester complied in person (REQ-16-16).
+     * Require Office Visit, from its dialog: what is missing and the remarks (REQ-20-04).
      */
-    public function reopenEvaluation(RequestWorkflow $workflow): void
+    public function requireOfficeVisit(RequestWorkflow $workflow): void
+    {
+        $this->authorize('evaluate', $this->credentialRequest);
+        abort_unless($this->credentialRequest->status === RequestStatus::UnderEvaluation, 404);
+
+        $listed = $this->credentialRequest->credentialType->requirements ?? [];
+
+        $this->validate([
+            'missing' => ['array'],
+            'missing.*' => ['string', Rule::in($listed)],
+            'otherMissing' => [Rule::requiredIf($this->missing === []), 'nullable', 'string', 'max:250'],
+            'remarks' => ['required', 'string', 'max:500'],
+        ], [
+            'otherMissing.required' => 'Tick at least one missing requirement, or describe it under Other.',
+            'remarks.required' => 'Write your remarks; the requester sees them.',
+        ], ['otherMissing' => 'other missing requirement']);
+
+        $missing = [...array_values(array_intersect($listed, $this->missing)), ...(filled($this->otherMissing) ? [$this->otherMissing] : [])];
+
+        if ($this->attempt(fn () => $workflow->requireOfficeVisit($this->credentialRequest, $this->actor(), $missing, $this->remarks),
+            'The requester was asked to bring the missing requirements to the Office of the Registrar.')) {
+            Flux::modal('office-visit')->close();
+            $this->reset('missing', 'otherMissing', 'remarks');
+        }
+    }
+
+    /**
+     * A missing requirement was submitted at the office (REQ-20-09).
+     */
+    public function markReceived(int $deficiencyId, RequestWorkflow $workflow): void
     {
         $this->authorize('evaluate', $this->credentialRequest);
 
-        $this->attempt(fn () => $workflow->reopenEvaluation($this->credentialRequest, $this->actor()), 'Evaluation reopened. The request is yours until you decide.');
+        $deficiency = $this->credentialRequest->deficiencies()->findOrFail($deficiencyId);
+        $this->attempt(fn () => $workflow->markReceived($deficiency, $this->actor()), 'Marked received.');
+        $this->credentialRequest->unsetRelation('deficiencies');
+    }
+
+    /**
+     * Every missing requirement was received: on to payment (REQ-20-09).
+     */
+    public function confirmCompliance(RequestWorkflow $workflow): void
+    {
+        $this->authorize('evaluate', $this->credentialRequest);
+        $request = $this->credentialRequest;
+
+        $this->decide(
+            'confirm',
+            ['remarks' => ['nullable', 'string', 'max:500']],
+            fn () => $workflow->confirmCompliance($request, $this->actor(), $this->remarks),
+            $request->requires_payment ? 'Compliance confirmed. Payment instructions were sent to the requester.' : 'Compliance confirmed and the request accepted for processing.',
+        );
     }
 
     // ── Representatives declared after the evaluation, and release (REQ-16-20) ──────────────
@@ -269,7 +328,7 @@ class Show extends Component
 
         $panel = $this->panel($request);
         $stage = match ($panel) {
-            self::PANEL_EVALUATION, self::PANEL_RETURNED => CheckStage::Evaluation,
+            self::PANEL_EVALUATION, self::PANEL_CLARIFICATION => CheckStage::Evaluation,
             self::PANEL_PAYMENT => CheckStage::Payment,
             self::PANEL_FINAL_CHECK => CheckStage::FinalCheck,
             default => null,
@@ -283,7 +342,7 @@ class Show extends Component
             'pendingProof' => $request->paymentProofs->firstWhere('status', PaymentStatus::Submitted),
             'returnOffices' => ReturnOffices::for($request),
             'verifiedRepresentatives' => $request->representatives->where('status', ReviewStatus::Verified)->values(),
-            'lastReturn' => $request->events->last(fn ($event) => $event->type === RequestEventType::ComplianceRequested),
+            'lastReturn' => $request->events->last(fn ($event) => in_array($event->type, [RequestEventType::CustomerActionRequested, RequestEventType::ComplianceRequested], true)),
         ])->title($request->reference_no);
     }
 
@@ -299,7 +358,8 @@ class Show extends Component
             $request->isEvaluatedBySomeoneElse($this->actor()) => self::PANEL_LOCKED,
             $request->status === RequestStatus::Submitted => self::PANEL_START,
             $request->status === RequestStatus::UnderEvaluation => self::PANEL_EVALUATION,
-            $request->status === RequestStatus::PendingCompliance => self::PANEL_RETURNED,
+            $request->status === RequestStatus::ReturnedForClarification => self::PANEL_CLARIFICATION,
+            $request->status === RequestStatus::PendingCompliance => self::PANEL_COMPLIANCE,
             $request->status === RequestStatus::PaymentVerification => self::PANEL_PAYMENT,
             $atFinalCheck => self::PANEL_FINAL_CHECK,
             $request->status === RequestStatus::ReadyForRelease => self::PANEL_RELEASE,
@@ -312,7 +372,7 @@ class Show extends Component
      * Check the decision's conditions, run it and clear the form on success. A decision that can't
      * run opens a dialog listing every reason and keeps what was typed (REQ-17-17).
      *
-     * @param  string  $action  approve, return or decline
+     * @param  string  $action  approve, return, decline or confirm (compliance)
      * @param  array<string, list<string>>  $rules
      */
     private function decide(string $action, array $rules, Closure $decision, string $success): void
@@ -327,7 +387,10 @@ class Show extends Component
                 $parts[] = ['label' => 'Official receipt number', 'state' => 'missing'];
             }
         } elseif ($action === 'return' && $this->stage() === CheckStage::Evaluation && ! in_array('rejected', array_column($this->stageParts(), 'state'), true)) {
-            $blockers[] = 'Reject at least one part of the checklist, so the requester knows what to fix.';
+            $blockers[] = 'Reject at least one part of the checklist, so the requester knows what to correct.';
+        } elseif ($action === 'confirm') {
+            $parts = $this->credentialRequest->deficiencies()->whereNull('resolved_at')->pluck('description')
+                ->map(fn (string $item): array => ['label' => $item, 'state' => 'missing'])->values()->all();
         }
 
         try {

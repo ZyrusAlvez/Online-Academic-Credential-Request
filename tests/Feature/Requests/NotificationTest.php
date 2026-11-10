@@ -43,7 +43,7 @@ test('REQ-06-05 the requester is emailed at the client\'s key moments', function
     $request = submitRequest($this->owner, $this->org->tor);
     workflow()->startEvaluation($request, $this->registrar);
     workflow()->recordCheck($request, $this->registrar, CheckItem::AcademicRecord, CheckResult::Rejected);
-    workflow()->returnToRequester($request, $this->registrar, 'Bring the original Form 137.');
+    workflow()->returnForClarification($request, $this->registrar, 'Correct your years of attendance.');
     workflow()->resubmit($request, $this->owner);   // their own action: not sent to them
     evaluate($request, $this->registrar);
     uploadPayment($request);
@@ -54,7 +54,7 @@ test('REQ-06-05 the requester is emailed at the client\'s key moments', function
 
     expect(mailedTypes())->toBe([
         RequestEventType::Submitted,
-        RequestEventType::ComplianceRequested,
+        RequestEventType::CustomerActionRequested,
         RequestEventType::RequirementsCompleted,
         RequestEventType::PaymentRejected,
         RequestEventType::Accepted,
@@ -141,8 +141,8 @@ test('REQ-06-08 registrars are told about new and resubmitted requests, payments
 
     $other = submitRequest($this->owner, $this->org->tor);
     workflow()->startEvaluation($other, $this->registrar);
-    workflow()->recordCheck($other, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
-    workflow()->returnToRequester($other, $this->registrar, 'Blurred ID.');
+    workflow()->recordCheck($other, $this->registrar, CheckItem::CredentialRequest, CheckResult::Rejected);
+    workflow()->returnForClarification($other, $this->registrar, 'Give the full name of the school.');
     workflow()->resubmit($other, $this->owner, 'Done');
     Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "{$other->reference_no} was resubmitted for evaluation");
     Notification::assertNotSentTo($this->inactiveRegistrar, RequestActivity::class);

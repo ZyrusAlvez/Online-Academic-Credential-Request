@@ -21,13 +21,13 @@ use App\Models\User;
 use App\Models\WorkflowStep;
 use App\Services\RequestWorkflow;
 use Flux\Flux;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -122,7 +122,7 @@ class Create extends Component
      */
     public function review(): void
     {
-        $this->authorize('create', CredentialRequest::class);
+        $this->authorizeForm();
 
         // Every section is checked, so the modal lists all that needs attention at once (REQ-01-26).
         $failure = null;
@@ -132,6 +132,7 @@ class Create extends Component
             fn () => $this->profile->validateDetails(),
             fn () => $this->validateRepresentativeFiles(),
             fn () => $this->validateRequirementFiles(),
+            ...$this->extraChecks(),
         ] as $check) {
             try {
                 $check();
@@ -171,7 +172,7 @@ class Create extends Component
             return;
         }
 
-        $this->authorize('create', CredentialRequest::class);
+        $this->authorizeForm();
 
         $owner = $this->owner();
         $stored = null;
@@ -239,13 +240,34 @@ class Create extends Component
             'savedId' => $owner->latestIdentityDocument()->first(),
             'requestSummary' => $this->reviewing ? $this->requestSummary($selectedType) : [],
             'summary' => $this->reviewing ? $this->profile->summary() : [],
+            // Edit Request (spec 20) shows the same form for a returned request.
+            'editing' => null,
+            'idRejected' => false,
         ]);
+    }
+
+    /**
+     * Who may use the form: any requester for a new request; Edit narrows it (REQ-20-05).
+     */
+    protected function authorizeForm(): void
+    {
+        $this->authorize('create', CredentialRequest::class);
+    }
+
+    /**
+     * Further checks run with the others before the summary.
+     *
+     * @return list<callable(): mixed>
+     */
+    protected function extraChecks(): array
+    {
+        return [];
     }
 
     /**
      * The SPA and the representative's ID, needed only when transacting through one (REQ-11-01).
      */
-    private function validateRepresentativeFiles(): void
+    protected function validateRepresentativeFiles(): void
     {
         if ($this->form->representative() === null) {
             return;
@@ -260,7 +282,7 @@ class Create extends Component
      *
      * @throws ValidationException listing every requirement whose files need attention
      */
-    private function validateRequirementFiles(): void
+    protected function validateRequirementFiles(): void
     {
         $type = $this->chosenType();
         $errors = [];
@@ -313,7 +335,7 @@ class Create extends Component
      *
      * @return array<string, list<UploadedFile>>
      */
-    private function chosenRequirementFiles(): array
+    protected function chosenRequirementFiles(): array
     {
         $type = $this->chosenType();
         $files = [];
@@ -344,7 +366,7 @@ class Create extends Component
      *
      * @param  list<RequestDocument>  $requirementDocuments
      */
-    private function undo(User $owner, ?IdentityDocument $stored, array $requirementDocuments = []): void
+    protected function undo(User $owner, ?IdentityDocument $stored, array $requirementDocuments = []): void
     {
         $owner->refresh();
 
@@ -363,7 +385,7 @@ class Create extends Component
      * @throws ValidationException the entries' own errors, shown where they belong
      * @throws Throwable anything that is not a validation or workflow error
      */
-    private function showFailure(Throwable $e): void
+    protected function showFailure(Throwable $e): void
     {
         $consentOnly = $e instanceof ValidationException && array_keys($e->errors()) === ['profile.privacy_consent'];
 
@@ -386,7 +408,7 @@ class Create extends Component
      *
      * @return array<string, string>
      */
-    private function requestSummary(?CredentialType $type): array
+    protected function requestSummary(?CredentialType $type): array
     {
         $purpose = $this->form->purpose === CredentialRequestForm::OTHER_PURPOSE ? $this->form->purpose_other : $this->form->purpose;
         $representative = $this->form->representative();
@@ -431,14 +453,14 @@ class Create extends Component
      * Change step and move focus to the step's label, so the page starts from the top and screen
      * readers announce the change.
      */
-    private function showStep(bool $reviewing): void
+    protected function showStep(bool $reviewing): void
     {
         $this->reviewing = $reviewing;
 
         $this->js("document.getElementById('request-step')?.focus()");
     }
 
-    private function owner(): User
+    protected function owner(): User
     {
         /** @var User */
         return Auth::user();

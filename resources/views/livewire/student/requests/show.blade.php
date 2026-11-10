@@ -33,10 +33,10 @@
         @endif
     </section>
 
-    @if ($request->status === \App\Enums\RequestStatus::PendingCompliance)
-        <section aria-labelledby="compliance-heading" class="space-y-4 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6">
-            {{-- Returned by the evaluator: what was rejected and why (REQ-16-15). --}}
-            <h2 id="compliance-heading" class="text-lg font-semibold text-amber-900">{{ __('Your Request Was Returned to You') }}</h2>
+    @if ($request->status === \App\Enums\RequestStatus::ReturnedForClarification)
+        <section aria-labelledby="clarification-heading" class="space-y-4 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6" data-clarification-panel>
+            {{-- Returned for clarification: what was rejected, why, and Edit Request (REQ-20-05). --}}
+            <h2 id="clarification-heading" class="text-lg font-semibold text-amber-900">{{ __('Please Correct Your Request') }}</h2>
             @if ($rejectedParts !== [])
                 <div>
                     <p class="text-sm text-amber-950">{{ __('The Office of the Registrar could not confirm:') }}</p>
@@ -50,40 +50,42 @@
                     </ul>
                 </div>
             @endif
-            @if ($returnRemarks)
-                <p class="rounded-md bg-white p-3 text-sm whitespace-pre-line text-ink"><span class="font-semibold">{{ __('Remarks:') }}</span> {{ \Illuminate\Support\Str::contains($returnRemarks, "\n") ? \Illuminate\Support\Str::after($returnRemarks, "\n") : $returnRemarks }}</p>
+            @if ($returnRemarks !== '')
+                <p class="rounded-md bg-white p-3 text-sm whitespace-pre-line text-ink"><span class="font-semibold">{{ __('Remarks:') }}</span> {{ $returnRemarks }}</p>
             @endif
-            <p class="text-sm text-amber-950">{{ __('If original documents or clearance are missing, submit them at the Registrar\'s Office of UPHSL, personally or through an authorized representative with a Special Power of Attorney (SPA) and the valid IDs of both of you. The processing period starts only after your requirements and payment are verified and the request is accepted.') }}</p>
-            @can('resubmit', $request)
-                <form wire:submit="resubmit" class="space-y-3">
-                    <flux:textarea wire:model="note" :label="__('Note to the Office of the Registrar')" badge="Optional" :description="__('What you fixed, or when you will come in person.')" rows="2" />
-                    <flux:button type="submit" variant="primary" icon="paper-airplane">{{ __('Resubmit for evaluation') }}</flux:button>
-                </form>
+            <p class="text-sm text-amber-950">{{ __('Edit your request, then resubmit it. The Office of the Registrar evaluates it again.') }}</p>
+            @can('edit', $request)
+                <flux:button :href="route('student.requests.edit', $request)" wire:navigate variant="primary" icon="pencil-square" data-edit-request>{{ __('Edit Request') }}</flux:button>
             @endcan
         </section>
     @endif
 
-    @can('replaceIdentity', $request)
-        {{-- The Registrar rejected the ID sent with this request (REQ-15-11). --}}
-        <section aria-labelledby="new-id-heading" class="space-y-4 rounded-xl border border-red-600 bg-red-50 p-5 sm:p-6" data-replace-id>
-            <h2 id="new-id-heading" class="text-lg font-semibold text-red-900">{{ __('Your Valid ID Was Not Accepted') }}</h2>
-            <p class="rounded-md bg-white p-3 text-sm text-ink"><span class="font-semibold">{{ __('Reason:') }}</span> {{ $request->identity_remarks }}</p>
-            <form wire:submit="replaceIdentity" class="space-y-4">
-                <p class="text-sm text-red-950">{{ __('Upload another valid ID (JPG, PNG, WebP or PDF, up to 5 MB). It is also saved for your next request.') }}</p>
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <flux:select wire:model="newIdType" :label="__('Type of ID')" required>
-                        <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
-                        @foreach ($idTypes as $type)
-                            <flux:select.option :value="$type">{{ $type }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
-                    <flux:input type="file" wire:model="newIdFile" :label="__('Valid ID')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
-                </div>
-                <div wire:loading wire:target="newIdFile" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
-                <flux:button type="submit" variant="primary" icon="arrow-up-tray" wire:loading.attr="disabled" wire:target="newIdFile,replaceIdentity">{{ __('Upload valid ID') }}</flux:button>
-            </form>
+    @if ($request->status === \App\Enums\RequestStatus::PendingCompliance)
+        <section aria-labelledby="compliance-heading" class="space-y-4 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6" data-office-visit-panel>
+            {{-- Office visit: what to bring; nothing to do online (REQ-20-08). --}}
+            <h2 id="compliance-heading" class="text-lg font-semibold text-amber-900">{{ __('Visit the Office of the Registrar') }}</h2>
+            <div>
+                <p class="text-sm text-amber-950">{{ __('Bring the originals of, or complete:') }}</p>
+                <ul class="mt-1 space-y-1" data-missing-items>
+                    @foreach ($request->deficiencies as $deficiency)
+                        <li class="flex items-start gap-2 text-sm">
+                            @if ($deficiency->resolved_at)
+                                <flux:icon.check-circle variant="mini" class="mt-0.5 shrink-0 text-green-700" />
+                                <span class="text-ink"><span class="font-medium">{{ $deficiency->description }}</span> · {{ __('received :date', ['date' => $deficiency->resolved_at->format('M j, Y')]) }}</span>
+                            @else
+                                <flux:icon.exclamation-circle variant="mini" class="mt-0.5 shrink-0 text-amber-700" />
+                                <span class="font-medium text-ink">{{ $deficiency->description }}</span>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+            @if ($returnRemarks !== '')
+                <p class="rounded-md bg-white p-3 text-sm whitespace-pre-line text-ink"><span class="font-semibold">{{ __('Remarks:') }}</span> {{ $returnRemarks }}</p>
+            @endif
+            <p class="text-sm text-amber-950">{{ __('Submit the original documents and complete your clearance at the Registrar\'s Office of UPHSL, personally or through an authorized representative with a Special Power of Attorney (SPA) and the valid IDs of both of you. Your request stays pending until the Office of the Registrar confirms your compliance; the processing period starts only after your requirements and payment are verified and the request is accepted.') }}</p>
         </section>
-    @endcan
+    @endif
 
     @if ($request->requires_payment && in_array($request->status, [\App\Enums\RequestStatus::AwaitingPayment, \App\Enums\RequestStatus::PaymentVerification], true))
         <section aria-labelledby="payment-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6">
