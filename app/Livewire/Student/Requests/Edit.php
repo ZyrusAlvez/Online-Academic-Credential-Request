@@ -8,6 +8,7 @@ use App\Livewire\Forms\CredentialRequestForm;
 use App\Models\CredentialRequest;
 use App\Models\Purpose;
 use App\Services\RequestWorkflow;
+use App\Support\EmptyValue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -123,11 +124,12 @@ class Edit extends Create
     }
 
     /**
-     * Files sent with the request before are kept; the summary lists only new ones.
+     * Files sent with the request before are kept; the summary lists only new ones. Shown in grey
+     * (REQ-15-19).
      */
-    protected function noRequirementFiles(): string
+    protected function noRequirementFiles(): EmptyValue
     {
-        return __('No new files');
+        return new EmptyValue(__('No new files'));
     }
 
     /**

@@ -340,6 +340,16 @@ test('REQ-15-05 the summary shows everything entered with the data privacy notic
         ]);
 });
 
+test('REQ-15-19 on the profile summary a blank optional field reads "Not provided" in grey italics', function () {
+    $summary = Str::after(reviewProfile(['form.middle_name' => '', 'form.student_number' => ''])->html(), 'data-summary-title');
+
+    expect(substr_count($summary, '<span class="font-normal text-zinc-600 italic" data-empty-value>Not provided</span>'))->toBe(2);
+
+    // A value that was entered is never greyed out.
+    $summary = Str::after(reviewProfile(['form.middle_name' => 'Santos', 'form.student_number' => '19-0001-123'])->html(), 'data-summary-title');
+    expect($summary)->not->toContain('data-empty-value')->toContain('Santos');
+});
+
 test('REQ-15-05 the summary shows the saved ID when no other is chosen', function () {
     IdentityDocument::factory()->for($this->student)->create(['id_type' => 'UMID', 'original_name' => 'umid.jpg']);
 
