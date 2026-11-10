@@ -51,7 +51,8 @@ class CredentialRequestFactory extends Factory
     {
         return $this->afterCreating(function (CredentialRequest $request): void {
             $request->forceFill([
-                'reference_no' => sprintf('CR-%s-%06d', $request->created_at->format('Y'), $request->id),
+                // Same format as a real submission (REQ-04-03).
+                'reference_no' => CredentialRequest::trackingNumber($request->id, $request->created_at),
             ])->save();
         });
     }

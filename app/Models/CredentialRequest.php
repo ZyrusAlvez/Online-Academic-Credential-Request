@@ -10,6 +10,7 @@ use App\Enums\RequesterMode;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
 use App\Enums\VisitStatus;
+use Carbon\CarbonInterface;
 use Database\Factories\CredentialRequestFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -110,6 +111,21 @@ class CredentialRequest extends Model
     public function getRouteKeyName(): string
     {
         return 'reference_no';
+    }
+
+    /**
+     * The tracking number shown to requesters, e.g. CR26-00042 (REQ-04-03).
+     */
+    public static function trackingNumber(int $id, CarbonInterface $createdAt): string
+    {
+        // "CR" + the two-digit year it was made, e.g. CR26 for 2026.
+        $prefix = 'CR'.$createdAt->format('y');
+
+        // The request's id, padded with zeros to 5 digits (00042). Past 99999 it simply grows to
+        // 6 digits and more (100000), so the number never runs out or repeats.
+        $number = str_pad((string) $id, 5, '0', STR_PAD_LEFT);
+
+        return "{$prefix}-{$number}";
     }
 
     /**

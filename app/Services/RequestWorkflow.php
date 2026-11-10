@@ -112,8 +112,9 @@ class RequestWorkflow
                 'submitted_at' => now(),
             ])->save();
 
+            // The tracking number uses the id, so it is set once the row exists (REQ-04-03).
             $request->forceFill([
-                'reference_no' => sprintf('CR-%s-%06d', $request->created_at->format('Y'), $request->id),
+                'reference_no' => CredentialRequest::trackingNumber($request->id, $request->created_at),
             ])->save();
 
             $this->record($request, $owner, RequestEventType::Submitted, null, $request->status);

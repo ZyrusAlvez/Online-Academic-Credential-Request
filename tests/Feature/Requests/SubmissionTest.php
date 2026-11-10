@@ -8,6 +8,7 @@ use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Js;
@@ -155,11 +156,21 @@ test('REQ-15-16 the credential dropdown is a searchable list that scrolls within
     expect(Str::between($html, 'aria-haspopup="listbox"', '</button>'))->toContain($this->org->tor->name);
 });
 
+test('REQ-04-03 the tracking number is CR, the two-digit year and the id with at least 5 digits, growing past 99999', function () {
+    $date = Carbon::create(2026, 11, 11);
+
+    expect(CredentialRequest::trackingNumber(1, $date))->toBe('CR26-00001')
+        ->and(CredentialRequest::trackingNumber(42, $date))->toBe('CR26-00042')
+        ->and(CredentialRequest::trackingNumber(99999, $date))->toBe('CR26-99999')
+        ->and(CredentialRequest::trackingNumber(100000, $date))->toBe('CR26-100000')
+        ->and(CredentialRequest::trackingNumber(1234567, Carbon::create(2027, 1, 1)))->toBe('CR27-1234567');
+});
+
 test('REQ-04-03 a submitted request gets a tracking number and snapshots of the profile and fee', function () {
     $request = submitRequest($this->owner, $this->org->tor);
 
     expect($request->status)->toBe(RequestStatus::Submitted)
-        ->and($request->reference_no)->toBe(sprintf('CR-%s-%06d', now()->year, $request->id))
+        ->and($request->reference_no)->toBe(sprintf('CR%s-%05d', now()->format('y'), $request->id))
         ->and($request->submitted_at)->not->toBeNull()
         ->and($request->accepted_at)->toBeNull()
         ->and($request->due_at)->toBeNull()
