@@ -50,7 +50,9 @@ identity, and My Profile in REQ-09-09/12.
   link that opens it in the file viewer) and use it, unless they choose a different one (type of ID
   and an image or PDF file of at most 5 MB). WHEN they have none THE SYSTEM SHALL require one.
   WHEN an ID file is chosen THE SYSTEM SHALL show its name as a link that opens the chosen file in
-  the file viewer, in their own browser, before anything is uploaded.
+  the file viewer, in their own browser, before anything is uploaded. The name SHALL appear once,
+  next to a "Choose file" (then "Change file") button; the browser's own picker, which repeats it,
+  is hidden, and the upload shows the progress bar of REQ-04-18. *(User's report, 2026-11-10.)*
 - **REQ-15-05** WHEN the requester chooses "Review request" THE SYSTEM SHALL check every entry and
   save nothing. IF an entry is missing or invalid THEN THE SYSTEM SHALL show the errors modal of
   REQ-01-26. Otherwise THE SYSTEM SHALL show a "Summary" of the request, the personal and academic
