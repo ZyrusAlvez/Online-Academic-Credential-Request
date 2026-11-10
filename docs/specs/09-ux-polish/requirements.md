@@ -74,8 +74,9 @@
 - **REQ-09-11** WHEN a credential is chosen on New Request THE SYSTEM SHALL show its details
   (REQ-04-02) as a card: the fee and the processing period side by side, then the offices of its
   route as a numbered list, one office per line with its task (the Dean step names the requester's
-  college), ending with the Office of the Registrar's final quality check, then the documentary
-  requirements as a checklist and the special conditions as a note.
+  college), ending with the Office of the Registrar's final quality check, then the special
+  conditions as a note. *(Changed by REQ-15-03, 2026-11-10: the documentary requirements are
+  section 2 of New Request, no longer in the card.)*
 - **REQ-09-12** THE SYSTEM SHALL lay out New Request and My Requests alike: one centred
   column of the same width, with the content in bordered sections that share their padding and
   heading style; My Requests lists the requests inside a "Your requests" section.

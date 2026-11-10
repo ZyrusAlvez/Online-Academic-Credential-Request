@@ -33,13 +33,19 @@ identity, and My Profile in REQ-09-09/12.
 
 ### New Request
 - **REQ-15-03** THE SYSTEM SHALL show New Request as numbered sections: what you need (credential,
-  purpose, receiving school), personal information (first, middle (optional) and last name,
-  contact number), academic information (the fields of REQ-01-16), valid ID, and who will transact,
-  followed by the *Incomplete requirements* notice; the personal and academic sections SHALL start
-  filled in from the requester's saved profile.
+  purpose, receiving school), documentary requirements (the chosen credential's upload fields,
+  REQ-04-18), personal information (first, middle (optional) and last name, contact number),
+  academic information (the fields of REQ-01-16), valid ID, and who will transact, followed by the
+  *Incomplete requirements* notice; the personal and academic sections SHALL start filled in from
+  the requester's saved profile. *(User's decision, 2026-11-10: documentary requirements are
+  section 2, no longer inside the credential's card.)*
 - **REQ-15-15** WHEN a credential is chosen on New Request THE SYSTEM SHALL show its details card
-  (REQ-09-11) and the matching receiving-school field at once, in the browser, without waiting for
-  the server.
+  (REQ-09-11), its documentary requirements and the matching receiving-school field at once, in the
+  browser, without waiting for the server.
+- **REQ-15-16** THE credential dropdown on New Request SHALL open just below the field as a list of
+  limited height that scrolls, with a search box that filters it by name, so that every credential
+  can be seen and chosen on any screen; it SHALL work with the keyboard (arrows, Enter, Escape) and
+  with screen readers. *(User's report, 2026-11-10: the browser's own list ran off the screen.)*
 - **REQ-15-04** WHEN the requester has a saved ID THE SYSTEM SHALL show it (type, upload date, a
   link that opens it in the file viewer) and use it, unless they choose a different one (type of ID
   and an image or PDF file of at most 5 MB). WHEN they have none THE SYSTEM SHALL require one.

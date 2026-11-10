@@ -90,10 +90,10 @@ test('REQ-04-02 the form shows requirements, fee, period, offices, conditions an
     expect(credentialCardShown($page->html(), $this->org->tor))->toBeFalse()
         ->and(credentialCardShown($page->html(), $this->org->free))->toBeFalse();
 
+    expect(requirementBlock($page->html(), $this->org->tor))->toContain('PSA-authenticated birth certificate');
+
     $card = credentialCard($page->html(), $this->org->tor);
-    expect($card)->toContain('Documentary requirements')
-        ->toContain('PSA-authenticated birth certificate')
-        ->toContain('₱530.00')
+    expect($card)->toContain('₱530.00')
         ->toContain('Bring the original diploma.')
         ->toMatch('/7 working days.*from acceptance/s')
         ->toMatch('/Office of the VP for Finance.*\(documentary stamp\).*\(final quality check\)/s');
@@ -110,7 +110,16 @@ test('REQ-15-15 the chosen credential\'s details show in the browser at once, wi
     expect($html)->toContain('wire:model="form.credential_type_id"')
         ->not->toContain('wire:model.live="form.credential_type_id"')
         ->and(credentialCard($html, $this->org->tor))->toContain("x-show=\"String(\$wire.form.credential_type_id ?? '') === '{$this->org->tor->id}'\"")
-        ->and(credentialCard($html, $this->org->free))->toContain("=== '{$this->org->free->id}'");
+        ->and(credentialCard($html, $this->org->free))->toContain("=== '{$this->org->free->id}'")
+        ->and(requirementBlock($html, $this->org->tor))->toContain("x-show=\"String(\$wire.form.credential_type_id ?? '') === '{$this->org->tor->id}'\"")
+        ->and(requirementBlockShown($html, $this->org->tor))->toBeFalse()
+        ->and($html)->toContain('Choose a credential in section 1 to see its documentary requirements.');
+
+    // A credential chosen on the server (Edit Request) starts with its requirements shown.
+    $html = Livewire::actingAs($this->owner)->test(Create::class)->set('form.credential_type_id', $this->org->tor->id)->html();
+    expect(requirementBlockShown($html, $this->org->tor))->toBeTrue()
+        ->and(requirementBlockShown($html, $this->org->free))->toBeFalse()
+        ->and($html)->toMatch('/<p[^>]*style="display: none"[^>]*data-requirements-placeholder/');
 
     // The receiving-school field follows the chosen credential the same way.
     $transfer = CredentialType::factory()->withSteps([$this->org->registrarOffice])->create(['requires_receiving_institution' => true]);
@@ -118,6 +127,32 @@ test('REQ-15-15 the chosen credential\'s details show in the browser at once, wi
     expect(Str::after($html, 'data-receiving-school'))->toContain(Js::from([(string) $transfer->id])->toHtml())
         ->toContain('x-text="transfer ?')
         ->toContain('x-bind:required="transfer"');
+});
+
+test('REQ-15-16 the credential dropdown is a searchable list that scrolls within the page', function () {
+    $html = Livewire::actingAs($this->owner)->test(Create::class)->html();
+    $menu = Str::between($html, 'wire:model="form.credential_type_id"', 'data-credential-card');
+
+    // Not the browser's own <select>, whose list of every credential ran off the screen.
+    expect($html)->not->toMatch('/<select[^>]*form\.credential_type_id/')
+        ->and($menu)->toContain('x-modelable="value"')
+        ->toContain('aria-haspopup="listbox"')
+        ->toContain('role="combobox"')
+        ->toContain('aria-label="Search credentials"')
+        ->toContain('role="listbox"')
+        ->toContain('max-h-64 overflow-y-auto')
+        ->toContain('Choose a credential…')
+        ->toContain('x-on:keydown.enter.prevent')
+        ->toContain('x-on:keydown.escape.prevent.stop')
+        // Every active credential is in its list.
+        ->toContain($this->org->free->name)
+        ->toContain($this->org->tor->name);
+
+    expect(file_get_contents(resource_path('js/app.js')))->toContain("Alpine.data('selectMenu'");
+
+    // A credential already chosen (Edit Request) shows its name on the closed dropdown.
+    $html = Livewire::actingAs($this->owner)->test(Create::class)->set('form.credential_type_id', $this->org->tor->id)->html();
+    expect(Str::between($html, 'aria-haspopup="listbox"', '</button>'))->toContain($this->org->tor->name);
 });
 
 test('REQ-04-03 a submitted request gets a tracking number and snapshots of the profile and fee', function () {

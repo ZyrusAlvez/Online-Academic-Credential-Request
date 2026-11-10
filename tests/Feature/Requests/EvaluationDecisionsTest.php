@@ -225,7 +225,7 @@ test('REQ-20-06 Edit Request is the New Request form filled in from the request,
         ->assertSet('form.purpose_other', 'For my own records')
         ->assertSet('profile.first_name', $this->owner->first_name)
         ->assertSee('Edit request '.$this->request->reference_no)
-        ->assertDontSee('5. Who Will Transact?')
+        ->assertDontSee('6. Who Will Transact?')
         ->assertDontSeeHtml('data-id-rejected')
         ->call('review')
         ->assertHasNoErrors()

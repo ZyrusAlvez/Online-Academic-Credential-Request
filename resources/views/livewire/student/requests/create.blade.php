@@ -27,12 +27,9 @@
         <section aria-labelledby="what-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <h2 id="what-heading" class="text-lg font-semibold text-primary">{{ __('1. What Do You Need?') }}</h2>
 
-            <flux:select wire:model="form.credential_type_id" :label="__('Credential')" :description="__('Choose one to see its fee, requirements and processing time.')" required>
-                <flux:select.option value="">{{ __('Choose a credential…') }}</flux:select.option>
-                @foreach ($types as $type)
-                    <flux:select.option :value="$type->id">{{ $type->name }}</flux:select.option>
-                @endforeach
-            </flux:select>
+            <x-select-menu wire:model="form.credential_type_id" :label="__('Credential')" :description="__('Choose one to see its fee, requirements and processing time.')"
+                :options="$types->pluck('name', 'id')->all()" :value="$form->credential_type_id"
+                :placeholder="__('Choose a credential…')" :search-label="__('Search credentials')" />
 
             {{-- Every credential's details are on the page and the chosen one is shown in the browser at
                  once, without a trip to the server (REQ-15-15). --}}
@@ -87,33 +84,6 @@
                             </ol>
                         </div>
 
-                        @if ($type->requirements)
-                            {{-- One file field per requirement; all optional, so none is marked (REQ-04-18). --}}
-                            <div data-requirement-uploads>
-                                <h4 class="font-semibold text-ink">{{ __('Documentary requirements') }}</h4>
-                                <p class="mt-1 text-zinc-600">{{ __('Upload a copy of each requirement you have: up to :max files each, JPG, PNG, WebP or PDF, 5 MB per file. The Registrar\'s Office still checks the originals.', ['max' => \App\Models\RequestDocument::MAX_PER_REQUIREMENT]) }}</p>
-                                @if ($editing)
-                                    <p class="mt-1 text-zinc-600">{{ __('Files you already sent stay with your request; add more only if needed.') }}</p>
-                                @endif
-                                <ul role="list" class="mt-4 space-y-5">
-                                    @foreach ($type->requirements as $index => $requirement)
-                                        @php($field = "requirementFiles.{$type->id}.{$index}")
-                                        @php($chosen = count((array) ($requirementFiles[$type->id][$index] ?? [])))
-                                        <li class="space-y-2" wire:key="requirement-{{ $type->id }}-{{ $index }}-{{ $requirementResets[$field] ?? 0 }}">
-                                            <flux:input type="file" wire:model="{{ $field }}" multiple :label="$requirement" accept=".jpg,.jpeg,.png,.webp,.pdf" />
-                                            <div wire:loading wire:target="{{ $field }}" class="text-zinc-600">{{ __('Uploading…') }}</div>
-                                            @if ($chosen > 0)
-                                                <div class="flex flex-wrap items-center gap-2 text-zinc-600">
-                                                    <span>{{ trans_choice(':count file ready to send|:count files ready to send', $chosen) }}</span>
-                                                    <flux:button size="xs" variant="ghost" icon="x-mark" wire:click="clearRequirementFiles({{ $type->id }}, {{ $index }})">{{ __('Remove') }}</flux:button>
-                                                </div>
-                                            @endif
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-
                         @if ($type->special_conditions)
                             <div class="flex items-start gap-2 rounded-lg bg-primary-50 p-3 text-ink">
                                 <flux:icon.information-circle variant="mini" class="mt-0.5 shrink-0 text-primary" />
@@ -156,20 +126,65 @@
             </div>
         </section>
 
+        {{-- The chosen credential's requirements, shown in the browser like its card (REQ-15-03, 15). --}}
+        @php($chosenId = (string) ($form->credential_type_id ?? ''))
+        <section aria-labelledby="requirements-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6" data-requirements-section>
+            <h2 id="requirements-heading" class="text-lg font-semibold text-primary">{{ __('2. Documentary Requirements') }}</h2>
+
+            <div aria-live="polite" class="text-sm">
+                <p x-show="String($wire.form.credential_type_id ?? '') === ''" @if ($chosenId !== '') style="display: none" @endif class="text-zinc-600" data-requirements-placeholder>
+                    {{ __('Choose a credential in section 1 to see its documentary requirements.') }}
+                </p>
+
+                @foreach ($types as $type)
+                    <div wire:key="requirements-{{ $type->id }}" data-requirement-block="{{ $type->id }}"
+                        x-show="String($wire.form.credential_type_id ?? '') === '{{ $type->id }}'" @if ($chosenId !== (string) $type->id) x-cloak style="display: none" @endif>
+                        @if ($type->requirements)
+                            {{-- One file field per requirement; all optional, so none is marked (REQ-04-18). --}}
+                            <div data-requirement-uploads>
+                                <p class="text-zinc-600">{{ __('Upload a copy of each requirement you have: up to :max files each, JPG, PNG, WebP or PDF, 5 MB per file. The Registrar\'s Office still checks the originals.', ['max' => \App\Models\RequestDocument::MAX_PER_REQUIREMENT]) }}</p>
+                                @if ($editing)
+                                    <p class="mt-1 text-zinc-600">{{ __('Files you already sent stay with your request; add more only if needed.') }}</p>
+                                @endif
+                                <ul role="list" class="mt-5 space-y-5">
+                                    @foreach ($type->requirements as $index => $requirement)
+                                        @php($field = "requirementFiles.{$type->id}.{$index}")
+                                        @php($chosen = count((array) ($requirementFiles[$type->id][$index] ?? [])))
+                                        <li class="space-y-2" wire:key="requirement-{{ $type->id }}-{{ $index }}-{{ $requirementResets[$field] ?? 0 }}">
+                                            <flux:input type="file" wire:model="{{ $field }}" multiple :label="$requirement" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+                                            <div wire:loading wire:target="{{ $field }}" class="text-zinc-600">{{ __('Uploading…') }}</div>
+                                            @if ($chosen > 0)
+                                                <div class="flex flex-wrap items-center gap-2 text-zinc-600">
+                                                    <span>{{ trans_choice(':count file ready to send|:count files ready to send', $chosen) }}</span>
+                                                    <flux:button size="xs" variant="ghost" icon="x-mark" wire:click="clearRequirementFiles({{ $type->id }}, {{ $index }})">{{ __('Remove') }}</flux:button>
+                                                </div>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @else
+                            <p class="text-zinc-600">{{ __(':credential has no documentary requirements to upload.', ['credential' => $type->name]) }}</p>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        </section>
+
         @if ($idRejected)
             {{-- The ID sent with the request was not accepted: another is required (REQ-20-06). --}}
             <flux:callout icon="exclamation-triangle" color="red" data-id-rejected>
                 <flux:callout.heading>{{ __('Your valid ID was not accepted') }}</flux:callout.heading>
-                <flux:callout.text>{{ $editing->identity_remarks }} {{ __('Upload another valid ID in section 4.') }}</flux:callout.text>
+                <flux:callout.text>{{ $editing->identity_remarks }} {{ __('Upload another valid ID in section 5.') }}</flux:callout.text>
             </flux:callout>
         @endif
 
-        {{-- Sections 2 to 4, filled in from the saved profile (REQ-15-03, 04). --}}
-        @include('partials.requester-profile-fields', ['prefix' => 'profile', 'fields' => $profile, 'number' => 2])
+        {{-- Sections 3 to 5, filled in from the saved profile (REQ-15-03, 04). --}}
+        @include('partials.requester-profile-fields', ['prefix' => 'profile', 'fields' => $profile, 'number' => 3])
 
         @unless ($editing)
         <section aria-labelledby="rep-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
-            <h2 id="rep-heading" class="text-lg font-semibold text-primary">{{ __('5. Who Will Transact?') }}</h2>
+            <h2 id="rep-heading" class="text-lg font-semibold text-primary">{{ __('6. Who Will Transact?') }}</h2>
 
             <flux:radio.group wire:model.live="form.requester_mode" :label="__('Submitting documents and claiming the credential')">
                 @foreach (\App\Enums\RequesterMode::cases() as $mode)
