@@ -42,7 +42,10 @@ and `CorrectRequesterName` are removed; activity logs get the review through the
 - `RequesterProfileForm` is shared by New Request and Settings → Profile. It loses the lock and the
   locked name; the ID is optional when one is saved and required otherwise. Its fields are one
   Blade partial, `partials/requester-profile-fields`, and the summary another,
-  `partials/requester-profile-summary`.
+  `partials/requester-profile-summary`. Every summary section is the `x-summary-section`
+  component: a heading and a list of label/value rows (label left, value right from `sm`). New
+  Request numbers them like the form (REQ-15-17): `Create::summarySections()` gives sections 1, 2
+  and 6, the profile partial 3 to 5.
 - `Student\Requests\Create`: form → summary (`reviewing`) → submit. `submit()` runs one transaction:
   save the profile, store a new ID through `SubmitIdentityDocument`, `RequestWorkflow::submit()`,
   declare the representative. If it fails, a stored ID file is deleted.

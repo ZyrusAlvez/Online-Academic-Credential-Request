@@ -10,11 +10,14 @@
         @endif
     </flux:breadcrumbs>
 
-    @if ($editing)
-        <x-page-header :title="__('Edit request :ref', ['ref' => $editing->reference_no])" :description="__('Correct your request, then resubmit it.')" />
-    @else
-        <x-page-header title="Request a credential" description="Fill in the form, review it, and submit." />
-    @endif
+    {{-- On the summary, "Summary" is the page's title instead (REQ-15-17). --}}
+    @unless ($reviewing)
+        @if ($editing)
+            <x-page-header :title="__('Edit request :ref', ['ref' => $editing->reference_no])" :description="__('Correct your request, then resubmit it.')" />
+        @else
+            <x-page-header title="Request a credential" description="Fill in the form, review it, and submit." />
+        @endif
+    @endunless
 
     {{-- Not shown: it announces the step to screen readers and is the focus target of showStep(). --}}
     <p id="request-step" tabindex="-1" class="sr-only">
@@ -154,10 +157,18 @@
                                     @foreach ($type->requirements as $index => $requirement)
                                         @php($field = "requirementFiles.{$type->id}.{$index}")
                                         @php($files = array_values(array_filter((array) ($requirementFiles[$type->id][$index] ?? []), fn ($file): bool => $file instanceof \Illuminate\Http\UploadedFile)))
-                                        <li class="rounded-lg border border-zinc-200 p-4" wire:key="requirement-{{ $type->id }}-{{ $index }}" data-requirement-field="{{ $index }}">
-                                            <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                                                <h3 class="font-medium text-ink">{{ $requirement }}</h3>
-                                                <span class="shrink-0 text-zinc-600" data-file-count>{{ $files === [] ? __('No files yet') : __(':count of :max files', ['count' => count($files), 'max' => $max]) }}</span>
+                                        {{-- Livewire's upload events bubble up from the picker and drive the progress bar. --}}
+                                        <li class="rounded-lg border border-zinc-200 p-4" wire:key="requirement-{{ $type->id }}-{{ $index }}" data-requirement-field="{{ $index }}"
+                                            x-data="{ uploading: false, progress: 0 }"
+                                            x-on:livewire-upload-start="uploading = true; progress = 0"
+                                            x-on:livewire-upload-progress="progress = $event.detail.progress"
+                                            x-on:livewire-upload-finish="uploading = false"
+                                            x-on:livewire-upload-error="uploading = false"
+                                            x-on:livewire-upload-cancel="uploading = false">
+                                            {{-- The count stays at the right, however long the requirement's name (REQ-04-18). --}}
+                                            <div class="flex items-start justify-between gap-4">
+                                                <h3 class="min-w-0 flex-1 font-medium text-ink">{{ $requirement }}</h3>
+                                                <span class="shrink-0 whitespace-nowrap text-zinc-600" data-file-count>{{ $files === [] ? __('No files yet') : __(':count of :max files', ['count' => count($files), 'max' => $max]) }}</span>
                                             </div>
 
                                             @if ($files !== [])
@@ -174,17 +185,33 @@
                                                 </ul>
                                             @endif
 
+                                            {{-- While files upload, a progress bar takes the button's place (REQ-04-18). --}}
+                                            <div x-show="uploading" x-cloak style="display: none" role="status" class="mt-3 rounded-md border border-secondary/50 bg-primary-50 px-3 py-2.5" data-upload-progress>
+                                                <div class="flex items-center justify-between gap-3">
+                                                    <span class="flex items-center gap-2 font-medium text-primary">
+                                                        <flux:icon.loading variant="mini" />
+                                                        {{ __('Uploading…') }}
+                                                    </span>
+                                                    <span class="tabular-nums text-zinc-600" x-text="progress + '%'">0%</span>
+                                                </div>
+                                                <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary/40" aria-hidden="true">
+                                                    <div class="h-full rounded-full bg-primary transition-[width] duration-200" x-bind:style="{ width: progress + '%' }" style="width: 0%"></div>
+                                                </div>
+                                            </div>
+
                                             @if (count($files) < $max)
-                                                {{-- The picker itself is hidden: its "No file chosen" or last name is misleading. --}}
-                                                <label wire:key="requirement-{{ $type->id }}-{{ $index }}-picker-{{ $requirementResets[$field] ?? 0 }}"
-                                                    class="mt-3 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 font-medium text-ink shadow-xs hover:bg-zinc-50 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-highlight">
-                                                    <flux:icon.plus variant="mini" class="text-zinc-500" />
-                                                    {{ $files === [] ? __('Choose files') : __('Add more files') }}
-                                                    <span class="sr-only">{{ __('for :requirement', ['requirement' => $requirement]) }}</span>
-                                                    <input type="file" wire:model="{{ $field }}" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" class="sr-only" />
-                                                </label>
+                                                {{-- The picker itself is hidden: its "No file chosen" or last name is misleading.
+                                                     The ring shows for keyboard focus only, not after a click. --}}
+                                                <div x-show="! uploading" class="mt-3 flex justify-end">
+                                                    <label wire:key="requirement-{{ $type->id }}-{{ $index }}-picker-{{ $requirementResets[$field] ?? 0 }}"
+                                                        class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 font-medium text-ink shadow-xs hover:bg-zinc-50 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-highlight">
+                                                        <flux:icon.plus variant="mini" class="text-zinc-500" />
+                                                        {{ $files === [] ? __('Choose files') : __('Add more files') }}
+                                                        <span class="sr-only">{{ __('for :requirement', ['requirement' => $requirement]) }}</span>
+                                                        <input type="file" wire:model="{{ $field }}" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" class="sr-only" />
+                                                    </label>
+                                                </div>
                                             @endif
-                                            <div wire:loading wire:target="{{ $field }}" class="mt-2 text-zinc-600">{{ __('Uploading…') }}</div>
                                             <flux:error :name="$field" />
                                         </li>
                                     @endforeach
@@ -258,25 +285,21 @@
     </form>
 
     @if ($reviewing)
-        <div class="space-y-8">
-            <div class="space-y-1">
-                <h2 class="text-xl font-bold text-primary" data-summary-title>{{ __('Summary') }}</h2>
-                <flux:text>{{ __('Check that everything is correct.') }}</flux:text>
-            </div>
+        {{-- The form's sections in the same order and numbers, label left and value right (REQ-15-17). --}}
+        <div class="space-y-6">
+            <h1 class="text-3xl font-bold text-primary" data-summary-title>{{ __('Summary') }}</h1>
 
-            <section aria-labelledby="summary-request-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
-                <h3 id="summary-request-heading" class="text-lg font-semibold text-primary">{{ __('Request') }}</h3>
-                <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-                    @foreach ($requestSummary as $label => $value)
-                        <div>
-                            <dt class="text-zinc-500">{{ __($label) }}</dt>
-                            <dd class="font-medium break-words text-ink">{{ $value }}</dd>
-                        </div>
-                    @endforeach
-                </dl>
-            </section>
+            @foreach ($requestSummary as $heading => $rows)
+                <x-summary-section :heading="$heading" :rows="$rows" :level="2" />
+            @endforeach
 
-            @include('partials.requester-profile-summary', ['prefix' => 'profile', 'fields' => $profile])
+            @include('partials.requester-profile-summary', ['fields' => $profile, 'number' => 3, 'level' => 2])
+
+            @if ($transactSummary !== [])
+                <x-summary-section :heading="__('6. Who Will Transact?')" :rows="$transactSummary" :level="2" />
+            @endif
+
+            @include('partials.privacy-consent', ['prefix' => 'profile', 'level' => 2])
 
             @if ($editing)
                 <flux:textarea wire:model="note" :label="__('Note to the Office of the Registrar')" badge="Optional" :description="__('What you corrected.')" rows="2" data-resubmit-note />

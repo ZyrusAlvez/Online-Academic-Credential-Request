@@ -93,10 +93,36 @@ test('REQ-04-18 every requirement is optional', function () {
     expect(CredentialRequest::sole()->requirementDocuments()->count())->toBe(0);
 });
 
-test('REQ-04-18 the review summary counts the requirement files', function () {
-    torRequestForm()->set("requirementFiles.{$this->org->tor->id}.1", [fakePdf(), fakePdf('second.pdf')])
-        ->call('review')->assertHasNoErrors()
-        ->assertSee('Requirement files')->assertSee('2 files');
+test('REQ-04-18 the review summary lists every requirement with the names of its files', function () {
+    $summary = Str::after(torRequestForm()->set("requirementFiles.{$this->org->tor->id}.1", [fakePdf('clearance.pdf', 200), fakePdf('second.pdf', 100)])
+        ->call('review')->assertHasNoErrors()->html(), 'data-summary-title');
+
+    expect($summary)->toContain('2. Documentary Requirements')
+        ->and(Str::between($summary, 'Completed clearance', 'PSA-authenticated birth certificate'))->toContain('No files')
+        ->and(Str::after($summary, 'PSA-authenticated birth certificate'))->toContain('clearance.pdf (200 KB)')->toContain('second.pdf (100 KB)');
+});
+
+test('REQ-04-18 the file count stays right of the requirement and the button right of the field', function () {
+    $field = Str::between(requirementBlock(torRequestForm()->html(), $this->org->tor), 'data-requirement-field="0"', 'data-requirement-field="1"');
+
+    // The name takes the room left by the count, which never wraps under it.
+    expect($field)->toMatch('/<h3 class="min-w-0 flex-1[^"]*">Completed clearance/')
+        ->toMatch('/<span class="shrink-0 whitespace-nowrap[^"]*" data-file-count>/')
+        ->toMatch('/<div x-show="! uploading" class="mt-3 flex justify-end">\s*<label/');
+});
+
+test('REQ-04-18 while files upload, the field shows a progress bar with the percentage in place of the button', function () {
+    $field = Str::between(requirementBlock(torRequestForm()->html(), $this->org->tor), 'data-requirement-field="0"', 'data-requirement-field="1"');
+
+    expect($field)->toContain('x-on:livewire-upload-start="uploading = true; progress = 0"')
+        ->toContain('x-on:livewire-upload-progress="progress = $event.detail.progress"')
+        ->toContain('x-on:livewire-upload-finish="uploading = false"')
+        ->toContain('x-on:livewire-upload-error="uploading = false"')
+        ->toMatch('/<div x-show="uploading"[^>]*role="status"[^>]*data-upload-progress>/')
+        ->toContain('x-text="progress + \'%\'"')
+        ->toContain('Uploading…')
+        // Not the old loading text, which sat beside the button.
+        ->not->toContain('wire:loading');
 });
 
 test('REQ-04-18 files are checked as soon as they are chosen: at most 5, JPG, PNG, WebP or PDF, 5 MB each', function (array $files, string $message) {
