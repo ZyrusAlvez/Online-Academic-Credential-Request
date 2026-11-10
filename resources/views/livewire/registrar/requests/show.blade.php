@@ -9,7 +9,7 @@
     $visit = $request->openVisit;
 
     [$queueLabel, $queueRoute] = match ($panel) {
-        Page::PANEL_LOCKED, Page::PANEL_START, Page::PANEL_EVALUATION, Page::PANEL_RETURNED => [__('Initial Evaluation'), 'registrar.evaluation'],
+        Page::PANEL_LOCKED, Page::PANEL_START, Page::PANEL_EVALUATION, Page::PANEL_CLARIFICATION, Page::PANEL_COMPLIANCE => [__('Initial Evaluation'), 'registrar.evaluation'],
         Page::PANEL_PAYMENT => [__('Payment Validation'), 'registrar.payments'],
         Page::PANEL_FINAL_CHECK => [__('Final Quality Check'), 'registrar.final-check'],
         Page::PANEL_RELEASE => [__('Release'), 'registrar.release'],
@@ -57,15 +57,52 @@
             </section>
         @endif
 
-        @if ($panel === Page::PANEL_RETURNED)
-            <section aria-labelledby="returned-heading" class="space-y-3 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6">
-                <h2 id="returned-heading" class="text-lg font-semibold text-amber-900">{{ __('Returned to the Requester') }}</h2>
+        @if ($panel === Page::PANEL_CLARIFICATION)
+            {{-- Returned for clarification: the requester corrects it online (REQ-20-03, 05). --}}
+            <section aria-labelledby="clarification-heading" class="space-y-3 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6" data-clarification-panel>
+                <h2 id="clarification-heading" class="text-lg font-semibold text-amber-900">{{ __('Returned for Clarification') }}</h2>
                 @if ($lastReturn)
                     <p class="text-sm whitespace-pre-line text-amber-950">{{ $lastReturn->remarks }}</p>
                     <p class="text-xs text-amber-900">{{ __(':date · :name', ['date' => $lastReturn->created_at->format('M j, Y g:i A'), 'name' => $lastReturn->actor?->name]) }}</p>
                 @endif
-                <p class="text-sm text-amber-950">{{ __('It comes back here when the requester resubmits. If they complied in person, reopen the evaluation.') }}</p>
-                <flux:button wire:click="reopenEvaluation" variant="primary" icon="arrow-path">{{ __('Reopen evaluation') }}</flux:button>
+                <p class="text-sm text-amber-950">{{ __('It comes back to Initial Evaluation when the requester edits and resubmits it.') }}</p>
+            </section>
+        @endif
+
+        @if ($panel === Page::PANEL_COMPLIANCE)
+            {{-- Office visit: each missing item is marked received, then compliance is confirmed (REQ-20-09). --}}
+            @php($outstanding = $request->deficiencies->whereNull('resolved_at')->count())
+            <section aria-labelledby="compliance-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-compliance-panel>
+                <div>
+                    <h2 id="compliance-heading" class="text-lg font-semibold text-primary">{{ __('Office Visit') }}</h2>
+                    <p class="text-sm text-zinc-700">{{ __('Mark each requirement received as the requester or their representative submits the original, then confirm compliance.') }}</p>
+                </div>
+                @if ($lastReturn)
+                    <p class="rounded-md bg-white p-3 text-sm whitespace-pre-line text-ink">{{ $lastReturn->remarks }}</p>
+                @endif
+                <ul class="divide-y divide-secondary/40 rounded-lg border border-secondary/50 bg-white" data-missing-items>
+                    @foreach ($request->deficiencies as $deficiency)
+                        <li wire:key="missing-{{ $deficiency->id }}" class="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
+                            <span class="font-medium text-ink">{{ $deficiency->description }}</span>
+                            @if ($deficiency->resolved_at)
+                                <span class="inline-flex items-center gap-1 text-green-800" data-received>
+                                    <flux:icon.check-circle variant="mini" aria-hidden="true" />
+                                    {{ __('Received :date · :name', ['date' => $deficiency->resolved_at->format('M j, Y g:i A'), 'name' => $deficiency->resolver?->name]) }}
+                                </span>
+                            @else
+                                <flux:button size="sm" wire:click="markReceived({{ $deficiency->id }})" icon="inbox-arrow-down" data-mark-received>{{ __('Mark Received') }}</flux:button>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
+                <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
+                    <flux:button wire:click="decline" variant="danger" icon="no-symbol" data-decline-button data-confirm-title="{{ __('Decline request') }}" data-confirm-label="{{ __('Decline') }}" :wire:confirm="__('Decline :ref? The requester is notified with your remarks. This cannot be undone.', ['ref' => $request->reference_no])">{{ __('Decline') }}</flux:button>
+                    <flux:button wire:click="confirmCompliance" variant="primary" icon="check" data-confirm-compliance>{{ __('Confirm Compliance') }}</flux:button>
+                </div>
+                @if ($outstanding > 0)
+                    <p class="text-center text-xs text-zinc-600">{{ trans_choice(':count requirement still to receive.|:count requirements still to receive.', $outstanding) }}</p>
+                @endif
             </section>
         @endif
 
@@ -204,6 +241,8 @@
                     <p class="text-sm text-zinc-700">
                         @if ($allConfirmed)
                             {{ __('Every part is confirmed.') }}
+                        @elseif ($anyRejected && $panel === Page::PANEL_EVALUATION)
+                            {{ __('Some parts are rejected: return for clarification, require an office visit, or decline, with remarks.') }}
                         @elseif ($anyRejected)
                             {{ __('Some parts are rejected: return or decline, with remarks.') }}
                         @else
@@ -224,7 +263,11 @@
                 <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
                     <flux:button wire:click="decline" variant="danger" icon="no-symbol" data-decline-button data-confirm-title="{{ __('Decline request') }}" data-confirm-label="{{ __('Decline') }}" :wire:confirm="__('Decline :ref? The requester is notified with your remarks. This cannot be undone.', ['ref' => $request->reference_no])">{{ __('Decline') }}</flux:button>
                     @if ($panel === Page::PANEL_EVALUATION)
-                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return to requester') }}</flux:button>
+                        {{-- The four evaluation decisions (REQ-20-02). --}}
+                        <flux:modal.trigger name="office-visit">
+                            <flux:button icon="building-office" data-office-visit-button>{{ __('Require Office Visit') }}</flux:button>
+                        </flux:modal.trigger>
+                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return for Clarification') }}</flux:button>
                     @elseif ($panel === Page::PANEL_PAYMENT)
                         <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return') }}</flux:button>
                     @endif
@@ -292,6 +335,7 @@
         {{-- The ledger is on the Records page only (REQ-17-04). --}}
         @include('partials.request-record', ['hide' => ['ledger', ...match ($panel) {
             Page::PANEL_EVALUATION => ['details', 'representatives'],
+            Page::PANEL_COMPLIANCE => ['deficiencies'],
             Page::PANEL_FINAL_CHECK => $visit->status === \App\Enums\VisitStatus::InTransit ? [] : ['route'],
             default => [],
         }]])
@@ -303,13 +347,23 @@
             <flux:heading size="lg">
                 {{ match ($blockedAction) {
                     'approve' => __("Can't approve yet"),
-                    'return' => __("Can't return yet"),
+                    'return' => $panel === Page::PANEL_EVALUATION ? __("Can't return for clarification yet") : __("Can't return yet"),
+                    'confirm' => __("Can't confirm compliance yet"),
                     'decline' => __("Can't decline yet"),
                     default => __("Can't do that yet"),
                 } }}
             </flux:heading>
 
-            @if ($blockedParts !== [])
+            @if ($blockedAction === 'confirm' && $blockedParts !== [])
+                {{-- Confirm Compliance: the items still to receive (REQ-20-09). --}}
+                <p class="text-sm text-ink">{{ __('Confirm Compliance needs every missing requirement received. Still to receive:') }}</p>
+                <ul class="list-disc space-y-1 ps-5 text-sm text-ink" data-blocked-parts>
+                    @foreach ($blockedParts as $part)
+                        <li>{{ $part['label'] }}</li>
+                    @endforeach
+                </ul>
+                <p class="text-sm text-ink" data-blocked-hint>{{ __('Mark each one received when the original is submitted.') }}</p>
+            @elseif ($blockedParts !== [])
                 {{-- Approve: the rule, what blocks it, and how to approve; never Return or Decline. --}}
                 {{-- One-line PHP directives only: a PHP block here would pair with the one-line directive above and swallow the page. --}}
                 @php($toConfirm = collect($blockedParts)->where('state', '!==', 'missing')->count())
@@ -362,6 +416,31 @@
             </div>
         </div>
     </flux:modal>
+
+    @if ($panel === Page::PANEL_EVALUATION)
+        {{-- Require Office Visit: what the requester must bring (REQ-20-04). --}}
+        <flux:modal name="office-visit" class="w-full md:w-[32rem]" data-office-visit-modal>
+            <form wire:submit="requireOfficeVisit" class="space-y-6">
+                <div>
+                    <flux:heading size="lg">{{ __('Require Office Visit') }}</flux:heading>
+                    <flux:text class="mt-2">{{ __('Tick what is missing. The requester is asked to bring the originals or complete clearance at the Office of the Registrar, in person or through an authorized representative.') }}</flux:text>
+                </div>
+                @if ($request->credentialType->requirements)
+                    <flux:checkbox.group wire:model="missing" :label="__('Missing requirements')">
+                        @foreach ($request->credentialType->requirements as $requirement)
+                            <flux:checkbox :value="$requirement" :label="$requirement" />
+                        @endforeach
+                    </flux:checkbox.group>
+                @endif
+                <flux:input wire:model="otherMissing" :label="__('Other')" :badge="$request->credentialType->requirements ? __('Optional') : null" :placeholder="__('e.g. Completed clearance form')" maxlength="250" />
+                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
+                <div class="flex justify-end gap-2">
+                    <flux:modal.close><flux:button variant="ghost">{{ __('Back') }}</flux:button></flux:modal.close>
+                    <flux:button type="submit" variant="primary" icon="building-office">{{ __('Require Office Visit') }}</flux:button>
+                </div>
+            </form>
+        </flux:modal>
+    @endif
 
     <flux:modal name="reject-representative" class="w-full md:w-[28rem]">
         <form wire:submit="rejectRepresentative" class="space-y-6">

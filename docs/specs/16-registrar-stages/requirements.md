@@ -44,7 +44,8 @@ This replaces:
   `/registrar/requests` SHALL respond 404.
 - **REQ-16-02** THE Initial Evaluation queue SHALL list the submitted requests and the requests
   under evaluation, oldest first, showing who is evaluating each one. A "Waiting for the requester"
-  view SHALL list the requests pending compliance.
+  view SHALL list the requests pending compliance. *Changed by REQ-20-10:* it also lists the
+  requests returned for clarification.
 - **REQ-16-03** THE Payment Validation queue SHALL list the requests whose proof of payment awaits
   verification, oldest first.
 - **REQ-16-04** THE In Progress queue SHALL list the requests in progress or returned for correction
@@ -64,7 +65,7 @@ This replaces:
   record's "Where it is now" and the Admin dashboard), THE SYSTEM SHALL name the requester instead
   of addressing them: "Waiting for the requester to complete the requirements", "Waiting for the
   requester's response" and "Waiting for the requester's payment". The requester's own pages and
-  emails keep "you" and "your".
+  emails keep "you" and "your". *Changed by REQ-20-11:* the wording of the two returns.
 - **REQ-16-08** THE SYSTEM SHALL NOT offer a CSV download of the requests or of any report; the
   former download addresses SHALL respond 404.
 
@@ -90,28 +91,23 @@ This replaces:
   requester entered.
 - **REQ-16-11** BELOW the checklist THE SYSTEM SHALL show a Remarks field and the buttons Approve,
   Return to requester and Decline. Remarks SHALL be optional to approve and required to return or
-  decline. The field shows no hint about this (REQ-17-03).
+  decline. The field shows no hint about this (REQ-17-03). *Changed by REQ-20-02:* Initial
+  Evaluation has four buttons; Return to requester is now Return for Clarification and Require
+  Office Visit.
 - **REQ-16-12** WHEN the evaluator approves THE SYSTEM SHALL require every part shown to be
   confirmed. It SHALL then mark the request's ID and its representatives verified, and move a paid
   request to `awaiting_payment` with payment instructions, or accept a free request directly
   (REQ-04-14).
-- **REQ-16-13** WHEN the evaluator returns the request to the requester THE SYSTEM SHALL require at
-  least one rejected part. It SHALL then set the status `pending_compliance` and record the rejected
-  parts and the remarks. If the identity part was rejected, the request's ID SHALL be marked
-  rejected, so the requester can upload another (REQ-15-11). If the representative part was
-  rejected, its representatives SHALL be marked not accepted. The requester SHALL be notified.
+- ~~REQ-16-13~~ *Superseded by REQ-20-03 and 04 (2026-11-10):* returning to the requester is now
+  Return for Clarification (`returned_for_clarification`, fixed online) or Require Office Visit
+  (`pending_compliance`, complied with in person).
 - **REQ-16-14** WHEN the evaluator declines the request THE SYSTEM SHALL set the status `declined`
   with the remarks as the reason and notify the requester.
-- **REQ-16-15** WHILE a request is pending compliance THE SYSTEM SHALL show the requester the
-  rejected parts and the remarks, and the notice that originals must be submitted in person or
-  through an authorized representative. They SHALL be able to upload another ID (when it was
-  rejected), add a representative, write an optional note and Resubmit. WHEN they resubmit THE
-  SYSTEM SHALL set the status `submitted`, so the request is back in the Initial Evaluation queue,
-  and notify the registrars. Confirmed parts SHALL stay confirmed and rejected parts SHALL be
-  cleared.
-- **REQ-16-16** WHILE a request is pending compliance THE SYSTEM SHALL let a registrar reopen its
-  evaluation, for a requester who complied in person. The status SHALL become `under_evaluation`
-  with that registrar as evaluator, and rejected parts SHALL be cleared.
+- ~~REQ-16-15~~ *Superseded by REQ-20-05..08 (2026-11-10):* only a request returned for
+  clarification is edited and resubmitted online; one pending compliance waits for the office
+  visit.
+- ~~REQ-16-16~~ *Superseded by REQ-20-09 and 13 (2026-11-10):* there is no Reopen evaluation; the
+  registrar marks the missing items received and confirms compliance.
 
 ### Payment Validation
 - **REQ-16-17** WHILE a request's proof of payment awaits verification THE SYSTEM SHALL show the

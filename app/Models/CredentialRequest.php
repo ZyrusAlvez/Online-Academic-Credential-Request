@@ -54,14 +54,6 @@ class CredentialRequest extends Model
     /** @use HasFactory<CredentialRequestFactory> */
     use HasFactory;
 
-    /** Statuses in which the request's ID can be verified, rejected or replaced (REQ-15-09, 11). */
-    public const IDENTITY_REVIEW_STATUSES = [
-        RequestStatus::Submitted,
-        RequestStatus::UnderEvaluation,
-        RequestStatus::PendingCompliance,
-        RequestStatus::ReturnedForCustomerAction,
-    ];
-
     protected $fillable = [
         'credential_type_id',
         'purpose',
@@ -149,15 +141,6 @@ class CredentialRequest extends Model
     }
 
     /**
-     * The registrar may verify or reject the ID while the requirements are still being
-     * evaluated (REQ-15-09).
-     */
-    public function identityReviewable(): bool
-    {
-        return in_array($this->status, self::IDENTITY_REVIEW_STATUSES, true);
-    }
-
-    /**
      * @return BelongsTo<CredentialType, $this>
      */
     public function credentialType(): BelongsTo
@@ -214,7 +197,8 @@ class CredentialRequest extends Model
     }
 
     /**
-     * Requests from before spec 16 only; nothing records new deficiencies.
+     * What Require Office Visit found missing, each resolved when the registrar marks it received
+     * (REQ-20-04, 09).
      *
      * @return HasMany<RequestDeficiency, $this>
      */
@@ -367,7 +351,8 @@ class CredentialRequest extends Model
         return match ($this->status) {
             RequestStatus::Submitted => 'Office of the Registrar – received for evaluation',
             RequestStatus::UnderEvaluation => 'Office of the Registrar – evaluating records and requirements',
-            RequestStatus::PendingCompliance => 'Waiting for you to complete the requirements',
+            RequestStatus::ReturnedForClarification => 'Waiting for you to correct your request',
+            RequestStatus::PendingCompliance => 'Waiting for you at the Office of the Registrar',
             RequestStatus::ReturnedForCustomerAction => 'Waiting for your response',
             RequestStatus::AwaitingPayment => 'Waiting for your payment',
             RequestStatus::PaymentVerification => 'Office of the Registrar – verifying payment',
@@ -387,7 +372,8 @@ class CredentialRequest extends Model
     public function staffWhereabouts(): string
     {
         return match ($this->status) {
-            RequestStatus::PendingCompliance => 'Waiting for the requester to complete the requirements',
+            RequestStatus::ReturnedForClarification => 'Waiting for the requester to correct the request',
+            RequestStatus::PendingCompliance => 'Waiting for the requester at the Office of the Registrar',
             RequestStatus::ReturnedForCustomerAction => "Waiting for the requester's response",
             RequestStatus::AwaitingPayment => "Waiting for the requester's payment",
             default => $this->whereabouts(),

@@ -95,6 +95,6 @@ final class RegistrarRequestFilter
      */
     public static function waitingForRequester(): array
     {
-        return [RequestStatus::PendingCompliance, RequestStatus::ReturnedForCustomerAction];
+        return [...RequestStatus::waitingForRequester(), RequestStatus::ReturnedForCustomerAction];
     }
 }

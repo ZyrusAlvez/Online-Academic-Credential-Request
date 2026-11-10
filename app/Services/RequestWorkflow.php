@@ -27,6 +27,7 @@ use App\Models\IdentityDocument;
 use App\Models\OfficeVisit;
 use App\Models\PaymentProof;
 use App\Models\RequestCheck;
+use App\Models\RequestDeficiency;
 use App\Models\RequestDocument;
 use App\Models\RequestEvent;
 use App\Models\RequestRepresentative;
@@ -169,39 +170,22 @@ class RequestWorkflow
             $this->assertEvaluator($locked, $registrar);
             $this->assertAllConfirmed($locked, CheckStage::Evaluation);
 
-            $locked->forceFill([
-                'identity_status' => ReviewStatus::Verified,
-                'identity_reviewed_by' => $registrar->id,
-                'identity_reviewed_at' => now(),
-                'identity_remarks' => null,
-                'requirements_completed_at' => now(),
-            ]);
-            $this->reviewPendingRepresentatives($locked, $registrar, ReviewStatus::Verified);
-
-            if ($locked->requires_payment) {
-                $this->transition($locked, $request, RequestStatus::AwaitingPayment, $registrar, RequestEventType::RequirementsCompleted, $remarks);
-
-                return;
-            }
-
-            $locked->save();
-            $this->record($locked, $registrar, RequestEventType::RequirementsCompleted, null, null, $remarks);
-            $this->accept($locked, $request, $registrar);
+            $this->completeRequirements($locked, $request, $registrar, $remarks);
         });
     }
 
     /**
-     * Back to the requester with what was rejected; a rejected ID can be replaced and a rejected
-     * representative replaced by another (REQ-16-13).
+     * Back to the requester to correct the request online and resubmit it, with what was rejected
+     * (REQ-20-03). A rejected ID is replaced and a rejected representative replaced by another.
      */
-    public function returnToRequester(CredentialRequest $request, User $registrar, string $remarks): void
+    public function returnForClarification(CredentialRequest $request, User $registrar, string $remarks): void
     {
         if (blank($remarks)) {
-            throw new InvalidTransition('Tell the requester what to fix or comply with.');
+            throw new InvalidTransition('Tell the requester what to correct.');
         }
 
         DB::transaction(function () use ($request, $registrar, $remarks): void {
-            $locked = $this->lock($request, [RequestStatus::UnderEvaluation], 'Only a request under evaluation can be returned to the requester.');
+            $locked = $this->lock($request, [RequestStatus::UnderEvaluation], 'Only a request under evaluation can be returned for clarification.');
             $this->assertEvaluator($locked, $registrar);
 
             $results = $this->results($locked, CheckStage::Evaluation);
@@ -228,70 +212,145 @@ class RequestWorkflow
             }
 
             // The lock ends with the status (REQ-16-09); the evaluator stays recorded for the reports.
-            $this->transition($locked, $request, RequestStatus::PendingCompliance, $registrar, RequestEventType::ComplianceRequested,
+            $this->transition($locked, $request, RequestStatus::ReturnedForClarification, $registrar, RequestEventType::CustomerActionRequested,
                 self::rejectedSummary($rejected, $remarks));
         });
     }
 
     /**
-     * The requester fixed what was returned: back in the Initial Evaluation queue (REQ-16-15).
+     * Originals or clearance are missing: the requester complies at the office, and the request
+     * waits for the registrar to record it (REQ-20-04, Proposed Workflow III-C).
+     *
+     * @param  list<string>  $missing  each missing requirement, as the requester will read it
      */
-    public function resubmit(CredentialRequest $request, User $owner, ?string $note = null): void
+    public function requireOfficeVisit(CredentialRequest $request, User $registrar, array $missing, string $remarks): void
+    {
+        $missing = array_values(array_unique(array_filter(array_map(trim(...), $missing), filled(...))));
+
+        if ($missing === []) {
+            throw new InvalidTransition('Tick at least one missing requirement, so the requester knows what to bring.');
+        }
+
+        if (blank($remarks)) {
+            throw new InvalidTransition('Tell the requester what to bring.');
+        }
+
+        DB::transaction(function () use ($request, $registrar, $missing, $remarks): void {
+            $locked = $this->lock($request, [RequestStatus::UnderEvaluation], 'Only a request under evaluation can require an office visit.');
+            $this->assertEvaluator($locked, $registrar);
+
+            foreach ($missing as $item) {
+                $locked->deficiencies()->make(['description' => Str::limit($item, 250, '')])
+                    ->forceFill(['recorded_by' => $registrar->id])
+                    ->save();
+            }
+
+            $this->transition($locked, $request, RequestStatus::PendingCompliance, $registrar, RequestEventType::ComplianceRequested,
+                'Missing: '.implode('; ', $missing)."\n{$remarks}");
+        });
+    }
+
+    /**
+     * One missing item was submitted at the office: when, and who verified it (REQ-20-09).
+     */
+    public function markReceived(RequestDeficiency $deficiency, User $registrar): void
+    {
+        DB::transaction(function () use ($deficiency, $registrar): void {
+            $locked = $this->lock($deficiency->credentialRequest()->firstOrFail(), [RequestStatus::PendingCompliance], 'Only a request pending compliance takes missing documents.');
+
+            /** @var RequestDeficiency $current */
+            $current = RequestDeficiency::whereKey($deficiency->id)->lockForUpdate()->firstOrFail();
+
+            if ($current->resolved_at !== null) {
+                throw new InvalidTransition('This was already received.');
+            }
+
+            $current->forceFill(['resolved_at' => now(), 'resolved_by' => $registrar->id])->save();
+            $deficiency->setRawAttributes($current->getAttributes(), sync: true);
+
+            $this->record($locked, $registrar, RequestEventType::DeficiencyResolved, null, null, $current->description);
+        });
+    }
+
+    /**
+     * Everything missing was received: the evaluation is complete, so payment instructions follow,
+     * or a free request is accepted (REQ-20-09).
+     */
+    public function confirmCompliance(CredentialRequest $request, User $registrar, ?string $remarks = null): void
+    {
+        DB::transaction(function () use ($request, $registrar, $remarks): void {
+            $locked = $this->lock($request, [RequestStatus::PendingCompliance], 'Only a request pending compliance can be confirmed.');
+
+            if ($locked->deficiencies()->whereNull('resolved_at')->exists()) {
+                throw new InvalidTransition('Mark every missing requirement received first.');
+            }
+
+            foreach (CheckItem::for(CheckStage::Evaluation, $locked) as $item) {
+                RequestCheck::query()->updateOrInsert(
+                    ['credential_request_id' => $locked->id, 'item' => $item->value],
+                    ['result' => CheckResult::Confirmed->value, 'checked_by' => $registrar->id, 'checked_at' => now()],
+                );
+            }
+
+            $this->completeRequirements($locked, $request, $registrar, $remarks);
+        });
+    }
+
+    /**
+     * The requester corrected what was returned and sends it back to the Initial Evaluation queue
+     * (REQ-20-07). With changes, the request takes the new credential, purpose and receiving school,
+     * its fee, and a new copy of the owner's details; a new ID awaits verification. Rejected parts
+     * and the parts whose data changed are checked again.
+     *
+     * @param  ?array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $changes
+     */
+    public function resubmit(CredentialRequest $request, User $owner, ?string $note = null, ?array $changes = null, ?IdentityDocument $identity = null, bool $newRequirementCopies = false): void
     {
         if ($request->user_id !== $owner->id) {
             throw new InvalidTransition('Only the requester can resubmit this request.');
         }
 
-        DB::transaction(function () use ($request, $owner, $note): void {
-            $locked = $this->lock($request, [RequestStatus::PendingCompliance], 'Only a request returned to you can be resubmitted.');
-
-            $this->clearRejected($locked, CheckStage::Evaluation);
-            $this->transition($locked, $request, RequestStatus::Submitted, $owner, RequestEventType::Resubmitted, $note);
-        });
-    }
-
-    /**
-     * The requester complied in person: the registrar takes the evaluation up again (REQ-16-16).
-     */
-    public function reopenEvaluation(CredentialRequest $request, User $registrar): void
-    {
-        DB::transaction(function () use ($request, $registrar): void {
-            $locked = $this->lock($request, [RequestStatus::PendingCompliance], 'Only a request returned to the requester can be reopened.');
-
-            $this->clearRejected($locked, CheckStage::Evaluation);
-            $locked->evaluated_by = $registrar->id;
-            $this->transition($locked, $request, RequestStatus::UnderEvaluation, $registrar, RequestEventType::EvaluationReopened);
-        });
-    }
-
-    /**
-     * Attach another valid ID after the request's was rejected (REQ-15-11). The document is stored
-     * by App\Actions\Identity\SubmitIdentityDocument.
-     */
-    public function replaceIdentity(CredentialRequest $request, User $owner, IdentityDocument $identity): void
-    {
-        if ($identity->user_id !== $owner->id || $request->user_id !== $owner->id) {
+        if ($identity !== null && $identity->user_id !== $owner->id) {
             throw new InvalidTransition('Upload your own valid ID.');
         }
 
-        DB::transaction(function () use ($request, $owner, $identity): void {
-            $locked = $this->lock($request, CredentialRequest::IDENTITY_REVIEW_STATUSES, 'This request no longer takes a new ID.');
+        DB::transaction(function () use ($request, $owner, $note, $changes, $identity, $newRequirementCopies): void {
+            $locked = $this->lock($request, [RequestStatus::ReturnedForClarification], 'Only a request returned to you for clarification can be resubmitted.');
 
-            if ($locked->identity_status !== ReviewStatus::Rejected) {
-                throw new InvalidTransition('A new ID is needed only after the Office of the Registrar rejects one.');
+            if ($locked->identity_status === ReviewStatus::Rejected && $identity === null) {
+                throw new InvalidTransition('Upload another valid ID: the one sent with this request was not accepted.');
             }
 
-            $locked->forceFill([
-                'identity_document_id' => $identity->id,
-                'identity_status' => ReviewStatus::Pending,
-                'identity_reviewed_by' => null,
-                'identity_reviewed_at' => null,
-                'identity_remarks' => null,
-            ])->save();
-            $request->setRawAttributes($locked->getAttributes(), sync: true);
-            $locked->checks()->where('item', CheckItem::Identity)->delete();   // the new ID is checked anew
+            $recheck = [];
 
-            $this->record($locked, $owner, RequestEventType::IdentityResubmitted, null, null, $identity->id_type);
+            if ($changes !== null) {
+                $recheck = $this->applyChanges($locked, $owner, $changes);
+            }
+
+            if ($newRequirementCopies) {
+                $recheck[] = CheckItem::AcademicRecord;
+            }
+
+            if ($identity !== null) {
+                $locked->forceFill([
+                    'identity_document_id' => $identity->id,
+                    'identity_status' => ReviewStatus::Pending,
+                    'identity_reviewed_by' => null,
+                    'identity_reviewed_at' => null,
+                    'identity_remarks' => null,
+                ]);
+                $recheck[] = CheckItem::Identity;
+            }
+
+            $this->clearRejected($locked, CheckStage::Evaluation);
+            $locked->checks()->whereIn('item', array_map(fn (CheckItem $item) => $item->value, $recheck))->delete();
+
+            if ($identity !== null) {
+                $locked->save();
+                $this->record($locked, $owner, RequestEventType::IdentityResubmitted, null, null, $identity->id_type);
+            }
+
+            $this->transition($locked, $request, RequestStatus::Submitted, $owner, RequestEventType::Resubmitted, filled($note) ? $note : null);
         });
     }
 
@@ -308,8 +367,8 @@ class RequestWorkflow
         DB::transaction(function () use ($request, $registrar, $reason): void {
             $locked = $this->lock(
                 $request,
-                [RequestStatus::UnderEvaluation, RequestStatus::PaymentVerification, RequestStatus::ForFinalApproval],
-                'A request can only be declined at its evaluation, payment validation or final quality check.',
+                [RequestStatus::UnderEvaluation, RequestStatus::PendingCompliance, RequestStatus::PaymentVerification, RequestStatus::ForFinalApproval],
+                'A request can only be declined at its evaluation, office compliance, payment validation or final quality check.',
             );
             $this->assertEvaluator($locked, $registrar);
 
@@ -781,7 +840,7 @@ class RequestWorkflow
         }
     }
 
-    /** Rejected parts are checked again when the request comes back (REQ-16-15, 16). */
+    /** Rejected parts are checked again when the request comes back (REQ-20-07). */
     private function clearRejected(CredentialRequest $locked, CheckStage $stage): void
     {
         $locked->checks()
@@ -801,6 +860,96 @@ class RequestWorkflow
                     'remarks' => $status === ReviewStatus::Rejected ? $remarks : null,
                 ])->save();
             });
+    }
+
+    /**
+     * The evaluation is complete: the ID and representatives are verified, then payment
+     * instructions for a paid request or acceptance for a free one (REQ-16-12, REQ-20-09).
+     */
+    private function completeRequirements(CredentialRequest $locked, CredentialRequest $original, User $registrar, ?string $remarks): void
+    {
+        $locked->forceFill([
+            'identity_status' => ReviewStatus::Verified,
+            'identity_reviewed_by' => $registrar->id,
+            'identity_reviewed_at' => now(),
+            'identity_remarks' => null,
+            'requirements_completed_at' => now(),
+        ]);
+        $this->reviewPendingRepresentatives($locked, $registrar, ReviewStatus::Verified);
+
+        if ($locked->requires_payment) {
+            $this->transition($locked, $original, RequestStatus::AwaitingPayment, $registrar, RequestEventType::RequirementsCompleted, $remarks);
+
+            return;
+        }
+
+        $locked->save();
+        $this->record($locked, $registrar, RequestEventType::RequirementsCompleted, null, null, $remarks);
+        $this->accept($locked, $original, $registrar);
+    }
+
+    /**
+     * The requester's corrections (REQ-20-07): the credential, purpose and receiving school, the fee
+     * that follows, and a new copy of their details. Returns the checklist parts whose data changed.
+     *
+     * @param  array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $changes
+     * @return list<CheckItem>
+     */
+    private function applyChanges(CredentialRequest $locked, User $owner, array $changes): array
+    {
+        if (! $owner->hasRequesterDetails()) {
+            throw new InvalidTransition('Give your name, contact number and academic information before resubmitting.');
+        }
+
+        $type = CredentialType::requestable()->findOrFail($changes['credential_type_id']);
+        $receivingInstitution = $changes['receiving_institution'] ?? null;
+
+        if ($type->requires_receiving_institution && blank($receivingInstitution)) {
+            throw new InvalidTransition('Give the complete name of the receiving school.');
+        }
+
+        $locked->fill([
+            'credential_type_id' => $type->id,
+            'purpose' => $changes['purpose'],
+            // As on submission (REQ-04-03).
+            'receiving_institution' => $type->requires_receiving_institution ? $receivingInstitution : null,
+        ]);
+        $locked->forceFill([
+            'requester_name' => $owner->requesterName(),
+            'contact_number' => $owner->contact_number,
+            'college_id' => $owner->college_id,
+            'academic_status' => $owner->academic_status,
+            'program' => $owner->program,
+            'student_number' => $owner->student_number,
+            'attended_from' => $owner->attended_from,
+            'attended_to' => $owner->attended_to,
+            'requires_payment' => $type->requires_payment,
+            'fee' => $type->requires_payment ? $type->fee : null,
+            'amount_due' => $type->requires_payment ? $type->fee : null,
+        ]);
+
+        $changed = [];
+
+        if ($locked->isDirty(['credential_type_id', 'purpose', 'receiving_institution'])) {
+            $changed[] = CheckItem::CredentialRequest;
+        }
+
+        if ($locked->isDirty(['requester_name', 'contact_number'])) {
+            $changed[] = CheckItem::Identity;
+        }
+
+        if ($locked->isDirty(['college_id', 'academic_status', 'program', 'student_number', 'attended_from', 'attended_to'])) {
+            $changed[] = CheckItem::AcademicRecord;
+        }
+
+        if ($locked->isDirty('credential_type_id')) {
+            $this->record($locked, $owner, RequestEventType::CredentialChanged, null, null,
+                CredentialType::whereKey($locked->getOriginal('credential_type_id'))->value('name').' → '.$type->name);
+        }
+
+        $locked->save();
+
+        return $changed;
     }
 
     /**

@@ -1,10 +1,20 @@
 <div class="mx-auto max-w-3xl space-y-6">
+    {{-- New Request, or Edit Request for a request returned for clarification (REQ-20-06). --}}
     <flux:breadcrumbs>
         <flux:breadcrumbs.item :href="route('student.dashboard')" wire:navigate>{{ __('My Requests') }}</flux:breadcrumbs.item>
-        <flux:breadcrumbs.item>{{ __('New request') }}</flux:breadcrumbs.item>
+        @if ($editing)
+            <flux:breadcrumbs.item :href="route('student.requests.show', $editing)" wire:navigate>{{ $editing->reference_no }}</flux:breadcrumbs.item>
+            <flux:breadcrumbs.item>{{ __('Edit') }}</flux:breadcrumbs.item>
+        @else
+            <flux:breadcrumbs.item>{{ __('New request') }}</flux:breadcrumbs.item>
+        @endif
     </flux:breadcrumbs>
 
-    <x-page-header title="Request a credential" description="Choose the credential, give your details and valid ID, review, and submit. Your details are saved for your next request. The Office of the Registrar evaluates every request before accepting it." />
+    @if ($editing)
+        <x-page-header :title="__('Edit request :ref', ['ref' => $editing->reference_no])" :description="__('Correct what the Office of the Registrar asked about, review, and resubmit. Your details are saved for your next request.')" />
+    @else
+        <x-page-header title="Request a credential" description="Choose the credential, give your details and valid ID, review, and submit. Your details are saved for your next request. The Office of the Registrar evaluates every request before accepting it." />
+    @endif
 
     {{-- Not shown: it announces the step to screen readers and is the focus target of showStep(). --}}
     <p id="request-step" tabindex="-1" class="sr-only">
@@ -82,6 +92,9 @@
                             <div data-requirement-uploads>
                                 <h4 class="font-semibold text-ink">{{ __('Documentary requirements') }}</h4>
                                 <p class="mt-1 text-zinc-600">{{ __('Upload a copy of each requirement you have: up to :max files each, JPG, PNG, WebP or PDF, 5 MB per file. The Registrar\'s Office still checks the originals.', ['max' => \App\Models\RequestDocument::MAX_PER_REQUIREMENT]) }}</p>
+                                @if ($editing)
+                                    <p class="mt-1 text-zinc-600">{{ __('Files you already sent stay with your request; add more only if needed.') }}</p>
+                                @endif
                                 <ul role="list" class="mt-4 space-y-5">
                                     @foreach ($type->requirements as $index => $requirement)
                                         @php($field = "requirementFiles.{$type->id}.{$index}")
@@ -143,9 +156,18 @@
             </div>
         </section>
 
+        @if ($idRejected)
+            {{-- The ID sent with the request was not accepted: another is required (REQ-20-06). --}}
+            <flux:callout icon="exclamation-triangle" color="red" data-id-rejected>
+                <flux:callout.heading>{{ __('Your valid ID was not accepted') }}</flux:callout.heading>
+                <flux:callout.text>{{ $editing->identity_remarks }} {{ __('Upload another valid ID in section 4.') }}</flux:callout.text>
+            </flux:callout>
+        @endif
+
         {{-- Sections 2 to 4, filled in from the saved profile (REQ-15-03, 04). --}}
         @include('partials.requester-profile-fields', ['prefix' => 'profile', 'fields' => $profile, 'number' => 2])
 
+        @unless ($editing)
         <section aria-labelledby="rep-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <h2 id="rep-heading" class="text-lg font-semibold text-primary">{{ __('5. Who Will Transact?') }}</h2>
 
@@ -169,6 +191,7 @@
                 <div wire:loading wire:target="spa,representativeId" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
             @endif
         </section>
+        @endunless
 
         {{-- The client's portal notice (Proposed Workflow, III-D), shown before every submission (REQ-04-02),
              collapsed to its heading (REQ-09-10); wire:ignore.self keeps it open across re-renders. --}}
@@ -187,7 +210,7 @@
         </details>
 
         <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <flux:button :href="route('student.dashboard')" variant="ghost" wire:navigate>{{ __('Cancel') }}</flux:button>
+            <flux:button :href="$editing ? route('student.requests.show', $editing) : route('student.dashboard')" variant="ghost" wire:navigate>{{ __('Cancel') }}</flux:button>
             <flux:button type="submit" variant="primary" icon-trailing="arrow-right" wire:loading.attr="disabled" wire:target="spa,representativeId,profile.id_file,review">{{ __('Review request') }}</flux:button>
         </div>
     </form>
@@ -213,9 +236,13 @@
 
             @include('partials.requester-profile-summary', ['prefix' => 'profile', 'fields' => $profile])
 
+            @if ($editing)
+                <flux:textarea wire:model="note" :label="__('Note to the Office of the Registrar')" badge="Optional" :description="__('What you corrected.')" rows="2" data-resubmit-note />
+            @endif
+
             <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <flux:button wire:click="back" wire:loading.attr="disabled" wire:target="back,submit">{{ __('Back to edit') }}</flux:button>
-                <flux:button wire:click="submit" variant="primary" icon-trailing="paper-airplane" x-bind:disabled="! $wire.profile.privacy_consent" :disabled="! $profile->privacy_consent" wire:loading.attr="disabled" wire:target="back,submit" data-submit-request>{{ __('Submit request') }}</flux:button>
+                <flux:button wire:click="submit" variant="primary" icon-trailing="paper-airplane" x-bind:disabled="! $wire.profile.privacy_consent" :disabled="! $profile->privacy_consent" wire:loading.attr="disabled" wire:target="back,submit" data-submit-request>{{ $editing ? __('Resubmit Request') : __('Submit request') }}</flux:button>
             </div>
         </div>
     @endif

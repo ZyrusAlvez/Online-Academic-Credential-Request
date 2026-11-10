@@ -1,22 +1,16 @@
 <?php
 
 use App\Actions\Identity\SubmitIdentityDocument;
-use App\Enums\CheckItem;
-use App\Enums\CheckResult;
-use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Student\Requests\Create;
-use App\Livewire\Student\Requests\Show as StudentRequestShow;
 use App\Models\CredentialRequest;
 use App\Models\IdentityDocument;
 use App\Models\User;
-use App\Notifications\RequestActivity;
 use App\Services\RequestWorkflow;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -34,16 +28,6 @@ beforeEach(function () {
     $this->registrar = User::factory()->registrar()->create();
     $this->newcomer = User::factory()->student()->create(['first_name' => null, 'last_name' => null]);
 });
-
-/**
- * The evaluator rejects the identity part and returns the request (REQ-16-13).
- */
-function returnWithIdRejected(CredentialRequest $request, User $registrar, string $remarks): void
-{
-    workflow()->startEvaluation($request, $registrar);
-    workflow()->recordCheck($request, $registrar, CheckItem::Identity, CheckResult::Rejected);
-    workflow()->returnToRequester($request, $registrar, $remarks);
-}
 
 /**
  * Fill in New Request for the TOR, then review it.
@@ -343,65 +327,6 @@ test('REQ-15-08 request pages and lists show the request\'s copy of the name', f
     $this->actingAs($this->registrar)->get(route('registrar.evaluation'))->assertSee('Copied Name On Request')->assertDontSee('Renamed');
     $this->actingAs($this->registrar)->get(route('registrar.requests.show', $request))->assertSee('Copied Name On Request');
     $this->actingAs($owner)->get(route('student.requests.show', $request))->assertSee('Copied Name On Request');
-});
-
-test('REQ-15-11 after a rejection the requester uploads another ID on the request page', function () {
-    Notification::fake();
-    $owner = requester($this->org->ccs);
-    $request = submitRequest($owner, $this->org->tor);
-    returnWithIdRejected($request, $this->registrar, 'The photo is blurred.');
-
-    Livewire::actingAs($owner)->test(StudentRequestShow::class, ['credentialRequest' => $request])
-        ->assertSee('Your Valid ID Was Not Accepted')
-        ->assertSee('The photo is blurred.')
-        ->call('replaceIdentity')
-        ->assertHasErrors(['newIdType' => 'required', 'newIdFile' => 'required'])
-        ->set('newIdType', 'UMID')
-        ->set('newIdFile', UploadedFile::fake()->image('umid.jpg'))
-        ->call('replaceIdentity')
-        ->assertHasNoErrors()
-        ->assertDispatched('notify')
-        ->assertDontSee('Your Valid ID Was Not Accepted');
-
-    $new = $owner->latestIdentityDocument()->firstOrFail();
-    Storage::disk(RequestWorkflow::proofDisk())->assertExists($new->path);
-    expect($new->id_type)->toBe('UMID')
-        ->and($request->fresh())
-        ->identity_document_id->toBe($new->id)
-        ->identity_status->toBe(ReviewStatus::Pending)
-        ->identity_remarks->toBeNull()
-        ->and($request->events()->where('type', RequestEventType::IdentityResubmitted)->count())->toBe(1);
-    Notification::assertSentTo($this->registrar, RequestActivity::class, fn (RequestActivity $n) => $n->title === "Valid ID to verify for {$request->reference_no}");
-});
-
-test('REQ-15-11 no upload is offered or accepted unless the request\'s ID was rejected and the request is still evaluated', function () {
-    $owner = requester($this->org->ccs);
-    $request = submitRequest($owner, $this->org->tor);
-
-    Livewire::actingAs($owner)->test(StudentRequestShow::class, ['credentialRequest' => $request])
-        ->assertDontSeeHtml('data-replace-id')
-        ->set('newIdType', 'UMID')
-        ->set('newIdFile', UploadedFile::fake()->image('umid.jpg'))
-        ->call('replaceIdentity')
-        ->assertForbidden();
-
-    returnWithIdRejected($request, $this->registrar, 'Blurred.');
-    workflow()->reopenEvaluation($request, $this->registrar);
-    workflow()->decline($request, $this->registrar, 'Not eligible.');
-
-    Livewire::actingAs($owner)->test(StudentRequestShow::class, ['credentialRequest' => $request])
-        ->assertDontSeeHtml('data-replace-id');
-    expect($owner->identityDocuments()->count())->toBe(1);
-});
-
-test('REQ-15-11 another requester cannot replace the ID of a request', function () {
-    $request = submitRequest(requester($this->org->ccs), $this->org->tor);
-    returnWithIdRejected($request, $this->registrar, 'Blurred.');
-    $intruder = requester($this->org->ccs);
-
-    expect(fn () => workflow()->replaceIdentity($request, $intruder, $intruder->latestIdentityDocument()->firstOrFail()))
-        ->toThrow(InvalidTransition::class);
-    $this->actingAs($intruder)->get(route('student.requests.show', $request))->assertNotFound();
 });
 
 test('REQ-15-13 only the owner and registrars can open the request\'s ID; offices cannot', function () {

@@ -25,6 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::redirect('profile', '/settings/profile');
         Route::get('requests/new', Student\Requests\Create::class)->name('requests.create');
         Route::get('requests/{credentialRequest}', Student\Requests\Show::class)->name('requests.show');
+        Route::get('requests/{credentialRequest}/edit', Student\Requests\Edit::class)->name('requests.edit');
     });
 
     // The Registrar works the requests, Initial Evaluation to Release (REQ-16-01..06, REQ-18-03, 05).

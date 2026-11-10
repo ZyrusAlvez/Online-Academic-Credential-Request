@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Enums\RequestStatus;
-use App\Enums\ReviewStatus;
 use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\User;
@@ -46,18 +45,19 @@ class CredentialRequestPolicy
         return $request->user_id === $user->id && $request->status === RequestStatus::AwaitingPayment;
     }
 
-    /** Send a returned request back for evaluation (REQ-16-15). */
-    public function resubmit(User $user, CredentialRequest $request): bool
+    /**
+     * Edit and resubmit a request returned for clarification; nothing else is editable
+     * (REQ-20-05, 13).
+     */
+    public function edit(User $user, CredentialRequest $request): Response
     {
-        return $request->user_id === $user->id && $request->status === RequestStatus::PendingCompliance;
-    }
+        if ($request->user_id !== $user->id) {
+            return Response::denyAsNotFound();
+        }
 
-    /** Upload another valid ID after the Registrar rejected the request's (REQ-15-11). */
-    public function replaceIdentity(User $user, CredentialRequest $request): bool
-    {
-        return $request->user_id === $user->id
-            && $request->identity_status === ReviewStatus::Rejected
-            && $request->identityReviewable();
+        return $request->status === RequestStatus::ReturnedForClarification
+            ? Response::allow()
+            : Response::deny('Only a request returned to you for clarification can be edited.');
     }
 
     public function declareRepresentative(User $user, CredentialRequest $request): bool

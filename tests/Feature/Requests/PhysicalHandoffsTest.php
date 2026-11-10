@@ -147,7 +147,7 @@ test('REQ-17-17 Approve and Return are always enabled; a blocked one lists every
         ->assertHasErrors(['remarks' => 'required'])
         ->assertSet('blockedAction', 'return')
         ->assertSet('blockers', ['Write your remarks; the requester sees them.'])
-        ->assertSee("Can't return yet");
+        ->assertSee("Can't return for clarification yet");
 
     expect($request->fresh()->status)->toBe(RequestStatus::UnderEvaluation)
         ->and($request->checkResults(CheckStage::Evaluation))->toBe([CheckItem::Identity->value => CheckResult::Rejected]);
@@ -155,15 +155,15 @@ test('REQ-17-17 Approve and Return are always enabled; a blocked one lists every
     // Return with no rejected part and no remarks: both reasons.
     workflow()->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Confirmed);
     handoffPage($request)->call('returnRequest')->assertSet('blockers', [
-        'Reject at least one part of the checklist, so the requester knows what to fix.',
+        'Reject at least one part of the checklist, so the requester knows what to correct.',
         'Write your remarks; the requester sees them.',
     ]);
 
     // Once the conditions are met, nothing is blocked.
     workflow()->recordCheck($request, $this->registrar, CheckItem::AcademicRecord, CheckResult::Rejected);
-    handoffPage($request)->set('remarks', 'Bring the original.')->call('returnRequest')
+    handoffPage($request)->set('remarks', 'Correct your years of attendance.')->call('returnRequest')
         ->assertNotDispatched('modal-show')->assertSet('blockers', []);
-    expect($request->fresh()->status)->toBe(RequestStatus::PendingCompliance);
+    expect($request->fresh()->status)->toBe(RequestStatus::ReturnedForClarification);
 });
 
 test('REQ-17-17 at the final check one rejected part says to change it to Confirm', function () {

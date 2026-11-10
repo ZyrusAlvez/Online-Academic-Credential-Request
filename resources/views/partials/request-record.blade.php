@@ -2,7 +2,7 @@
     The read-only record of a request for the registrar: details, dates, payments, representatives,
     route, office visits, delays, release and the ledger (REQ-16-07). Requires $request with its
     relations loaded. Sections already shown by the current stage's checklist are skipped:
-    $hide is a list of 'details', 'proofs', 'representatives', 'route', 'ledger'.
+    $hide is a list of 'details', 'deficiencies', 'proofs', 'representatives', 'route', 'ledger'.
 --}}
 @php($hide ??= [])
 
@@ -45,8 +45,8 @@
     </section>
 @endunless
 
-@if ($request->deficiencies->isNotEmpty())
-    {{-- Recorded before spec 16. --}}
+@if (! in_array('deficiencies', $hide, true) && $request->deficiencies->isNotEmpty())
+    {{-- What an office visit required, and when each was received (REQ-20-04, 09). --}}
     <section aria-labelledby="deficiencies-heading" class="space-y-3 rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="deficiencies-heading" class="text-lg font-semibold text-primary">{{ __('Missing Requirements') }}</h2>
         <ul class="space-y-1 text-sm">
@@ -54,7 +54,9 @@
                 <li wire:key="deficiency-{{ $deficiency->id }}">
                     <span class="font-medium text-ink">{{ $deficiency->description }}</span>
                     @if ($deficiency->resolved_at)
-                        <span class="text-xs text-green-800">· {{ __('Complied :date', ['date' => $deficiency->resolved_at->format('M j, Y')]) }}</span>
+                        <span class="text-xs text-green-800">· {{ __('Received :date', ['date' => $deficiency->resolved_at->format('M j, Y')]) }}</span>
+                    @else
+                        <span class="text-xs text-amber-800">· {{ __('Not yet received') }}</span>
                     @endif
                 </li>
             @endforeach

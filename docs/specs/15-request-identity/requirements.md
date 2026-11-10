@@ -76,10 +76,9 @@ identity, and My Profile in REQ-09-09/12.
 - ~~REQ-15-09, REQ-15-10~~ *Superseded by REQ-16-10, 12 and 13 (2026-11-06):* the ID is the User
   identity part of the evaluation checklist; approving verifies it, and returning with that part
   rejected rejects it.
-- **REQ-15-11** WHILE a request's ID is rejected and the request is still open before acceptance THE
-  SYSTEM SHALL show the requester, on the request page, the reason and a form to upload another ID.
-  WHEN they upload one THE SYSTEM SHALL store it privately, make it their saved ID, attach it to the
-  request awaiting verification, write it to the ledger and notify the registrars.
+- ~~REQ-15-11~~ *Superseded by REQ-20-06 and 07 (2026-11-10):* a rejected ID comes back with the
+  request returned for clarification, and the requester uploads another on Edit Request. It
+  becomes their saved ID and awaits verification when they resubmit.
 - ~~REQ-15-12~~ *Superseded by REQ-16-02:* there is no request list; every request in the Initial
   Evaluation queue has its ID checked.
 

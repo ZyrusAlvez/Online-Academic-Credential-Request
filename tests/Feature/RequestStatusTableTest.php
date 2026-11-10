@@ -16,7 +16,7 @@ test('REQ-19-01 request_statuses holds each status with its label, meaning, orde
     expect($row)->not->toBeNull()
         ->and($row->label)->toBe('Pending compliance')
         ->and($row->meaning)->not->toBe('')
-        ->and((int) $row->sort_order)->toBe(3)
+        ->and((int) $row->sort_order)->toBe(4)
         ->and((bool) $row->is_final)->toBeFalse()
         ->and((bool) DB::table('request_statuses')->where('value', 'released')->value('is_final'))->toBeTrue();
 });
