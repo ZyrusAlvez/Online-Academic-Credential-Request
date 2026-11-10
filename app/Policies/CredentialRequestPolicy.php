@@ -60,13 +60,22 @@ class CredentialRequestPolicy
             : Response::deny('Only a request returned to you for clarification can be edited.');
     }
 
+    /**
+     * After submitting, the owner adds a representative only while the evaluator requires an
+     * office visit, which they may send someone to in their place (REQ-11-01, Proposed Workflow
+     * III-C). New Request declares one at submission through the workflow itself.
+     */
     public function declareRepresentative(User $user, CredentialRequest $request): bool
     {
         if ($request->status->isFinal()) {
             return false;
         }
 
-        return $user->hasRole(Role::Registrar) || $request->user_id === $user->id;
+        if ($user->hasRole(Role::Registrar)) {
+            return true;
+        }
+
+        return $request->user_id === $user->id && $request->status === RequestStatus::PendingCompliance;
     }
 
     /** Only the owner, before acceptance (REQ-04-16, REQ-16-21). */
