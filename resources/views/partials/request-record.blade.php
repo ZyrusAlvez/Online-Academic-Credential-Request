@@ -8,7 +8,7 @@
 
 @unless (in_array('details', $hide, true))
     <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request details') }}</h2>
+        <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
         <x-request-details :request="$request" />
         <dl class="mt-4 grid gap-4 border-t border-secondary/50 pt-4 text-sm sm:grid-cols-2">
             <div>
@@ -42,7 +42,7 @@
 @if ($request->deficiencies->isNotEmpty())
     {{-- Recorded before spec 16. --}}
     <section aria-labelledby="deficiencies-heading" class="space-y-3 rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="deficiencies-heading" class="text-lg font-semibold text-primary">{{ __('Missing requirements') }}</h2>
+        <h2 id="deficiencies-heading" class="text-lg font-semibold text-primary">{{ __('Missing Requirements') }}</h2>
         <ul class="space-y-1 text-sm">
             @foreach ($request->deficiencies as $deficiency)
                 <li wire:key="deficiency-{{ $deficiency->id }}">
@@ -58,21 +58,21 @@
 
 @if (! in_array('proofs', $hide, true) && $request->paymentProofs->isNotEmpty())
     <section aria-labelledby="proofs-heading" class="space-y-3 rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="proofs-heading" class="text-lg font-semibold text-primary">{{ __('Proofs of payment') }}</h2>
+        <h2 id="proofs-heading" class="text-lg font-semibold text-primary">{{ __('Proofs of Payment') }}</h2>
         <x-payment-proof-list :proofs="$request->paymentProofs" />
     </section>
 @endif
 
 @if (! in_array('representatives', $hide, true) && $request->representatives->isNotEmpty())
     <section aria-labelledby="representatives-heading" class="space-y-3 rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="representatives-heading" class="text-lg font-semibold text-primary">{{ __('Authorized representatives') }}</h2>
+        <h2 id="representatives-heading" class="text-lg font-semibold text-primary">{{ __('Authorized Representatives') }}</h2>
         <x-representative-list :representatives="$request->representatives" />
     </section>
 @endif
 
 @if ($request->release)
     <section aria-labelledby="released-heading" class="space-y-1 rounded-xl border border-secondary/50 p-5 text-sm sm:p-6">
-        <h2 id="released-heading" class="mb-2 text-lg font-semibold text-primary">{{ __('Release record') }}</h2>
+        <h2 id="released-heading" class="mb-2 text-lg font-semibold text-primary">{{ __('Release Record') }}</h2>
         <p class="text-ink">{{ __(':name (:type)', ['name' => $request->release->recipient_name, 'type' => $request->release->recipient_type->label()]) }}</p>
         @if ($request->release->id_presented)
             <p class="text-zinc-600">{{ __('ID presented: :id', ['id' => $request->release->id_presented]) }}</p>
@@ -90,14 +90,14 @@
 
 @if ($request->visits->isNotEmpty())
     <section aria-labelledby="visits-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="visits-heading" class="text-lg font-semibold text-primary">{{ __('Office visits') }}</h2>
+        <h2 id="visits-heading" class="text-lg font-semibold text-primary">{{ __('Office Visits') }}</h2>
         <x-office-visits :visits="$request->visits" show-actors />
     </section>
 @endif
 
 @if ($request->delayNotes->isNotEmpty() || $request->pauses->isNotEmpty())
     <section aria-labelledby="delays-heading" class="space-y-3 rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="delays-heading" class="text-lg font-semibold text-primary">{{ __('Delays and pauses') }}</h2>
+        <h2 id="delays-heading" class="text-lg font-semibold text-primary">{{ __('Delays and Pauses') }}</h2>
         <ul class="space-y-2 text-sm">
             @foreach ($request->delayNotes as $note)
                 <li>
@@ -120,7 +120,7 @@
 
 @unless (in_array('ledger', $hide, true))
     <section aria-labelledby="history-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-ledger>
-        <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Ledger') }}</h2>
+        <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Tracking History') }}</h2>
         <x-request-timeline :events="$request->events" show-actors />
     </section>
 @endunless

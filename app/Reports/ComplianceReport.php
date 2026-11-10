@@ -22,7 +22,7 @@ final class ComplianceReport implements Report
 
     public function title(): string
     {
-        return 'Customer compliance report';
+        return 'Customer Compliance Report';
     }
 
     public function description(): string

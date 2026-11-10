@@ -159,7 +159,7 @@ test('REQ-16-07 Records lists every request, searchable and filterable, and a re
         ->assertSee($this->request->reference_no)->assertDontSee($declined->reference_no);
 
     Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $this->request])
-        ->assertSee('Ledger')->assertSee('Request details')
+        ->assertSee('Tracking History')->assertSee('Request Details')
         ->assertDontSee('Start evaluation')->assertDontSee('Approve')->assertDontSee('Decline');
 
     $this->actingAs($this->owner)->get(route('records.show', $this->request))->assertForbidden();
@@ -303,10 +303,10 @@ test('REQ-16-15 the requester sees what was rejected, can fix it and resubmit', 
     workflow()->returnToRequester($this->request, $this->registrar, 'The ID photo is blurred.');
 
     Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $this->request])
-        ->assertSee('Your request was returned to you')
+        ->assertSee('Your Request Was Returned to You')
         ->assertSee('User Identity Verification')
         ->assertSee('The ID photo is blurred.')
-        ->assertSee('Your valid ID was not accepted')
+        ->assertSee('Your Valid ID Was Not Accepted')
         ->assertSee('Add representative')
         ->set('note', 'New ID uploaded.')
         ->call('resubmit')
@@ -340,7 +340,7 @@ test('REQ-16-16 a registrar reopens a returned request when the requester compli
     workflow()->returnToRequester($this->request, $this->registrar, 'Bring the original Form 137.');
     $other = User::factory()->registrar()->create();
 
-    stagePage(as: $other)->assertSee('Returned to the requester')->assertSee('Bring the original Form 137.')
+    stagePage(as: $other)->assertSee('Returned to the Requester')->assertSee('Bring the original Form 137.')
         ->call('reopenEvaluation')->assertDispatched('notify');
 
     expect($this->request->fresh())

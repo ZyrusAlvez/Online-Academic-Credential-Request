@@ -17,7 +17,7 @@ final class ReleaseReport implements Report
 
     public function title(): string
     {
-        return 'Release report';
+        return 'Release Report';
     }
 
     public function description(): string

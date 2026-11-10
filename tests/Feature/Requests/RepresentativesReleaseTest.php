@@ -180,7 +180,7 @@ test('REQ-11-05 the requester is told the credential is ready and what to bring'
     $request = readyRequest();
 
     $this->actingAs($this->owner)->get(route('student.requests.show', $request))
-        ->assertSee('Your credential is ready for release')
+        ->assertSee('Your Credential Is Ready for Release')
         ->assertSee('Bring a valid ID');
 });
 

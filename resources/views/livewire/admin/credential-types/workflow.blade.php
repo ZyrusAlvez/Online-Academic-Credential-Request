@@ -8,7 +8,7 @@
 
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section aria-labelledby="steps-heading">
-            <h2 id="steps-heading" class="sr-only">{{ __('Route steps') }}</h2>
+            <h2 id="steps-heading" class="sr-only">{{ __('Route Steps') }}</h2>
 
             @if ($steps->isEmpty())
                 <flux:callout icon="exclamation-triangle" color="amber" :heading="__('No route yet')">
@@ -68,7 +68,7 @@
         </section>
 
         <section aria-labelledby="add-step-heading" class="h-fit rounded-xl border border-secondary/50 bg-primary-50 p-5">
-            <h2 id="add-step-heading" class="font-semibold text-primary">{{ __('Add a step') }}</h2>
+            <h2 id="add-step-heading" class="font-semibold text-primary">{{ __('Add a Step') }}</h2>
             <p class="mt-1 text-sm text-zinc-600">{{ __('New steps are added at the end.') }}</p>
 
             <form wire:submit="addStep" class="mt-4 space-y-4">

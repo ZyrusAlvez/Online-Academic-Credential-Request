@@ -86,7 +86,7 @@ test('REQ-15-07 the profile is never locked: a requester with requests can still
         ->assertOk()
         ->assertSeeHtml('wire:model="form.first_name"')
         ->assertSeeHtml('wire:model="form.id_file"')
-        ->assertSee('Your saved ID');
+        ->assertSee('Your Saved ID');
 
     fillProfile(['form.first_name' => 'Mariel', 'form.id_type' => 'UMID', 'form.id_file' => UploadedFile::fake()->image('umid.jpg')], $student)
         ->assertHasNoErrors();

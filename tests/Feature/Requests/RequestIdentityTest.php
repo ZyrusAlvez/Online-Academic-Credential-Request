@@ -96,8 +96,8 @@ test('REQ-15-02 there is no My Profile page; the old address goes to Settings â†
 test('REQ-15-03 New Request has numbered sections for the request, personal and academic information, the ID and who transacts', function () {
     Livewire::actingAs($this->newcomer)->test(Create::class)
         ->assertSeeInOrder([
-            '1. What do you need?', '2. Personal information', '3. Academic information', '4. Valid ID',
-            '5. Who will transact?', 'Important notice: incomplete requirements', 'Review request',
+            '1. What Do You Need?', '2. Personal Information', '3. Academic Information', '4. Valid ID',
+            '5. Who Will Transact?', 'Important notice: incomplete requirements', 'Review request',
         ])
         ->assertDontSee('Verify your profile before making a request');
 });
@@ -126,7 +126,7 @@ test('REQ-15-04 a saved ID is shown and used; without one an ID is required', fu
     $saved = $owner->latestIdentityDocument()->firstOrFail();
 
     Livewire::actingAs($owner)->test(Create::class)
-        ->assertSee('Your saved ID')
+        ->assertSee('Your Saved ID')
         ->assertSee("{$saved->id_type}: {$saved->original_name}")
         ->assertSee('It is used unless you choose a different one below.')
         ->assertSeeHtml('data-id-preview');
@@ -264,7 +264,7 @@ test('REQ-15-06 the next request starts filled in from what was submitted', func
     Livewire::actingAs($this->newcomer->fresh())->test(Create::class)
         ->assertSet('profile.first_name', 'Juan')
         ->assertSet('profile.program', 'BS Computer Science')
-        ->assertSee('Your saved ID')
+        ->assertSee('Your Saved ID')
         ->set('form.credential_type_id', $this->org->free->id)
         ->set('form.purpose', 'Employment')
         ->call('review')
@@ -352,7 +352,7 @@ test('REQ-15-11 after a rejection the requester uploads another ID on the reques
     returnWithIdRejected($request, $this->registrar, 'The photo is blurred.');
 
     Livewire::actingAs($owner)->test(StudentRequestShow::class, ['credentialRequest' => $request])
-        ->assertSee('Your valid ID was not accepted')
+        ->assertSee('Your Valid ID Was Not Accepted')
         ->assertSee('The photo is blurred.')
         ->call('replaceIdentity')
         ->assertHasErrors(['newIdType' => 'required', 'newIdFile' => 'required'])
@@ -361,7 +361,7 @@ test('REQ-15-11 after a rejection the requester uploads another ID on the reques
         ->call('replaceIdentity')
         ->assertHasNoErrors()
         ->assertDispatched('notify')
-        ->assertDontSee('Your valid ID was not accepted');
+        ->assertDontSee('Your Valid ID Was Not Accepted');
 
     $new = $owner->latestIdentityDocument()->firstOrFail();
     Storage::disk(RequestWorkflow::proofDisk())->assertExists($new->path);

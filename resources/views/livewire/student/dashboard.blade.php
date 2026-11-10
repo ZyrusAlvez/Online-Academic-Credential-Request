@@ -7,7 +7,7 @@
     </x-page-header>
 
     <section aria-labelledby="requests-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="requests-heading" class="text-lg font-semibold text-primary">{{ __('Your requests') }}</h2>
+        <h2 id="requests-heading" class="text-lg font-semibold text-primary">{{ __('Your Requests') }}</h2>
 
         @if ($requests->isEmpty())
             <div class="py-6 text-center">

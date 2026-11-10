@@ -157,7 +157,7 @@ test('REQ-07-12 the average working days per office, longest first', function ()
         ]);
 
     $this->actingAs($this->admin)->get(route('admin.dashboard'))
-        ->assertSeeInOrder(['Processing time by office', 'College of Computer Studies', '3 working days', 'Office of the VP for Finance', '2 working days']);
+        ->assertSeeInOrder(['Processing Time by Office', 'College of Computer Studies', '3 working days', 'Office of the VP for Finance', '2 working days']);
 });
 
 test('REQ-07-13 the ten reports render with their filters, for the registrar only', function () {

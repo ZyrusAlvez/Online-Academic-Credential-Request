@@ -20,7 +20,7 @@ final class DelayReport implements Report
 {
     public function title(): string
     {
-        return 'Delay analysis report';
+        return 'Delay Analysis Report';
     }
 
     public function description(): string

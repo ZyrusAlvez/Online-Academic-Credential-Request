@@ -93,7 +93,7 @@ test('REQ-18-06 Records and a request\'s record are for the registrar and the ad
 
     foreach ([$this->registrar, $this->admin] as $user) {
         $this->actingAs($user)->get(route('records'))->assertOk()->assertSee($request->reference_no);
-        $this->actingAs($user)->get(route('records.show', $request))->assertOk()->assertSee('Ledger');
+        $this->actingAs($user)->get(route('records.show', $request))->assertOk()->assertSee('Tracking History');
     }
 
     $this->actingAs($this->owner)->get(route('records'))->assertForbidden();

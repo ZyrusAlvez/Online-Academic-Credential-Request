@@ -44,7 +44,7 @@
 </section>
 
 <section aria-labelledby="privacy-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
-    <h3 id="privacy-heading" class="text-lg font-semibold text-primary">{{ __('Data privacy') }}</h3>
+    <h3 id="privacy-heading" class="text-lg font-semibold text-primary">{{ __('Data Privacy') }}</h3>
     <p class="text-sm">{{ __('The University of Perpetual Help System uses your details, academic information and the valid ID you upload only to process your credential requests, in accordance with the Data Privacy Act of 2012 (RA 10173).') }}</p>
 
     {{-- Ticked every time: nothing is saved or submitted without it (REQ-15-05, 07). --}}

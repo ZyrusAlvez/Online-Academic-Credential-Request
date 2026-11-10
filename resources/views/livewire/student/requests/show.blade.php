@@ -22,7 +22,7 @@
 
     <section aria-labelledby="whereabouts-heading" class="rounded-xl bg-primary p-5 text-white sm:p-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="whereabouts-heading" class="text-sm font-medium tracking-wide text-secondary uppercase">{{ __('Where is my request?') }}</h2>
+            <h2 id="whereabouts-heading" class="text-sm font-medium tracking-wide text-secondary uppercase">{{ __('Where Is My Request?') }}</h2>
             <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary">{{ $request->status->customerLabel() }}</span>
         </div>
         <p class="mt-2 text-2xl font-bold">{{ $request->whereabouts() }}</p>
@@ -36,7 +36,7 @@
     @if ($request->status === \App\Enums\RequestStatus::PendingCompliance)
         <section aria-labelledby="compliance-heading" class="space-y-4 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6">
             {{-- Returned by the evaluator: what was rejected and why (REQ-16-15). --}}
-            <h2 id="compliance-heading" class="text-lg font-semibold text-amber-900">{{ __('Your request was returned to you') }}</h2>
+            <h2 id="compliance-heading" class="text-lg font-semibold text-amber-900">{{ __('Your Request Was Returned to You') }}</h2>
             @if ($rejectedParts !== [])
                 <div>
                     <p class="text-sm text-amber-950">{{ __('The Office of the Registrar could not confirm:') }}</p>
@@ -66,7 +66,7 @@
     @can('replaceIdentity', $request)
         {{-- The Registrar rejected the ID sent with this request (REQ-15-11). --}}
         <section aria-labelledby="new-id-heading" class="space-y-4 rounded-xl border border-red-600 bg-red-50 p-5 sm:p-6" data-replace-id>
-            <h2 id="new-id-heading" class="text-lg font-semibold text-red-900">{{ __('Your valid ID was not accepted') }}</h2>
+            <h2 id="new-id-heading" class="text-lg font-semibold text-red-900">{{ __('Your Valid ID Was Not Accepted') }}</h2>
             <p class="rounded-md bg-white p-3 text-sm text-ink"><span class="font-semibold">{{ __('Reason:') }}</span> {{ $request->identity_remarks }}</p>
             <form wire:submit="replaceIdentity" class="space-y-4">
                 <p class="text-sm text-red-950">{{ __('Upload another valid ID (JPG, PNG, WebP or PDF, up to 5 MB). It is also saved for your next request.') }}</p>
@@ -88,7 +88,7 @@
     @if ($request->requires_payment && in_array($request->status, [\App\Enums\RequestStatus::AwaitingPayment, \App\Enums\RequestStatus::PaymentVerification], true))
         <section aria-labelledby="payment-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 id="payment-heading" class="text-lg font-semibold text-primary">{{ __('Payment instructions') }}</h2>
+                <h2 id="payment-heading" class="text-lg font-semibold text-primary">{{ __('Payment Instructions') }}</h2>
                 @if ($request->amount_due !== null)
                     <span class="text-lg font-bold text-ink">{{ __('Amount due: ₱:amount', ['amount' => number_format((float) $request->amount_due, 2)]) }}</span>
                 @endif
@@ -136,7 +136,7 @@
 
             @if ($request->paymentProofs->isNotEmpty())
                 <div class="space-y-2">
-                    <h3 class="text-sm font-semibold text-ink">{{ __('Uploaded proofs of payment') }}</h3>
+                    <h3 class="text-sm font-semibold text-ink">{{ __('Uploaded Proofs of Payment') }}</h3>
                     <x-payment-proof-list :proofs="$request->paymentProofs" />
                 </div>
             @endif
@@ -145,7 +145,7 @@
 
     @if ($request->status === \App\Enums\RequestStatus::ReadyForRelease)
         <section aria-labelledby="claim-heading" class="space-y-3 rounded-xl border border-green-700 bg-green-50 p-5 sm:p-6">
-            <h2 id="claim-heading" class="text-lg font-semibold text-green-900">{{ __('Your credential is ready for release') }}</h2>
+            <h2 id="claim-heading" class="text-lg font-semibold text-green-900">{{ __('Your Credential Is Ready for Release') }}</h2>
             <p class="text-sm text-green-950">{{ __('Claim it at the Office of the Registrar during office hours. Bring a valid ID. If someone claims it for you, they must present a Special Power of Attorney (SPA) and the valid IDs of both of you; the credential is released only after their authority is verified.') }}</p>
         </section>
     @endif
@@ -158,7 +158,7 @@
     @if ($request->representatives->isNotEmpty() || auth()->user()->can('declareRepresentative', $request))
         <section aria-labelledby="representatives-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 id="representatives-heading" class="text-lg font-semibold text-primary">{{ __('Authorized representative') }}</h2>
+                <h2 id="representatives-heading" class="text-lg font-semibold text-primary">{{ __('Authorized Representative') }}</h2>
                 @can('declareRepresentative', $request)
                     <flux:modal.trigger name="declare-representative">
                         <flux:button size="sm" icon="user-plus">{{ __('Add representative') }}</flux:button>
@@ -174,12 +174,12 @@
     @endif
 
     <section aria-labelledby="history-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Tracking history') }}</h2>
+        <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Tracking History') }}</h2>
         <x-request-timeline :events="$events" />
     </section>
 
     <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request details') }}</h2>
+        <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
         <x-request-details :request="$request" />
         @if ($request->identityDocument)
             {{-- The ID sent with this request and its check (REQ-15-08, 09). --}}

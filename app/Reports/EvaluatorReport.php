@@ -14,7 +14,7 @@ final class EvaluatorReport implements Report
 {
     public function title(): string
     {
-        return 'Evaluator performance report';
+        return 'Evaluator Performance Report';
     }
 
     public function description(): string

@@ -227,9 +227,9 @@ test('REQ-17-03 the remarks field has no hint but its rules still apply', functi
 test('REQ-17-04 the working page has no ledger; the Records page keeps it', function () {
     $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
 
-    handoffPage($request)->assertDontSee('data-ledger', false)->assertDontSee('Ledger');
+    handoffPage($request)->assertDontSee('data-ledger', false)->assertDontSee('Tracking History');
     Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
-        ->assertSee('data-ledger', false)->assertSee('Ledger');
+        ->assertSee('data-ledger', false)->assertSee('Tracking History');
 });
 
 // ── Where the paper is ──────────────────────────────────────────────────────────────────────
@@ -438,7 +438,7 @@ test('REQ-17-18 the dashboard office counts and the office reports count it at t
     workflow()->forwardDocument(openVisit($request), $this->registrar);
 
     $this->actingAs(User::factory()->admin()->create())->get(route('admin.dashboard'))   // the Admin's dashboard (REQ-18-02)
-        ->assertSeeInOrder(['Where requests are waiting', 'Office of the Registrar', '1 forwarded, not yet received']);
+        ->assertSeeInOrder(['Where Requests Are Waiting', 'Office of the Registrar', '1 forwarded, not yet received']);
 
     $rows = collect((new DepartmentReport)->rows(new ReportFilter))->keyBy(0);
     expect($rows['Office of the Registrar'][4])->toBe(1)
