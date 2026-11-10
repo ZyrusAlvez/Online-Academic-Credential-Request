@@ -156,7 +156,7 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
-| reference_no | varchar(20) | Yes | UQ | | Tracking number `CRYY-NNNNN`: the id with at least 5 digits (set right after insert); requests before 2026-11-11 keep `CR-YYYY-NNNNNN` |
+| reference_no | varchar(20) | Yes | UQ | | Tracking number `crYY-NNNNN` (lowercase): the id with at least 5 digits (set right after insert); older requests keep their number |
 | user_id | bigint unsigned | No | FK → users, IX (with created_at) | | The document owner (requester) |
 | credential_type_id | bigint unsigned | No | FK → credential_types | | |
 | purpose | varchar(500) | No | | | A copy of the chosen purpose's name (spec 13); older requests keep their free text |

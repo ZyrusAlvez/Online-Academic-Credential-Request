@@ -19,3 +19,4 @@
 - [x] Tracking number `CRYY-NNNNN` from `CredentialRequest::trackingNumber()`, shared by the
       workflow and the factory; older numbers stay (REQ-04-03)
 - [x] Pest tests for the changed REQ-04-03
+- [x] Tracking number prefix in lowercase: `cr26-00042` (REQ-04-03)

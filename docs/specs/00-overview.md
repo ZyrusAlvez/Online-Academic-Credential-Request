@@ -82,7 +82,7 @@ at acceptance.
 | Due date | Accepted date plus the processing period in working days. Never changed; approved pauses produce a separate *adjusted* due date. |
 | Working day | Monday to Saturday, except days in the working calendar (holidays, closures) |
 | Ledger / request event | An append-only record of every action on a request |
-| Tracking number | Human-friendly request ID shown to requesters, e.g. `CR26-00042` |
+| Tracking number | Human-friendly request ID shown to requesters, e.g. `cr26-00042` |
 
 ## Offices and credential master list
 
