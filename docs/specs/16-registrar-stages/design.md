@@ -79,8 +79,9 @@ Nothing creates new ones.
 `App\Queries\StageQueue` builds each queue's query.
 
 The working page shows one stage panel. It uses `x-check-card`: a heading, the part's data, and
-on the right Confirm / Reject with the current result. Under the cards are Remarks and the
-decision buttons. Each stage's panel:
+on the right Confirm / Reject with the current result. A part's data is a `<dl>` of
+`x-summary-row`s, the same row as the requester's summary (REQ-16-24). Under the cards are
+Remarks and the decision buttons. Each stage's panel:
 
 - Submitted: Start evaluation.
 - Under evaluation by someone else: the notice only.
