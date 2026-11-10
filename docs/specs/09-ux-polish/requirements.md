@@ -65,7 +65,8 @@
 
 ### Navigation
 - **REQ-09-09** THE SYSTEM SHALL show the requester's sidebar links without a group heading, in the
-  order New Request, My Requests (My Profile was removed by REQ-15-02).
+  order New Request, Request Tracker (My Profile was removed by REQ-15-02; "Request Tracker" was
+  "My Requests" until 2026-11-11, REQ-09-21).
 
 ### New Request
 - **REQ-09-10** THE SYSTEM SHALL show New Request's *Incomplete requirements* notice (REQ-04-02)
@@ -77,15 +78,29 @@
   college), ending with the Office of the Registrar's final quality check, then the special
   conditions as a note. *(Changed by REQ-15-03, 2026-11-10: the documentary requirements are
   section 2 of New Request, no longer in the card.)*
-- **REQ-09-12** THE SYSTEM SHALL lay out New Request and My Requests alike: one centred
+- **REQ-09-12** THE SYSTEM SHALL lay out New Request and Request Tracker alike: one centred
   column of the same width, with the content in bordered sections that share their padding and
-  heading style; My Requests lists the requests inside one section, with no heading of its own
+  heading style; Request Tracker lists the requests inside one section, with no heading of its own
   above the list *(user's request, 2026-11-11: the "Your Requests" heading is removed)*.
-- **REQ-09-20** THE SYSTEM SHALL show a search box at the top of My Requests that, as the requester
+- **REQ-09-20** THE SYSTEM SHALL show a search box at the top of Request Tracker that, as the requester
   types, narrows their list to the requests whose credential name or tracking number contains the
   text (any case), back to the first page; the search stays in the address so a reload keeps it.
   WHEN nothing matches THE SYSTEM SHALL say so and offer to clear the search. It only ever searches
   the requester's own requests. *(User's request, 2026-11-11.)*
+- **REQ-09-21** THE requester's list of requests SHALL be named "Request Tracker" (sidebar, page
+  title, browser tab, breadcrumb), and the requester's request pages SHALL live under
+  `/student/request/` (singular): `/student/request/new`, `/student/request/<tracking no.>` and
+  `/student/request/<tracking no.>/edit`. WHEN a requester opens an old `/student/requests/…`
+  address (links in earlier emails) THE SYSTEM SHALL redirect them to the new one. New Request
+  SHALL have no breadcrumb above its title. *(User's request, 2026-11-11.)*
+- **REQ-09-22** THE requester's request page SHALL show "Tracking History" as its last section,
+  after "Request Details". "Request Details" SHALL list each entry as a row, the field's name on
+  the left and its value on the right (stacked on narrow screens, like the summary rows of
+  REQ-15-17), the valid ID and each documentary requirement with its uploaded files included as
+  rows of the same list; a requirement without a file reads "No file uploaded" in grey italics
+  (REQ-15-19). The same rows SHALL be used wherever Request Details appears (office and Records
+  pages) and for the documentary requirements on the Initial Evaluation checklist.
+  *(User's request, 2026-11-11.)*
 
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the

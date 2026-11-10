@@ -28,7 +28,7 @@ identity, and My Profile in REQ-09-09/12.
 - **REQ-15-01** THE SYSTEM SHALL NOT have an Identity Checks page or nav item for the registrar;
   `/registrar/identities` SHALL respond 404.
 - **REQ-15-02** THE SYSTEM SHALL NOT have a My Profile page; the requester's sidebar SHALL show New
-  Request and My Requests only, and `/student/profile` SHALL redirect to Settings → Profile (links
+  Request and Request Tracker (formerly My Requests, REQ-09-21) only, and `/student/profile` SHALL redirect to Settings → Profile (links
   in older notifications keep working).
 
 ### New Request
