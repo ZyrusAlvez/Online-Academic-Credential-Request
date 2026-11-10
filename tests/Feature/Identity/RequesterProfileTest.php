@@ -133,23 +133,22 @@ test('REQ-15-04 an invalid ID file shows its error under the field and marks it 
     expect($html)->toMatch('/<input type="file" wire:model="form\.id_file"[^>]*data-invalid aria-invalid="true"/');
 });
 
-test('REQ-15-05 the summary has a Summary heading and shows a chosen image ID as a picture that opens in the viewer', function () {
+test('REQ-15-05 the summary has a Summary heading and shows a chosen image ID as its file name linking to the viewer, with no picture', function () {
     $html = reviewProfile()->assertSee('Summary')->assertSeeHtml('data-summary-title')->html();
 
     expect($html)->toContain('data-id-summary-preview')
-        ->and($html)->toMatch('#<img src="[^"]*preview-file[^"]*"[^>]*alt="Your chosen ID \(open larger\)"#')
-        ->and($html)->toContain('passport.jpg');
+        ->and($html)->toMatch('#<a\s+href="[^"]*preview-file[^"]*"[^>]*data-file-link[^>]*>passport\.jpg</a>#')
+        ->and($html)->not->toMatch('#<img[^>]*preview-file#');
 });
 
-test('REQ-15-05 a chosen PDF ID is shown on the summary as a link that opens it in the viewer', function () {
+test('REQ-15-05 a chosen PDF ID is shown on the summary as its file name linking to the viewer', function () {
     $html = reviewProfile(['form.id_file' => UploadedFile::fake()->createWithContent('passport.pdf', "%PDF-1.4\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n")])
         ->assertSee('passport.pdf')->html();
 
     expect($html)->toContain('data-id-summary-preview')
-        ->and($html)->toContain('preview-file')
+        ->and($html)->toMatch('#<a\s+href="[^"]*preview-file[^"]*"[^>]*data-file-link[^>]*>passport\.pdf</a>#')
         ->and($html)->toMatch('#application\\\\?/pdf#')
-        ->and($html)->toContain('View PDF')
-        ->and($html)->not->toContain('Your chosen ID (open larger)');
+        ->and($html)->not->toContain('View PDF');
 });
 
 test('REQ-01-16 a requester can save their academic information; the student number is optional', function () {
