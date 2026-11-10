@@ -146,15 +146,15 @@
             </flux:radio.group>
 
             @if ($form->requester_mode === 'representative')
-                <flux:text>{{ __('Your representative must present a Special Power of Attorney (SPA) and the valid IDs of both of you. You may upload the SPA and their ID now so the Registrar can check them ahead; the originals are still presented in person.') }}</flux:text>
+                <flux:text>{{ __('Upload your representative\'s Special Power of Attorney (SPA) and their valid ID (JPG, PNG, WebP or PDF, up to 5 MB each) so the Registrar can check them. They still present the originals, with your valid ID, in person.') }}</flux:text>
                 <flux:input wire:model="form.representative_name" :label="__('Representative\'s full name')" required />
                 <div class="grid gap-6 sm:grid-cols-2">
                     <flux:input wire:model="form.representative_relationship" :label="__('Relationship to you')" badge="Optional" />
                     <flux:input wire:model="form.representative_contact" type="tel" :label="__('Representative\'s contact number')" badge="Optional" inputmode="numeric" maxlength="11" placeholder="09171234567" />
                 </div>
                 <div class="grid gap-6 sm:grid-cols-2">
-                    <flux:input type="file" wire:model="spa" :label="__('SPA')" badge="Optional" accept=".jpg,.jpeg,.png,.webp,.pdf" />
-                    <flux:input type="file" wire:model="representativeId" :label="__('Representative\'s valid ID')" badge="Optional" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+                    <flux:input type="file" wire:model="spa" :label="__('SPA')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
+                    <flux:input type="file" wire:model="representativeId" :label="__('Representative\'s valid ID')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
                 </div>
                 <div wire:loading wire:target="spa,representativeId" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
             @endif

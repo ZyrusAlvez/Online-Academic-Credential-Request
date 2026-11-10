@@ -11,6 +11,7 @@ use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\OfficeVisit;
 use App\Models\Program;
+use App\Models\RequestRepresentative;
 use App\Models\User;
 use App\Services\RequestWorkflow;
 use Database\Seeders\PurposeSeeder;
@@ -128,6 +129,17 @@ function evaluate(CredentialRequest $request, User $registrar): CredentialReques
     workflow()->approveEvaluation($request, $registrar);
 
     return $request;
+}
+
+/**
+ * Declare a representative through the real workflow, with the SPA and ID it requires (REQ-11-01).
+ *
+ * @param  array{full_name: string, relationship?: ?string, contact_number?: ?string}  $data
+ */
+function declareRepresentative(CredentialRequest $request, User $owner, array $data): RequestRepresentative
+{
+    return workflow()->declareRepresentative($request, $owner, $data,
+        UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'), UploadedFile::fake()->image('representative-id.jpg'));
 }
 
 function uploadPayment(CredentialRequest $request): void

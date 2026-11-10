@@ -136,7 +136,7 @@ test('REQ-06-08 registrars are told about new and resubmitted requests, payments
     uploadPayment($request);
     Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "Payment to verify for {$request->reference_no}");
 
-    workflow()->declareRepresentative($request, $this->owner, ['full_name' => 'Rosa']);
+    declareRepresentative($request, $this->owner, ['full_name' => 'Rosa']);
     Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "Representative to verify for {$request->reference_no}");
 
     $other = submitRequest($this->owner, $this->org->tor);

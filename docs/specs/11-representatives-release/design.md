@@ -32,9 +32,11 @@ plain messages ("The SPA must be a JPG, PNG, WebP or PDF file.", "… must be 5 
 New Request and the request page both use it; `updatedSpa()`/`updatedRepresentativeId()` check a
 file as soon as it is chosen, and submit checks both again.
 
-Livewire's temporary upload rule is `max:5120` too (every upload in the app is capped at 5 MB),
-with a `validation.custom.files.*` message, so a file over 5 MB (or one PHP refuses) is reported
-in the same words instead of "The spa field must not be greater than 12288 kilobytes".
+A file too big for Livewire's temporary upload (12 MB) or for PHP on the server (8 MB) fails
+before those rules run; `validation.custom.files.*` and `validation.attributes` in
+`lang/en/validation.php` word that failure plainly ("The file could not be uploaded. Use a JPG,
+PNG, WebP or PDF file of 5 MB or smaller.") instead of "The spa field must not be greater than
+12288 kilobytes".
 
 ## Screens
 

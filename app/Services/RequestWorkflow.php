@@ -558,11 +558,13 @@ class RequestWorkflow
     // ── Representatives and release (spec 11) ──────────────────────────────────────────────
 
     /**
+     * A representative always comes with their SPA and valid ID (REQ-11-01).
+     *
      * @param  array{full_name: string, relationship?: ?string, contact_number?: ?string}  $data
      */
-    public function declareRepresentative(CredentialRequest $request, User $actor, array $data, ?UploadedFile $spa = null, ?UploadedFile $idFile = null): RequestRepresentative
+    public function declareRepresentative(CredentialRequest $request, User $actor, array $data, UploadedFile $spa, UploadedFile $idFile): RequestRepresentative
     {
-        $files = array_filter([DocumentKind::Spa->value => $spa, DocumentKind::RepresentativeId->value => $idFile]);
+        $files = [DocumentKind::Spa->value => $spa, DocumentKind::RepresentativeId->value => $idFile];
         $stored = [];
 
         foreach ($files as $kind => $file) {

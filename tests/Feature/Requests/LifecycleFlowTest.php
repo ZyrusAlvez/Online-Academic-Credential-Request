@@ -8,7 +8,6 @@ use App\Enums\RequestStatus;
 use App\Enums\VisitStatus;
 use App\Exceptions\InvalidTransition;
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 /*
@@ -54,7 +53,7 @@ test('a TOR request follows the client\'s flowchart from portal to release', fun
     passOffice($request, $registrar);
     expect($request->fresh()->status)->toBe(RequestStatus::ReadyForRelease);
 
-    $representative = workflow()->declareRepresentative($request, $owner, ['full_name' => 'Rosa Dela Cruz'], UploadedFile::fake()->image('spa.jpg'));
+    $representative = declareRepresentative($request, $owner, ['full_name' => 'Rosa Dela Cruz']);
     expect(fn () => workflow()->release($request, $registrar, RecipientType::Representative, $representative->id))->toThrow(InvalidTransition::class);
 
     workflow()->reviewRepresentative($representative, $registrar, true);

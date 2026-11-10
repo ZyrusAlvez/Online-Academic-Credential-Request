@@ -103,7 +103,7 @@ test('REQ-17-02 the decision buttons are centred under the remarks, Approve on t
 
     // A representative's Verify is right of Reject too.
     $represented = submitRequest($this->owner, $this->org->free);
-    workflow()->declareRepresentative($represented, $this->owner, ['full_name' => 'Rosa Reyes']);
+    declareRepresentative($represented, $this->owner, ['full_name' => 'Rosa Reyes']);
     $list = (string) $this->blade('<x-representative-list :representatives="$representatives" reviewable />', ['representatives' => $represented->fresh()->representatives]);
 
     expect($list)->toContain('verifyRepresentative(')
