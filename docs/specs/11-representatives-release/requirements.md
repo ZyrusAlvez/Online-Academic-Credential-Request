@@ -15,12 +15,17 @@ claiming procedure).
 ## Acceptance criteria
 
 ### Representatives
-- **REQ-11-01** THE SYSTEM SHALL let the owner declare, when submitting or later while the request
-  is open, that they act through an authorized representative, giving the representative's full
-  name, relationship and contact number (exactly 11 digits when given), and uploading the Special
-  Power of Attorney (SPA) and the representative's valid ID (JPG, PNG, WebP or PDF, max 5 MB each,
-  stored privately). Both uploads are required, on New Request and on the request page alike; a
-  representative without them is not saved.
+- **REQ-11-01** THE SYSTEM SHALL let the owner declare that they act through an authorized
+  representative when submitting (New Request, "Who will transact?"), and later only WHILE the
+  evaluator requires an office visit (`pending_compliance`, REQ-20-04), when the Proposed Workflow
+  lets the owner "visit UPHSL personally or send an authorized representative" (III-C, step 3).
+  At any other time the request page SHALL show no "Add representative" button, and the server
+  SHALL refuse it (403); a representative already declared is still listed. The owner gives the
+  representative's full name, relationship and contact number (exactly 11 digits when given), and
+  uploads the Special Power of Attorney (SPA) and the representative's valid ID (JPG, PNG, WebP or
+  PDF, max 5 MB each, stored privately). Both uploads are required, on New Request and on the
+  request page alike; a representative without them is not saved. *(User's decision, 2026-11-11:
+  replaces "or later while the request is open".)*
 - **REQ-11-02** THE SYSTEM SHALL record the representative's identity separately from the owner's
   account and show the owner and the registrar the representative and their verification status.
 - **REQ-11-03** THE SYSTEM SHALL let the registrar verify a representative (SPA and IDs checked,
