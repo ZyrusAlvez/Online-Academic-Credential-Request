@@ -284,4 +284,4 @@ All feature specs describe this model.
 | 16 | Registrar stages: checklists, evaluation lock, stage queues | done |
 | 17 | Physical hand-offs and the stage page | done |
 | 18 | The Admin account: administration, dashboard and reports | in progress |
-| 19 | Request status table | in progress |
+| 19 | Request status table | done |
