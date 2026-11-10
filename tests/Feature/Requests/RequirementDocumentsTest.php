@@ -220,12 +220,13 @@ test('REQ-04-19 the evaluator sees each requirement with its files under Academi
 
     $html = Livewire::actingAs($this->registrar)->test(StageShow::class, ['credentialRequest' => $request->fresh()])->html();
 
-    expect(Str::after($html, 'data-check="academic_record"'))->toContain('data-requirement-documents')
-        ->toContain('Completed clearance')
-        ->toContain('clearance.pdf')
+    $card = Str::after($html, 'data-check="academic_record"');
+
+    expect($card)->toContain('data-requirement-document')
         ->toContain(route('request-documents.show', $document))
-        ->toContain('PSA-authenticated birth certificate')
-        ->toContain('No file uploaded');
+        // Each requirement is a row: its name left, its files (or a grey "No file uploaded") right (REQ-09-22).
+        ->toMatch('#<dt class="text-zinc-600">Completed clearance</dt>\s*<dd[^>]*>.*?clearance\.pdf#s')
+        ->toMatch('#<dt class="text-zinc-600">PSA-authenticated birth certificate</dt>\s*<dd[^>]*>\s*(<!--\[if BLOCK\]><!\[endif\]-->)?\s*<span class="font-normal text-zinc-600 italic" data-empty-value>No file uploaded</span>#');
 });
 
 test('REQ-04-19 the Records page and the owner\'s page list the requirement files', function () {
@@ -233,10 +234,10 @@ test('REQ-04-19 the Records page and the owner\'s page list the requirement file
     $url = route('request-documents.show', $request->requirementDocuments()->sole());
 
     Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
-        ->assertSee('Documentary requirements')->assertSee('clearance.pdf')->assertSee($url, false);
+        ->assertSeeHtml('data-requirement-document')->assertSee('Completed clearance')->assertSee('clearance.pdf')->assertSee($url, false);
 
     Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])
-        ->assertSee('Documentary requirements')->assertSee('clearance.pdf')->assertSee($url, false);
+        ->assertSeeHtml('data-requirement-document')->assertSee('Completed clearance')->assertSee('clearance.pdf')->assertSee($url, false);
 });
 
 test('REQ-04-19 only the owner, registrars and admins can open a requirement file', function () {

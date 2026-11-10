@@ -147,14 +147,9 @@
                                 <x-summary-row :label="__('Student number')">{{ $request->student_number ?? '—' }}</x-summary-row>
                                 <x-summary-row :label="__('College')">{{ $request->college->name }}</x-summary-row>
                                 <x-summary-row :label="__('Program or strand')">{{ $request->program }}</x-summary-row>
+                                {{-- Each requirement and the copies the requester sent, as rows (REQ-04-19, REQ-09-22). --}}
+                                <x-requirement-document-list :request="$request" />
                             </dl>
-                            @if ($request->requirementFiles() !== [])
-                                {{-- The requirements and the copies the requester sent (REQ-04-19). --}}
-                                <div class="mt-4 border-t border-secondary/50 pt-4">
-                                    <p class="mb-2 text-sm text-zinc-500">{{ __('Documentary requirements') }}</p>
-                                    <x-requirement-document-list :request="$request" />
-                                </div>
-                            @endif
                             @break
 
                         @case(Item::Representative)

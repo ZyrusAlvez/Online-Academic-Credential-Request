@@ -108,7 +108,7 @@ test('REQ-09-04 every page has its own browser tab title', function () {
 
     $this->actingAs(User::factory()->student()->create());
 
-    $this->get(route('student.dashboard'))->assertSee($title('My Requests'), false);
+    $this->get(route('student.dashboard'))->assertSee($title('Request Tracker'), false);
     $this->get(route('settings.notifications'))->assertSee($title('Email notifications'), false);
     $this->get(route('settings.password'))->assertSee($title('Password settings'), false);
     $this->get(route('password.confirm'))->assertSee($title('Confirm password'), false);
@@ -212,7 +212,7 @@ test('REQ-09-08 toasts appear at the top centre of the screen', function () {
         ->assertSeeHtml('class="pointer-events-none fixed inset-x-4 top-4 z-50 flex justify-center"');
 });
 
-test('REQ-09-09 the requester sidebar has no group heading and lists New Request, then My Requests', function () {
+test('REQ-09-09 the requester sidebar has no group heading and lists New Request, then Request Tracker', function () {
     $html = $this->actingAs(User::factory()->student()->create())->get(route('student.dashboard'))
         ->assertOk()
         ->getContent();
@@ -220,8 +220,50 @@ test('REQ-09-09 the requester sidebar has no group heading and lists New Request
     $nav = Str::between($html, 'data-flux-navlist>', '</nav>');
 
     expect($nav)->not->toContain('Student')
-        ->and(strpos($nav, 'New Request'))->toBeLessThan(strpos($nav, 'My Requests'))
-        ->and($nav)->not->toContain('My Profile');
+        ->and(strpos($nav, 'New Request'))->toBeLessThan(strpos($nav, 'Request Tracker'))
+        ->and($nav)->not->toContain('My Profile')
+        ->and($nav)->not->toContain('My Requests');
+});
+
+test('REQ-09-21 the list is "Request Tracker", request pages live under /student/request/, and old addresses redirect', function () {
+    $org = organisation();
+    $owner = requester($org->ccs);
+    $request = submitRequest($owner, $org->free);
+    $this->actingAs($owner);
+
+    expect(route('student.requests.create', absolute: false))->toBe('/student/request/new')
+        ->and(route('student.requests.show', $request, absolute: false))->toBe('/student/request/'.$request->reference_no)
+        ->and(route('student.requests.edit', $request, absolute: false))->toBe('/student/request/'.$request->reference_no.'/edit');
+
+    $this->get(route('student.dashboard'))->assertOk()->assertSeeHtml('Request Tracker</h1>')->assertDontSee('My Requests');
+    $this->get(route('student.requests.show', $request))->assertOk()->assertSee('Request Tracker')->assertDontSee('My Requests');
+
+    // Links in earlier emails still work.
+    $this->get('/student/requests/new')->assertRedirect('/student/request/new')->assertStatus(301);
+    $this->get('/student/requests/'.$request->reference_no)->assertRedirect('/student/request/'.$request->reference_no);
+    $this->get('/student/requests/'.$request->reference_no.'/edit')->assertRedirect('/student/request/'.$request->reference_no.'/edit');
+
+    // New Request has no breadcrumb.
+    $this->get(route('student.requests.create'))->assertOk()->assertDontSeeHtml('data-flux-breadcrumbs')->assertDontSee('My Requests');
+});
+
+test('REQ-09-22 the request page lists details as label/value rows, the ID and requirement files included, with Tracking History last', function () {
+    $org = organisation();
+    $owner = requester($org->ccs);
+    $request = submitRequest($owner, $org->tor);
+
+    $html = $this->actingAs($owner)->get(route('student.requests.show', $request))->assertOk()->getContent();
+    $details = Str::between($html, 'data-request-details', '</dl>');
+
+    expect($details)->toMatch('#<dt class="text-zinc-600">Credential</dt>\s*<dd[^>]*>\s*Transcript of Records#')
+        ->toMatch('#<dt class="text-zinc-600">Valid ID</dt>#')
+        // A requirement with no file is a row whose value is a grey "No file uploaded".
+        ->toMatch('#<dt class="text-zinc-600">Completed clearance</dt>\s*<dd[^>]*>\s*(<!--\[if BLOCK\]><!\[endif\]-->)?\s*<span class="font-normal text-zinc-600 italic" data-empty-value>No file uploaded</span>#');
+
+    // Tracking History is the page's last section.
+    preg_match_all('/<h2 id="([a-z-]+)-heading"/', $html, $headings);
+    expect(end($headings[1]))->toBe('history')
+        ->and(strpos($html, 'id="details-heading"'))->toBeLessThan(strpos($html, 'id="history-heading"'));
 });
 
 test('REQ-09-10 the incomplete-requirements notice is collapsed between "Who Will Transact?" and Review request', function () {
@@ -277,11 +319,12 @@ test('REQ-09-18 signed-in pages stop at 96rem on wide screens and detail grids c
     expect($this->get(route('admin.departments'))->assertOk()->getContent())->toContain('class="mx-auto w-full max-w-screen-2xl" data-page-width');
 
     $this->actingAs($registrar);
-    // The request page is one column of checklist cards (spec 16) whose details stack on phones.
-    expect($this->get(route('registrar.requests.show', $request))->assertOk()->getContent())->toContain('class="mx-auto max-w-4xl space-y-6"')->toContain('grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2');
+    // The request page is one column of checklist cards (spec 16) whose detail rows stack on phones
+    // and sit side by side from the sm breakpoint (REQ-09-22).
+    expect($this->get(route('registrar.requests.show', $request))->assertOk()->getContent())->toContain('class="mx-auto max-w-4xl space-y-6"')->toContain('data-request-details')->toContain('sm:grid sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]');
 });
 
-test('REQ-09-12 New Request and My Requests share one column and one section style', function () {
+test('REQ-09-12 New Request and Request Tracker share one column and one section style', function () {
     $org = organisation();
     $owner = requester($org->ccs);
     submitRequest($owner, $org->free);
@@ -302,7 +345,7 @@ test('REQ-09-12 New Request and My Requests share one column and one section sty
         ->assertDontSee('Your Requests');
 });
 
-test('REQ-09-20 My Requests searches the requester\'s own requests by credential name or tracking number', function () {
+test('REQ-09-20 Request Tracker searches the requester\'s own requests by credential name or tracking number', function () {
     $org = organisation();
     $owner = requester($org->ccs);
     $tor = submitRequest($owner, $org->tor);

@@ -76,7 +76,7 @@ test('REQ-15-02 there is no My Profile page; the old address goes to Settings â†
     $this->actingAs($this->newcomer)->get(route('student.requests.create'))
         ->assertOk()
         ->assertDontSee('My Profile')
-        ->assertSeeInOrder(['New Request', 'My Requests']);
+        ->assertSeeInOrder(['New Request', 'Request Tracker']);
 });
 
 test('REQ-15-03 New Request has numbered sections for the request, its requirements, personal and academic information, the ID and who transacts', function () {

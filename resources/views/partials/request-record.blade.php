@@ -9,39 +9,26 @@
 @unless (in_array('details', $hide, true))
     <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
-        <x-request-details :request="$request" />
-        <dl class="mt-4 grid gap-4 border-t border-secondary/50 pt-4 text-sm sm:grid-cols-2">
-            <div>
-                <dt class="text-zinc-500">{{ __('Email and contact number') }}</dt>
-                <dd class="font-medium break-all text-ink">{{ $request->student->email }}@if ($request->contact_number) · {{ $request->contact_number }}@endif</dd>
-            </div>
-            <div>
-                <dt class="text-zinc-500">{{ __('Valid ID') }}</dt>
-                <dd class="font-medium text-ink">
-                    @if ($request->identityDocument)
-                        <x-file-link :href="route('identity-documents.show', $request->identityDocument)" :name="$request->identityDocument->id_type.' – '.$request->requester_name" :type="$request->identityDocument->mime_type">
-                            {{ $request->identityDocument->id_type }}
-                        </x-file-link>
-                        <flux:badge size="sm" :color="$request->identity_status->color()" class="ms-1">{{ $request->identity_status->label() }}</flux:badge>
-                    @else
-                        —
-                    @endif
-                </dd>
-            </div>
-        </dl>
-        @if ($request->requirementFiles() !== [])
-            <div class="mt-4 border-t border-secondary/50 pt-4">
-                <p class="mb-2 text-sm text-zinc-500">{{ __('Documentary requirements') }}</p>
-                <x-requirement-document-list :request="$request" />
-            </div>
-        @endif
-        @if ($request->accepted_at)
-            <dl class="mt-4 grid gap-4 border-t border-secondary/50 pt-4 text-sm sm:grid-cols-3">
-                <div><dt class="text-zinc-500">{{ __('Due date') }}</dt><dd class="font-medium text-ink">{{ $request->due_at->format('M j, Y') }}</dd></div>
-                <div><dt class="text-zinc-500">{{ __('Adjusted due date') }}</dt><dd class="font-medium text-ink">{{ $request->adjusted_due_at?->format('M j, Y') ?? '—' }}</dd></div>
-                <div><dt class="text-zinc-500">{{ __('Processing time') }}</dt><dd class="font-medium text-ink">{{ $request->processing_working_days !== null ? trans_choice(':count working day|:count working days', $request->processing_working_days) : '—' }}</dd></div>
-            </dl>
-        @endif
+        {{-- One list of rows, field left and value right (REQ-09-22). --}}
+        <x-request-details :request="$request">
+            <x-summary-row :label="__('Email and contact number')" class="[&_dd]:break-all">{{ $request->student->email }}@if ($request->contact_number) · {{ $request->contact_number }}@endif</x-summary-row>
+            <x-summary-row :label="__('Valid ID')">
+                @if ($request->identityDocument)
+                    <x-file-link :href="route('identity-documents.show', $request->identityDocument)" :name="$request->identityDocument->id_type.' – '.$request->requester_name" :type="$request->identityDocument->mime_type">
+                        {{ $request->identityDocument->id_type }}
+                    </x-file-link>
+                    <flux:badge size="sm" :color="$request->identity_status->color()" class="ms-1">{{ $request->identity_status->label() }}</flux:badge>
+                @else
+                    —
+                @endif
+            </x-summary-row>
+            <x-requirement-document-list :request="$request" />
+            @if ($request->accepted_at)
+                <x-summary-row :label="__('Due date')">{{ $request->due_at->format('M j, Y') }}</x-summary-row>
+                <x-summary-row :label="__('Adjusted due date')">{{ $request->adjusted_due_at?->format('M j, Y') ?? '—' }}</x-summary-row>
+                <x-summary-row :label="__('Processing time')">{{ $request->processing_working_days !== null ? trans_choice(':count working day|:count working days', $request->processing_working_days) : '—' }}</x-summary-row>
+            @endif
+        </x-request-details>
     </section>
 @endunless
 

@@ -1,14 +1,13 @@
 <div class="mx-auto max-w-3xl space-y-6">
-    {{-- New Request, or Edit Request for a request returned for clarification (REQ-20-06). --}}
-    <flux:breadcrumbs>
-        <flux:breadcrumbs.item :href="route('student.dashboard')" wire:navigate>{{ __('My Requests') }}</flux:breadcrumbs.item>
-        @if ($editing)
+    {{-- New Request, or Edit Request for a request returned for clarification (REQ-20-06).
+         New Request has no breadcrumb; Edit Request leads back to its request (REQ-09-21). --}}
+    @if ($editing)
+        <flux:breadcrumbs>
+            <flux:breadcrumbs.item :href="route('student.dashboard')" wire:navigate>{{ __('Request Tracker') }}</flux:breadcrumbs.item>
             <flux:breadcrumbs.item :href="route('student.requests.show', $editing)" wire:navigate>{{ $editing->reference_no }}</flux:breadcrumbs.item>
             <flux:breadcrumbs.item>{{ __('Edit') }}</flux:breadcrumbs.item>
-        @else
-            <flux:breadcrumbs.item>{{ __('New request') }}</flux:breadcrumbs.item>
-        @endif
-    </flux:breadcrumbs>
+        </flux:breadcrumbs>
+    @endif
 
     {{-- On the summary, "Summary" is the page's title instead (REQ-15-17). --}}
     @unless ($reviewing)

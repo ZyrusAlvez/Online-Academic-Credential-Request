@@ -4,7 +4,7 @@
     @if ($role === \App\Enums\Role::Student)
         <flux:navlist.group class="grid">
             <flux:navlist.item icon="plus-circle" :href="route('student.requests.create')" :current="request()->routeIs('student.requests.create')" wire:navigate>{{ __('New Request') }}</flux:navlist.item>
-            <flux:navlist.item icon="document-text" :href="route('student.dashboard')" :current="request()->routeIs('student.dashboard', 'student.requests.show')" wire:navigate>{{ __('My Requests') }}</flux:navlist.item>
+            <flux:navlist.item icon="document-text" :href="route('student.dashboard')" :current="request()->routeIs('student.dashboard', 'student.requests.show')" wire:navigate>{{ __('Request Tracker') }}</flux:navlist.item>
         </flux:navlist.group>
     @elseif ($role === \App\Enums\Role::Registrar)
         {{-- Initial Evaluation to Release, and Records (REQ-18-03). --}}

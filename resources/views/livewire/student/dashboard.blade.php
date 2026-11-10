@@ -1,6 +1,6 @@
 {{-- Same column and sections as New Request (REQ-09-12). --}}
 <div class="mx-auto max-w-3xl space-y-6">
-    <x-page-header title="My Requests">
+    <x-page-header title="Request Tracker">
         <x-slot:actions>
             <flux:button variant="primary" icon="plus" :href="route('student.requests.create')" wire:navigate>{{ __('New request') }}</flux:button>
         </x-slot:actions>
