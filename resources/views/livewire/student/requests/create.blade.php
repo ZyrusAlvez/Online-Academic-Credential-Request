@@ -253,11 +253,11 @@
                     <flux:input wire:model="form.representative_relationship" :label="__('Relationship to you')" badge="Optional" />
                     <flux:input wire:model="form.representative_contact" type="tel" :label="__('Representative\'s contact number')" badge="Optional" inputmode="numeric" maxlength="11" placeholder="09171234567" />
                 </div>
+                {{-- The same picker as the valid ID: the name links to the file viewer (REQ-11-01). --}}
                 <div class="grid gap-6 sm:grid-cols-2">
-                    <flux:input type="file" wire:model="spa" :label="__('SPA')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
-                    <flux:input type="file" wire:model="representativeId" :label="__('Representative\'s valid ID')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
+                    <x-file-picker model="spa" :label="__('SPA')" data-spa-picker />
+                    <x-file-picker model="representativeId" :label="__('Representative\'s valid ID')" data-representative-id-picker />
                 </div>
-                <div wire:loading wire:target="spa,representativeId" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
             @endif
         </section>
         @endunless

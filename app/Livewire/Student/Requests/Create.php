@@ -503,9 +503,10 @@ class Create extends Component
     }
 
     /**
-     * Section 6 of the summary: who submits the documents and claims the credential (REQ-15-17).
+     * Section 6 of the summary: who submits the documents and claims the credential, the SPA and
+     * the representative's ID linked to the file viewer (REQ-15-17).
      *
-     * @return array<string, string>
+     * @return array<string, string|list<string|array{name: string, size: string, href: string, type: string}>>
      */
     protected function transactSummary(): array
     {
@@ -520,8 +521,8 @@ class Create extends Component
             __('Representative\'s full name') => $representative['full_name'],
             __('Relationship to you') => $representative['relationship'] ?? __('Not provided'),
             __('Representative\'s contact number') => $representative['contact_number'] ?? __('Not provided'),
-            __('SPA') => $this->spa instanceof UploadedFile ? $this->spa->getClientOriginalName() : '',
-            __('Representative\'s valid ID') => $this->representativeId instanceof UploadedFile ? $this->representativeId->getClientOriginalName() : '',
+            __('SPA') => $this->spa instanceof UploadedFile ? [$this->summaryFile($this->spa)] : '',
+            __('Representative\'s valid ID') => $this->representativeId instanceof UploadedFile ? [$this->summaryFile($this->representativeId)] : '',
         ];
     }
 

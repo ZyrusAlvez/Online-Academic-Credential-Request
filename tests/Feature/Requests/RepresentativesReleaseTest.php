@@ -16,6 +16,7 @@ use App\Services\RequestWorkflow;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -120,6 +121,28 @@ test('REQ-11-09 a wrong file type or a file over 5 MB is reported as soon as it 
 
     $show->set('representativeName', 'Pedro Santos')->call('declareRepresentative')->assertHasErrors(['spa' => 'mimes']);
     expect($request->representatives()->count())->toBe(0);
+});
+
+test('REQ-11-10 the SPA and representative\'s ID use the valid ID\'s picker, its name a link to the viewer, on both screens', function () {
+    $request = submitRequest($this->owner, $this->org->tor);
+    $show = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])->html();
+    $create = Livewire::actingAs($this->owner)->test(Create::class)->set('form.requester_mode', 'representative')->html();
+
+    foreach ([$show, $create] as $html) {
+        foreach (['spa' => 'data-spa-picker', 'representativeId' => 'data-representative-id-picker'] as $model => $marker) {
+            $field = Str::after($html, $marker);
+
+            expect($field)->toMatch('/^[^>]*x-data="\{ chosen: null/')
+                ->toMatch('/<input type="file" wire:model="'.$model.'"[^>]*class="sr-only"/')
+                ->toContain('Choose file')->toContain('No file chosen')
+                ->toMatch('/<a href="#"[^>]*data-chosen-file[^>]*x-text="chosen\?\.name"\s*x-on:click\.prevent="\$dispatch\(\'open-file\', chosen\)"/')
+                ->toMatch('/<div x-show="uploading"[^>]*role="status"[^>]*data-upload-progress>/');
+        }
+
+        // Only the picker's own input: the browser's picker with its repeated name is gone.
+        expect(substr_count($html, 'wire:model="spa"'))->toBe(1)
+            ->and(substr_count($html, 'wire:model="representativeId"'))->toBe(1);
+    }
 });
 
 test('REQ-11-01 a representative\'s contact number, when given, must be exactly 11 digits', function () {
