@@ -6,6 +6,7 @@ use App\Livewire\Admin\Departments\Index as DepartmentsIndex;
 use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Department\Requests\Show as OfficeShow;
 use App\Livewire\Registrar\Records\Show as RecordShow;
+use App\Livewire\Student\Dashboard as StudentDashboard;
 use App\Livewire\Student\Requests\Create;
 use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\CredentialType;
@@ -296,7 +297,67 @@ test('REQ-09-12 New Request and My Requests share one column and one section sty
             ->and(collect($sections[1])->reject(fn (string $class) => str_contains($class, 'rounded-xl border border-secondary/50 p-5 sm:p-6'))->all())->toBe([]);
     }
 
-    $this->get(route('student.dashboard'))->assertSeeInOrder(['Your Requests', 'Certification of Enrollment']);
+    $this->get(route('student.dashboard'))
+        ->assertSee('Certification of Enrollment')
+        ->assertDontSee('Your Requests');
+});
+
+test('REQ-09-20 My Requests searches the requester\'s own requests by credential name or tracking number', function () {
+    $org = organisation();
+    $owner = requester($org->ccs);
+    $tor = submitRequest($owner, $org->tor);
+    $enrollment = submitRequest($owner, $org->free);
+    $someoneElses = submitRequest(requester($org->cba), $org->tor);
+
+    $page = Livewire::actingAs($owner)->test(StudentDashboard::class)
+        ->assertSeeHtml('data-request-search')
+        ->assertSee([$tor->reference_no, $enrollment->reference_no]);
+
+    // By credential name, in any case.
+    $page->set('search', 'transcript')
+        ->assertSee($tor->reference_no)
+        ->assertDontSee($enrollment->reference_no)
+        ->assertDontSee($someoneElses->reference_no);
+
+    // By (part of) the tracking number, spaces around it ignored.
+    $page->set('search', ' '.substr($enrollment->reference_no, -6).' ')
+        ->assertSee($enrollment->reference_no)
+        ->assertDontSee($tor->reference_no);
+
+    // Another requester's tracking number finds nothing.
+    $page->set('search', $someoneElses->reference_no)
+        ->assertSee('No Matching Requests')
+        ->assertSee('Clear search')
+        ->call('clearSearch')
+        ->assertSet('search', '')
+        ->assertSee([$tor->reference_no, $enrollment->reference_no]);
+});
+
+test('REQ-09-20 the search stays in the address and starts again from the first page', function () {
+    $org = organisation();
+    $owner = requester($org->ccs);
+    foreach (range(1, 11) as $i) {
+        submitRequest($owner, $org->free);
+    }
+    $tor = submitRequest($owner, $org->tor);
+
+    $this->actingAs($owner)->get(route('student.dashboard', ['search' => 'Transcript']))
+        ->assertOk()
+        ->assertSee($tor->reference_no)
+        ->assertDontSee('Certification of Enrollment');
+
+    Livewire::actingAs($owner)->test(StudentDashboard::class)
+        ->call('gotoPage', 2)
+        ->set('search', 'Transcript')
+        ->assertSet('paginators.page', 1)
+        ->assertSee($tor->reference_no);
+});
+
+test('REQ-09-20 a requester with no requests sees no search box', function () {
+    $this->actingAs(requester(organisation()->ccs))->get(route('student.dashboard'))
+        ->assertOk()
+        ->assertSee('No requests yet')
+        ->assertDontSeeHtml('data-request-search');
 });
 
 test('REQ-09-19 every section heading and report name is in Title Case', function () {
