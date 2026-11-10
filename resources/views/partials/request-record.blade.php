@@ -29,6 +29,12 @@
                 </dd>
             </div>
         </dl>
+        @if ($request->requirementFiles() !== [])
+            <div class="mt-4 border-t border-secondary/50 pt-4">
+                <p class="mb-2 text-sm text-zinc-500">{{ __('Documentary requirements') }}</p>
+                <x-requirement-document-list :request="$request" />
+            </div>
+        @endif
         @if ($request->accepted_at)
             <dl class="mt-4 grid gap-4 border-t border-secondary/50 pt-4 text-sm sm:grid-cols-3">
                 <div><dt class="text-zinc-500">{{ __('Due date') }}</dt><dd class="font-medium text-ink">{{ $request->due_at->format('M j, Y') }}</dd></div>

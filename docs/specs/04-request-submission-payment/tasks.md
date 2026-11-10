@@ -10,9 +10,9 @@
       appears once a credential is chosen (REQ-04-02)
 - [x] Drop `copies`: form, workflow, views, CSV, factory, seeders; migration resets unpaid amounts (REQ-04-01..03)
 - [x] Pest tests for the changed REQ-04-01..03
-- [ ] Migration: `request_documents.requirement`; `DocumentKind::Requirement`;
+- [x] Migration: `request_documents.requirement`; `DocumentKind::Requirement`;
       `CredentialRequest::requirementDocuments()` (REQ-04-19)
-- [ ] `RequestWorkflow::attachRequirementDocuments()`; New Request's per-requirement file fields,
+- [x] `RequestWorkflow::attachRequirementDocuments()`; New Request's per-requirement file fields,
       checked on choice and on review, sent on submit (REQ-04-18)
-- [ ] `<x-requirement-document-list>` on the evaluation checklist, Records and the owner's page (REQ-04-19)
-- [ ] Pest tests for REQ-04-18, 19
+- [x] `<x-requirement-document-list>` on the evaluation checklist, Records and the owner's page (REQ-04-19)
+- [x] Pest tests for REQ-04-18, 19

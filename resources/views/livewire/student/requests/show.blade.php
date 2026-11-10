@@ -193,6 +193,13 @@
                 <flux:badge size="sm" :color="$request->identity_status->color()">{{ $request->identity_status->label() }}</flux:badge>
             </div>
         @endif
+        @if ($request->requirementFiles() !== [])
+            {{-- The copies of the requirements sent with this request (REQ-04-19). --}}
+            <div class="mt-4 border-t border-secondary/50 pt-4">
+                <p class="mb-2 text-sm text-zinc-500">{{ __('Documentary requirements') }}</p>
+                <x-requirement-document-list :request="$request" />
+            </div>
+        @endif
     </section>
 
     @can('declareRepresentative', $request)

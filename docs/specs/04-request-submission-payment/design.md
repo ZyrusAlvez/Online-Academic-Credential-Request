@@ -76,7 +76,7 @@ be made. Requests at `payment_verification` or later keep the amount that was pa
 
 ## Documentary-requirement files (2026-11-10)
 
-- `request_documents` gains a nullable `requirement` (string 255): the requirement's text as the
+- `request_documents` gains a nullable `requirement` (text, since a requirement line may be long): the requirement's text as the
   credential listed it at submission, so a later edit of the master list does not relabel a file.
   Rows have `kind = requirement` and no representative. Same private disk
   (`RequestWorkflow::proofDisk()`, folder `request-documents/{id}`), same route

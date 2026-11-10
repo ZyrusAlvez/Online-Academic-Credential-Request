@@ -78,13 +78,23 @@
                         </div>
 
                         @if ($type->requirements)
-                            <div>
+                            {{-- One file field per requirement; all optional, so none is marked (REQ-04-18). --}}
+                            <div data-requirement-uploads>
                                 <h4 class="font-semibold text-ink">{{ __('Documentary requirements') }}</h4>
-                                <ul role="list" class="mt-2 space-y-2">
-                                    @foreach ($type->requirements as $requirement)
-                                        <li class="flex items-start gap-2 text-ink">
-                                            <flux:icon.check-circle variant="mini" class="mt-0.5 shrink-0 text-primary" />
-                                            <span>{{ $requirement }}</span>
+                                <p class="mt-1 text-zinc-600">{{ __('Upload a copy of each requirement you have: up to :max files each, JPG, PNG, WebP or PDF, 5 MB per file. The Registrar\'s Office still checks the originals.', ['max' => \App\Models\RequestDocument::MAX_PER_REQUIREMENT]) }}</p>
+                                <ul role="list" class="mt-4 space-y-5">
+                                    @foreach ($type->requirements as $index => $requirement)
+                                        @php($field = "requirementFiles.{$type->id}.{$index}")
+                                        @php($chosen = count((array) ($requirementFiles[$type->id][$index] ?? [])))
+                                        <li class="space-y-2" wire:key="requirement-{{ $type->id }}-{{ $index }}-{{ $requirementResets[$field] ?? 0 }}">
+                                            <flux:input type="file" wire:model="{{ $field }}" multiple :label="$requirement" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+                                            <div wire:loading wire:target="{{ $field }}" class="text-zinc-600">{{ __('Uploading…') }}</div>
+                                            @if ($chosen > 0)
+                                                <div class="flex flex-wrap items-center gap-2 text-zinc-600">
+                                                    <span>{{ trans_choice(':count file ready to send|:count files ready to send', $chosen) }}</span>
+                                                    <flux:button size="xs" variant="ghost" icon="x-mark" wire:click="clearRequirementFiles({{ $type->id }}, {{ $index }})">{{ __('Remove') }}</flux:button>
+                                                </div>
+                                            @endif
                                         </li>
                                     @endforeach
                                 </ul>
