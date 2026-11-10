@@ -56,8 +56,8 @@ identity, and My Profile in REQ-09-09/12.
 - **REQ-15-05** WHEN the requester chooses "Review request" THE SYSTEM SHALL check every entry and
   save nothing. IF an entry is missing or invalid THEN THE SYSTEM SHALL show the errors modal of
   REQ-01-26. Otherwise THE SYSTEM SHALL show a "Summary" of the request, the personal and academic
-  information and the ID (an image as a picture; the file name opens it, image or PDF, in the file
-  viewer), the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry
+  information and the ID (its file name only, as a link that opens it, image or PDF, in the file
+  viewer; no picture on the page, *user's request, 2026-11-10*), the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry
   and the chosen file, and a "Submit request" button. THE SYSTEM SHALL show the consent as an
   unticked checkbox on every summary and SHALL NOT submit (the button stays disabled, and the server
   refuses) until it is ticked; the first consent's time is recorded on the account.
