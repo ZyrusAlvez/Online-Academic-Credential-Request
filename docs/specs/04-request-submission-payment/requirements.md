@@ -30,8 +30,11 @@ period starts only at acceptance.
 - **REQ-04-18** WHERE the chosen credential lists documentary requirements THE SYSTEM SHALL offer,
   on New Request, one file field per requirement, labelled with the requirement, taking up to 5
   files of JPG, PNG, WebP or PDF, 5 MB each. Every field is optional and SHALL NOT be marked
-  "Optional"; each file is checked as soon as it is chosen. Files chosen for another credential
-  SHALL NOT be sent. *(User's decision, 2026-11-10: copies help the evaluator; the originals are
+  "Optional"; each file is checked as soon as it is chosen. Each field SHALL list every file
+  chosen for it by name and size, each with its own Remove, and count them ("2 of 5 files");
+  choosing files again adds to them, so the button then reads "Add more files" and is gone at
+  5. *(User's report, 2026-11-10: the browser's own picker showed only the last file's name.)*
+  Files chosen for another credential SHALL NOT be sent. *(User's decision, 2026-11-10: copies help the evaluator; the originals are
   still checked at the Registrar's Office, REQ-16-15.)*
 - **REQ-04-19** THE SYSTEM SHALL store the requirement files privately with the request, each
   under its requirement, and SHALL let only the owner, registrars and admins open them; the

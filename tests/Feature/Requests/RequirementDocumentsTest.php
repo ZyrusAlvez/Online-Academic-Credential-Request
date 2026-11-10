@@ -120,12 +120,45 @@ test('REQ-04-18 five files of 5 MB are accepted, and a bad file stops the review
         ->assertSet('reviewing', false);
 });
 
-test('REQ-04-18 removing a requirement\'s files clears them', function () {
+test('REQ-04-18 removing a requirement\'s only file clears it', function () {
     $field = "requirementFiles.{$this->org->tor->id}.0";
 
-    submitRequestForm(torRequestForm()->set($field, [fakePdf()])->call('clearRequirementFiles', $this->org->tor->id, 0))->assertHasNoErrors();
+    submitRequestForm(torRequestForm()->set($field, [fakePdf()])->call('removeRequirementFile', $this->org->tor->id, 0, 0))->assertHasNoErrors();
 
     expect(CredentialRequest::sole()->requirementDocuments()->count())->toBe(0);
+});
+
+test('REQ-04-18 each field lists its chosen files by name and size, each with Remove, and counts them', function () {
+    $tor = $this->org->tor->id;
+    $field = "requirementFiles.{$tor}.0";
+    $fieldHtml = fn (Testable $form): string => Str::between(requirementBlock($form->html(), $this->org->tor), 'data-requirement-field="0"', 'data-requirement-field="1"');
+
+    $form = torRequestForm();
+    expect($fieldHtml($form))->toContain('No files yet')->toContain('Choose files')
+        ->not->toContain('data-chosen-files')
+        // The browser's picker, with its "No file chosen" or last file's name, is hidden.
+        ->toMatch('/<input type="file" wire:model="'.preg_quote($field).'" multiple[^>]*class="sr-only"/');
+
+    $form->set($field, [fakePdf('clearance.pdf', 200), UploadedFile::fake()->image('clearance-page-2.jpg')]);
+    expect($fieldHtml($form))->toContain('2 of 5 files')
+        ->toContain('clearance.pdf')->toContain('200 KB')
+        ->toContain('clearance-page-2.jpg')
+        ->toContain('aria-label="Remove clearance.pdf"')
+        ->toContain('Add more files');
+
+    // Remove takes out that file only.
+    $form->call('removeRequirementFile', $tor, 0, 0)->assertHasNoErrors();
+    expect($fieldHtml($form))->toContain('1 of 5 files')->toContain('clearance-page-2.jpg')
+        ->not->toContain('clearance.pdf');
+
+    // Choosing files again adds to them; at five there is nothing more to add.
+    $form->set($field, array_map(fn ($i) => fakePdf("page-{$i}.pdf"), range(1, 4)));
+    expect($fieldHtml($form))->toContain('5 of 5 files')->toContain('clearance-page-2.jpg')
+        ->not->toContain('type="file"');
+
+    // Removing a file that broke the limit clears the error.
+    torRequestForm()->set($field, array_map(fn ($i) => fakePdf("page-{$i}.pdf"), range(1, 6)))->assertHasErrors([$field])
+        ->call('removeRequirementFile', $tor, 0, 5)->assertHasNoErrors([$field]);
 });
 
 test('REQ-04-18 files chosen for another credential are not sent', function () {
