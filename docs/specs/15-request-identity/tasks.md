@@ -18,3 +18,5 @@
 - [x] The summary shows the chosen ID's file name as a link to the viewer, no picture (REQ-15-05)
 - [x] One saved ID at most: no ID fields while one is saved; a Remove button that hides it from the
   profile (kept for requests that use it, deleted otherwise) (REQ-15-04, 18)
+- [ ] Summary section 5 as one row, type of ID left and the linked file name and size right; each
+  section 2 file a link to the viewer (REQ-15-05, 17)
