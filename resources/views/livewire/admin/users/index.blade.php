@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Accounts" description="Create staff accounts for departments, the Registrar and admins, change an account's role, and activate or deactivate any account.">
+    <x-page-header title="Accounts" description="Staff and requester accounts.">
         <x-slot:actions>
             <flux:button variant="primary" icon="user-plus" wire:click="create">{{ __('Add staff account') }}</flux:button>
         </x-slot:actions>
@@ -146,7 +146,7 @@
                 </flux:select>
             @endif
 
-            <flux:text>{{ __('They keep their name, email, password and history. The new role applies from their next page.') }}</flux:text>
+            <flux:text>{{ __('Their details and history are kept.') }}</flux:text>
 
             <div class="flex justify-end gap-2">
                 <flux:modal.close>

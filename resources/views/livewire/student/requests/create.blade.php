@@ -11,9 +11,9 @@
     </flux:breadcrumbs>
 
     @if ($editing)
-        <x-page-header :title="__('Edit request :ref', ['ref' => $editing->reference_no])" :description="__('Correct what the Office of the Registrar asked about, review, and resubmit. Your details are saved for your next request.')" />
+        <x-page-header :title="__('Edit request :ref', ['ref' => $editing->reference_no])" :description="__('Correct your request, then resubmit it.')" />
     @else
-        <x-page-header title="Request a credential" description="Choose the credential, give your details and valid ID, review, and submit. Your details are saved for your next request. The Office of the Registrar evaluates every request before accepting it." />
+        <x-page-header title="Request a credential" description="Fill in the form, review it, and submit." />
     @endif
 
     {{-- Not shown: it announces the step to screen readers and is the focus target of showStep(). --}}
@@ -27,7 +27,7 @@
         <section aria-labelledby="what-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <h2 id="what-heading" class="text-lg font-semibold text-primary">{{ __('1. What Do You Need?') }}</h2>
 
-            <x-select-menu wire:model="form.credential_type_id" :label="__('Credential')" :description="__('Choose one to see its fee, requirements and processing time.')"
+            <x-select-menu wire:model="form.credential_type_id" :label="__('Credential')"
                 :options="$types->pluck('name', 'id')->all()" :value="$form->credential_type_id"
                 :placeholder="__('Choose a credential…')" :search-label="__('Search credentials')" />
 
@@ -118,7 +118,7 @@
                         <span x-show="! transfer" @if ($selectedType?->requires_receiving_institution) style="display: none" @endif class="ms-1.5 -my-1 rounded-[4px] bg-zinc-800/5 px-1.5 py-1 text-xs text-zinc-800/70" aria-hidden="true">{{ __('Optional') }}</span>
                     </flux:label>
                     <flux:description>
-                        <span x-text="transfer ? @js(__('The complete name of the school you are transferring to. It appears on the credential.')) : @js(__('If applicable: the complete name of the institution the credential is for.'))">{{ $selectedType?->requires_receiving_institution ? __('The complete name of the school you are transferring to. It appears on the credential.') : __('If applicable: the complete name of the institution the credential is for.') }}</span>
+                        <span x-text="transfer ? @js(__('Its complete name.')) : @js(__('If the credential is for a specific institution.'))">{{ $selectedType?->requires_receiving_institution ? __('Its complete name.') : __('If the credential is for a specific institution.') }}</span>
                     </flux:description>
                     <flux:input wire:model="form.receiving_institution" x-bind:required="transfer" />
                     <flux:error name="form.receiving_institution" />
@@ -133,7 +133,7 @@
 
             <div aria-live="polite" class="text-sm">
                 <p x-show="String($wire.form.credential_type_id ?? '') === ''" @if ($chosenId !== '') style="display: none" @endif class="text-zinc-600" data-requirements-placeholder>
-                    {{ __('Choose a credential in section 1 to see its documentary requirements.') }}
+                    {{ __('Choose a credential first.') }}
                 </p>
 
                 @foreach ($types as $type)
@@ -142,10 +142,11 @@
                         @if ($type->requirements)
                             {{-- One file field per requirement; all optional, so none is marked (REQ-04-18). --}}
                             <div data-requirement-uploads>
-                                <p class="text-zinc-600">{{ __('Upload a copy of each requirement you have: up to :max files each, JPG, PNG, WebP or PDF, 5 MB per file. The Registrar\'s Office still checks the originals.', ['max' => \App\Models\RequestDocument::MAX_PER_REQUIREMENT]) }}</p>
-                                @if ($editing)
-                                    <p class="mt-1 text-zinc-600">{{ __('Files you already sent stay with your request; add more only if needed.') }}</p>
-                                @endif
+                                <p class="text-zinc-600">{{ __('Upload copies if you have them: up to :max files each, JPG, PNG, WebP or PDF, 5 MB per file.', ['max' => \App\Models\RequestDocument::MAX_PER_REQUIREMENT]) }}
+                                    @if ($editing)
+                                        {{ __('Files you already sent are kept.') }}
+                                    @endif
+                                </p>
                                 {{-- Each requirement lists every file chosen for it, by name, with its own Remove:
                                      choosing files again adds to them, which the browser's picker does not show. --}}
                                 @php($max = \App\Models\RequestDocument::MAX_PER_REQUIREMENT)
@@ -190,7 +191,7 @@
                                 </ul>
                             </div>
                         @else
-                            <p class="text-zinc-600">{{ __(':credential has no documentary requirements to upload.', ['credential' => $type->name]) }}</p>
+                            <p class="text-zinc-600">{{ __('No documentary requirements.') }}</p>
                         @endif
                     </div>
                 @endforeach
@@ -219,7 +220,7 @@
             </flux:radio.group>
 
             @if ($form->requester_mode === 'representative')
-                <flux:text>{{ __('Upload your representative\'s Special Power of Attorney (SPA) and their valid ID (JPG, PNG, WebP or PDF, up to 5 MB each) so the Registrar can check them. They still present the originals, with your valid ID, in person.') }}</flux:text>
+                <flux:text>{{ __('They present the originals, with your valid ID, in person. Files: JPG, PNG, WebP or PDF, up to 5 MB each.') }}</flux:text>
                 <flux:input wire:model="form.representative_name" :label="__('Representative\'s full name')" required />
                 <div class="grid gap-6 sm:grid-cols-2">
                     <flux:input wire:model="form.representative_relationship" :label="__('Relationship to you')" badge="Optional" />
@@ -260,7 +261,7 @@
         <div class="space-y-8">
             <div class="space-y-1">
                 <h2 class="text-xl font-bold text-primary" data-summary-title>{{ __('Summary') }}</h2>
-                <flux:text>{{ __('Check that everything below is correct. The Office of the Registrar uses these details and your ID to confirm that the request comes from the document owner.') }}</flux:text>
+                <flux:text>{{ __('Check that everything is correct.') }}</flux:text>
             </div>
 
             <section aria-labelledby="summary-request-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">

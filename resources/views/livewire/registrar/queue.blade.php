@@ -89,7 +89,7 @@
                                 @if ($next && $registrarActs && $visit->isForwardable())
                                     <flux:button size="sm" variant="primary" icon="paper-airplane"
                                         wire:click="forward({{ $request->id }})" data-forward
-                                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Is the paper of :ref leaving :from for :office now? They confirm when it arrives.', ['ref' => $request->reference_no, 'from' => $visit->department->name, 'office' => $next->name])">
+                                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Forward :ref to :office now?', ['ref' => $request->reference_no, 'office' => $next->name])">
                                         {{ __('Forward to :office', ['office' => $next->name]) }}
                                     </flux:button>
                                 @else

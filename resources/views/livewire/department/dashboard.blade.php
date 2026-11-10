@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Office Queue" :description="__('Documents sent to :office, oldest first. Accept receipt when a document physically arrives, then release it to the next office or return it for correction.', ['office' => $department?->name ?? __('your office')])" />
+    <x-page-header title="Office Queue" :description="__('Documents sent to :office, oldest first.', ['office' => $department?->name ?? __('your office')])" />
 
     @unless ($department)
         <flux:callout icon="exclamation-triangle" color="amber">

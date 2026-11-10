@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Logs" description="Everything requesters, office staff and registrars did, newest first. Entries can't be edited or deleted." />
+    <x-page-header title="Logs" description="Every action taken, newest first." />
 
     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" :placeholder="__('Transaction ID, name, email or action')" clearable class="md:col-span-2 xl:col-span-1" />

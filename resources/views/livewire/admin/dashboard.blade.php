@@ -1,5 +1,5 @@
 <div class="space-y-8">
-    <x-page-header title="Dashboard" description="Monitor every credential request and where it is waiting." />
+    <x-page-header title="Dashboard" description="Every credential request at a glance." />
 
     <section aria-labelledby="status-heading">
         <h2 id="status-heading" class="sr-only">{{ __('Requests by Status') }}</h2>
@@ -29,7 +29,7 @@
         <div class="flex flex-wrap items-end justify-between gap-3">
             <div>
                 <h2 id="performance-heading" class="text-lg font-semibold text-primary">{{ __('Performance') }}</h2>
-                <p class="text-sm text-zinc-600">{{ __('On-time and overdue rates count accepted requests due in the period (and not after today).') }}</p>
+                <p class="text-sm text-zinc-600">{{ __('Accepted requests due in the period, up to today.') }}</p>
             </div>
             <div class="flex flex-wrap items-end gap-2">
                 <flux:input wire:model.live="from" type="date" size="sm" :label="__('From')" />
@@ -70,7 +70,7 @@
         <div class="space-y-3">
             <div>
                 <h3 class="font-semibold text-primary">{{ __('Processing Time by Office') }}</h3>
-                <p class="text-sm text-zinc-600">{{ __('Average working days per completed visit in the period, longest first. Review the transaction history of the slowest office to find the cause.') }}</p>
+                <p class="text-sm text-zinc-600">{{ __('Average working days per visit, longest first.') }}</p>
             </div>
             @if ($metrics->byOffice->isEmpty())
                 <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No office visits were completed in this period.') }}</p>
@@ -95,7 +95,7 @@
         <section aria-labelledby="waiting-heading" class="space-y-3">
             <div>
                 <h2 id="waiting-heading" class="text-lg font-semibold text-primary">{{ __('Where Requests Are Waiting') }}</h2>
-                <p class="text-sm text-zinc-600">{{ __('Documents each office holds now. A forwarded document stays with its office until the next office accepts receipt.') }}</p>
+                <p class="text-sm text-zinc-600">{{ __('Documents each office holds now.') }}</p>
             </div>
 
             @if ($waitingByOffice->isEmpty())
@@ -128,7 +128,7 @@
         <section aria-labelledby="overdue-heading" class="space-y-3">
             <div>
                 <h2 id="overdue-heading" class="text-lg font-semibold text-primary">{{ __('Most Overdue') }}</h2>
-                <p class="text-sm text-zinc-600">{{ __('Being processed past their (adjusted) due date.') }}</p>
+                <p class="text-sm text-zinc-600">{{ __('Past their due date.') }}</p>
             </div>
             @if ($mostOverdue->isEmpty())
                 <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('Nothing is overdue.') }}</p>

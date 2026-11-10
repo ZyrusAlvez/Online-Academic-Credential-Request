@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Working Calendar" :description="__('Holidays and closures that due dates and time per office skip. Working days are :days.', ['days' => $workWeek])">
+    <x-page-header title="Working Calendar" :description="__('Holidays and closures. Working days are :days.', ['days' => $workWeek])">
         <x-slot:actions>
             <flux:button variant="primary" icon="plus" wire:click="create">{{ __('Add non-working day') }}</flux:button>
         </x-slot:actions>
@@ -59,7 +59,7 @@
                     <flux:select.option :value="$option->value">{{ $option->label() }}</flux:select.option>
                 @endforeach
             </flux:select>
-            <flux:text>{{ __('Due dates already set are not changed; the day counts for due dates set from now on.') }}</flux:text>
+            <flux:text>{{ __('Due dates already set are not changed.') }}</flux:text>
 
             <div class="flex justify-end gap-2">
                 <flux:modal.close>

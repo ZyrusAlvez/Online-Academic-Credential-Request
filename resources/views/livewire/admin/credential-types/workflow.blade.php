@@ -4,7 +4,7 @@
         <flux:breadcrumbs.item>{{ __('Route') }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 
-    <x-page-header :title="$credentialType->name" :description="__('The offices this credential passes through, in order, and what each one does. Changes apply to requests routed from now on; requests already in progress keep their current steps.')" />
+    <x-page-header :title="$credentialType->name" :description="__('The offices it passes through, in order. Changes apply to new requests only.')" />
 
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section aria-labelledby="steps-heading">

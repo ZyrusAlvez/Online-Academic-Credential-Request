@@ -112,7 +112,7 @@ test('REQ-15-04 a saved ID is shown and used; without one an ID is required', fu
     Livewire::actingAs($owner)->test(Create::class)
         ->assertSee('Your Saved ID')
         ->assertSee("{$saved->id_type}: {$saved->original_name}")
-        ->assertSee('It is used unless you choose a different one below.')
+        ->assertSee('To use a different ID, upload it below')
         ->assertSeeHtml('data-id-preview');
 
     reviewRequest($owner)->assertHasNoErrors()->call('submit');
@@ -186,7 +186,6 @@ test('REQ-15-05 every request asks for the consent again with an unticked checkb
     $page = reviewRequest($owner, ['profile.privacy_consent' => false])
         ->assertSet('reviewing', true)
         ->assertSee('I agree to the processing of my personal data')
-        ->assertSee('Tick the box to continue.')
         ->assertDontSee('You agreed to the processing of your personal data');
 
     expect($page->html())->toMatch('/<button[^>]*x-bind:disabled="! \$wire\.profile\.privacy_consent"[^>]*disabled[^>]*data-submit-request/');

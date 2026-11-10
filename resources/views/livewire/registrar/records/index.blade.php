@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Records" description="Every credential request, for viewing and tracking. Act on a request from its stage's queue." />
+    <x-page-header title="Records" description="Every credential request." />
 
     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" label:sr-only :placeholder="__('Tracking no., name or student number')" clearable />

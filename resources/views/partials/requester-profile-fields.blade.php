@@ -19,10 +19,7 @@
 </section>
 
 <section aria-labelledby="academic-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
-    <div>
-        <h2 id="academic-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Academic Information', 1) }}</h2>
-        <p class="mt-1 text-sm text-zinc-600">{{ __('Only the Dean of your college reviews a request, not every college.') }}</p>
-    </div>
+    <h2 id="academic-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Academic Information', 1) }}</h2>
 
     <flux:radio.group wire:model="{{ $prefix }}.academic_status" :label="__('Status')">
         @foreach ($statuses as $status)
@@ -58,22 +55,18 @@
 </section>
 
 <section aria-labelledby="identity-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6">
-    <div>
-        <h2 id="identity-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Valid ID', 2) }}</h2>
-        <p class="mt-1 text-sm text-zinc-600">{{ __('The Office of the Registrar checks it against your name to confirm that the request comes from the document owner. Only the Registrar can see it.') }}</p>
-    </div>
+    <h2 id="identity-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Valid ID', 2) }}</h2>
 
     @if ($savedId)
         <div class="space-y-2" data-saved-id>
             <h3 class="text-sm font-semibold text-ink">{{ __('Your Saved ID') }}</h3>
             <x-identity-document-list :documents="collect([$savedId])" />
-            <p class="text-sm text-zinc-600">{{ __('It is used unless you choose a different one below.') }}</p>
         </div>
     @endif
 
-    <p class="text-sm">{{ $savedId
-        ? __('To use a different ID, choose its type and upload a clear photo or scan (JPG, PNG, WebP or PDF, up to 5 MB).')
-        : __('Upload a clear photo or scan of a valid government-issued or school ID (JPG, PNG, WebP or PDF, up to 5 MB).') }}</p>
+    <p class="text-sm text-zinc-600">{{ $savedId
+        ? __('To use a different ID, upload it below (JPG, PNG, WebP or PDF, up to 5 MB).')
+        : __('A government-issued or school ID (JPG, PNG, WebP or PDF, up to 5 MB).') }}</p>
     <div class="grid gap-6 sm:grid-cols-2">
         <flux:select wire:model="{{ $prefix }}.id_type" :label="__('Type of ID')" :badge="$savedId ? __('Optional') : null">
             <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>

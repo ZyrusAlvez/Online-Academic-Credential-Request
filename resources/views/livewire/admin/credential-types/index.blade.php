@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Credential Types" description="The credential master list: what requesters can ask for, its fee, processing period, requirements and route.">
+    <x-page-header title="Credential Types" description="What requesters can ask for.">
         <x-slot:actions>
             <flux:button variant="primary" icon="plus" wire:click="create">{{ __('Add credential type') }}</flux:button>
         </x-slot:actions>
@@ -70,7 +70,7 @@
             <flux:input wire:model="form.name" :label="__('Name')" required />
             <flux:textarea wire:model="form.description" :label="__('Description')" :description="__('Shown to requesters when they choose what to request.')" badge="Optional" rows="2" />
 
-            <flux:switch wire:model.live="form.requires_payment" :label="__('Requires payment')" :description="__('Requesters pay on the UPHSL online payment portal and upload the receipt.')" />
+            <flux:switch wire:model.live="form.requires_payment" :label="__('Requires payment')"  />
 
             <div class="grid gap-6 sm:grid-cols-2">
                 @if ($form->requires_payment)
@@ -79,9 +79,9 @@
                 <flux:input wire:model="form.processing_days" type="number" min="1" max="60" :label="__('Processing period')" :description="__('Working days from acceptance')" required />
             </div>
 
-            <flux:textarea wire:model="form.requirements" :label="__('Documentary requirements')" :description="__('One per line. Shown before submitting and checked by the evaluator.')" badge="Optional" rows="4" />
+            <flux:textarea wire:model="form.requirements" :label="__('Documentary requirements')" :description="__('One per line.')" badge="Optional" rows="4" />
             <flux:textarea wire:model="form.special_conditions" :label="__('Special conditions')" badge="Optional" rows="2" />
-            <flux:switch wire:model="form.requires_receiving_institution" :label="__('Requires the receiving school')" :description="__('For transfer credentials: the requester must give the complete name of the receiving school.')" />
+            <flux:switch wire:model="form.requires_receiving_institution" :label="__('Requires the receiving school')" :description="__('For transfer credentials.')" />
 
             <div class="flex justify-end gap-2">
                 <flux:modal.close>

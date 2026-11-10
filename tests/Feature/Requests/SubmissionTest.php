@@ -113,7 +113,7 @@ test('REQ-15-15 the chosen credential\'s details show in the browser at once, wi
         ->and(credentialCard($html, $this->org->free))->toContain("=== '{$this->org->free->id}'")
         ->and(requirementBlock($html, $this->org->tor))->toContain("x-show=\"String(\$wire.form.credential_type_id ?? '') === '{$this->org->tor->id}'\"")
         ->and(requirementBlockShown($html, $this->org->tor))->toBeFalse()
-        ->and($html)->toContain('Choose a credential in section 1 to see its documentary requirements.');
+        ->and($html)->toContain('Choose a credential first.');
 
     // A credential chosen on the server (Edit Request) starts with its requirements shown.
     $html = Livewire::actingAs($this->owner)->test(Create::class)->set('form.credential_type_id', $this->org->tor->id)->html();

@@ -53,7 +53,6 @@
             @if ($returnRemarks !== '')
                 <p class="rounded-md bg-white p-3 text-sm whitespace-pre-line text-ink"><span class="font-semibold">{{ __('Remarks:') }}</span> {{ $returnRemarks }}</p>
             @endif
-            <p class="text-sm text-amber-950">{{ __('Edit your request, then resubmit it. The Office of the Registrar evaluates it again.') }}</p>
             @can('edit', $request)
                 <flux:button :href="route('student.requests.edit', $request)" wire:navigate variant="primary" icon="pencil-square" data-edit-request>{{ __('Edit Request') }}</flux:button>
             @endcan
@@ -83,7 +82,7 @@
             @if ($returnRemarks !== '')
                 <p class="rounded-md bg-white p-3 text-sm whitespace-pre-line text-ink"><span class="font-semibold">{{ __('Remarks:') }}</span> {{ $returnRemarks }}</p>
             @endif
-            <p class="text-sm text-amber-950">{{ __('Submit the original documents and complete your clearance at the Registrar\'s Office of UPHSL, personally or through an authorized representative with a Special Power of Attorney (SPA) and the valid IDs of both of you. Your request stays pending until the Office of the Registrar confirms your compliance; the processing period starts only after your requirements and payment are verified and the request is accepted.') }}</p>
+            <p class="text-sm text-amber-950">{{ __('Come in person, or send a representative with a Special Power of Attorney (SPA) and the valid IDs of both of you.') }}</p>
         </section>
     @endif
 
@@ -97,7 +96,6 @@
             </div>
 
             @if ($request->status === \App\Enums\RequestStatus::AwaitingPayment)
-                <p class="text-sm text-zinc-700">{{ __('Your requirements are complete. Pay the amount due, then upload your proof of payment with the transaction details.') }}</p>
                 @if ($rejectedProof)
                     <flux:callout icon="exclamation-triangle" color="red">
                         <flux:callout.heading>{{ __('Your last proof of payment was not accepted') }}</flux:callout.heading>
@@ -109,7 +107,7 @@
                     <li class="flex gap-3">
                         <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white" aria-hidden="true">1</span>
                         <div class="space-y-2">
-                            <p class="text-sm">{{ __('Pay on the UPHSL online payment portal. Keep your receipt or take a screenshot of the confirmation.') }}</p>
+                            <p class="text-sm">{{ __('Pay on the UPHSL payment portal and keep your receipt.') }}</p>
                             <flux:button :href="config('uphsl.payment_url')" target="_blank" rel="noopener" variant="primary" icon-trailing="arrow-top-right-on-square">
                                 {{ __('Pay online') }}<span class="sr-only"> ({{ __('opens in a new tab') }})</span>
                             </flux:button>
@@ -132,7 +130,7 @@
                 </ol>
             @else
                 <flux:callout icon="clock" color="sky">
-                    <flux:callout.text>{{ __('Your proof of payment is being verified against the official payment record. An uploaded screenshot alone does not mark a request as paid.') }}</flux:callout.text>
+                    <flux:callout.text>{{ __('Your payment is being verified.') }}</flux:callout.text>
                 </flux:callout>
             @endif
 
@@ -148,7 +146,7 @@
     @if ($request->status === \App\Enums\RequestStatus::ReadyForRelease)
         <section aria-labelledby="claim-heading" class="space-y-3 rounded-xl border border-green-700 bg-green-50 p-5 sm:p-6">
             <h2 id="claim-heading" class="text-lg font-semibold text-green-900">{{ __('Your Credential Is Ready for Release') }}</h2>
-            <p class="text-sm text-green-950">{{ __('Claim it at the Office of the Registrar during office hours. Bring a valid ID. If someone claims it for you, they must present a Special Power of Attorney (SPA) and the valid IDs of both of you; the credential is released only after their authority is verified.') }}</p>
+            <p class="text-sm text-green-950">{{ __('Claim it at the Office of the Registrar with a valid ID. A representative needs an SPA and the valid IDs of both of you.') }}</p>
         </section>
     @endif
 
@@ -168,7 +166,7 @@
                 @endcan
             </div>
             @if ($request->representatives->isEmpty())
-                <p class="text-sm text-zinc-600">{{ __('You are transacting personally. Add a representative if someone will submit documents or claim the credential for you.') }}</p>
+                <p class="text-sm text-zinc-600">{{ __('None. You are transacting personally.') }}</p>
             @else
                 <x-representative-list :representatives="$request->representatives" />
             @endif
@@ -209,7 +207,7 @@
             <form wire:submit="declareRepresentative" class="space-y-6">
                 <div>
                     <flux:heading size="lg">{{ __('Add an authorized representative') }}</flux:heading>
-                    <flux:text class="mt-2">{{ __('Upload their Special Power of Attorney (SPA) and their valid ID so the Registrar can check them. They still present the originals, with your valid ID, in person.') }}</flux:text>
+                    <flux:text class="mt-2">{{ __('They present the originals, with your valid ID, in person.') }}</flux:text>
                 </div>
                 <flux:input wire:model="representativeName" :label="__('Full name')" required />
                 <div class="grid gap-4 sm:grid-cols-2">

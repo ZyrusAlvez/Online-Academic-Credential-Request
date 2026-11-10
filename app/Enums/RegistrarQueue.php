@@ -27,10 +27,10 @@ enum RegistrarQueue: string
     public function description(): string
     {
         return match ($this) {
-            self::Evaluation => 'New and resubmitted requests to evaluate. Once you start one, it is yours until you decide.',
-            self::Payment => 'Proofs of payment to validate against the official payment record.',
-            self::InProgress => 'Where each paper is now and where it goes next. Forward the ones your office has finished.',
-            self::FinalCheck => 'Documents back at the Office of the Registrar for the final quality check.',
+            self::Evaluation => 'Requests to evaluate.',
+            self::Payment => 'Proofs of payment to verify.',
+            self::InProgress => 'Where each document is and where it goes next.',
+            self::FinalCheck => 'Documents back for the final check.',
             self::Release => 'Credentials ready to be claimed.',
         };
     }

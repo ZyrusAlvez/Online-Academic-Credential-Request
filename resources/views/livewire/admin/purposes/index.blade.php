@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Purposes" description="Purposes that requesters choose from on New Request.">
+    <x-page-header title="Purposes" description="The purposes offered on New Request.">
         <x-slot:actions>
             <flux:button variant="primary" icon="plus" wire:click="create">{{ __('Add purpose') }}</flux:button>
         </x-slot:actions>
@@ -52,7 +52,7 @@
         <form wire:submit="save" class="space-y-6">
             <flux:heading size="lg">{{ $form->purpose ? __('Edit purpose') : __('Add purpose') }}</flux:heading>
 
-            <flux:input wire:model="form.name" :label="__('Purpose')" :description="__('Renaming a purpose doesn\'t change requests already made.')" :placeholder="__('e.g. Credit evaluation abroad')" required />
+            <flux:input wire:model="form.name" :label="__('Purpose')" :placeholder="__('e.g. Credit evaluation abroad')" required />
 
             <div class="flex justify-end gap-2">
                 <flux:modal.close>
