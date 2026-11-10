@@ -89,6 +89,26 @@ function credentialCardShown(string $html, CredentialType $type): bool
     return $card !== '' && ! str_contains(Str::before($card, '>'), 'display: none');
 }
 
+/**
+ * New Request's section 2 for one credential: its documentary requirements (REQ-15-03).
+ */
+function requirementBlock(string $html, CredentialType $type): string
+{
+    preg_match('/<div[^>]*data-requirement-block="'.$type->id.'".*?(?=<div[^>]*data-requirement-block=|<\/section>)/s', $html, $block);
+
+    return $block[0] ?? '';
+}
+
+/**
+ * Whether that credential's requirements start visible.
+ */
+function requirementBlockShown(string $html, CredentialType $type): bool
+{
+    $block = requirementBlock($html, $type);
+
+    return $block !== '' && ! str_contains(Str::before($block, '>'), 'display: none');
+}
+
 function workflow(): RequestWorkflow
 {
     return app(RequestWorkflow::class);

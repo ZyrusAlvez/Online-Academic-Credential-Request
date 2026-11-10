@@ -228,7 +228,7 @@ test('REQ-09-10 the incomplete-requirements notice is collapsed between "Who Wil
     $heading = 'Important notice: incomplete requirements';
 
     $html = $this->actingAs(requester($org->ccs))->get(route('student.requests.create'))->assertOk()
-        ->assertSeeInOrder(['5. Who Will Transact?', $heading, 'Review request'])
+        ->assertSeeInOrder(['6. Who Will Transact?', $heading, 'Review request'])
         ->getContent();
 
     $notice = Str::between($html, '<details', '</details>');
@@ -246,6 +246,7 @@ test('REQ-09-11 the chosen credential shows its offices as a numbered list endin
         ->assertSee(['₱530.00', '7 working days', 'Offices that process it'])
         ->html();
 
+    $page = $html;
     $html = credentialCard($html, $org->tor);   // every credential's card is on the page (REQ-15-15)
     $route = Str::between($html, '<ol role="list"', '</ol>');
     $stops = collect(explode('</li>', $route))->filter(fn (string $item) => str_contains($item, '<li'))
@@ -261,8 +262,9 @@ test('REQ-09-11 the chosen credential shows its offices as a numbered list endin
         '5 '.$org->registrarOffice->name.' (final quality check)',
     ]);
 
-    // Requirements are a checklist below the route.
-    expect(Str::after($html, '</ol>'))->toContain('Documentary requirements')->toContain('PSA-authenticated birth certificate');
+    // The requirements are section 2, not part of the card (REQ-15-03).
+    expect($html)->not->toContain('PSA-authenticated birth certificate')
+        ->and(requirementBlock($page, $org->tor))->toContain('PSA-authenticated birth certificate');
 });
 
 test('REQ-09-18 signed-in pages stop at 96rem on wide screens and detail grids can shrink on phones', function () {

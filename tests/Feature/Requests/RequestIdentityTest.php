@@ -77,11 +77,11 @@ test('REQ-15-02 there is no My Profile page; the old address goes to Settings â†
         ->assertSeeInOrder(['New Request', 'My Requests']);
 });
 
-test('REQ-15-03 New Request has numbered sections for the request, personal and academic information, the ID and who transacts', function () {
+test('REQ-15-03 New Request has numbered sections for the request, its requirements, personal and academic information, the ID and who transacts', function () {
     Livewire::actingAs($this->newcomer)->test(Create::class)
         ->assertSeeInOrder([
-            '1. What Do You Need?', '2. Personal Information', '3. Academic Information', '4. Valid ID',
-            '5. Who Will Transact?', 'Important notice: incomplete requirements', 'Review request',
+            '1. What Do You Need?', '2. Documentary Requirements', '3. Personal Information', '4. Academic Information',
+            '5. Valid ID', '6. Who Will Transact?', 'Important notice: incomplete requirements', 'Review request',
         ])
         ->assertDontSee('Verify your profile before making a request');
 });

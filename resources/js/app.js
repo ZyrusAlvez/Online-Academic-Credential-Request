@@ -1,3 +1,69 @@
+// <x-select-menu>: a dropdown whose list scrolls within the page and can be searched (REQ-15-16).
+// `options` is [{ value, label }]; `value` is bound to the Livewire property through x-modelable.
+document.addEventListener('alpine:init', () => {
+    window.Alpine.data('selectMenu', (options) => ({
+        options,
+        value: '',
+        open: false,
+        query: '',
+        active: 0,
+
+        get chosen() {
+            return this.options.find((option) => option.value === String(this.value ?? '')) ?? null;
+        },
+
+        get matches() {
+            const query = this.query.trim().toLowerCase();
+
+            return query === '' ? this.options : this.options.filter((option) => option.label.toLowerCase().includes(query));
+        },
+
+        show() {
+            this.open = true;
+            this.query = '';
+            this.active = Math.max(0, this.options.findIndex((option) => option.value === this.chosen?.value));
+            this.$nextTick(() => {
+                this.$refs.search.focus();
+                this.scrollToActive();
+            });
+        },
+
+        close(focusButton = false) {
+            this.open = false;
+
+            if (focusButton) {
+                this.$refs.button.focus();
+            }
+        },
+
+        toggle() {
+            this.open ? this.close(true) : this.show();
+        },
+
+        move(step) {
+            if (this.matches.length === 0) {
+                return;
+            }
+
+            this.active = (this.active + step + this.matches.length) % this.matches.length;
+            this.$nextTick(() => this.scrollToActive());
+        },
+
+        choose(option) {
+            if (!option) {
+                return;
+            }
+
+            this.value = option.value;
+            this.close(true);
+        },
+
+        scrollToActive() {
+            this.$refs.list.querySelector('[data-active]')?.scrollIntoView({ block: 'nearest' });
+        },
+    }));
+});
+
 // `wire:confirm` without the browser's confirm box (REQ-09-13).
 //
 // Livewire's own directive stores `el.__livewire_confirm(action, cancel)` and calls it on click.

@@ -44,10 +44,10 @@ function fakePdf(string $name = 'clearance.pdf', int $kilobytes = 200): Uploaded
 // ── REQ-04-18: the fields on New Request ────────────────────────────────────────────────────
 
 test('REQ-04-18 each requirement of a credential has its own file field, for several files, not marked optional', function () {
-    $card = credentialCard(Livewire::actingAs($this->owner)->test(Create::class)->html(), $this->org->tor);
+    $block = requirementBlock(Livewire::actingAs($this->owner)->test(Create::class)->html(), $this->org->tor);
     $tor = $this->org->tor->id;
 
-    expect($card)->toContain('data-requirement-uploads')
+    expect($block)->toContain('data-requirement-uploads')
         ->toContain("wire:model=\"requirementFiles.{$tor}.0\"")
         ->toContain("wire:model=\"requirementFiles.{$tor}.1\"")
         ->toContain('Completed clearance')
@@ -58,9 +58,10 @@ test('REQ-04-18 each requirement of a credential has its own file field, for sev
         ->not->toContain('Optional')
         ->not->toMatch('/<input[^>]*requirementFiles[^>]*\srequired/');
 
-    // A credential without requirements has no upload section.
-    expect(credentialCard(Livewire::actingAs($this->owner)->test(Create::class)->html(), $this->org->free))
-        ->not->toContain('data-requirement-uploads');
+    // A credential without requirements has no upload fields, and says so.
+    expect(requirementBlock(Livewire::actingAs($this->owner)->test(Create::class)->html(), $this->org->free))
+        ->not->toContain('data-requirement-uploads')
+        ->toContain('has no documentary requirements to upload');
 });
 
 test('REQ-04-18 the request is submitted with the requirement files, each under its requirement', function () {

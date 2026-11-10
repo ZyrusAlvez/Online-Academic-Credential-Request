@@ -12,5 +12,5 @@
 - [x] Pest tests for every REQ-15 criterion
 - [x] Credential details shown at once in the browser (REQ-15-15)
 - [x] The consent is an unticked checkbox on every summary, required to submit or save (REQ-15-05, 07)
-- [ ] Documentary requirements as section 2 (REQ-15-03, 15)
-- [ ] Searchable credential dropdown that scrolls within the page (REQ-15-16)
+- [x] Documentary requirements as section 2 (REQ-15-03, 15)
+- [x] Searchable credential dropdown that scrolls within the page (REQ-15-16)
