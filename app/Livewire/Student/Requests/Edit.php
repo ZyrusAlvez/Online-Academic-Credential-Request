@@ -97,8 +97,8 @@ class Edit extends Create
     {
         return parent::render()->with([
             'editing' => $this->credentialRequest,
-            'idRejected' => $this->idRejected(),
-            // A rejected ID is not offered again: another is required (REQ-20-06).
+            // A rejected ID is not offered again: another is required. Why it was rejected is on the
+            // request page, not repeated here (REQ-20-06).
             'savedId' => $this->idRejected() ? null : $this->owner()->latestIdentityDocument()->first(),
         ])->title(__('Edit Request :ref', ['ref' => $this->credentialRequest->reference_no]));
     }

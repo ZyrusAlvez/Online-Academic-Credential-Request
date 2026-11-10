@@ -263,7 +263,6 @@ class Create extends Component
             'summary' => $this->reviewing ? $this->profile->summary() : [],
             // Edit Request (spec 20) shows the same form for a returned request.
             'editing' => null,
-            'idRejected' => false,
         ]);
     }
 

@@ -246,15 +246,19 @@ test('REQ-15-17 the Edit Request summary has sections 1 to 5, Summary as its tit
         ->toContain('No new files');
 });
 
-test('REQ-20-06 a rejected ID shows its reason and another ID is required', function () {
+test('REQ-20-06 a rejected ID requires another; its reason is on the request page, not repeated on Edit Request', function () {
     returnedForClarification($this->request, [CheckItem::Identity], 'The ID photo is blurred.');
 
     editPage()
-        ->assertSeeHtml('data-id-rejected')
-        ->assertSee('The ID photo is blurred.')
+        ->assertDontSeeHtml('data-id-rejected')
+        ->assertDontSee('Your valid ID was not accepted')
+        ->assertDontSee('The ID photo is blurred.')
         ->assertDontSeeHtml('data-saved-id')
+        ->assertSeeHtml('wire:model="profile.id_file"')
         ->call('review')
         ->assertHasErrors('profile.id_file');
+
+    requesterPage($this->request)->assertSee('The ID photo is blurred.');
 });
 
 test('REQ-15-18 Edit Request shows the saved ID with its Remove button and no ID fields while the ID stands', function () {

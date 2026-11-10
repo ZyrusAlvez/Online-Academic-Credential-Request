@@ -7,3 +7,4 @@
 - [x] Policy, queues, wording, reports, notifications, demo data (REQ-20-10..13)
 - [x] Spec notes in 15, 16 and the overview
 - [x] Pest tests for every REQ-20 criterion; tests of superseded criteria replaced
+- [x] Edit Request no longer repeats the rejected ID's reason; the request page shows it (REQ-20-06)

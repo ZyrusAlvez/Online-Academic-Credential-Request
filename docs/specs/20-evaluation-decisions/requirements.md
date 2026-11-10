@@ -74,7 +74,8 @@ This replaces:
   credential, purpose and receiving school, and the requester's saved details. The requester SHALL
   be able to change the credential, purpose, receiving school, their name, contact number and
   academic information, and add copies of the requirements. WHEN the request's ID was rejected THE
-  SYSTEM SHALL show the reason and require another valid ID. A summary SHALL follow, with an
+  SYSTEM SHALL require another valid ID; the reason is shown on the request page only (REQ-20-05),
+  not repeated on Edit Request *(user's request, 2026-11-11)*. A summary SHALL follow, with an
   optional note to the Office of the Registrar, the privacy consent and the button
   **Resubmit Request**.
 - **REQ-20-07** WHEN the requester resubmits THE SYSTEM SHALL, all or nothing: save their details to

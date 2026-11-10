@@ -66,8 +66,8 @@ the meaning of `pending_compliance`. No request or ledger row changes.
 - Extends `Create`: the same form, view and summary, with `$editing` set. Mount authorizes the
   `edit` policy (owner, `returned_for_clarification`) and fills the form from the request.
 - Section 5 (representative) is not shown; the request page keeps Add representative.
-- When the request's ID is rejected, the Valid ID section shows the reason, no saved ID, and the
-  ID is required.
+- When the request's ID is rejected, the Valid ID section shows no saved ID and the ID is
+  required. The reason is not repeated here: the request page shows it (REQ-20-05, 06).
 - The summary ends with a note field, the consent and Resubmit Request. Submit runs profile save,
   ID storage, `resubmit()` and `attachRequirementDocuments()` in one transaction, and removes any
   stored file if it fails.
