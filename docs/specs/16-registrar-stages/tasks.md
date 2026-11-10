@@ -13,5 +13,5 @@
 - [x] Pest tests for every REQ-16 criterion; tests of removed behaviour removed
 - [x] `CredentialRequest::staffWhereabouts()` on Records, the record page and the Admin dashboard (REQ-16-23)
 - [x] Pest tests for REQ-16-23
-- [ ] Checklist parts' data as `x-summary-row`s, label left and value right (REQ-16-24)
-- [ ] Pest test for REQ-16-24
+- [x] Checklist parts' data as `x-summary-row`s, label left and value right (REQ-16-24)
+- [x] Pest test for REQ-16-24

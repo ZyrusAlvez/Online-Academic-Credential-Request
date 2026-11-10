@@ -245,6 +245,24 @@ test('REQ-16-10 the evaluator sees a read-only checklist of the requester\'s dat
     expect(method_exists(Show::class, 'changeCollege'))->toBeFalse();
 });
 
+test('REQ-16-24 each checklist part shows its data as summary rows, label left and value right', function () {
+    // A label/value row from the sm breakpoint, the same as the requester's summary (REQ-15-17).
+    $row = fn (string $label, string $value) => '#<div class="py-3 [^"]*sm:grid sm:grid-cols-\[minmax\(0,2fr\)_minmax\(0,3fr\)\][^"]*" data-summary-row>\s*<dt class="text-zinc-600">'.preg_quote($label, '#').'</dt>\s*<dd[^>]*>\s*'.preg_quote(e($value), '#').'#';
+
+    underEvaluation($this->request);
+    expect(stagePage()->html())
+        ->toMatch($row('Transacting', 'Personally'))
+        ->toMatch($row('Purpose', $this->request->purpose))
+        ->toMatch($row('Name', $this->request->requester_name))
+        ->toMatch($row('College', 'College of Computer Studies'));
+
+    $paid = awaitingValidation(submitRequest($this->owner, $this->org->tor));
+    expect(stagePage($paid)->html())->toMatch($row('Reference', 'REF-123'));
+
+    $final = atFinalCheck(submitRequest($this->owner, $this->org->tor));
+    expect(stagePage($final)->html())->toMatch($row('Issued to', $final->requester_name));
+});
+
 test('REQ-16-11 remarks are optional to approve and required to return or decline', function () {
     underEvaluation($this->request, [CheckItem::Identity->value => CheckResult::Rejected]);
 
