@@ -98,7 +98,7 @@ test('REQ-06-03 the registrar sees the full ledger with actors and the office vi
     Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
         ->assertSee('Rhea Registrar (Registrar)')
         ->assertSee('Forwarded to College of Computer Studies')
-        ->assertSeeInOrder(['Office visits', 'Office of the Registrar', 'Same day', 'Completed', 'College of Computer Studies', 'In progress', 'In office']);
+        ->assertSeeInOrder(['Office Visits', 'Office of the Registrar', 'Same day', 'Completed', 'College of Computer Studies', 'In progress', 'In office']);
 });
 
 test('REQ-06-04 office staff see the visits and history on their request page', function () {
@@ -106,7 +106,8 @@ test('REQ-06-04 office staff see the visits and history on their request page', 
     passOffice($request, $this->registrar);
 
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request])
-        ->assertSee('Office visits')
+        ->assertSee('Office Visits')
+        ->assertSee('Tracking History')
         ->assertSee('Prepared by Office of the Registrar')
         ->assertSee('Accept receipt');
 });

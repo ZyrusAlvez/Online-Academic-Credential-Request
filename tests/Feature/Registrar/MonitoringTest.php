@@ -62,7 +62,7 @@ test('REQ-07-05 the dashboard shows which offices hold documents, largest first'
     workflow()->acceptReceipt(openVisit($atDean), User::factory()->departmentStaff($this->org->ccs)->create());   // delivered (REQ-17-18)
 
     $this->actingAs($this->admin)->get(route('admin.dashboard'))
-        ->assertSeeInOrder(['Where requests are waiting', 'Office of the Registrar', '2', 'College of Computer Studies', '1'])
+        ->assertSeeInOrder(['Where Requests Are Waiting', 'Office of the Registrar', '2', 'College of Computer Studies', '1'])
         ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->ccs->id]));
 });
 
@@ -70,7 +70,7 @@ test('REQ-07-06 the dashboard lists the most overdue requests', function () {
     $late = acceptedAt('2026-01-05 09:00:00');
 
     $this->actingAs($this->admin)->get(route('admin.dashboard'))
-        ->assertSeeInOrder(['Most overdue', $late->reference_no])
+        ->assertSeeInOrder(['Most Overdue', $late->reference_no])
         ->assertSee(route('records.show', $late), false);   // the read-only record (REQ-18-08)
 });
 

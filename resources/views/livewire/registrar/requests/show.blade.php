@@ -59,7 +59,7 @@
 
         @if ($panel === Page::PANEL_RETURNED)
             <section aria-labelledby="returned-heading" class="space-y-3 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6">
-                <h2 id="returned-heading" class="text-lg font-semibold text-amber-900">{{ __('Returned to the requester') }}</h2>
+                <h2 id="returned-heading" class="text-lg font-semibold text-amber-900">{{ __('Returned to the Requester') }}</h2>
                 @if ($lastReturn)
                     <p class="text-sm whitespace-pre-line text-amber-950">{{ $lastReturn->remarks }}</p>
                     <p class="text-xs text-amber-900">{{ __(':date · :name', ['date' => $lastReturn->created_at->format('M j, Y g:i A'), 'name' => $lastReturn->actor?->name]) }}</p>
@@ -233,7 +233,7 @@
             @if ($request->representatives->contains(fn ($r) => $r->status === \App\Enums\ReviewStatus::Pending))
                 {{-- A representative declared after the evaluation (REQ-16-20). --}}
                 <section aria-labelledby="claimants-heading" class="space-y-3 rounded-xl border border-secondary/50 p-5 sm:p-6">
-                    <h2 id="claimants-heading" class="text-lg font-semibold text-primary">{{ __('Authorized representatives') }}</h2>
+                    <h2 id="claimants-heading" class="text-lg font-semibold text-primary">{{ __('Authorized Representatives') }}</h2>
                     <x-representative-list :representatives="$request->representatives" reviewable />
                 </section>
             @endif

@@ -144,13 +144,13 @@ class RequesterProfileForm extends Form
     public function summary(): array
     {
         return [
-            'Personal information' => [
+            'Personal Information' => [
                 'First name' => $this->first_name,
                 'Middle name' => filled($this->middle_name) ? $this->middle_name : 'Not provided',
                 'Last name' => $this->last_name,
                 'Contact number' => $this->contact_number,
             ],
-            'Academic information' => [
+            'Academic Information' => [
                 'Status' => (string) AcademicStatus::tryFrom($this->academic_status)?->label(),
                 'College' => (string) Department::query()->whereKey($this->college_id)->value('name'),
                 'Program' => $this->program,

@@ -2,7 +2,7 @@
     <x-page-header title="Dashboard" description="Monitor every credential request and where it is waiting." />
 
     <section aria-labelledby="status-heading">
-        <h2 id="status-heading" class="sr-only">{{ __('Requests by status') }}</h2>
+        <h2 id="status-heading" class="sr-only">{{ __('Requests by Status') }}</h2>
         <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
             @foreach ($tiles as $tile)
                 <a href="{{ $tile['href'] }}" wire:navigate class="rounded-xl border border-secondary/50 p-4 hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight">
@@ -69,7 +69,7 @@
 
         <div class="space-y-3">
             <div>
-                <h3 class="font-semibold text-primary">{{ __('Processing time by office') }}</h3>
+                <h3 class="font-semibold text-primary">{{ __('Processing Time by Office') }}</h3>
                 <p class="text-sm text-zinc-600">{{ __('Average working days per completed visit in the period, longest first. Review the transaction history of the slowest office to find the cause.') }}</p>
             </div>
             @if ($metrics->byOffice->isEmpty())
@@ -94,7 +94,7 @@
     <div class="grid gap-8 xl:grid-cols-2">
         <section aria-labelledby="waiting-heading" class="space-y-3">
             <div>
-                <h2 id="waiting-heading" class="text-lg font-semibold text-primary">{{ __('Where requests are waiting') }}</h2>
+                <h2 id="waiting-heading" class="text-lg font-semibold text-primary">{{ __('Where Requests Are Waiting') }}</h2>
                 <p class="text-sm text-zinc-600">{{ __('Documents each office holds now. A forwarded document stays with its office until the next office accepts receipt.') }}</p>
             </div>
 
@@ -127,7 +127,7 @@
 
         <section aria-labelledby="overdue-heading" class="space-y-3">
             <div>
-                <h2 id="overdue-heading" class="text-lg font-semibold text-primary">{{ __('Most overdue') }}</h2>
+                <h2 id="overdue-heading" class="text-lg font-semibold text-primary">{{ __('Most Overdue') }}</h2>
                 <p class="text-sm text-zinc-600">{{ __('Being processed past their (adjusted) due date.') }}</p>
             </div>
             @if ($mostOverdue->isEmpty())

@@ -14,7 +14,7 @@ final class SignatoryReport implements Report
 {
     public function title(): string
     {
-        return 'Signatory monitoring report';
+        return 'Signatory Monitoring Report';
     }
 
     public function description(): string

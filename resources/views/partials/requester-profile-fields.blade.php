@@ -5,7 +5,7 @@
 @php($sectionTitle = fn (string $text, int $offset): string => $number !== null ? ($number + $offset).'. '.__($text) : __($text))
 
 <section aria-labelledby="personal-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
-    <h2 id="personal-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Personal information', 0) }}</h2>
+    <h2 id="personal-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Personal Information', 0) }}</h2>
 
     <div class="grid gap-6 sm:grid-cols-3">
         <flux:input wire:model="{{ $prefix }}.first_name" :label="__('First name')" autocomplete="given-name" required />
@@ -20,7 +20,7 @@
 
 <section aria-labelledby="academic-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
     <div>
-        <h2 id="academic-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Academic information', 1) }}</h2>
+        <h2 id="academic-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Academic Information', 1) }}</h2>
         <p class="mt-1 text-sm text-zinc-600">{{ __('Only the Dean of your college reviews a request, not every college.') }}</p>
     </div>
 
@@ -65,7 +65,7 @@
 
     @if ($savedId)
         <div class="space-y-2" data-saved-id>
-            <h3 class="text-sm font-semibold text-ink">{{ __('Your saved ID') }}</h3>
+            <h3 class="text-sm font-semibold text-ink">{{ __('Your Saved ID') }}</h3>
             <x-identity-document-list :documents="collect([$savedId])" />
             <p class="text-sm text-zinc-600">{{ __('It is used unless you choose a different one below.') }}</p>
         </div>

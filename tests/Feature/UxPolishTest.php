@@ -1,9 +1,13 @@
 <?php
 
+use App\Enums\ReportKind;
 use App\Livewire\Admin\CredentialTypes\Index as CredentialTypesIndex;
 use App\Livewire\Admin\Departments\Index as DepartmentsIndex;
 use App\Livewire\Admin\Users\Index as UsersIndex;
+use App\Livewire\Department\Requests\Show as OfficeShow;
+use App\Livewire\Registrar\Records\Show as RecordShow;
 use App\Livewire\Student\Requests\Create;
+use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\User;
@@ -219,12 +223,12 @@ test('REQ-09-09 the requester sidebar has no group heading and lists New Request
         ->and($nav)->not->toContain('My Profile');
 });
 
-test('REQ-09-10 the incomplete-requirements notice is collapsed between "Who will transact?" and Review request', function () {
+test('REQ-09-10 the incomplete-requirements notice is collapsed between "Who Will Transact?" and Review request', function () {
     $org = organisation();
     $heading = 'Important notice: incomplete requirements';
 
     $html = $this->actingAs(requester($org->ccs))->get(route('student.requests.create'))->assertOk()
-        ->assertSeeInOrder(['5. Who will transact?', $heading, 'Review request'])
+        ->assertSeeInOrder(['5. Who Will Transact?', $heading, 'Review request'])
         ->getContent();
 
     $notice = Str::between($html, '<details', '</details>');
@@ -290,5 +294,55 @@ test('REQ-09-12 New Request and My Requests share one column and one section sty
             ->and(collect($sections[1])->reject(fn (string $class) => str_contains($class, 'rounded-xl border border-secondary/50 p-5 sm:p-6'))->all())->toBe([]);
     }
 
-    $this->get(route('student.dashboard'))->assertSeeInOrder(['Your requests', 'Certification of Enrollment']);
+    $this->get(route('student.dashboard'))->assertSeeInOrder(['Your Requests', 'Certification of Enrollment']);
+});
+
+test('REQ-09-19 every section heading and report name is in Title Case', function () {
+    $minor = ['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or', 'the', 'to'];
+    $isTitleCase = function (string $text) use ($minor): bool {
+        $words = array_values(array_filter(preg_split('/\s+/', $text), fn (string $word) => preg_match('/^[A-Za-z]/', $word) === 1));
+
+        foreach ($words as $i => $word) {
+            $expected = $i > 0 && in_array(strtolower($word), $minor, true) ? strtolower($word) : ucfirst($word);
+            if ($word !== $expected) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    // Section headings: an <h2>/<h3> with an id, or a numbered New Request section.
+    $headings = collect(File::allFiles(resource_path('views')))
+        ->filter(fn ($file) => str_ends_with($file->getFilename(), '.blade.php'))
+        ->flatMap(function ($file) {
+            preg_match_all('/<h[23] id="[^"]*"[^>]*>\{\{ __\(\'((?:[^\'\\\\]|\\\\.)+)\'\) \}\}<\/h[23]>|\$sectionTitle\(\'([^\']+)\'/', $file->getContents(), $matches);
+
+            return collect($matches[1])->merge($matches[2])->filter()->map(fn ($text) => [$file->getRelativePathname(), stripslashes($text)]);
+        });
+
+    expect($headings->count())->toBeGreaterThan(30);
+    foreach ($headings as [$name, $text]) {
+        expect($isTitleCase($text))->toBeTrue("{$name}: \"{$text}\" is not in Title Case");
+    }
+
+    foreach (ReportKind::cases() as $kind) {
+        expect($isTitleCase($kind->report()->title()))->toBeTrue("Report \"{$kind->report()->title()}\" is not in Title Case");
+    }
+});
+
+test('REQ-09-19 the requester, office and Records pages head the ledger "Tracking History"', function () {
+    $org = organisation();
+    $owner = requester($org->ccs);
+    $registrar = User::factory()->registrar()->create();
+    $dean = User::factory()->departmentStaff($org->ccs)->create();
+    $request = acceptRequest(submitRequest($owner, $org->tor), $registrar);
+    passOffice($request, $registrar);
+
+    Livewire::actingAs($owner)->test(RequesterShow::class, ['credentialRequest' => $request])
+        ->assertSee('Tracking History')->assertSee('Request Details');
+    Livewire::actingAs($dean)->test(OfficeShow::class, ['credentialRequest' => $request])
+        ->assertSee('Tracking History')->assertSee('Office Visits');
+    Livewire::actingAs($registrar)->test(RecordShow::class, ['credentialRequest' => $request])
+        ->assertSee('Tracking History')->assertDontSee('Ledger')->assertSee('Office Visits');
 });

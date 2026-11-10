@@ -15,7 +15,7 @@
          novalidate: the browser's popups would stop the submit before the errors modal (REQ-01-26). --}}
     <form wire:submit="review" novalidate @class(['space-y-8', 'hidden' => $reviewing])>
         <section aria-labelledby="what-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
-            <h2 id="what-heading" class="text-lg font-semibold text-primary">{{ __('1. What do you need?') }}</h2>
+            <h2 id="what-heading" class="text-lg font-semibold text-primary">{{ __('1. What Do You Need?') }}</h2>
 
             <flux:select wire:model="form.credential_type_id" :label="__('Credential')" :description="__('Choose one to see its fee, requirements and processing time.')" required>
                 <flux:select.option value="">{{ __('Choose a credential…') }}</flux:select.option>
@@ -137,7 +137,7 @@
         @include('partials.requester-profile-fields', ['prefix' => 'profile', 'fields' => $profile, 'number' => 2])
 
         <section aria-labelledby="rep-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
-            <h2 id="rep-heading" class="text-lg font-semibold text-primary">{{ __('5. Who will transact?') }}</h2>
+            <h2 id="rep-heading" class="text-lg font-semibold text-primary">{{ __('5. Who Will Transact?') }}</h2>
 
             <flux:radio.group wire:model.live="form.requester_mode" :label="__('Submitting documents and claiming the credential')">
                 @foreach (\App\Enums\RequesterMode::cases() as $mode)

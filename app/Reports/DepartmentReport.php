@@ -15,7 +15,7 @@ final class DepartmentReport implements Report
 {
     public function title(): string
     {
-        return 'Department performance report';
+        return 'Department Performance Report';
     }
 
     public function description(): string
