@@ -41,6 +41,9 @@ PNG, WebP or PDF file of 5 MB or smaller.") instead of "The spa field must not b
 ## Screens
 
 - Requester: representative section on the request form and request page (declare, upload,
-  status); release instructions when ready.
+  status); release instructions when ready. The SPA, the representative's ID and the valid ID all
+  use `x-file-picker` (REQ-11-10): the picker's Alpine state previews the browser's own copy in
+  `x-file-viewer`, follows Livewire's upload events for the progress bar, and clears when the
+  component resets the field.
 - Registrar request page: representatives with documents and verify/reject; the release form
   (claimant, name, ID presented, verified checks, acknowledgment).

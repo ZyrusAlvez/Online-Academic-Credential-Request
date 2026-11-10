@@ -76,7 +76,8 @@ identity, and My Profile in REQ-09-09/12.
   on the left and its value on the right (stacked on narrow screens), section 2 listing every
   requirement with the names and sizes of the files chosen for it, each name a link that opens the
   file in the file viewer (*user's request, 2026-11-11*), and section 6 the representative's name,
-  relationship, contact number and file names. "Summary" SHALL be the page's title, in place of
+  relationship, contact number, and the SPA and their ID as linked file names with sizes like
+  section 2's (*user's request, 2026-11-11*). "Summary" SHALL be the page's title, in place of
   the form's title and description. *(User's request, 2026-11-10.)*
 - **REQ-15-06** WHEN the requester submits from the summary THE SYSTEM SHALL, all or nothing, save
   the personal and academic information (and a newly chosen ID) to their profile and submit the
