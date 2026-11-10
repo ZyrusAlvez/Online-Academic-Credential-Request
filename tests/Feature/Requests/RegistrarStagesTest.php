@@ -165,6 +165,31 @@ test('REQ-16-07 Records lists every request, searchable and filterable, and a re
     $this->actingAs($this->owner)->get(route('records.show', $this->request))->assertForbidden();
 });
 
+test('REQ-16-23 staff see where a request is in the requester\'s terms, the requester in their own', function () {
+    $paying = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar)->fresh();
+    $returned = underEvaluation(submitRequest($this->owner, $this->org->free), [CheckItem::Identity->value => CheckResult::Rejected]);
+    workflow()->returnToRequester($returned, $this->registrar, 'Blurred ID.');
+
+    expect($paying->status)->toBe(RequestStatus::AwaitingPayment)
+        ->and($returned->fresh()->status)->toBe(RequestStatus::PendingCompliance);
+
+    Livewire::actingAs($this->registrar)->test(RecordsIndex::class)
+        ->assertSee("Waiting for the requester's payment")
+        ->assertSee('Waiting for the requester to complete the requirements')
+        ->assertDontSee('Waiting for your payment')
+        ->assertDontSee('Waiting for you to complete');
+
+    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $paying])
+        ->assertSee("Where it is now: Waiting for the requester's payment");
+
+    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $paying])
+        ->assertSee('Waiting for your payment')->assertDontSee("the requester's payment");
+
+    expect($paying->staffWhereabouts())->toBe("Waiting for the requester's payment")
+        ->and($returned->fresh()->staffWhereabouts())->toBe('Waiting for the requester to complete the requirements')
+        ->and($this->request->staffWhereabouts())->toBe($this->request->whereabouts());
+});
+
 test('REQ-16-08 there is no CSV download of requests or reports', function () {
     $this->actingAs($this->registrar)->get('/registrar/requests/export')->assertNotFound();
     $this->actingAs($this->registrar)->get('/registrar/reports/daily/export')->assertNotFound();

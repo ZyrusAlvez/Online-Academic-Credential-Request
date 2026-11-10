@@ -11,5 +11,5 @@
 - [x] Dashboard links, compliance report, demo data
 - [x] Superseded criteria marked in specs 04, 05, 07, 11, 15; overview updated
 - [x] Pest tests for every REQ-16 criterion; tests of removed behaviour removed
-- [ ] `CredentialRequest::staffWhereabouts()` on Records, the record page and the Admin dashboard (REQ-16-23)
-- [ ] Pest tests for REQ-16-23
+- [x] `CredentialRequest::staffWhereabouts()` on Records, the record page and the Admin dashboard (REQ-16-23)
+- [x] Pest tests for REQ-16-23

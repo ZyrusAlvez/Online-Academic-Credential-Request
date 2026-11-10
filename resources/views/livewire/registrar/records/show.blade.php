@@ -16,7 +16,7 @@
         </x-slot:actions>
     </x-page-header>
 
-    <p class="text-sm text-zinc-600">{{ __('Where it is now: :where', ['where' => $request->whereabouts()]) }}</p>
+    <p class="text-sm text-zinc-600">{{ __('Where it is now: :where', ['where' => $request->staffWhereabouts()]) }}</p>
 
     @include('partials.request-record', ['hide' => []])
 </div>
