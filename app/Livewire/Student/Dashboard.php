@@ -11,7 +11,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-#[Title('My Requests')]
+#[Title('Request Tracker')]
 class Dashboard extends Component
 {
     use WithPagination;

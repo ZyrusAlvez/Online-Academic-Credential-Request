@@ -23,9 +23,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', Student\Dashboard::class)->name('dashboard');
         // My Profile became Settings → Profile; links in older notifications still land (REQ-15-02).
         Route::redirect('profile', '/settings/profile');
-        Route::get('requests/new', Student\Requests\Create::class)->name('requests.create');
-        Route::get('requests/{credentialRequest}', Student\Requests\Show::class)->name('requests.show');
-        Route::get('requests/{credentialRequest}/edit', Student\Requests\Edit::class)->name('requests.edit');
+        // A requester's request pages live under request/ (singular, REQ-09-21).
+        Route::get('request/new', Student\Requests\Create::class)->name('requests.create');
+        Route::get('request/{credentialRequest}', Student\Requests\Show::class)->name('requests.show');
+        Route::get('request/{credentialRequest}/edit', Student\Requests\Edit::class)->name('requests.edit');
+        // The old requests/… addresses, still in earlier emails, move to request/… (REQ-09-21).
+        Route::permanentRedirect('requests/{path}', '/student/request/{path}')
+            ->where('path', '[A-Za-z0-9-]+(/edit)?');
     });
 
     // The Registrar works the requests, Initial Evaluation to Release (REQ-16-01..06, REQ-18-03, 05).

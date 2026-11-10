@@ -1,6 +1,6 @@
 <div class="mx-auto max-w-4xl space-y-6">
     <flux:breadcrumbs>
-        <flux:breadcrumbs.item :href="route('student.dashboard')" wire:navigate>{{ __('My Requests') }}</flux:breadcrumbs.item>
+        <flux:breadcrumbs.item :href="route('student.dashboard')" wire:navigate>{{ __('Request Tracker') }}</flux:breadcrumbs.item>
         <flux:breadcrumbs.item>{{ $request->reference_no }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 
@@ -173,33 +173,28 @@
         </section>
     @endif
 
+    <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
+        <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
+        {{-- Field left, value right; the ID and the requirement files are rows too (REQ-09-22). --}}
+        <x-request-details :request="$request">
+            @if ($request->identityDocument)
+                {{-- The ID sent with this request and its check (REQ-15-08, 09). --}}
+                <x-summary-row :label="__('Valid ID')" data-request-id>
+                    <x-file-link :href="route('identity-documents.show', $request->identityDocument)" :name="$request->identityDocument->id_type.': '.$request->identityDocument->original_name" :type="$request->identityDocument->mime_type" class="break-all">
+                        {{ $request->identityDocument->id_type }}: {{ $request->identityDocument->original_name }}
+                    </x-file-link>
+                    <flux:badge size="sm" :color="$request->identity_status->color()" class="ms-1">{{ $request->identity_status->label() }}</flux:badge>
+                </x-summary-row>
+            @endif
+            {{-- The copies of the requirements sent with this request (REQ-04-19). --}}
+            <x-requirement-document-list :request="$request" />
+        </x-request-details>
+    </section>
+
+    {{-- The full history comes last (REQ-09-22). --}}
     <section aria-labelledby="history-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Tracking History') }}</h2>
         <x-request-timeline :events="$events" />
-    </section>
-
-    <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
-        <x-request-details :request="$request" />
-        @if ($request->identityDocument)
-            {{-- The ID sent with this request and its check (REQ-15-08, 09). --}}
-            <div class="mt-4 flex flex-wrap items-start justify-between gap-3 border-t border-secondary/50 pt-4 text-sm" data-request-id>
-                <div class="min-w-0">
-                    <p class="text-zinc-500">{{ __('Valid ID') }}</p>
-                    <x-file-link :href="route('identity-documents.show', $request->identityDocument)" :name="$request->identityDocument->id_type.': '.$request->identityDocument->original_name" :type="$request->identityDocument->mime_type" class="font-medium break-all">
-                        {{ $request->identityDocument->id_type }}: {{ $request->identityDocument->original_name }}
-                    </x-file-link>
-                </div>
-                <flux:badge size="sm" :color="$request->identity_status->color()">{{ $request->identity_status->label() }}</flux:badge>
-            </div>
-        @endif
-        @if ($request->requirementFiles() !== [])
-            {{-- The copies of the requirements sent with this request (REQ-04-19). --}}
-            <div class="mt-4 border-t border-secondary/50 pt-4">
-                <p class="mb-2 text-sm text-zinc-500">{{ __('Documentary requirements') }}</p>
-                <x-requirement-document-list :request="$request" />
-            </div>
-        @endif
     </section>
 
     @can('declareRepresentative', $request)

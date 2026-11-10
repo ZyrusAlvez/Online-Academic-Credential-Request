@@ -59,7 +59,7 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 - **REQ-01-09** WHILE a user's email is unverified THE SYSTEM SHALL block access to application
   pages and show the verify-email notice.
 - ~~REQ-01-10~~ *Superseded by REQ-18-02/03:* `/dashboard` and logging in take a user to their
-  role's home: student → the new-request page (`/student/requests/new`), registrar → Initial
+  role's home: student → the new-request page (`/student/request/new`, REQ-09-21), registrar → Initial
   Evaluation, department → `/department`, admin → `/admin`.
 - **REQ-01-11** IF a user opens a page belonging to another role THEN THE SYSTEM SHALL respond 403.
 

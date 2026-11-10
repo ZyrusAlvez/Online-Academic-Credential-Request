@@ -1,61 +1,40 @@
 @props(['request'])
 
-<dl {{ $attributes->class('grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2') }}>
-    <div>
-        <dt class="text-zinc-500">{{ __('Credential') }}</dt>
-        <dd class="font-medium text-ink">{{ $request->credentialType->name }}</dd>
-    </div>
-    <div>
-        <dt class="text-zinc-500">{{ __('Purpose') }}</dt>
-        <dd class="font-medium text-ink">{{ $request->purpose }}</dd>
-    </div>
+{{-- A request's details as rows, the field's name left and its value right (REQ-09-22). The slot
+     adds rows of the page's own (the valid ID, the documentary requirements) to the same list. --}}
+<dl {{ $attributes->class('divide-y divide-zinc-200 text-sm') }} data-request-details>
+    <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
+    <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
     @if ($request->receiving_institution)
-        <div class="sm:col-span-2">
-            <dt class="text-zinc-500">{{ __('Receiving school') }}</dt>
-            <dd class="font-medium text-ink">{{ $request->receiving_institution }}</dd>
-        </div>
+        <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
     @endif
     {{-- The request's own copy of the name (REQ-15-08); the contact number is for the Registrar only. --}}
-    <div class="sm:col-span-2">
-        <dt class="text-zinc-500">{{ __('Requester') }}</dt>
-        <dd class="font-medium break-words text-ink">{{ $request->requester_name }}</dd>
-    </div>
-    <div>
-        <dt class="text-zinc-500">{{ __('Status') }}</dt>
-        <dd class="font-medium text-ink">{{ $request->academic_status->label() }} · {{ $request->attended_from }}–{{ $request->attended_to }}</dd>
-    </div>
-    <div>
-        <dt class="text-zinc-500">{{ __('Student number') }}</dt>
-        <dd class="font-medium text-ink">{{ $request->student_number ?? '—' }}</dd>
-    </div>
-    <div>
-        <dt class="text-zinc-500">{{ __('College') }}</dt>
-        <dd class="font-medium text-ink">{{ $request->college->name }}</dd>
-    </div>
-    <div>
-        <dt class="text-zinc-500">{{ __('Program or strand') }}</dt>
-        <dd class="font-medium text-ink">{{ $request->program }}</dd>
-    </div>
-    <div>
-        <dt class="text-zinc-500">{{ __('Submitted') }}</dt>
-        <dd class="font-medium text-ink">{{ $request->submitted_at?->format('M j, Y g:i A') }}</dd>
-    </div>
-    <div>
-        <dt class="text-zinc-500">{{ __('Accepted for processing') }}</dt>
-        <dd class="font-medium text-ink">{{ $request->accepted_at?->format('M j, Y g:i A') ?? __('Not yet') }}</dd>
-    </div>
-    <div>
-        <dt class="text-zinc-500">{{ __('Amount due') }}</dt>
-        <dd class="font-medium text-ink">
-            @if ($request->requires_payment)
-                {{ $request->amount_due !== null ? '₱'.number_format((float) $request->amount_due, 2) : __('Required') }}
-            @else
-                {{ __('None required') }}
-            @endif
-        </dd>
-    </div>
-    <div>
-        <dt class="text-zinc-500">{{ __('Transacting') }}</dt>
-        <dd class="font-medium text-ink">{{ $request->requester_mode->label() }}</dd>
-    </div>
+    <x-summary-row :label="__('Requester')">{{ $request->requester_name }}</x-summary-row>
+    <x-summary-row :label="__('Status')">{{ $request->academic_status->label() }} · {{ $request->attended_from }}–{{ $request->attended_to }}</x-summary-row>
+    <x-summary-row :label="__('Student number')">
+        @if ($request->student_number)
+            {{ $request->student_number }}
+        @else
+            <span class="font-normal text-zinc-600 italic" data-empty-value>{{ __('Not provided') }}</span>
+        @endif
+    </x-summary-row>
+    <x-summary-row :label="__('College')">{{ $request->college->name }}</x-summary-row>
+    <x-summary-row :label="__('Program or strand')">{{ $request->program }}</x-summary-row>
+    <x-summary-row :label="__('Submitted')">{{ $request->submitted_at?->format('M j, Y g:i A') }}</x-summary-row>
+    <x-summary-row :label="__('Accepted for processing')">
+        @if ($request->accepted_at)
+            {{ $request->accepted_at->format('M j, Y g:i A') }}
+        @else
+            <span class="font-normal text-zinc-600 italic" data-empty-value>{{ __('Not yet') }}</span>
+        @endif
+    </x-summary-row>
+    <x-summary-row :label="__('Amount due')">
+        @if ($request->requires_payment)
+            {{ $request->amount_due !== null ? '₱'.number_format((float) $request->amount_due, 2) : __('Required') }}
+        @else
+            {{ __('None required') }}
+        @endif
+    </x-summary-row>
+    <x-summary-row :label="__('Transacting')">{{ $request->requester_mode->label() }}</x-summary-row>
+    {{ $slot }}
 </dl>

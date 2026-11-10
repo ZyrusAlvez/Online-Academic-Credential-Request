@@ -33,3 +33,9 @@
 - [x] My Requests: drop the "Your Requests" heading; `search` (`#[Url]`) on credential name or
       tracking number, trimmed, back to page 1, "No matching requests" with Clear search (REQ-09-12, 20)
 - [x] Pest tests for REQ-09-20
+- [x] "Request Tracker" replaces "My Requests"; student routes under `request/` with a redirect
+      from `requests/…`; no breadcrumb on New Request (REQ-09-21)
+- [x] Requester request page: Tracking History last; `<x-request-details>` as summary rows with a
+      slot for more rows; `<x-requirement-document-list>` as rows, used on Initial Evaluation and
+      Records too (REQ-09-22)
+- [x] Pest tests for REQ-09-21, 22
