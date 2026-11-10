@@ -249,6 +249,19 @@ test('REQ-15-17 the summary repeats the form\'s six numbered sections, each entr
     expect($summary)->toMatch('#<div class="py-3 [^"]*sm:grid sm:grid-cols-\[minmax\(0,2fr\)_minmax\(0,3fr\)\][^"]*" data-summary-row>\s*<dt class="text-zinc-600">Receiving school, employer or agency</dt>\s*<dd[^>]*>(<!--\[if BLOCK\]><!\[endif\]-->)?\s*Acme Corp#');
 });
 
+test('REQ-15-19 empty summary values are grey italics, and a typed "Not provided" stays plain', function () {
+    $empty = fn (string $text): string => '<span class="font-normal text-zinc-600 italic" data-empty-value>'.$text.'</span>';
+
+    // Nothing typed for the receiving school, and no files chosen for the TOR's requirements.
+    $summary = Str::after(reviewRequest($this->newcomer)->html(), 'data-summary-title');
+    expect($summary)->toMatch('#Receiving school[^<]*</dt>\s*<dd[^>]*>(<!--\[if BLOCK\]><!\[endif\]-->)?\s*'.preg_quote($empty('Not provided'), '#').'#')
+        ->and($summary)->toContain($empty('No files'));
+
+    // The requester typed the words themselves: an entry, shown like any other.
+    $summary = Str::after(reviewRequest($this->newcomer, ['form.receiving_institution' => 'Not provided'])->html(), 'data-summary-title');
+    expect($summary)->toMatch('#Receiving school[^<]*</dt>\s*<dd[^>]*>(<!--\[if BLOCK\]><!\[endif\]-->)?\s*Not provided#');
+});
+
 test('REQ-15-17 section 6 of the summary shows the representative and their files, each linking to the viewer', function () {
     $summary = Str::after(Str::after(reviewRequest($this->newcomer, [
         'form.requester_mode' => 'representative',

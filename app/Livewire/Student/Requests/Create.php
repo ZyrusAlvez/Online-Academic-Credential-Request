@@ -21,6 +21,7 @@ use App\Models\RequestDocument;
 use App\Models\User;
 use App\Models\WorkflowStep;
 use App\Services\RequestWorkflow;
+use App\Support\EmptyValue;
 use Flux\Flux;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
@@ -434,7 +435,7 @@ class Create extends Component
     /**
      * Sections 1 and 2 of the summary, numbered and labelled like the form (REQ-15-05, 17).
      *
-     * @return array<string, array<string, string|list<string|array{name: string, size: string, href: string, type: string}>>>
+     * @return array<string, array<string, string|EmptyValue|list<string|array{name: string, size: string, href: string, type: string}>>>
      */
     protected function requestSummary(?CredentialType $type): array
     {
@@ -445,7 +446,8 @@ class Create extends Component
             __('1. What Do You Need?') => [
                 __('Credential') => (string) $type?->name,
                 __('Purpose') => $purpose,
-                $receivingLabel => filled($this->form->receiving_institution) ? $this->form->receiving_institution : __('Not provided'),
+                // Left blank: shown as a grey "Not provided", not as an entry (REQ-15-19).
+                $receivingLabel => filled($this->form->receiving_institution) ? $this->form->receiving_institution : EmptyValue::notProvided(),
             ],
             __('2. Documentary Requirements') => $this->requirementSummary($type),
         ];
@@ -455,12 +457,12 @@ class Create extends Component
      * Every requirement of the credential with the names and sizes of the files chosen for it, each
      * name a link to the file viewer (REQ-15-17).
      *
-     * @return array<string, string|list<string|array{name: string, size: string, href: string, type: string}>>
+     * @return array<string, string|EmptyValue|list<string|array{name: string, size: string, href: string, type: string}>>
      */
     private function requirementSummary(?CredentialType $type): array
     {
         if ($type === null || ! $type->requirements) {
-            return [__('Requirements') => __('None for this credential')];
+            return [__('Requirements') => new EmptyValue(__('None for this credential'))];
         }
 
         $rows = [];
@@ -495,18 +497,18 @@ class Create extends Component
     }
 
     /**
-     * What section 2 of the summary says for a requirement without files.
+     * What section 2 of the summary says for a requirement without files, in grey (REQ-15-19).
      */
-    protected function noRequirementFiles(): string
+    protected function noRequirementFiles(): EmptyValue
     {
-        return __('No files');
+        return new EmptyValue(__('No files'));
     }
 
     /**
      * Section 6 of the summary: who submits the documents and claims the credential, the SPA and
      * the representative's ID linked to the file viewer (REQ-15-17).
      *
-     * @return array<string, string|list<string|array{name: string, size: string, href: string, type: string}>>
+     * @return array<string, string|EmptyValue|list<string|array{name: string, size: string, href: string, type: string}>>
      */
     protected function transactSummary(): array
     {
@@ -519,8 +521,9 @@ class Create extends Component
         return [
             __('Transacting') => __('Through an authorized representative'),
             __('Representative\'s full name') => $representative['full_name'],
-            __('Relationship to you') => $representative['relationship'] ?? __('Not provided'),
-            __('Representative\'s contact number') => $representative['contact_number'] ?? __('Not provided'),
+            // Optional fields left blank show a grey "Not provided" (REQ-15-19).
+            __('Relationship to you') => $representative['relationship'] ?? EmptyValue::notProvided(),
+            __('Representative\'s contact number') => $representative['contact_number'] ?? EmptyValue::notProvided(),
             __('SPA') => $this->spa instanceof UploadedFile ? [$this->summaryFile($this->spa)] : '',
             __('Representative\'s valid ID') => $this->representativeId instanceof UploadedFile ? [$this->summaryFile($this->representativeId)] : '',
         ];

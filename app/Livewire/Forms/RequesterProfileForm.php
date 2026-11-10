@@ -7,6 +7,7 @@ use App\Enums\DepartmentType;
 use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\User;
+use App\Support\EmptyValue;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
@@ -151,14 +152,15 @@ class RequesterProfileForm extends Form
     /**
      * The entries as the requester will read them on the summary, by section (REQ-01-25).
      *
-     * @return array<string, array<string, string>>
+     * @return array<string, array<string, string|EmptyValue>>
      */
     public function summary(): array
     {
+        // Optional fields left blank show a grey "Not provided", not as an entry (REQ-15-19).
         return [
             'Personal Information' => [
                 'First name' => $this->first_name,
-                'Middle name' => filled($this->middle_name) ? $this->middle_name : 'Not provided',
+                'Middle name' => filled($this->middle_name) ? $this->middle_name : EmptyValue::notProvided(),
                 'Last name' => $this->last_name,
                 'Contact number' => $this->contact_number,
             ],
@@ -166,7 +168,7 @@ class RequesterProfileForm extends Form
                 'Status' => (string) AcademicStatus::tryFrom($this->academic_status)?->label(),
                 'College' => (string) Department::query()->whereKey($this->college_id)->value('name'),
                 'Program' => $this->program,
-                'Student number' => filled($this->student_number) ? $this->student_number : 'Not provided',
+                'Student number' => filled($this->student_number) ? $this->student_number : EmptyValue::notProvided(),
                 'Years attended' => "{$this->attended_from} to {$this->attended_to}",
             ],
         ];

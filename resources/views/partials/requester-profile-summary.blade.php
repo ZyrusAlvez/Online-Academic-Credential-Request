@@ -7,7 +7,7 @@
 @php($sectionTitle = fn (string $text, int $offset): string => $number !== null ? ($number + $offset).'. '.__($text) : __($text))
 
 @foreach ($summary as $heading => $rows)
-    <x-summary-section :heading="$sectionTitle($heading, $loop->index)" :level="$level" :rows="collect($rows)->mapWithKeys(fn ($value, $label) => [__($label) => __($value)])->all()" />
+    <x-summary-section :heading="$sectionTitle($heading, $loop->index)" :level="$level" :rows="collect($rows)->mapWithKeys(fn ($value, $label) => [__($label) => $value])->all()" />
 @endforeach
 
 {{-- One row like a requirement's: the type of ID, then the file's name, a link that opens the image
