@@ -146,19 +146,45 @@
                                 @if ($editing)
                                     <p class="mt-1 text-zinc-600">{{ __('Files you already sent stay with your request; add more only if needed.') }}</p>
                                 @endif
-                                <ul role="list" class="mt-5 space-y-5">
+                                {{-- Each requirement lists every file chosen for it, by name, with its own Remove:
+                                     choosing files again adds to them, which the browser's picker does not show. --}}
+                                @php($max = \App\Models\RequestDocument::MAX_PER_REQUIREMENT)
+                                <ul role="list" class="mt-5 space-y-4">
                                     @foreach ($type->requirements as $index => $requirement)
                                         @php($field = "requirementFiles.{$type->id}.{$index}")
-                                        @php($chosen = count((array) ($requirementFiles[$type->id][$index] ?? [])))
-                                        <li class="space-y-2" wire:key="requirement-{{ $type->id }}-{{ $index }}-{{ $requirementResets[$field] ?? 0 }}">
-                                            <flux:input type="file" wire:model="{{ $field }}" multiple :label="$requirement" accept=".jpg,.jpeg,.png,.webp,.pdf" />
-                                            <div wire:loading wire:target="{{ $field }}" class="text-zinc-600">{{ __('Uploading…') }}</div>
-                                            @if ($chosen > 0)
-                                                <div class="flex flex-wrap items-center gap-2 text-zinc-600">
-                                                    <span>{{ trans_choice(':count file ready to send|:count files ready to send', $chosen) }}</span>
-                                                    <flux:button size="xs" variant="ghost" icon="x-mark" wire:click="clearRequirementFiles({{ $type->id }}, {{ $index }})">{{ __('Remove') }}</flux:button>
-                                                </div>
+                                        @php($files = array_values(array_filter((array) ($requirementFiles[$type->id][$index] ?? []), fn ($file): bool => $file instanceof \Illuminate\Http\UploadedFile)))
+                                        <li class="rounded-lg border border-zinc-200 p-4" wire:key="requirement-{{ $type->id }}-{{ $index }}" data-requirement-field="{{ $index }}">
+                                            <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                                                <h3 class="font-medium text-ink">{{ $requirement }}</h3>
+                                                <span class="shrink-0 text-zinc-600" data-file-count>{{ $files === [] ? __('No files yet') : __(':count of :max files', ['count' => count($files), 'max' => $max]) }}</span>
+                                            </div>
+
+                                            @if ($files !== [])
+                                                <ul role="list" class="mt-3 divide-y divide-zinc-200 rounded-md border border-zinc-200" data-chosen-files>
+                                                    @foreach ($files as $position => $file)
+                                                        @php($name = $file->getClientOriginalName())
+                                                        <li class="flex items-center gap-3 py-1.5 ps-3 pe-1.5" wire:key="requirement-{{ $type->id }}-{{ $index }}-file-{{ $file->getFilename() }}">
+                                                            <flux:icon.document variant="mini" class="shrink-0 text-zinc-500" />
+                                                            <span class="min-w-0 flex-1 truncate text-ink" title="{{ $name }}">{{ $name }}</span>
+                                                            <span class="shrink-0 text-zinc-500">{{ \Illuminate\Support\Number::fileSize((int) $file->getSize(), maxPrecision: 1) }}</span>
+                                                            <flux:button size="xs" variant="ghost" icon="x-mark" wire:click="removeRequirementFile({{ $type->id }}, {{ $index }}, {{ $position }})" :aria-label="__('Remove :file', ['file' => $name])">{{ __('Remove') }}</flux:button>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
                                             @endif
+
+                                            @if (count($files) < $max)
+                                                {{-- The picker itself is hidden: its "No file chosen" or last name is misleading. --}}
+                                                <label wire:key="requirement-{{ $type->id }}-{{ $index }}-picker-{{ $requirementResets[$field] ?? 0 }}"
+                                                    class="mt-3 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 font-medium text-ink shadow-xs hover:bg-zinc-50 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-highlight">
+                                                    <flux:icon.plus variant="mini" class="text-zinc-500" />
+                                                    {{ $files === [] ? __('Choose files') : __('Add more files') }}
+                                                    <span class="sr-only">{{ __('for :requirement', ['requirement' => $requirement]) }}</span>
+                                                    <input type="file" wire:model="{{ $field }}" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" class="sr-only" />
+                                                </label>
+                                            @endif
+                                            <div wire:loading wire:target="{{ $field }}" class="mt-2 text-zinc-600">{{ __('Uploading…') }}</div>
+                                            <flux:error :name="$field" />
                                         </li>
                                     @endforeach
                                 </ul>

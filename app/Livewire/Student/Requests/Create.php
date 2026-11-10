@@ -94,6 +94,34 @@ class Create extends Component
     public function updatedRequirementFiles(mixed $value, string $key): void
     {
         [$typeId, $index] = array_map(intval(...), array_pad(explode('.', $key), 2, '0'));
+
+        $this->checkRequirementFiles($typeId, $index);
+    }
+
+    /**
+     * Drop one of the files chosen for a requirement; the others stay (REQ-04-18).
+     */
+    public function removeRequirementFile(int $typeId, int $index, int $file): void
+    {
+        $field = "requirementFiles.{$typeId}.{$index}";
+        $files = (array) ($this->requirementFiles[$typeId][$index] ?? []);
+
+        unset($files[$file]);
+
+        if ($files === []) {
+            unset($this->requirementFiles[$typeId][$index]);
+        } else {
+            $this->requirementFiles[$typeId][$index] = array_values($files);
+        }
+
+        // A new key empties the file picker, so the same file can be chosen again.
+        $this->requirementResets[$field] = ($this->requirementResets[$field] ?? 0) + 1;
+
+        $this->checkRequirementFiles($typeId, $index);
+    }
+
+    private function checkRequirementFiles(int $typeId, int $index): void
+    {
         $requirement = CredentialType::requestable()->find($typeId)?->requirements[$index] ?? null;
         $field = "requirementFiles.{$typeId}.{$index}";
 
@@ -102,19 +130,6 @@ class Create extends Component
         if ($requirement !== null && ($message = $this->requirementFilesError($typeId, $index, $requirement)) !== null) {
             $this->addError($field, $message);
         }
-    }
-
-    /**
-     * Drop the files chosen for one requirement.
-     */
-    public function clearRequirementFiles(int $typeId, int $index): void
-    {
-        $field = "requirementFiles.{$typeId}.{$index}";
-
-        unset($this->requirementFiles[$typeId][$index]);
-        $this->requirementResets[$field] = ($this->requirementResets[$field] ?? 0) + 1;
-
-        $this->resetErrorBag($field);
     }
 
     /**
