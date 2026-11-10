@@ -224,14 +224,6 @@
             </div>
         </section>
 
-        @if ($idRejected)
-            {{-- The ID sent with the request was not accepted: another is required (REQ-20-06). --}}
-            <flux:callout icon="exclamation-triangle" color="red" data-id-rejected>
-                <flux:callout.heading>{{ __('Your valid ID was not accepted') }}</flux:callout.heading>
-                <flux:callout.text>{{ $editing->identity_remarks }} {{ __('Upload another valid ID in section 5.') }}</flux:callout.text>
-            </flux:callout>
-        @endif
-
         {{-- Sections 3 to 5, filled in from the saved profile (REQ-15-03, 04). --}}
         @include('partials.requester-profile-fields', ['prefix' => 'profile', 'fields' => $profile, 'number' => 3])
 
