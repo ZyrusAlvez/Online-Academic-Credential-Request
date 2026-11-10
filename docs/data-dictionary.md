@@ -430,7 +430,8 @@ Laravel database notifications (the bell). `id` is a UUID.
 
 Requesters' uploaded valid IDs (spec 01). Files live privately on the receipts disk under
 `identity-documents/{user_id}/`; only the owner and registrars can open them. Every upload is kept;
-the newest is the requester's saved ID. The ID is reviewed on each request that uses it
+the newest not removed is the requester's saved ID (one at most, REQ-15-04). A removed one no
+request uses is deleted with its file (REQ-15-18). The ID is reviewed on each request that uses it
 (`credential_requests.identity_status`, spec 15), not here.
 
 | Column | Type | Null | Key | Default | Description |
@@ -442,6 +443,7 @@ the newest is the requester's saved ID. The ID is reviewed on each request that 
 | original_name | varchar(255) | No | | | File name as uploaded |
 | mime_type | varchar(100) | No | | | |
 | size | int unsigned | No | | | Bytes |
+| removed_at | timestamp | Yes | | | When the requester removed it from their profile; kept only because a request uses it (REQ-15-18) |
 | created_at, updated_at | timestamp | Yes | | | |
 
 ## email_verification_codes

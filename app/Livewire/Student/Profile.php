@@ -4,6 +4,7 @@ namespace App\Livewire\Student;
 
 use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
+use App\Livewire\Concerns\RemovesSavedId;
 use App\Livewire\Concerns\TrimsInput;
 use App\Livewire\Forms\RequesterProfileForm;
 use App\Models\Department;
@@ -31,6 +32,7 @@ use Throwable;
 #[Title('Profile')]
 class Profile extends Component
 {
+    use RemovesSavedId;
     use TrimsInput;
     use WithFileUploads;
 

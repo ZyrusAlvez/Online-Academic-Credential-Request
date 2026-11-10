@@ -68,7 +68,7 @@ class Edit extends Create
             $requirementFiles = $this->chosenRequirementFiles();
 
             DB::transaction(function () use ($workflow, $submitIdentity, $owner, $request, $changes, $requirementFiles, &$stored, &$requirementDocuments): void {
-                $chosen = $this->profile->save($owner);
+                $chosen = $this->profile->save($owner, $this->mayReplaceSavedId());
 
                 if ($chosen !== null) {
                     $stored = $submitIdentity->handle($owner, $chosen['type'], $chosen['file']);
@@ -128,6 +128,14 @@ class Edit extends Create
     protected function noRequirementFiles(): string
     {
         return __('No new files');
+    }
+
+    /**
+     * The request's ID was not accepted, so another is asked for even beside a saved one (REQ-20-06).
+     */
+    protected function mayReplaceSavedId(): bool
+    {
+        return $this->idRejected();
     }
 
     private function idRejected(): bool

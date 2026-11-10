@@ -14,6 +14,13 @@ One migration, `move_identity_check_to_requests`:
 - Dropped: `users.identity_status`, `users.identity_verified_at`, and `identity_documents.status`,
   `reviewed_by`, `reviewed_at`, `remarks`. `identity_documents` stays as each requester's history
   of uploads; the newest is their saved ID. `IdentityStatus` (account level) is deleted.
+- Removing the saved ID (REQ-15-18): `identity_documents.removed_at` (nullable timestamp). The saved
+  ID is the newest upload with no `removed_at` (`User::latestIdentityDocument()`).
+  `App\Actions\Identity\RemoveSavedIdentityDocument` deletes the row and its file when no request
+  points at it, and otherwise only sets `removed_at`, since `credential_requests.identity_document_id`
+  restricts deletes and the request keeps the ID it was sent with. The Livewire action is
+  `removeSavedId()` from `App\Livewire\Concerns\RemovesSavedId`, shared by New Request (and Edit
+  Request, which extends it) and Settings → Profile; the button confirms through `wire:confirm`.
 
 `requester_name` keeps the full middle name, not the initial of REQ-01-14, because the registrar
 compares it with the ID.

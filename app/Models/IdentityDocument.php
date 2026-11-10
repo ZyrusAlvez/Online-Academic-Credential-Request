@@ -12,14 +12,16 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * A requester's uploaded valid ID (spec 01), stored privately on the receipts disk. The newest is
- * their saved ID; it is reviewed on each request that uses it (spec 15).
+ * A requester's uploaded valid ID (spec 01), stored privately on the receipts disk. The newest not
+ * removed is their saved ID; it is reviewed on each request that uses it (spec 15). A removed one
+ * stays only for the requests that use it (REQ-15-18).
  *
  * @property int $user_id
  * @property string $id_type
  * @property string $path
  * @property string $original_name
  * @property string $mime_type
+ * @property ?Carbon $removed_at
  * @property Carbon $created_at
  */
 class IdentityDocument extends Model
@@ -55,6 +57,7 @@ class IdentityDocument extends Model
     {
         return [
             'size' => 'integer',
+            'removed_at' => 'datetime',
         ];
     }
 
@@ -97,13 +100,14 @@ class IdentityDocument extends Model
     }
 
     /**
-     * Only the upload is logged here; the review is a ledger entry on the request (REQ-14-04).
+     * Only the upload and its removal from the profile are logged here; the review is a ledger
+     * entry on the request (REQ-14-04, REQ-15-18).
      *
      * @param  array<string, array{0: ?string, 1: ?string}>  $changes
      */
     protected function shouldLogActivity(string $event, array $changes): bool
     {
-        return $event === 'created';
+        return $event !== 'updated' || array_key_exists('removed_at', $changes);
     }
 
     /**
@@ -111,6 +115,8 @@ class IdentityDocument extends Model
      */
     protected function activityDescription(string $event, array $changes, ?User $actor): string
     {
-        return "Uploaded a valid ID ({$this->id_type})";
+        return $event === 'created'
+            ? "Uploaded a valid ID ({$this->id_type})"
+            : "Removed their saved valid ID ({$this->id_type})";
     }
 }

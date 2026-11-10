@@ -257,6 +257,22 @@ test('REQ-20-06 a rejected ID shows its reason and another ID is required', func
         ->assertHasErrors('profile.id_file');
 });
 
+test('REQ-15-18 Edit Request shows the saved ID with its Remove button and no ID fields while the ID stands', function () {
+    returnedForClarification($this->request, [CheckItem::CredentialRequest]);
+    $sent = $this->request->identityDocument;
+
+    editPage()
+        ->assertSeeHtml('data-saved-id')
+        ->assertSeeHtml('data-remove-saved-id')
+        ->assertDontSeeHtml('wire:model="profile.id_file"')
+        ->call('removeSavedId')
+        ->assertSeeHtml('wire:model="profile.id_file"');
+
+    // The request keeps the ID it was sent with (REQ-15-08).
+    expect($this->request->fresh()->identity_document_id)->toBe($sent->id)
+        ->and($sent->fresh()->removed_at)->not->toBeNull();
+});
+
 test('REQ-20-07 resubmitting saves everything and sends the request back, rechecking what changed', function () {
     Notification::fake();
     returnedForClarification($this->request, [CheckItem::Identity], 'The ID photo is blurred.');

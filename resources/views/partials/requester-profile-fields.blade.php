@@ -57,18 +57,27 @@
 <section aria-labelledby="identity-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6">
     <h2 id="identity-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Valid ID', 2) }}</h2>
 
+    {{-- One saved ID at most: while it is saved there are no ID fields; removing it brings them
+         back (REQ-15-04, 18). --}}
     @if ($savedId)
         <div class="space-y-2" data-saved-id>
             <h3 class="text-sm font-semibold text-ink">{{ __('Your Saved ID') }}</h3>
-            <x-identity-document-list :documents="collect([$savedId])" />
+            <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-secondary/50 p-3 text-sm">
+                <div class="min-w-0">
+                    <x-file-link :href="route('identity-documents.show', $savedId)" :name="$savedId->id_type.': '.$savedId->original_name" :type="$savedId->mime_type" class="font-medium break-all">
+                        {{ $savedId->id_type }}: {{ $savedId->original_name }}
+                    </x-file-link>
+                    <p class="text-xs text-zinc-500">{{ __('Uploaded :date', ['date' => $savedId->created_at->format('M j, Y g:i A')]) }}</p>
+                </div>
+                <flux:button size="sm" variant="ghost" icon="trash" class="text-red-700!" wire:click="removeSavedId" data-remove-saved-id
+                    data-confirm-title="{{ __('Remove saved ID') }}" data-confirm-label="{{ __('Remove') }}" data-confirm-variant="danger" wire:confirm="{{ __('Remove your saved ID? You will need to upload a valid ID again. Requests already sent with it keep it.') }}">{{ __('Remove') }}</flux:button>
+            </div>
+            <p class="text-sm text-zinc-600">{{ __('To use a different ID, remove this one first.') }}</p>
         </div>
-    @endif
-
-    <p class="text-sm text-zinc-600">{{ $savedId
-        ? __('To use a different ID, upload it below (JPG, PNG, WebP or PDF, up to 5 MB).')
-        : __('A government-issued or school ID (JPG, PNG, WebP or PDF, up to 5 MB).') }}</p>
+    @else
+    <p class="text-sm text-zinc-600">{{ __('A government-issued or school ID (JPG, PNG, WebP or PDF, up to 5 MB).') }}</p>
     <div class="grid gap-6 sm:grid-cols-2">
-        <flux:select wire:model="{{ $prefix }}.id_type" :label="__('Type of ID')" :badge="$savedId ? __('Optional') : null">
+        <flux:select wire:model="{{ $prefix }}.id_type" :label="__('Type of ID')">
             <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
             @foreach ($idTypes as $type)
                 <flux:select.option :value="$type">{{ $type }}</flux:select.option>
@@ -77,7 +86,7 @@
         {{-- The chosen file opens in the viewer from the browser's own copy: nothing is sent to preview it.
              The browser's picker is hidden, so the name shows once, beside the button (REQ-15-04);
              Livewire's upload events drive the progress bar (REQ-04-18). --}}
-        @php($idLabel = $savedId ? __('Different ID') : __('Valid ID'))
+        @php($idLabel = __('Valid ID'))
         <div class="space-y-2" data-id-preview
             x-data="{ chosen: null, uploading: false, progress: 0,
                 choose(file) {
@@ -91,7 +100,7 @@
             x-on:livewire-upload-finish="uploading = false"
             x-on:livewire-upload-error="uploading = false"
             x-on:livewire-upload-cancel="uploading = false">
-            <flux:label :badge="$savedId ? __('Optional') : null" aria-hidden="true">{{ $idLabel }}</flux:label>
+            <flux:label aria-hidden="true">{{ $idLabel }}</flux:label>
 
             <div x-show="! uploading" class="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-ink shadow-xs hover:bg-zinc-50 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-highlight">
@@ -124,4 +133,5 @@
             <flux:error :name="$prefix.'.id_file'" />
         </div>
     </div>
+    @endif
 </section>
