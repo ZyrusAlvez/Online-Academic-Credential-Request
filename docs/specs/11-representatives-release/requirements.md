@@ -44,6 +44,9 @@ claiming procedure).
   SHALL be the same picker as the valid ID (REQ-15-04): a Choose file / Change file button, the
   chosen file's name once beside it as a link that opens the file in the file viewer, and a
   progress bar while it uploads. *(User's request, 2026-11-11.)*
+- **REQ-11-11** WHEN the requester chooses how they will transact on New Request (6. Who Will
+  Transact?) THE SYSTEM SHALL show or hide the representative's fields at once, in the browser,
+  without waiting for the server. *(User's request, 2026-11-11.)*
 
 ### Release
 - **REQ-11-05** WHILE a request is `ready_for_release` THE SYSTEM SHALL show the requester that the

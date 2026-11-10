@@ -11,3 +11,4 @@
 - [x] `CredentialRequestPolicy::declareRepresentative`: the owner only while `pending_compliance`;
       the request page shows Add representative only then (REQ-11-01)
 - [x] ... and while `ready_for_release`, for someone to claim it (REQ-11-01)
+- [ ] "Who will transact?" toggles the representative's fields in the browser, no round trip (REQ-11-11)

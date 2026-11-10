@@ -45,5 +45,8 @@ PNG, WebP or PDF file of 5 MB or smaller.") instead of "The spa field must not b
   use `x-file-picker` (REQ-11-10): the picker's Alpine state previews the browser's own copy in
   `x-file-viewer`, follows Livewire's upload events for the progress bar, and clears when the
   component resets the field.
+- New Request's "Who will transact?" radio is a deferred `wire:model`; the representative's
+  fields are always on the page and `x-show` on `$wire.form.requester_mode` toggles them, so
+  choosing needs no server round trip (REQ-11-11), like the credential details (REQ-15-15).
 - Registrar request page: representatives with documents and verify/reject; the release form
   (claimant, name, ID presented, verified checks, acknowledgment).
