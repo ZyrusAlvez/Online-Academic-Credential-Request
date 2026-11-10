@@ -33,6 +33,7 @@ use Illuminate\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 use Throwable;
 
@@ -433,7 +434,7 @@ class Create extends Component
     /**
      * Sections 1 and 2 of the summary, numbered and labelled like the form (REQ-15-05, 17).
      *
-     * @return array<string, array<string, string|list<string>>>
+     * @return array<string, array<string, string|list<string|array{name: string, size: string, href: string, type: string}>>>
      */
     protected function requestSummary(?CredentialType $type): array
     {
@@ -451,9 +452,10 @@ class Create extends Component
     }
 
     /**
-     * Every requirement of the credential with the names and sizes of the files chosen for it.
+     * Every requirement of the credential with the names and sizes of the files chosen for it, each
+     * name a link to the file viewer (REQ-15-17).
      *
-     * @return array<string, string|list<string>>
+     * @return array<string, string|list<string|array{name: string, size: string, href: string, type: string}>>
      */
     private function requirementSummary(?CredentialType $type): array
     {
@@ -468,10 +470,28 @@ class Create extends Component
 
             $rows[$requirement] = $files === []
                 ? $this->noRequirementFiles()
-                : array_map(fn (UploadedFile $file): string => $file->getClientOriginalName().' ('.Number::fileSize((int) $file->getSize(), maxPrecision: 1).')', array_values($files));
+                : array_map($this->summaryFile(...), array_values($files));
         }
 
         return $rows;
+    }
+
+    /**
+     * A chosen file on the summary: its name, linked to a signed, short-lived preview that the file
+     * viewer opens, and its size. A file Livewire cannot preview is its name and size only.
+     *
+     * @return string|array{name: string, size: string, href: string, type: string}
+     */
+    private function summaryFile(UploadedFile $file): string|array
+    {
+        $name = $file->getClientOriginalName();
+        $size = Number::fileSize((int) $file->getSize(), maxPrecision: 1);
+
+        if (! $file instanceof TemporaryUploadedFile || ! $file->isPreviewable()) {
+            return $name.' ('.$size.')';
+        }
+
+        return ['name' => $name, 'size' => $size, 'href' => $file->temporaryUrl(), 'type' => (string) $file->getMimeType()];
     }
 
     /**

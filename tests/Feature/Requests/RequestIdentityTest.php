@@ -156,7 +156,7 @@ test('REQ-15-18 New Request removes the saved ID once confirmed; then an ID is r
         ->assertHasErrors(['profile.id_type' => 'required', 'profile.id_file' => 'required']);
 
     reviewRequest($owner, ['profile.id_type' => 'UMID', 'profile.id_file' => UploadedFile::fake()->image('umid.jpg')])
-        ->assertSeeInOrder(['5. Valid ID', 'Type of ID', 'UMID', 'New upload', 'umid.jpg'])
+        ->assertSeeInOrder(['5. Valid ID', 'UMID', 'umid.jpg'])
         ->call('submit')
         ->assertHasNoErrors();
 
@@ -213,6 +213,20 @@ test('REQ-15-05 the summary shows the request, the details, the ID and the priva
             'Back to edit', 'Submit request',
         ], false)
         ->assertSeeHtml('data-id-summary-preview');
+});
+
+test('REQ-15-05 the summary\'s valid ID is one row: the type of ID, then the file name linking to the viewer and its size', function () {
+    $id = Str::after(Str::after(reviewRequest($this->newcomer)->html(), 'data-summary-title'), '5. Valid ID</h2>');
+
+    expect($id)->toMatch('#<div class="py-3 [^"]*" data-id-summary-preview[^>]*>\s*<dt class="text-zinc-600">Passport</dt>\s*<dd[^>]*>\s*<span class="break-all"><a\s+href="[^"]*preview-file[^"]*"[^>]*data-file-link[^>]*>passport\.jpg</a>\s*\([\d.]+ [KM]?B\)</span>#')
+        ->and(Str::before($id, '6. Who Will Transact?'))->not->toContain('Type of ID')->not->toContain('New upload');
+
+    // A saved ID: the same row, linking to the stored file.
+    $owner = User::factory()->withProfile($this->org->ccs)->create(['program' => 'BS Computer Science']);
+    $saved = $owner->latestIdentityDocument()->firstOrFail();
+    $id = Str::after(Str::after(reviewRequest($owner)->html(), 'data-summary-title'), '5. Valid ID</h2>');
+
+    expect($id)->toMatch('#<dt class="text-zinc-600">'.preg_quote(e($saved->id_type), '#').'</dt>\s*<dd[^>]*>\s*<span class="break-all"><a\s+href="'.preg_quote(route('identity-documents.show', $saved), '#').'"[^>]*data-file-link[^>]*>'.preg_quote(e($saved->original_name), '#').'</a>\s*\(#');
 });
 
 test('REQ-15-17 the summary repeats the form\'s six numbered sections, each entry a label/value row', function () {

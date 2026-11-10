@@ -2,7 +2,8 @@
 
 {{-- A summary section: its heading (an h2 or h3, under the page's "Summary"), then one row per
      entry, label on the left and value on the right (REQ-15-17). A value is a string or a list of
-     strings, one per line; the slot adds <x-summary-row>s of its own. --}}
+     lines, one per line; a line is a string or a file {name, size, href, type}, its name a link to
+     the file viewer. The slot adds <x-summary-row>s of its own. --}}
 @php($headingId = 'summary-'.\Illuminate\Support\Str::slug($heading))
 @php($tag = (int) $level === 2 ? 'h2' : 'h3')
 <section aria-labelledby="{{ $headingId }}" {{ $attributes->class('rounded-xl border border-secondary/50 p-5 sm:p-6') }}>
@@ -14,7 +15,11 @@
                 @if (is_array($value))
                     <ul role="list" class="space-y-1">
                         @foreach ($value as $line)
-                            <li>{{ $line }}</li>
+                            @if (is_array($line))
+                                <li><x-summary-file :href="$line['href']" :name="$line['name']" :size="$line['size']" :type="$line['type']" /></li>
+                            @else
+                                <li>{{ $line }}</li>
+                            @endif
                         @endforeach
                     </ul>
                 @else

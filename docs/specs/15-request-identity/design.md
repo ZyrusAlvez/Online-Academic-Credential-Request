@@ -52,7 +52,9 @@ and `CorrectRequesterName` are removed; activity logs get the review through the
   `partials/requester-profile-summary`. Every summary section is the `x-summary-section`
   component: a heading and a list of label/value rows (label left, value right from `sm`). New
   Request numbers them like the form (REQ-15-17): `Create::summarySections()` gives sections 1, 2
-  and 6, the profile partial 3 to 5.
+  and 6, the profile partial 3 to 5. A row's value may list files as `{name, size, href, type}`:
+  the section shows each name as an `x-file-link` to the file viewer, then its size. A chosen file
+  links to Livewire's signed `temporaryUrl()`, a saved ID to `identity-documents.show`.
 - `Student\Requests\Create`: form → summary (`reviewing`) → submit. `submit()` runs one transaction:
   save the profile, store a new ID through `SubmitIdentityDocument`, `RequestWorkflow::submit()`,
   declare the representative. If it fails, a stored ID file is deleted.

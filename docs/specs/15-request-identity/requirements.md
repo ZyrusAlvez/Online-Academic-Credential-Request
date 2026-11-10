@@ -65,15 +65,17 @@ identity, and My Profile in REQ-09-09/12.
 - **REQ-15-05** WHEN the requester chooses "Review request" THE SYSTEM SHALL check every entry and
   save nothing. IF an entry is missing or invalid THEN THE SYSTEM SHALL show the errors modal of
   REQ-01-26. Otherwise THE SYSTEM SHALL show a "Summary" of the request, the personal and academic
-  information and the ID (its file name only, as a link that opens it, image or PDF, in the file
-  viewer; no picture on the page, *user's request, 2026-11-10*), the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry
+  information and the ID (one row like a requirement's in section 2: the type of ID on the left,
+  and on the right its file name, as a link that opens it, image or PDF, in the file viewer,
+  followed by its size; no picture on the page, *user's requests, 2026-11-10 and 2026-11-11*), the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry
   and the chosen file, and a "Submit request" button. THE SYSTEM SHALL show the consent as an
   unticked checkbox on every summary and SHALL NOT submit (the button stays disabled, and the server
   refuses) until it is ticked; the first consent's time is recorded on the account.
 - **REQ-15-17** THE request summary SHALL repeat the form's numbered sections (1. What Do You
   Need? to 6. Who Will Transact?, or 1 to 5 on Edit Request), each entry as a row with its label
   on the left and its value on the right (stacked on narrow screens), section 2 listing every
-  requirement with the names of the files chosen for it, and section 6 the representative's name,
+  requirement with the names and sizes of the files chosen for it, each name a link that opens the
+  file in the file viewer (*user's request, 2026-11-11*), and section 6 the representative's name,
   relationship, contact number and file names. "Summary" SHALL be the page's title, in place of
   the form's title and description. *(User's request, 2026-11-10.)*
 - **REQ-15-06** WHEN the requester submits from the summary THE SYSTEM SHALL, all or nothing, save
