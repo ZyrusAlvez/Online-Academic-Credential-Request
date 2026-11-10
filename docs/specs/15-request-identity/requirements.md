@@ -59,6 +59,12 @@ identity, and My Profile in REQ-09-09/12.
   and the chosen file, and a "Submit request" button. THE SYSTEM SHALL show the consent as an
   unticked checkbox on every summary and SHALL NOT submit (the button stays disabled, and the server
   refuses) until it is ticked; the first consent's time is recorded on the account.
+- **REQ-15-17** THE request summary SHALL repeat the form's numbered sections (1. What Do You
+  Need? to 6. Who Will Transact?, or 1 to 5 on Edit Request), each entry as a row with its label
+  on the left and its value on the right (stacked on narrow screens), section 2 listing every
+  requirement with the names of the files chosen for it, and section 6 the representative's name,
+  relationship, contact number and file names. "Summary" SHALL be the page's title, in place of
+  the form's title and description. *(User's request, 2026-11-10.)*
 - **REQ-15-06** WHEN the requester submits from the summary THE SYSTEM SHALL, all or nothing, save
   the personal and academic information (and a newly chosen ID) to their profile and submit the
   request with a copy of their name, contact number, academic information and the ID used, the ID
