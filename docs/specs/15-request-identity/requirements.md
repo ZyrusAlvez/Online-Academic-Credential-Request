@@ -79,6 +79,11 @@ identity, and My Profile in REQ-09-09/12.
   relationship, contact number, and the SPA and their ID as linked file names with sizes like
   section 2's (*user's request, 2026-11-11*). "Summary" SHALL be the page's title, in place of
   the form's title and description. *(User's request, 2026-11-10.)*
+- **REQ-15-19** WHERE a summary row has nothing to show ("Not provided", "No files", "No new
+  files", "None for this credential") THE SYSTEM SHALL write that text in italics and grey
+  (`text-zinc-600`), unlike an entered value, so that it is never mistaken for one (a receiving
+  school typed as "Not provided" stays plain). This applies to the summaries of New Request, Edit
+  Request and Settings → Profile. *(User's request, 2026-11-11.)*
 - **REQ-15-06** WHEN the requester submits from the summary THE SYSTEM SHALL, all or nothing, save
   the personal and academic information (and a newly chosen ID) to their profile and submit the
   request with a copy of their name, contact number, academic information and the ID used, the ID

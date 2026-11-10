@@ -20,3 +20,5 @@
   profile (kept for requests that use it, deleted otherwise) (REQ-15-04, 18)
 - [x] Summary section 5 as one row, type of ID left and the linked file name and size right; each
   section 2 file a link to the viewer (REQ-15-05, 17)
+- [ ] `App\Support\EmptyValue` for "nothing to show" summary values, shown italic and
+  `text-zinc-600` by `<x-summary-section>` (REQ-15-19)
