@@ -99,7 +99,15 @@ test('REQ-04-18 the review summary lists every requirement with the names of its
 
     expect($summary)->toContain('2. Documentary Requirements')
         ->and(Str::between($summary, 'Completed clearance', 'PSA-authenticated birth certificate'))->toContain('No files')
-        ->and(Str::after($summary, 'PSA-authenticated birth certificate'))->toContain('clearance.pdf (200 KB)')->toContain('second.pdf (100 KB)');
+        ->and(Str::after($summary, 'PSA-authenticated birth certificate'))->toMatch('#clearance\.pdf</a>\s*\(200 KB\)#')->toMatch('#second\.pdf</a>\s*\(100 KB\)#');
+});
+
+test('REQ-15-17 each requirement file on the summary is a link that opens it in the file viewer', function () {
+    $summary = Str::after(torRequestForm()->set("requirementFiles.{$this->org->tor->id}.1", [fakePdf('clearance.pdf', 200)])
+        ->call('review')->assertHasNoErrors()->html(), '2. Documentary Requirements</h2>');
+
+    expect($summary)->toMatch('#<a\s+href="[^"]*preview-file[^"]*"[^>]*aria-haspopup="dialog"[^>]*data-file-link[^>]*>clearance\.pdf</a>\s*\(200 KB\)#')
+        ->and($summary)->toMatch('#application\\\\?/pdf#');
 });
 
 test('REQ-04-18 the file count stays right of the requirement and the button right of the field', function () {

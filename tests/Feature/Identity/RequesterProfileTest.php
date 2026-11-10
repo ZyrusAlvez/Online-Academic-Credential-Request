@@ -345,8 +345,7 @@ test('REQ-15-05 the summary shows the saved ID when no other is chosen', functio
 
     $summary = Str::after(reviewProfile()->html(), 'data-summary-title');
 
-    expect($summary)->toMatch('#<dt class="text-zinc-600">Type of ID</dt>\s*<dd[^>]*>\s*UMID#')
-        ->toContain('umid.jpg');
+    expect($summary)->toMatch('#<dt class="text-zinc-600">UMID</dt>\s*<dd[^>]*>\s*<span class="break-all"><a\s+href="[^"]*"[^>]*data-file-link[^>]*>umid\.jpg</a>#');
 });
 
 test('REQ-15-05 a requester who consented before still gets an unticked checkbox, and Confirm and save waits for it', function () {
@@ -369,7 +368,7 @@ test('REQ-15-05 going back keeps every entry and the chosen file', function () {
         ->assertSet('form.first_name', 'Juan')
         ->assertSet('form.id_type', 'Passport')
         ->call('review')
-        ->assertSeeInOrder(['Type of ID', 'Passport', 'New upload', 'passport.jpg'])
+        ->assertSeeInOrder(['Passport', 'passport.jpg'])
         ->call('save')
         ->assertHasNoErrors();
 
