@@ -216,9 +216,9 @@
                 </div>
                 <div class="space-y-4">
                     <flux:text>{{ __('JPG, PNG, WebP or PDF, up to 5 MB each.') }}</flux:text>
-                    <flux:input type="file" wire:model="spa" :label="__('SPA')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
-                    <flux:input type="file" wire:model="representativeId" :label="__('Representative\'s valid ID')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
-                    <div wire:loading wire:target="spa,representativeId" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
+                    {{-- The same picker as on New Request (REQ-11-01). --}}
+                    <x-file-picker model="spa" :label="__('SPA')" data-spa-picker />
+                    <x-file-picker model="representativeId" :label="__('Representative\'s valid ID')" data-representative-id-picker />
                 </div>
                 <div class="flex justify-end gap-2">
                     <flux:modal.close><flux:button variant="ghost">{{ __('Back') }}</flux:button></flux:modal.close>

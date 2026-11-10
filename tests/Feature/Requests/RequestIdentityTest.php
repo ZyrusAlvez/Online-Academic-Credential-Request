@@ -249,19 +249,20 @@ test('REQ-15-17 the summary repeats the form\'s six numbered sections, each entr
     expect($summary)->toMatch('#<div class="py-3 [^"]*sm:grid sm:grid-cols-\[minmax\(0,2fr\)_minmax\(0,3fr\)\][^"]*" data-summary-row>\s*<dt class="text-zinc-600">Receiving school, employer or agency</dt>\s*<dd[^>]*>(<!--\[if BLOCK\]><!\[endif\]-->)?\s*Acme Corp#');
 });
 
-test('REQ-15-17 section 6 of the summary shows the representative and their files', function () {
-    $summary = Str::after(reviewRequest($this->newcomer, [
+test('REQ-15-17 section 6 of the summary shows the representative and their files, each linking to the viewer', function () {
+    $summary = Str::after(Str::after(reviewRequest($this->newcomer, [
         'form.requester_mode' => 'representative',
         'form.representative_name' => 'Maria Dela Cruz',
         'form.representative_relationship' => 'Mother',
         'spa' => UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'),
         'representativeId' => UploadedFile::fake()->image('maria-id.jpg'),
-    ])->assertHasNoErrors()->html(), '6. Who Will Transact?');
+    ])->assertHasNoErrors()->html(), 'data-summary-title'), '6. Who Will Transact?</h2>');
 
     expect($summary)->toContain('Through an authorized representative')
         ->toContain('Maria Dela Cruz')->toContain('Mother')
         ->toContain('Not provided')
-        ->toContain('spa.pdf')->toContain('maria-id.jpg');
+        ->toMatch('#<dt class="text-zinc-600">SPA</dt>.*?<a\s+href="[^"]*preview-file[^"]*"[^>]*data-file-link[^>]*>spa\.pdf</a>\s*\(100 KB\)#s')
+        ->toMatch('#<dt class="text-zinc-600">Representative&\#039;s valid ID</dt>.*?<a\s+href="[^"]*preview-file[^"]*"[^>]*data-file-link[^>]*>maria-id\.jpg</a>\s*\([\d.]+ [KM]?B\)#s');
 });
 
 test('REQ-15-05 the consent is required on the summary and recorded once given', function () {

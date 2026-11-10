@@ -147,7 +147,7 @@ test('REQ-15-04 the chosen ID\'s name shows once, beside its own button, and the
     // The browser's picker, which repeats the name, is hidden; the name is the one link.
     expect($field)->toMatch('/<input type="file" wire:model="form\.id_file"[^>]*class="sr-only"/')
         ->toContain('Choose file')->toContain('Change file')->toContain('No file chosen')
-        ->toMatch('/<a href="#"[^>]*data-chosen-id[^>]*x-text="chosen\?\.name"/')
+        ->toMatch('/<a href="#"[^>]*data-chosen-file[^>]*x-text="chosen\?\.name"/')
         ->not->toContain('Chosen:')
         ->toContain('x-on:livewire-upload-progress="progress = $event.detail.progress"')
         ->toMatch('/<div x-show="uploading"[^>]*role="status"[^>]*data-upload-progress>/')

@@ -6,3 +6,5 @@
 - [x] Pest tests for every REQ-11 criterion
 - [x] SPA and representative's ID required on New Request and the request page, enforced by the
       workflow; type and 5 MB checks as soon as a file is chosen, with plain messages (REQ-11-01, 09)
+- [x] SPA and representative's ID use the valid ID's picker (`x-file-picker`), on New Request and
+      the request page; linked with sizes on the summary (REQ-11-10, REQ-15-17)

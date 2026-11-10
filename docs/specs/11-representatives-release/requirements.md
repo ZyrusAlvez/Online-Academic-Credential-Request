@@ -33,6 +33,10 @@ claiming procedure).
   or PDF file, or is larger than 5 MB, THE SYSTEM SHALL say so under that field as soon as it is
   chosen, naming the accepted types or the 5 MB limit, and SHALL NOT save the representative
   until both files are acceptable. The form states the accepted types and the limit beforehand.
+- **REQ-11-10** THE SPA and representative's ID fields, on New Request and on the request page,
+  SHALL be the same picker as the valid ID (REQ-15-04): a Choose file / Change file button, the
+  chosen file's name once beside it as a link that opens the file in the file viewer, and a
+  progress bar while it uploads. *(User's request, 2026-11-11.)*
 
 ### Release
 - **REQ-11-05** WHILE a request is `ready_for_release` THE SYSTEM SHALL show the requester that the
