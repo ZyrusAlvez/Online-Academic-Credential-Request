@@ -95,3 +95,10 @@
   (requester pages keep their narrower column, REQ-09-12). On a small screen nothing makes the
   page scroll sideways: a table scrolls inside its own box with its less-needed columns hidden, and
   long emails and payment references wrap.
+
+### Section headings
+- **REQ-09-19** THE SYSTEM SHALL write every section heading on a page in Title Case (e.g.
+  "Request Details", "Office Visits", "Proofs of Payment"; short articles, conjunctions and
+  prepositions stay lower case unless first), including the report names. Dialog titles, field
+  labels and buttons keep sentence case. The request's event ledger is headed "Tracking History"
+  on every request page (requester, office and Records), not "Ledger" or "History".
