@@ -1,7 +1,7 @@
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <x-settings.layout :heading="__('Profile')" :subheading="__('The details and valid ID that fill in your next request. Requests you already submitted keep the details they were sent with.')" wide>
+    <x-settings.layout :heading="__('Profile')" :subheading="__('Used to fill in your next request.')" wide>
         {{-- Not shown: it announces the step to screen readers and is the focus target of showStep(). --}}
         <p id="profile-step" tabindex="-1" class="sr-only">
             {{ $reviewing ? __('Review and confirm your details') : __('Your details') }}
@@ -21,7 +21,7 @@
             <div class="space-y-8">
                 <div class="space-y-1">
                     <h2 class="text-xl font-bold text-primary" data-summary-title>{{ __('Summary') }}</h2>
-                    <flux:text>{{ __('Check that everything below is correct. Your next request will be sent with these details.') }}</flux:text>
+                    <flux:text>{{ __('Check that everything is correct.') }}</flux:text>
                 </div>
 
                 @include('partials.requester-profile-summary', ['prefix' => 'form', 'fields' => $form])

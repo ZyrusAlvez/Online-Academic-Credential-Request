@@ -40,7 +40,7 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
 }; ?>
 
 <div class="flex flex-col gap-6">
-    <x-auth-header title="Create an account" description="Enter your email and choose a password. We'll send you a code to verify your email." />
+    <x-auth-header title="Create an account" description="Enter your email and choose a password." />
 
     <!-- Session Status -->
     <x-auth-session-status class="text-center" :status="session('status')" />

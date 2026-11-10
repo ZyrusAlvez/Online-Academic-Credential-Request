@@ -51,7 +51,7 @@
             <section aria-labelledby="start-heading" class="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6">
                 <div>
                     <h2 id="start-heading" class="text-lg font-semibold text-primary">{{ __('Initial Evaluation') }}</h2>
-                    <p class="text-sm text-zinc-700">{{ __('Received :time. Once you start, only you can evaluate it until you decide.', ['time' => $request->submitted_at->diffForHumans()]) }}</p>
+                    <p class="text-sm text-zinc-700">{{ __('Received :time.', ['time' => $request->submitted_at->diffForHumans()]) }}</p>
                 </div>
                 <flux:button wire:click="startEvaluation" variant="primary" icon="magnifying-glass">{{ __('Start evaluation') }}</flux:button>
             </section>
@@ -65,7 +65,6 @@
                     <p class="text-sm whitespace-pre-line text-amber-950">{{ $lastReturn->remarks }}</p>
                     <p class="text-xs text-amber-900">{{ __(':date · :name', ['date' => $lastReturn->created_at->format('M j, Y g:i A'), 'name' => $lastReturn->actor?->name]) }}</p>
                 @endif
-                <p class="text-sm text-amber-950">{{ __('It comes back to Initial Evaluation when the requester edits and resubmits it.') }}</p>
             </section>
         @endif
 
@@ -75,7 +74,7 @@
             <section aria-labelledby="compliance-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-compliance-panel>
                 <div>
                     <h2 id="compliance-heading" class="text-lg font-semibold text-primary">{{ __('Office Visit') }}</h2>
-                    <p class="text-sm text-zinc-700">{{ __('Mark each requirement received as the requester or their representative submits the original, then confirm compliance.') }}</p>
+                    <p class="text-sm text-zinc-700">{{ __('Mark each item received, then confirm compliance.') }}</p>
                 </div>
                 @if ($lastReturn)
                     <p class="rounded-md bg-white p-3 text-sm whitespace-pre-line text-ink">{{ $lastReturn->remarks }}</p>
@@ -208,7 +207,7 @@
                 <section aria-labelledby="receive-heading" class="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6">
                     <div>
                         <h2 id="receive-heading" class="text-lg font-semibold text-primary">{{ __('Final Quality Check') }}</h2>
-                        <p class="text-sm text-zinc-700">{{ __('Forwarded :time from :office. Accept the receipt once the document is in your office.', ['time' => $visit->forwarded_at->diffForHumans(), 'office' => $request->visits->where('status', \App\Enums\VisitStatus::Completed)->last()?->department->name ?? __('the last office')]) }}</p>
+                        <p class="text-sm text-zinc-700">{{ __('Forwarded :time from :office.',['time' => $visit->forwarded_at->diffForHumans(), 'office' => $request->visits->where('status', \App\Enums\VisitStatus::Completed)->last()?->department->name ?? __('the last office')]) }}</p>
                     </div>
                     <flux:button wire:click="acceptReceipt" variant="primary" icon="inbox-arrow-down">{{ __('Accept receipt') }}</flux:button>
                 </section>
@@ -241,10 +240,8 @@
                     <p class="text-sm text-zinc-700">
                         @if ($allConfirmed)
                             {{ __('Every part is confirmed.') }}
-                        @elseif ($anyRejected && $panel === Page::PANEL_EVALUATION)
-                            {{ __('Some parts are rejected: return for clarification, require an office visit, or decline, with remarks.') }}
                         @elseif ($anyRejected)
-                            {{ __('Some parts are rejected: return or decline, with remarks.') }}
+                            {{ __('Some parts are rejected.') }}
                         @else
                             {{ __('Confirm every part to approve.') }}
                         @endif
@@ -356,7 +353,7 @@
 
             @if ($blockedAction === 'confirm' && $blockedParts !== [])
                 {{-- Confirm Compliance: the items still to receive (REQ-20-09). --}}
-                <p class="text-sm text-ink">{{ __('Confirm Compliance needs every missing requirement received. Still to receive:') }}</p>
+                <p class="text-sm text-ink">{{ __('Still to receive:') }}</p>
                 <ul class="list-disc space-y-1 ps-5 text-sm text-ink" data-blocked-parts>
                     @foreach ($blockedParts as $part)
                         <li>{{ $part['label'] }}</li>
@@ -423,7 +420,7 @@
             <form wire:submit="requireOfficeVisit" class="space-y-6">
                 <div>
                     <flux:heading size="lg">{{ __('Require Office Visit') }}</flux:heading>
-                    <flux:text class="mt-2">{{ __('Tick what is missing. The requester is asked to bring the originals or complete clearance at the Office of the Registrar, in person or through an authorized representative.') }}</flux:text>
+                    <flux:text class="mt-2">{{ __('Tick what the requester must bring or complete at the office.') }}</flux:text>
                 </div>
                 @if ($request->credentialType->requirements)
                     <flux:checkbox.group wire:model="missing" :label="__('Missing requirements')">

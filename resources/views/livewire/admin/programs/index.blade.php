@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Programs" description="Programs and strands that requesters choose from on New Request and Settings → Profile, by department.">
+    <x-page-header title="Programs" description="Programs and strands, by department.">
         <x-slot:actions>
             <flux:button variant="primary" icon="plus" wire:click="create">{{ __('Add program') }}</flux:button>
         </x-slot:actions>

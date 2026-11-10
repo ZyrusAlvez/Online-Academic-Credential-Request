@@ -181,7 +181,7 @@ test('REQ-11-05 the requester is told the credential is ready and what to bring'
 
     $this->actingAs($this->owner)->get(route('student.requests.show', $request))
         ->assertSee('Your Credential Is Ready for Release')
-        ->assertSee('Bring a valid ID');
+        ->assertSee('with a valid ID');
 });
 
 test('REQ-11-07 no release to an unverified representative; a verified one can claim', function () {

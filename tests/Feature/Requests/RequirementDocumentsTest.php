@@ -61,7 +61,7 @@ test('REQ-04-18 each requirement of a credential has its own file field, for sev
     // A credential without requirements has no upload fields, and says so.
     expect(requirementBlock(Livewire::actingAs($this->owner)->test(Create::class)->html(), $this->org->free))
         ->not->toContain('data-requirement-uploads')
-        ->toContain('has no documentary requirements to upload');
+        ->toContain('No documentary requirements.');
 });
 
 test('REQ-04-18 the request is submitted with the requirement files, each under its requirement', function () {

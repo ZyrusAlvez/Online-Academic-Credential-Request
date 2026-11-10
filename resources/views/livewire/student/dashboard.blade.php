@@ -1,6 +1,6 @@
 {{-- Same column and sections as New Request (REQ-09-12). --}}
 <div class="mx-auto max-w-3xl space-y-6">
-    <x-page-header title="My Requests" description="Request academic credentials and follow them from office to office.">
+    <x-page-header title="My Requests">
         <x-slot:actions>
             <flux:button variant="primary" icon="plus" :href="route('student.requests.create')" wire:navigate>{{ __('New request') }}</flux:button>
         </x-slot:actions>
@@ -13,7 +13,6 @@
             <div class="py-6 text-center">
                 <flux:icon.document-text class="mx-auto size-10 text-secondary" />
                 <h3 class="mt-3 font-semibold text-ink">{{ __('No requests yet') }}</h3>
-                <p class="mt-1 text-sm text-zinc-600">{{ __('Request your Transcript of Records or another credential to get started.') }}</p>
                 <flux:button class="mt-5" variant="primary" icon="plus" :href="route('student.requests.create')" wire:navigate>{{ __('New request') }}</flux:button>
             </div>
         @else

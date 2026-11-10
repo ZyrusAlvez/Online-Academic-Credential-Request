@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Departments" description="Colleges and offices that can be part of a request's signing workflow.">
+    <x-page-header title="Departments" description="Colleges and offices.">
         <x-slot:actions>
             <flux:button variant="primary" icon="plus" wire:click="create">{{ __('Add department') }}</flux:button>
         </x-slot:actions>

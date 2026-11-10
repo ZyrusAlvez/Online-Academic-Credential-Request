@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-page-header title="Reports" description="The Registrar's performance and monitoring reports. Choose a report and filter it." />
+    <x-page-header title="Reports" description="Performance and monitoring reports." />
 
     <div class="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <flux:select wire:model.live="report" :label="__('Report')" class="xl:col-span-2">
@@ -57,7 +57,7 @@
         </flux:table>
 
         @if (count($rows) > \App\Livewire\Admin\Reports\Index::PAGE_ROWS)
-            <p class="text-sm text-zinc-600">{{ __('Showing the first :n rows. Narrow the dates or filters to see the rest.', ['n' => \App\Livewire\Admin\Reports\Index::PAGE_ROWS]) }}</p>
+            <p class="text-sm text-zinc-600">{{ __('Showing the first :n rows. Narrow the filters to see the rest.',['n' => \App\Livewire\Admin\Reports\Index::PAGE_ROWS]) }}</p>
         @endif
     </section>
 </div>

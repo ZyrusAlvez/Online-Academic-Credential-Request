@@ -70,7 +70,7 @@ test('REQ-15-07 requesters have a Settings → Profile page, first in their sett
     $this->actingAs($this->student)->get(route('settings.profile'))
         ->assertOk()
         ->assertSeeInOrder(['Profile', 'Email notifications', 'Password'])
-        ->assertSee('Requests you already submitted keep the details they were sent with.')
+        ->assertSee('Used to fill in your next request.')
         ->assertDontSee('Email address');
 });
 
@@ -295,7 +295,6 @@ test('REQ-15-05 a requester who consented before still gets an unticked checkbox
 
     $html = reviewProfile()
         ->assertSee('I agree to the processing of my personal data')
-        ->assertSee('Tick the box to continue.')
         ->assertDontSee('You agreed to the processing of your personal data')
         ->assertSet('form.privacy_consent', false)
         ->html();

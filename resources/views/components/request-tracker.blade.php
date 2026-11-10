@@ -88,14 +88,14 @@
             @if ($request->effective_due_at)
                 <dd class="text-lg font-bold text-ink">{{ $request->effective_due_at->format('l, M j, Y') }}</dd>
                 <dd class="text-xs text-zinc-600">
-                    {{ __('Based on the acceptance date (:date) and the working calendar.', ['date' => $request->accepted_at?->format('M j, Y')]) }}
+                    {{ __('Counted in working days from acceptance.') }}
                     @if ($request->adjusted_due_at)
-                        {{ __('Originally :date; moved while waiting for your action.', ['date' => $request->due_at?->format('M j')]) }}
+                        {{ __('Originally :date.', ['date' => $request->due_at?->format('M j')]) }}
                     @endif
                 </dd>
             @else
                 <dd class="text-lg font-bold text-zinc-500">{{ __('Set on acceptance') }}</dd>
-                <dd class="text-xs text-zinc-600">{{ __('Submitting a request does not mean it has been accepted for processing.') }}</dd>
+                <dd class="text-xs text-zinc-600">{{ __('Not yet accepted for processing.') }}</dd>
             @endif
         </div>
     </dl>

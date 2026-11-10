@@ -49,5 +49,4 @@
 
     {{-- Ticked every time: nothing is saved or submitted without it (REQ-15-05, 07). --}}
     <flux:checkbox wire:model="{{ $prefix }}.privacy_consent" :label="__('I agree to the processing of my personal data')" data-privacy-consent />
-    <flux:text size="sm">{{ __('Tick the box to continue.') }}</flux:text>
 </section>

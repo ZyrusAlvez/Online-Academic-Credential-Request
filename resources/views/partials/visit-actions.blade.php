@@ -20,11 +20,11 @@
         @php($next = $visit->nextStep()?->department)
 
         @if ($visit->status === \App\Enums\VisitStatus::InTransit)
-            <p class="text-sm text-zinc-700">{{ __('Forwarded :time. Confirm when the document is physically in your office.', ['time' => $visit->forwarded_at->diffForHumans()]) }}</p>
+            <p class="text-sm text-zinc-700">{{ __('Forwarded :time.', ['time' => $visit->forwarded_at->diffForHumans()]) }}</p>
             <flux:button wire:click="acceptReceipt" variant="primary" icon="inbox-arrow-down" class="w-full">{{ __('Accept receipt') }}</flux:button>
         @elseif ($visit->status === \App\Enums\VisitStatus::Done)
             {{-- Done, but the paper is still here until it is forwarded (REQ-17-07, 16). --}}
-            <p class="text-sm text-zinc-700" data-done>{{ __('Done :time. The document is still in your office.', ['time' => $visit->done_at->diffForHumans()]) }}</p>
+            <p class="text-sm text-zinc-700" data-done>{{ __('Done :time.', ['time' => $visit->done_at->diffForHumans()]) }}</p>
             @if ($next && auth()->user()->hasRole(\App\Enums\Role::Registrar))
                 <p class="text-sm text-zinc-700">
                     {{ __('Forward it to :office from', ['office' => $next->name]) }}
@@ -33,7 +33,7 @@
             @elseif ($next)
                 @can('forward', $visit)
                     <flux:button wire:click="forwardDocument" variant="primary" icon="paper-airplane" class="w-full" data-forward
-                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Is the paper leaving your office for :office now? They confirm when it arrives.', ['office' => $next->name])">
+                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Forward the document to :office now?', ['office' => $next->name])">
                         {{ __('Forward to :office', ['office' => $next->name]) }}
                     </flux:button>
                 @endcan
@@ -51,9 +51,6 @@
                         {{ __($visit->step->task->doneLabel()) }}
                     @endif
                 </flux:button>
-                @if ($next && $next->id !== $visit->department_id)
-                    <p class="text-xs text-zinc-600">{{ __('The document stays here until it is forwarded to :office.', ['office' => $next->name]) }}</p>
-                @endif
             </form>
 
             @if ($visit->purpose !== \App\Enums\VisitPurpose::Correction && $returnOffices->isNotEmpty())
@@ -65,7 +62,6 @@
                     <form wire:submit="returnVisit" class="space-y-6">
                         <div>
                             <flux:heading size="lg">{{ __('Return for correction') }}</flux:heading>
-                            <flux:text class="mt-2">{{ __('The document goes back to the office you choose. Once corrected, it comes back to you and you receive it again.') }}</flux:text>
                         </div>
                         <flux:select wire:model="returnTo" :label="__('Return to')" required>
                             <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
