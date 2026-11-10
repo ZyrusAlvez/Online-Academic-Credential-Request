@@ -107,6 +107,29 @@ test('REQ-11-01 after submitting, a representative can be added only while an of
     expect($request->representatives()->count())->toBe(0);
 });
 
+test('REQ-11-01 once the credential is ready for release the owner can add someone to claim it, but not while it is processed', function () {
+    $request = acceptRequest(submitRequest($this->owner, $this->org->free), $this->registrar);
+
+    // Accepted and being processed by the offices: still no Add representative.
+    $this->actingAs($this->owner)->get(route('student.requests.show', $request))
+        ->assertOk()->assertDontSee('Add representative');
+
+    passOffice($request, $this->registrar);   // prepare
+    passOffice($request, $this->registrar);   // final check
+    expect($request->fresh()->status)->toBe(RequestStatus::ReadyForRelease);
+
+    $this->actingAs($this->owner)->get(route('student.requests.show', $request))->assertSee('Add representative');
+
+    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])
+        ->set('representativeName', 'Pedro Santos')
+        ->set('spa', UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'))
+        ->set('representativeId', UploadedFile::fake()->image('id.jpg'))
+        ->call('declareRepresentative')
+        ->assertHasNoErrors();
+
+    expect($request->representatives()->sole())->full_name->toBe('Pedro Santos')->status->toBe(ReviewStatus::Pending);
+});
+
 test('REQ-11-01 a representative declared earlier stays listed, without the Add button', function () {
     $request = submitRequest($this->owner, $this->org->tor);
     declareRepresentative($request, $this->owner, ['full_name' => 'Pedro Santos']);
