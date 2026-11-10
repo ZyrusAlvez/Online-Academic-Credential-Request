@@ -114,12 +114,14 @@ Chancellor *sign* → Registrar *final check*.
 ## Request lifecycle
 
 ```
-            ┌──────────────(requester resubmits)──────────────┐
-            ▼                                                 │
-submitted ──► under_evaluation ──┬─(approve)──► awaiting_payment ──► payment_verification
-                 ▲               ├─(return)───► pending_compliance ─┘        │    │
-                 └─(registrar reopens)─────────────┘                (return)◄┘    │ (approve)
-                                 └─(decline)──► declined ◄─(decline)──────────────┤
+     ┌──(requester edits and resubmits)── returned_for_clarification
+     ▼                                              ▲ (Return for Clarification)
+submitted ──► under_evaluation ──┬──────────────────┘
+                                 ├─(Approve)──────────────────► awaiting_payment ──► payment_verification
+                                 ├─(Require Office Visit)─► pending_compliance ──┘     │    │
+                                 │        (Confirm Compliance at the office) ──────┘   │    │
+                                 │                                             (return)◄┘    │ (approve)
+                                 └─(Decline)──► declined ◄─(decline)─────────────────────────┤
                                                                                   ▼
                                                                     accepted_for_processing
                                                                      (clock starts, due date)
@@ -140,8 +142,8 @@ Open, not accepted ──► cancelled  (by the requester)
 ```
 
 Each Registrar stage is a checklist of parts, each confirmed or rejected, then one decision with
-remarks (spec 16): Initial Evaluation (approve, return, decline), Payment Validation (approve,
-return, decline), Final Quality Check (approve, decline), Release (mark released). An evaluator
+remarks (spec 16): Initial Evaluation (Approve, Return for Clarification, Require Office Visit,
+Decline; spec 20), Payment Validation (approve, return, decline), Final Quality Check (approve, decline), Release (mark released). An evaluator
 owns a request while it is under evaluation.
 
 ### Request statuses
@@ -153,7 +155,8 @@ The database lists these in the `request_statuses` table, and refuses any other 
 |---|---|
 | `submitted` | Online request received |
 | `under_evaluation` | Academic records and requirements are being reviewed |
-| `pending_compliance` | Returned to the requester: they must fix what was rejected or comply in person |
+| `returned_for_clarification` | Returned to the requester to correct the request online and resubmit it (spec 20) |
+| `pending_compliance` | The requester must bring originals or complete clearance at the Office of the Registrar |
 | `returned_for_customer_action` | No longer used (spec 16); kept for older requests |
 | `awaiting_payment` | Requirements complete; payment instructions provided |
 | `payment_verification` | Proof of payment is awaiting verification |
@@ -166,8 +169,9 @@ The database lists these in the `request_statuses` table, and refuses any other 
 | `declined` | Declined at evaluation, payment validation or the final quality check; reason recorded |
 | `cancelled` | Cancelled by the requester before acceptance |
 
-A requester's return (`pending_compliance`) and an internal return between offices
-(`returned_for_correction`) are different events, statuses and report rows.
+A request returned to the requester (`returned_for_clarification`, `pending_compliance`) and a
+document returned between offices (`returned_for_correction`) are different events, statuses and
+report rows.
 
 ### Office actions
 
@@ -285,3 +289,4 @@ All feature specs describe this model.
 | 17 | Physical hand-offs and the stage page | done |
 | 18 | The Admin account: administration, dashboard and reports | in progress |
 | 19 | Request status table | done |
+| 20 | Initial Evaluation decisions: clarification and office visit | in progress |
