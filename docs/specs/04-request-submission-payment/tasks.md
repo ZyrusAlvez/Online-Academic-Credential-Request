@@ -16,3 +16,6 @@
       checked on choice and on review, sent on submit (REQ-04-18)
 - [x] `<x-requirement-document-list>` on the evaluation checklist, Records and the owner's page (REQ-04-19)
 - [x] Pest tests for REQ-04-18, 19
+- [ ] Tracking number `CRYY-NNNNN` from `CredentialRequest::trackingNumber()`, shared by the
+      workflow and the factory; older numbers stay (REQ-04-03)
+- [ ] Pest tests for the changed REQ-04-03

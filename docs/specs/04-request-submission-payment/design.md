@@ -10,7 +10,7 @@ and queued request notifications, and creates the tables below. It never throws;
 
 | Column | Notes |
 |---|---|
-| reference_no | `CR-YYYY-NNNNNN` tracking number |
+| reference_no | `CRYY-NNNNN` tracking number (`CredentialRequest::trackingNumber()`): the id, at least 5 digits, more past 99999; older requests keep `CR-YYYY-NNNNNN` |
 | user_id | owner (requester) |
 | credential_type_id, purpose, receiving_institution | one document per request (no copies) |
 | college_id, academic_status, program, student_number, attended_from, attended_to | snapshot of the profile |
