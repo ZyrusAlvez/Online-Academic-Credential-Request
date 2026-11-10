@@ -15,6 +15,6 @@
 - [x] Pest tests for REQ-16-23
 - [x] Checklist parts' data as `x-summary-row`s, label left and value right (REQ-16-24)
 - [x] Pest test for REQ-16-24
-- [ ] `StageQueue` Payment: payment verification first, then awaiting payment; description names
+- [x] `StageQueue` Payment: payment verification first, then awaiting payment; description names
       both (REQ-16-03)
-- [ ] Pest test for the changed REQ-16-03
+- [x] Pest test for the changed REQ-16-03

@@ -104,10 +104,18 @@ test('REQ-16-02 Initial Evaluation lists submitted and evaluated requests with t
         ->assertDontSee($this->request->reference_no);
 });
 
-test('REQ-16-03 Payment Validation lists the proofs awaiting verification', function () {
+test('REQ-16-03 Payment Validation lists the proofs to verify, then the requests awaiting payment', function () {
+    // Approved first but not paid yet, so it is older than the proof to verify.
+    $unpaid = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar)->fresh();
     $paying = awaitingValidation(submitRequest($this->owner, $this->org->tor));
 
-    queuePage('payment')->assertSee($paying->reference_no)->assertSee('₱530.00')->assertDontSee($this->request->reference_no);
+    expect($unpaid->status)->toBe(RequestStatus::AwaitingPayment)
+        ->and($paying->status)->toBe(RequestStatus::PaymentVerification);
+
+    queuePage('payment')
+        ->assertSee('Proofs of payment to verify, then requests awaiting payment.')
+        ->assertSeeInOrder([$paying->reference_no, RequestStatus::PaymentVerification->label(), '₱530.00', $unpaid->reference_no, RequestStatus::AwaitingPayment->label(), '₱530.00'])
+        ->assertDontSee($this->request->reference_no);
 });
 
 test('REQ-16-04 In Progress tracks the office holding each document, filterable by office, without actions', function () {

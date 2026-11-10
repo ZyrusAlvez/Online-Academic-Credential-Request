@@ -31,8 +31,10 @@ final class StageQueue
             RegistrarQueue::Evaluation => $query
                 ->whereIn('status', $waiting ? RequestStatus::waitingForRequester() : [RequestStatus::Submitted, RequestStatus::UnderEvaluation])
                 ->orderBy('submitted_at')->orderBy('id'),
+            // Proofs to verify first, then the requests still awaiting payment (REQ-16-03).
             RegistrarQueue::Payment => $query
-                ->where('status', RequestStatus::PaymentVerification)
+                ->whereIn('status', [RequestStatus::PaymentVerification, RequestStatus::AwaitingPayment])
+                ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [RequestStatus::PaymentVerification->value])
                 ->orderBy('updated_at')->orderBy('id'),
             // Where each paper is and goes next, from acceptance on (REQ-17-11).
             RegistrarQueue::InProgress => $query

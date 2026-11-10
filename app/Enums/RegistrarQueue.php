@@ -28,7 +28,7 @@ enum RegistrarQueue: string
     {
         return match ($this) {
             self::Evaluation => 'Requests to evaluate.',
-            self::Payment => 'Proofs of payment to verify.',
+            self::Payment => 'Proofs of payment to verify, then requests awaiting payment.',
             self::InProgress => 'Where each document is and where it goes next.',
             self::FinalCheck => 'Documents back for the final check.',
             self::Release => 'Credentials ready to be claimed.',
