@@ -10,3 +10,4 @@
       the request page; linked with sizes on the summary (REQ-11-10, REQ-15-17)
 - [x] `CredentialRequestPolicy::declareRepresentative`: the owner only while `pending_compliance`;
       the request page shows Add representative only then (REQ-11-01)
+- [x] ... and while `ready_for_release`, for someone to claim it (REQ-11-01)

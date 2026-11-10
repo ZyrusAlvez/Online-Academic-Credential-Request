@@ -61,9 +61,10 @@ class CredentialRequestPolicy
     }
 
     /**
-     * After submitting, the owner adds a representative only while the evaluator requires an
-     * office visit, which they may send someone to in their place (REQ-11-01, Proposed Workflow
-     * III-C). New Request declares one at submission through the workflow itself.
+     * After submitting, the owner adds a representative only when they may send someone in their
+     * place: to an office visit the evaluator requires (Proposed Workflow III-C), or to claim the
+     * credential once it is ready (VIII-B) (REQ-11-01). New Request declares one at submission
+     * through the workflow itself.
      */
     public function declareRepresentative(User $user, CredentialRequest $request): bool
     {
@@ -75,7 +76,8 @@ class CredentialRequestPolicy
             return true;
         }
 
-        return $request->user_id === $user->id && $request->status === RequestStatus::PendingCompliance;
+        return $request->user_id === $user->id
+            && in_array($request->status, [RequestStatus::PendingCompliance, RequestStatus::ReadyForRelease], true);
     }
 
     /** Only the owner, before acceptance (REQ-04-16, REQ-16-21). */
