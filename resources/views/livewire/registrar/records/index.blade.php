@@ -48,7 +48,7 @@
                         <div class="text-ink">{{ $request->requester_name }}</div>
                         <div class="text-xs text-zinc-500">{{ $request->student_number }}</div>
                     </flux:table.cell>
-                    <flux:table.cell class="max-lg:hidden whitespace-normal text-zinc-700">{{ $request->whereabouts() }}</flux:table.cell>
+                    <flux:table.cell class="max-lg:hidden whitespace-normal text-zinc-700" data-whereabouts>{{ $request->staffWhereabouts() }}</flux:table.cell>
                     <flux:table.cell>
                         <div class="flex flex-wrap gap-1">
                             <x-request-status :status="$request->status" />

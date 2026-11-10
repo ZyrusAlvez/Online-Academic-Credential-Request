@@ -60,6 +60,11 @@ This replaces:
   number or name, and filterable by status (including "Overdue"), credential type and the office
   holding it. A record SHALL open a read-only page with the request's details, route, office visits
   and ledger, and no actions. The working page does not show the ledger (REQ-17-04).
+- **REQ-16-23** WHERE staff see where a request is (the Records list's *Currently at* column, a
+  record's "Where it is now" and the Admin dashboard), THE SYSTEM SHALL name the requester instead
+  of addressing them: "Waiting for the requester to complete the requirements", "Waiting for the
+  requester's response" and "Waiting for the requester's payment". The requester's own pages and
+  emails keep "you" and "your".
 - **REQ-16-08** THE SYSTEM SHALL NOT offer a CSV download of the requests or of any report; the
   former download addresses SHALL respond 404.
 

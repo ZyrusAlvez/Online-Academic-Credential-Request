@@ -347,4 +347,18 @@ class CredentialRequest extends Model
             RequestStatus::Cancelled => 'Cancelled',
         };
     }
+
+    /**
+     * whereabouts() for staff (Records, the record page, the Admin dashboard): it names the
+     * requester instead of addressing them (REQ-16-23).
+     */
+    public function staffWhereabouts(): string
+    {
+        return match ($this->status) {
+            RequestStatus::PendingCompliance => 'Waiting for the requester to complete the requirements',
+            RequestStatus::ReturnedForCustomerAction => "Waiting for the requester's response",
+            RequestStatus::AwaitingPayment => "Waiting for the requester's payment",
+            default => $this->whereabouts(),
+        };
+    }
 }
