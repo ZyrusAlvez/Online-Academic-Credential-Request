@@ -18,16 +18,8 @@
         @php($previewType = (string) $fields->id_file->getMimeType())
         <x-summary-row :label="__('Type of ID')">{{ $fields->id_type }}</x-summary-row>
         <x-summary-row :label="__('New upload')" data-id-summary-preview>
-            <span class="break-all">{{ $previewName }}</span>
-            <div class="mt-3">
-                @if (str_starts_with($previewType, 'image/'))
-                    <x-file-link :href="$previewUrl" :download="$previewUrl" :name="$previewName" :type="$previewType" class="inline-block no-underline">
-                        <img src="{{ $previewUrl }}" alt="{{ __('Your chosen ID (open larger)') }}" class="max-h-64 max-w-full rounded-lg border border-secondary/50 object-contain">
-                    </x-file-link>
-                @else
-                    <x-file-link :href="$previewUrl" :download="$previewUrl" :name="$previewName" :type="$previewType" class="font-medium">{{ __('View PDF') }}</x-file-link>
-                @endif
-            </div>
+            {{-- Only the name, as a link: the image or PDF opens in the file viewer (REQ-15-05). --}}
+            <x-file-link :href="$previewUrl" :download="$previewUrl" :name="$previewName" :type="$previewType" class="font-medium break-all">{{ $previewName }}</x-file-link>
         </x-summary-row>
     @elseif ($savedId)
         <x-summary-row :label="__('Type of ID')">{{ $savedId->id_type }}</x-summary-row>

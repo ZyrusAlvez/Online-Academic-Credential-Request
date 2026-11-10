@@ -15,3 +15,4 @@
 - [x] Documentary requirements as section 2 (REQ-15-03, 15)
 - [x] Searchable credential dropdown that scrolls within the page (REQ-15-16)
 - [x] Summary with the form's six numbered sections, label left and value right (REQ-15-17)
+- [x] The summary shows the chosen ID's file name as a link to the viewer, no picture (REQ-15-05)
