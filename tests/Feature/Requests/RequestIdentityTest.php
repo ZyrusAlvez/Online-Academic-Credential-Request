@@ -13,6 +13,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -124,7 +125,7 @@ test('REQ-15-04 a different ID can be chosen for the request, and it becomes the
     $owner = User::factory()->withProfile($this->org->ccs)->create(['program' => 'BS Computer Science']);
 
     reviewRequest($owner, ['profile.id_type' => 'UMID', 'profile.id_file' => UploadedFile::fake()->image('umid.jpg')])
-        ->assertSee('UMID: umid.jpg')
+        ->assertSeeInOrder(['5. Valid ID', 'Type of ID', 'UMID', 'New upload', 'umid.jpg'])
         ->call('submit')
         ->assertHasNoErrors();
 
@@ -153,14 +154,51 @@ test('REQ-15-05 the summary shows the request, the details, the ID and the priva
     reviewRequest($this->newcomer)
         ->assertSee('Summary')
         ->assertSeeInOrder([
-            'Transcript of Records', 'Employment', 'Personally',
+            'data-summary-title',
+            'Transcript of Records', 'Employment',
             'Juan', 'Santos', 'Dela Cruz', '09171234567',
             'Graduate', 'College of Computer Studies', 'BS Computer Science', '2019 to 2023',
-            'Passport: passport.jpg',
+            'Passport', 'passport.jpg',
+            'Personally',
             'Data Privacy Act of 2012 (RA 10173)', 'I agree to the processing of my personal data',
             'Back to edit', 'Submit request',
-        ])
+        ], false)
         ->assertSeeHtml('data-id-summary-preview');
+});
+
+test('REQ-15-17 the summary repeats the form\'s six numbered sections, each entry a label/value row', function () {
+    $html = reviewRequest($this->newcomer, ['form.receiving_institution' => 'Acme Corp'])->html();
+    $summary = Str::after($html, 'data-summary-title');
+
+    expect($summary)->toContain('>Summary</h1>')
+        ->and($html)->toMatch('/<h1 class="text-3xl[^"]*" data-summary-title/')
+        ->and(Str::before($html, 'data-summary-title'))->not->toContain('Request a credential')->not->toContain('Fill in the form, review it, and submit.')
+        ->and($html)->not->toContain('Check that everything is correct.');
+
+    $previous = 0;
+    foreach (['1. What Do You Need?', '2. Documentary Requirements', '3. Personal Information', '4. Academic Information', '5. Valid ID', '6. Who Will Transact?', 'Data Privacy'] as $heading) {
+        $position = strpos($summary, '>'.$heading.'</h2>');
+        expect($position)->not->toBeFalse()->toBeGreaterThan($previous);
+        $previous = $position;
+    }
+
+    // Label on the left, value on the right from the sm breakpoint.
+    expect($summary)->toMatch('#<div class="py-3 [^"]*sm:grid sm:grid-cols-\[minmax\(0,2fr\)_minmax\(0,3fr\)\][^"]*" data-summary-row>\s*<dt class="text-zinc-600">Receiving school, employer or agency</dt>\s*<dd[^>]*>(<!--\[if BLOCK\]><!\[endif\]-->)?\s*Acme Corp#');
+});
+
+test('REQ-15-17 section 6 of the summary shows the representative and their files', function () {
+    $summary = Str::after(reviewRequest($this->newcomer, [
+        'form.requester_mode' => 'representative',
+        'form.representative_name' => 'Maria Dela Cruz',
+        'form.representative_relationship' => 'Mother',
+        'spa' => UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'),
+        'representativeId' => UploadedFile::fake()->image('maria-id.jpg'),
+    ])->assertHasNoErrors()->html(), '6. Who Will Transact?');
+
+    expect($summary)->toContain('Through an authorized representative')
+        ->toContain('Maria Dela Cruz')->toContain('Mother')
+        ->toContain('Not provided')
+        ->toContain('spa.pdf')->toContain('maria-id.jpg');
 });
 
 test('REQ-15-05 the consent is required on the summary and recorded once given', function () {

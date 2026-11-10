@@ -14,4 +14,4 @@
 - [x] The consent is an unticked checkbox on every summary, required to submit or save (REQ-15-05, 07)
 - [x] Documentary requirements as section 2 (REQ-15-03, 15)
 - [x] Searchable credential dropdown that scrolls within the page (REQ-15-16)
-- [ ] Summary with the form's six numbered sections, label left and value right (REQ-15-17)
+- [x] Summary with the form's six numbered sections, label left and value right (REQ-15-17)

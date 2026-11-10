@@ -6,7 +6,6 @@ use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\ReviewStatus;
 use App\Livewire\Forms\CredentialRequestForm;
 use App\Models\CredentialRequest;
-use App\Models\CredentialType;
 use App\Models\Purpose;
 use App\Services\RequestWorkflow;
 use Illuminate\Support\Facades\DB;
@@ -114,16 +113,21 @@ class Edit extends Create
     }
 
     /**
-     * The summary of a correction: how the requester transacts is not part of this form.
+     * How the requester transacts is not part of this form, so its summary has no section 6.
      *
      * @return array<string, string>
      */
-    protected function requestSummary(?CredentialType $type): array
+    protected function transactSummary(): array
     {
-        $summary = parent::requestSummary($type);
-        unset($summary['Transacting']);
+        return [];
+    }
 
-        return $summary;
+    /**
+     * Files sent with the request before are kept; the summary lists only new ones.
+     */
+    protected function noRequirementFiles(): string
+    {
+        return __('No new files');
     }
 
     private function idRejected(): bool

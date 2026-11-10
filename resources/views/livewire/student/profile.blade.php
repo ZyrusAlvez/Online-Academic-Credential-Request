@@ -24,7 +24,8 @@
                     <flux:text>{{ __('Check that everything is correct.') }}</flux:text>
                 </div>
 
-                @include('partials.requester-profile-summary', ['prefix' => 'form', 'fields' => $form])
+                @include('partials.requester-profile-summary', ['fields' => $form])
+                @include('partials.privacy-consent', ['prefix' => 'form'])
 
                 <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <flux:button wire:click="back" wire:loading.attr="disabled" wire:target="back,save">{{ __('Back to edit') }}</flux:button>

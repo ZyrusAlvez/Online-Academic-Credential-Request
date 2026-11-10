@@ -234,6 +234,18 @@ test('REQ-20-06 Edit Request is the New Request form filled in from the request,
         ->assertSee('Resubmit Request');
 });
 
+test('REQ-15-17 the Edit Request summary has sections 1 to 5, Summary as its title, and only new files', function () {
+    returnedForClarification($this->request, [CheckItem::CredentialRequest]);
+
+    $html = editPage()->call('review')->assertHasNoErrors()->html();
+
+    expect($html)->toContain('>1. What Do You Need?</h2>')->toContain('>5. Valid ID</h2>')
+        ->not->toContain('6. Who Will Transact?')
+        ->not->toContain('Edit request '.$this->request->reference_no)
+        ->toContain('>Summary</h1>')
+        ->toContain('No new files');
+});
+
 test('REQ-20-06 a rejected ID shows its reason and another ID is required', function () {
     returnedForClarification($this->request, [CheckItem::Identity], 'The ID photo is blurred.');
 

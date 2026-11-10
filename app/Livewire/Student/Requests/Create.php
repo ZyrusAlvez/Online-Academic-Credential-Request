@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Number;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Livewire\Attributes\Locked;
@@ -254,6 +255,7 @@ class Create extends Component
             'idTypes' => IdentityDocument::ID_TYPES,
             'savedId' => $owner->latestIdentityDocument()->first(),
             'requestSummary' => $this->reviewing ? $this->requestSummary($selectedType) : [],
+            'transactSummary' => $this->reviewing ? $this->transactSummary() : [],
             'summary' => $this->reviewing ? $this->profile->summary() : [],
             // Edit Request (spec 20) shows the same form for a returned request.
             'editing' => null,
@@ -419,27 +421,78 @@ class Create extends Component
     }
 
     /**
-     * The request's own entries as the summary shows them (REQ-15-05).
+     * Sections 1 and 2 of the summary, numbered and labelled like the form (REQ-15-05, 17).
      *
-     * @return array<string, string>
+     * @return array<string, array<string, string|list<string>>>
      */
     protected function requestSummary(?CredentialType $type): array
     {
         $purpose = $this->form->purpose === CredentialRequestForm::OTHER_PURPOSE ? $this->form->purpose_other : $this->form->purpose;
-        $representative = $this->form->representative();
-        $copies = array_sum(array_map(count(...), $this->chosenRequirementFiles()));
+        $receivingLabel = $type?->requires_receiving_institution ? __('Receiving school') : __('Receiving school, employer or agency');
 
-        return array_filter([
-            'Credential' => (string) $type?->name,
-            'Purpose' => $purpose,
-            'Receiving school, employer or agency' => $this->form->receiving_institution,
-            'Requirement files' => $type?->requirements
-                ? ($copies > 0 ? trans_choice(':count file|:count files', $copies) : __('None uploaded'))
-                : '',
-            'Transacting' => $representative !== null
-                ? __('Through :name, your authorized representative', ['name' => $representative['full_name']])
-                : __('Personally'),
-        ], filled(...));
+        return [
+            __('1. What Do You Need?') => [
+                __('Credential') => (string) $type?->name,
+                __('Purpose') => $purpose,
+                $receivingLabel => filled($this->form->receiving_institution) ? $this->form->receiving_institution : __('Not provided'),
+            ],
+            __('2. Documentary Requirements') => $this->requirementSummary($type),
+        ];
+    }
+
+    /**
+     * Every requirement of the credential with the names and sizes of the files chosen for it.
+     *
+     * @return array<string, string|list<string>>
+     */
+    private function requirementSummary(?CredentialType $type): array
+    {
+        if ($type === null || ! $type->requirements) {
+            return [__('Requirements') => __('None for this credential')];
+        }
+
+        $rows = [];
+
+        foreach ($type->requirements as $index => $requirement) {
+            $files = array_filter((array) ($this->requirementFiles[$type->id][$index] ?? []), fn ($file): bool => $file instanceof UploadedFile);
+
+            $rows[$requirement] = $files === []
+                ? $this->noRequirementFiles()
+                : array_map(fn (UploadedFile $file): string => $file->getClientOriginalName().' ('.Number::fileSize((int) $file->getSize(), maxPrecision: 1).')', array_values($files));
+        }
+
+        return $rows;
+    }
+
+    /**
+     * What section 2 of the summary says for a requirement without files.
+     */
+    protected function noRequirementFiles(): string
+    {
+        return __('No files');
+    }
+
+    /**
+     * Section 6 of the summary: who submits the documents and claims the credential (REQ-15-17).
+     *
+     * @return array<string, string>
+     */
+    protected function transactSummary(): array
+    {
+        $representative = $this->form->representative();
+
+        if ($representative === null) {
+            return [__('Transacting') => __('Personally')];
+        }
+
+        return [
+            __('Transacting') => __('Through an authorized representative'),
+            __('Representative\'s full name') => $representative['full_name'],
+            __('Relationship to you') => $representative['relationship'] ?? __('Not provided'),
+            __('Representative\'s contact number') => $representative['contact_number'] ?? __('Not provided'),
+            __('SPA') => $this->spa instanceof UploadedFile ? $this->spa->getClientOriginalName() : '',
+            __('Representative\'s valid ID') => $this->representativeId instanceof UploadedFile ? $this->representativeId->getClientOriginalName() : '',
+        ];
     }
 
     /**

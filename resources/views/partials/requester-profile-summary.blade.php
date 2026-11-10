@@ -1,52 +1,39 @@
-{{-- The summary of the requester's details, the ID that will be used and the Data Privacy notice
-     (REQ-15-05, REQ-15-07). Expects: $prefix, $fields (the RequesterProfileForm), $summary,
-     $savedId. --}}
+{{-- The summary of the requester's details and the ID that will be used (REQ-15-05, REQ-15-07),
+     numbered like the form when $number is given (REQ-15-17); the consent is
+     partials/privacy-consent. Expects: $fields (the RequesterProfileForm), $summary, $savedId;
+     optional $number and $level (the sections' heading level, 3 by default). --}}
+@php($number ??= null)
+@php($level ??= 3)
+@php($sectionTitle = fn (string $text, int $offset): string => $number !== null ? ($number + $offset).'. '.__($text) : __($text))
+
 @foreach ($summary as $heading => $rows)
-    <section aria-labelledby="summary-heading-{{ $loop->index }}" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h3 id="summary-heading-{{ $loop->index }}" class="text-lg font-semibold text-primary">{{ __($heading) }}</h3>
-        <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-            @foreach ($rows as $label => $value)
-                <div>
-                    <dt class="text-zinc-500">{{ __($label) }}</dt>
-                    <dd class="font-medium break-words text-ink">{{ __($value) }}</dd>
-                </div>
-            @endforeach
-        </dl>
-    </section>
+    <x-summary-section :heading="$sectionTitle($heading, $loop->index)" :level="$level" :rows="collect($rows)->mapWithKeys(fn ($value, $label) => [__($label) => __($value)])->all()" />
 @endforeach
 
-<section aria-labelledby="summary-id-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
-    <h3 id="summary-id-heading" class="text-lg font-semibold text-primary">{{ __('Valid ID') }}</h3>
-
+<x-summary-section :heading="$sectionTitle('Valid ID', count($summary))" :level="$level">
     @if ($fields->id_file)
         {{-- A signed, short-lived preview of the chosen file; it is only stored on the final save. --}}
         @php($previewUrl = $fields->id_file->temporaryUrl())
         @php($previewName = $fields->id_file->getClientOriginalName())
         @php($previewType = (string) $fields->id_file->getMimeType())
-        <dl class="space-y-3 text-sm" data-id-summary-preview>
-            <div>
-                <dt class="text-zinc-500">{{ __('New upload') }}</dt>
-                <dd class="font-medium break-all text-ink">{{ $fields->id_type }}: {{ $previewName }}</dd>
-                <dd class="mt-3">
-                    @if (str_starts_with($previewType, 'image/'))
-                        <x-file-link :href="$previewUrl" :download="$previewUrl" :name="$previewName" :type="$previewType" class="inline-block no-underline">
-                            <img src="{{ $previewUrl }}" alt="{{ __('Your chosen ID (open larger)') }}" class="max-h-64 max-w-full rounded-lg border border-secondary/50 object-contain">
-                        </x-file-link>
-                    @else
-                        <x-file-link :href="$previewUrl" :download="$previewUrl" :name="$previewName" :type="$previewType" class="font-medium">{{ __('View PDF') }}</x-file-link>
-                    @endif
-                </dd>
+        <x-summary-row :label="__('Type of ID')">{{ $fields->id_type }}</x-summary-row>
+        <x-summary-row :label="__('New upload')" data-id-summary-preview>
+            <span class="break-all">{{ $previewName }}</span>
+            <div class="mt-3">
+                @if (str_starts_with($previewType, 'image/'))
+                    <x-file-link :href="$previewUrl" :download="$previewUrl" :name="$previewName" :type="$previewType" class="inline-block no-underline">
+                        <img src="{{ $previewUrl }}" alt="{{ __('Your chosen ID (open larger)') }}" class="max-h-64 max-w-full rounded-lg border border-secondary/50 object-contain">
+                    </x-file-link>
+                @else
+                    <x-file-link :href="$previewUrl" :download="$previewUrl" :name="$previewName" :type="$previewType" class="font-medium">{{ __('View PDF') }}</x-file-link>
+                @endif
             </div>
-        </dl>
+        </x-summary-row>
     @elseif ($savedId)
-        <x-identity-document-list :documents="collect([$savedId])" />
+        <x-summary-row :label="__('Type of ID')">{{ $savedId->id_type }}</x-summary-row>
+        <x-summary-row :label="__('File')">
+            <x-file-link :href="route('identity-documents.show', $savedId)" :name="$savedId->id_type.': '.$savedId->original_name" :type="$savedId->mime_type" class="font-medium break-all">{{ $savedId->original_name }}</x-file-link>
+            <p class="text-xs font-normal text-zinc-500">{{ __('Uploaded :date', ['date' => $savedId->created_at->format('M j, Y g:i A')]) }}</p>
+        </x-summary-row>
     @endif
-</section>
-
-<section aria-labelledby="privacy-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
-    <h3 id="privacy-heading" class="text-lg font-semibold text-primary">{{ __('Data Privacy') }}</h3>
-    <p class="text-sm">{{ __('The University of Perpetual Help System uses your details, academic information and the valid ID you upload only to process your credential requests, in accordance with the Data Privacy Act of 2012 (RA 10173).') }}</p>
-
-    {{-- Ticked every time: nothing is saved or submitted without it (REQ-15-05, 07). --}}
-    <flux:checkbox wire:model="{{ $prefix }}.privacy_consent" :label="__('I agree to the processing of my personal data')" data-privacy-consent />
-</section>
+</x-summary-section>

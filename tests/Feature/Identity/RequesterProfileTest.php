@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\RequestWorkflow;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Features\SupportTesting\Testable;
@@ -278,7 +279,7 @@ test('REQ-15-05 the summary shows everything entered with the data privacy notic
         ->assertSeeInOrder([
             'Juan', 'Not provided', 'Dela Cruz', '09171234567',
             'Graduate', 'College of Computer Studies', 'BS Computer Science', '19-0001-123', '2019 to 2023',
-            'Passport: passport.jpg',
+            'Passport', 'passport.jpg',
             'Data Privacy Act of 2012 (RA 10173)', 'I agree to the processing of my personal data',
             'Confirm and save',
         ]);
@@ -287,7 +288,10 @@ test('REQ-15-05 the summary shows everything entered with the data privacy notic
 test('REQ-15-05 the summary shows the saved ID when no other is chosen', function () {
     IdentityDocument::factory()->for($this->student)->create(['id_type' => 'UMID', 'original_name' => 'umid.jpg']);
 
-    reviewProfile()->assertSee('UMID: umid.jpg');
+    $summary = Str::after(reviewProfile()->html(), 'data-summary-title');
+
+    expect($summary)->toMatch('#<dt class="text-zinc-600">Type of ID</dt>\s*<dd[^>]*>\s*UMID#')
+        ->toContain('umid.jpg');
 });
 
 test('REQ-15-05 a requester who consented before still gets an unticked checkbox, and Confirm and save waits for it', function () {
@@ -310,7 +314,7 @@ test('REQ-15-05 going back keeps every entry and the chosen file', function () {
         ->assertSet('form.first_name', 'Juan')
         ->assertSet('form.id_type', 'Passport')
         ->call('review')
-        ->assertSee('Passport: passport.jpg')
+        ->assertSeeInOrder(['Type of ID', 'Passport', 'New upload', 'passport.jpg'])
         ->call('save')
         ->assertHasNoErrors();
 
