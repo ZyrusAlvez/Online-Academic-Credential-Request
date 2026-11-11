@@ -52,8 +52,8 @@ when that earlier one completes; its evaluator checks it as before.
 ## Screens
 
 - Registrar request page, evaluation checklist: `<x-check-card>` takes the part's `RequestCheck`
-  and, when carried, shows the note with the verifier, the date and a link to
-  `registrar.requests.show` of the earlier request.
+  when carried, and shows the note with the verifier, the date and a link to the earlier
+  request's record (`records.show`).
 - `partials/requester-profile-fields`: a `<x-verification-badge>` beside each heading and the note
   under a verified section; the component passes `$verified` (section → bool) from
   `VerifiedDetails::sections($user)`.

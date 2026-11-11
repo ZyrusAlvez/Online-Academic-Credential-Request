@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Models\WorkflowStep;
 use App\Services\RequestWorkflow;
 use App\Support\EmptyValue;
+use App\Support\VerifiedDetails;
 use Flux\Flux;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
@@ -258,6 +259,7 @@ class Create extends Component
                 : collect(),
             'idTypes' => IdentityDocument::ID_TYPES,
             'savedId' => $owner->latestIdentityDocument()->first(),
+            'verified' => VerifiedDetails::sections($owner),
             'requestSummary' => $this->reviewing ? $this->requestSummary($selectedType) : [],
             'transactSummary' => $this->reviewing ? $this->transactSummary() : [],
             'summary' => $this->reviewing ? $this->profile->summary() : [],

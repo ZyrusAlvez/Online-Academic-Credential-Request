@@ -16,6 +16,7 @@ use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\ActsOnVisits;
 use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
+use App\Models\RequestCheck;
 use App\Models\RequestRepresentative;
 use App\Services\RequestWorkflow;
 use App\Support\ReturnOffices;
@@ -318,7 +319,7 @@ class Show extends Component
     public function render(): View
     {
         $request = $this->credentialRequest->load([
-            'student', 'identityDocument', 'credentialType', 'college', 'evaluator', 'checks',
+            'student', 'identityDocument', 'credentialType', 'college', 'evaluator', 'checks.checker', 'checks.carriedFrom',
             'openVisit.department', 'openVisit.fromDepartment', 'openVisit.step', 'openVisit.credentialRequest.visits', 'openVisit.credentialRequest.steps.department',
             'paymentProofs.reviewer', 'deficiencies.resolver', 'representatives.documents', 'requirementDocuments', 'release.releaser',
             'steps.department', 'visits.department', 'visits.step', 'visits.returnedTo', 'visits.receiver', 'visits.doer', 'visits.completer',
@@ -339,6 +340,8 @@ class Show extends Component
             'panel' => $panel,
             'items' => $stage !== null ? CheckItem::for($stage, $request) : [],
             'results' => $stage !== null ? $request->checkResults($stage) : [],
+            // Parts confirmed from an earlier verification, by item (REQ-21-05).
+            'carried' => $request->checks->whereNotNull('carried_from_request_id')->keyBy(fn (RequestCheck $check): string => $check->item->value),
             'pendingProof' => $request->paymentProofs->firstWhere('status', PaymentStatus::Submitted),
             'returnOffices' => ReturnOffices::for($request),
             'verifiedRepresentatives' => $request->representatives->where('status', ReviewStatus::Verified)->values(),
