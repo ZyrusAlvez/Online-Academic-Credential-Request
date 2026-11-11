@@ -120,6 +120,8 @@
                                 <x-summary-row :label="__('Amount due')">{{ $request->requires_payment ? '₱'.number_format((float) $request->amount_due, 2) : __('None required') }}</x-summary-row>
                                 <x-summary-row :label="__('Transacting')">{{ $request->requester_mode->label() }}</x-summary-row>
                                 <x-summary-row :label="__('Submitted')">{{ $request->submitted_at?->format('M j, Y g:i A') }}</x-summary-row>
+                                {{-- Each requirement and the copies the requester sent, as rows (REQ-04-19, REQ-09-22). --}}
+                                <x-requirement-document-list :request="$request" />
                             </dl>
                             @break
 
@@ -147,8 +149,6 @@
                                 <x-summary-row :label="__('Student number')">{{ $request->student_number ?? '—' }}</x-summary-row>
                                 <x-summary-row :label="__('College')">{{ $request->college->name }}</x-summary-row>
                                 <x-summary-row :label="__('Program or strand')">{{ $request->program }}</x-summary-row>
-                                {{-- Each requirement and the copies the requester sent, as rows (REQ-04-19, REQ-09-22). --}}
-                                <x-requirement-document-list :request="$request" />
                             </dl>
                             @break
 
