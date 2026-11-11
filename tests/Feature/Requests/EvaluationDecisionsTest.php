@@ -307,8 +307,8 @@ test('REQ-20-07 resubmitting saves everything and sends the request back, rechec
         ->and($this->owner->fresh()->contact_number)->toBe('09998887777')
         ->and($request->documents()->where('kind', DocumentKind::Requirement)->pluck('requirement')->all())->toBe(['Completed clearance'])
         // Identity was rejected, the credential request and contact number changed, new copies came:
-        // every part is checked again.
-        ->and($request->checks()->count())->toBe(0)
+        // only the unchanged academic record stays confirmed.
+        ->and($request->checks()->pluck('item')->map->value->all())->toBe([CheckItem::AcademicRecord->value])
         ->and($request->events()->where('type', RequestEventType::Resubmitted)->value('remarks'))->toBe('Clearer photo of my UMID.');
 
     Storage::disk(RequestWorkflow::proofDisk())->assertExists($newId->path);
@@ -336,6 +336,15 @@ test('REQ-20-07 unchanged parts stay confirmed; a new credential brings its own 
     expect(fn () => workflow()->resubmit($other, $this->owner, identity: $intruder->latestIdentityDocument()->firstOrFail()))->toThrow(InvalidTransition::class)
         ->and(fn () => workflow()->resubmit($other, $this->owner))->toThrow(InvalidTransition::class, 'Upload another valid ID')
         ->and($other->fresh()->status)->toBe(RequestStatus::ReturnedForClarification);
+});
+
+test('REQ-20-07 new requirement copies have the credential request checked again', function () {
+    returnedForClarification($this->request, [CheckItem::AcademicRecord]);
+
+    workflow()->resubmit($this->request, $this->owner, newRequirementCopies: true);
+
+    // The rejected academic record and the credential request (its requirements) are checked again.
+    expect($this->request->fresh()->checks()->pluck('item')->map->value->all())->toBe([CheckItem::Identity->value]);
 });
 
 // ── Office visit ────────────────────────────────────────────────────────────────────────────

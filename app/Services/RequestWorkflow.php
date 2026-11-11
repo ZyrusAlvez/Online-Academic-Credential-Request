@@ -343,7 +343,7 @@ class RequestWorkflow
             }
 
             if ($newRequirementCopies) {
-                $recheck[] = CheckItem::AcademicRecord;
+                $recheck[] = CheckItem::CredentialRequest;
             }
 
             if ($identity !== null) {

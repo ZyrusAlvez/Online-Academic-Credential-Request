@@ -224,16 +224,17 @@ function requestWithRequirementFiles(): CredentialRequest
     return $request->fresh();
 }
 
-test('REQ-04-19 the evaluator sees each requirement with its files under Academic Record Verification', function () {
+test('REQ-04-19 the evaluator sees each requirement with its files under Credential Request Verification', function () {
     $request = requestWithRequirementFiles();
     workflow()->startEvaluation($request, $this->registrar);
     $document = $request->requirementDocuments()->sole();
 
     $html = Livewire::actingAs($this->registrar)->test(StageShow::class, ['credentialRequest' => $request->fresh()])->html();
 
-    $card = Str::after($html, 'data-check="academic_record"');
+    $card = Str::between($html, 'data-check="credential_request"', 'data-check="identity"');
 
-    expect($card)->toContain('data-requirement-document')
+    expect(Str::after($html, 'data-check="academic_record"'))->not->toContain('data-requirement-document')
+        ->and($card)->toContain('data-requirement-document')
         ->toContain(route('request-documents.show', $document))
         // Each requirement is a row: its name left, its files (or a grey "No file uploaded") right (REQ-09-22).
         ->toMatch('#<dt class="text-zinc-600">Completed clearance</dt>\s*<dd[^>]*>.*?clearance\.pdf#s')
