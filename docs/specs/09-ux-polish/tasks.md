@@ -39,3 +39,6 @@
       slot for more rows; `<x-requirement-document-list>` as rows, used on Initial Evaluation and
       Records too (REQ-09-22)
 - [x] Pest tests for REQ-09-21, 22
+- [ ] Viewer shows a PDF from the browser's copy (fetched), so Livewire's download-only preview
+      shows inline; chosen requirement files download through their preview address (REQ-09-14)
+- [ ] Pest tests for the changed REQ-09-14

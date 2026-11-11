@@ -52,6 +52,11 @@
   - a loading indicator until the image or PDF has loaded, and a message if it can't be loaded;
   - the file's name, a Download button, an "Open in new tab" link and a Close button.
 
+  This includes a file chosen on New Request but not sent yet: a PDF SHALL be shown inline even
+  though Livewire's signed preview serves it as a download (the viewer shows the browser's copy of
+  it), and its Download SHALL use that preview address unchanged, since an added `?download=1`
+  breaks the signature. *(User's report, 2026-11-11: a chosen PDF stayed on "Loading…".)*
+
   Escape and Close SHALL close the viewer. A Ctrl-, ⌘- or middle-click SHALL still open the file
   in a new tab, and without JavaScript the link SHALL open the file as before.
 - **REQ-09-16** WHILE an uploaded image shown on a page (the proof of payment on the registrar's
