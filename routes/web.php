@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\HelpTopic;
 use App\Enums\RegistrarQueue;
 use App\Enums\Role;
 use App\Http\Controllers\IdentityDocumentController;
@@ -30,6 +31,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // The old requests/… addresses, still in earlier emails, move to request/… (REQ-09-21).
         Route::permanentRedirect('requests/{path}', '/student/request/{path}')
             ->where('path', '[A-Za-z0-9-]+(/edit)?');
+        // Help: one page of questions per topic, the first by default (REQ-22-02).
+        Route::redirect('help', '/student/help/'.HelpTopic::first()->value)->name('help.index');
+        Route::get('help/{topic}', Student\Help::class)->name('help');
     });
 
     // The Registrar works the requests, Initial Evaluation to Release (REQ-16-01..06, REQ-18-03, 05).
