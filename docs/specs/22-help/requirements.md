@@ -21,9 +21,11 @@ of their own.
 ### Navigation
 - **REQ-22-01** THE requester's sidebar SHALL show, after Request Tracker, an expandable "Help"
   group whose items are the help topics, in this order: Getting Started; Your Details & Valid ID;
-  Requesting a Credential; Payment; Tracking & Statuses; Representatives & Release. The group SHALL
+  Requesting a Credential; Payment; Tracking & Statuses; Claiming a Credential. The group SHALL
   be expanded on a help page, with that topic marked current, and collapsed elsewhere. Staff SHALL
-  NOT see it.
+  NOT see it. Every item SHALL stay inside the sidebar: a label too long for it ends in "…" and
+  shows in full on hover. *(User's report, 2026-11-11: "Representatives & Release" ran past the
+  sidebar's edge; the topic is now "Claiming a Credential".)*
 - **REQ-22-02** EACH topic SHALL have its own page, `/student/help/<topic>`, titled with the topic
   and a one-line description, listing its questions as collapsible items, closed at first, that
   open with a click, Enter or Space and are announced as expandable by screen readers.
@@ -50,7 +52,7 @@ of their own.
   - *Tracking & Statuses:* the Request Tracker; what each status means; when the processing
     period starts and how the expected release date is counted; which office holds the document;
     notifications and turning email off; an overdue request.
-  - *Representatives & Release:* how the credential is claimed; who may claim or transact for the
+  - *Claiming a Credential:* how the credential is claimed; who may claim or transact for the
     requester; what an SPA is; when a representative can be added; what the representative brings;
     that a representative never uses the requester's account.
 - **REQ-22-04** WHERE an answer names a page the requester can open (New Request, Request Tracker,
