@@ -117,7 +117,7 @@ test('REQ-15-04 a saved ID is shown and used; without one an ID is required', fu
         ->assertDontSee('To use a different ID, remove this one first.')
         ->assertSeeHtml('data-remove-saved-id')
         ->assertDontSeeHtml('data-id-preview')
-        ->assertDontSeeHtml('wire:model="profile.id_type"');
+        ->assertDontSeeHtml('wire:model.live="profile.id_type"');
 
     reviewRequest($owner)->assertHasNoErrors()->call('submit');
 
@@ -146,7 +146,7 @@ test('REQ-15-18 New Request removes the saved ID once confirmed; then an ID is r
         ->call('removeSavedId')
         ->assertDispatched('notify')
         ->assertDontSee('Your Saved ID')
-        ->assertSeeHtml('wire:model="profile.id_type"')
+        ->assertSeeHtml('wire:model.live="profile.id_type"')
         ->assertSeeHtml('data-id-preview');
 
     expect(IdentityDocument::find($old->id))->toBeNull();

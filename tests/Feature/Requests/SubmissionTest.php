@@ -4,6 +4,7 @@ use App\Enums\AcademicStatus;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Exceptions\InvalidTransition;
+use App\Livewire\Forms\CredentialRequestForm;
 use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
@@ -107,10 +108,9 @@ test('REQ-04-02 the form shows requirements, fee, period, offices, conditions an
 test('REQ-15-15 the chosen credential\'s details show in the browser at once, without a server round trip', function () {
     $html = Livewire::actingAs($this->owner)->test(Create::class)->html();
 
-    // The dropdown is not live: Alpine shows the card of the value chosen in the browser.
-    expect($html)->toContain('wire:model="form.credential_type_id"')
-        ->not->toContain('wire:model.live="form.credential_type_id"')
-        ->and(credentialCard($html, $this->org->tor))->toContain("x-show=\"String(\$wire.form.credential_type_id ?? '') === '{$this->org->tor->id}'\"")
+    // Alpine shows the card of the value chosen in the browser; the server only hears of it after
+    // (to clear a fixed error, REQ-01-31).
+    expect(credentialCard($html, $this->org->tor))->toContain("x-show=\"String(\$wire.form.credential_type_id ?? '') === '{$this->org->tor->id}'\"")
         ->and(credentialCard($html, $this->org->free))->toContain("=== '{$this->org->free->id}'")
         ->and(requirementBlock($html, $this->org->tor))->toContain("x-show=\"String(\$wire.form.credential_type_id ?? '') === '{$this->org->tor->id}'\"")
         ->and(requirementBlockShown($html, $this->org->tor))->toBeFalse()
@@ -132,7 +132,7 @@ test('REQ-15-15 the chosen credential\'s details show in the browser at once, wi
 
 test('REQ-15-16 the credential dropdown is a searchable list that scrolls within the page', function () {
     $html = Livewire::actingAs($this->owner)->test(Create::class)->html();
-    $menu = Str::between($html, 'wire:model="form.credential_type_id"', 'data-credential-card');
+    $menu = Str::between($html, 'wire:model.live="form.credential_type_id"', 'data-credential-card');
 
     // Not the browser's own <select>, whose list of every credential ran off the screen.
     expect($html)->not->toMatch('/<select[^>]*form\.credential_type_id/')
@@ -202,6 +202,47 @@ test('REQ-04-04 requesters see only their own requests', function () {
     $this->actingAs($this->owner)->get(route('student.dashboard'))
         ->assertSee($mine->reference_no)->assertDontSee($theirs->reference_no);
     $this->actingAs($this->owner)->get(route('student.requests.show', $theirs))->assertNotFound();
+});
+
+test('REQ-01-31 on New Request choosing a valid credential and purpose removes their errors at once', function () {
+    Livewire::actingAs($this->owner)->test(Create::class)
+        ->call('review')
+        ->assertHasErrors(['form.credential_type_id' => 'required', 'form.purpose' => 'required'])
+        ->set('form.credential_type_id', $this->org->tor->id)
+        ->assertHasNoErrors('form.credential_type_id')
+        ->assertHasErrors(['form.purpose' => 'The purpose field is required.'])
+        ->set('form.purpose', 'Employment abroad')
+        ->assertHasNoErrors(['form.credential_type_id', 'form.purpose'])
+        ->assertDontSee('The credential field is required.')
+        ->assertDontSee('The purpose field is required.');
+});
+
+test('REQ-01-31 an entry still invalid keeps its error, updated; one no longer needed loses it', function () {
+    Livewire::actingAs($this->owner)->test(Create::class)
+        ->set('form.purpose', CredentialRequestForm::OTHER_PURPOSE)
+        ->call('review')
+        ->assertHasErrors(['form.purpose_other' => 'required'])
+        ->set('form.purpose_other', str_repeat('a', 501))
+        ->assertHasErrors(['form.purpose_other' => 'The purpose field must not be greater than 500 characters.'])
+        ->set('form.purpose_other', 'Scholarship')
+        ->assertHasNoErrors('form.purpose_other');
+
+    Livewire::actingAs($this->owner)->test(Create::class)
+        ->set('form.purpose', CredentialRequestForm::OTHER_PURPOSE)
+        ->call('review')
+        ->assertHasErrors(['form.purpose_other' => 'required'])
+        ->set('form.purpose', 'Employment abroad')
+        ->assertHasNoErrors('form.purpose_other');
+});
+
+test('REQ-01-31 New Request sends choices at once and typed entries when the field is left', function () {
+    $html = Livewire::actingAs($this->owner)->test(Create::class)->set('form.purpose', CredentialRequestForm::OTHER_PURPOSE)->html();
+
+    expect($html)->toContain('wire:model.live="form.credential_type_id"')
+        ->toContain('wire:model.live="form.purpose"')
+        ->toContain('wire:model.live.blur="form.purpose_other"')
+        ->toContain('wire:model.live.blur="form.receiving_institution"')
+        ->toContain('wire:model.live.blur="profile.first_name"');
 });
 
 test('REQ-04-01 a request is for one document: there is no number of copies', function () {

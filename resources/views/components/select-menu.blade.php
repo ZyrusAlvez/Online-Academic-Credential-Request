@@ -10,7 +10,7 @@
 {{-- A dropdown whose list opens just below the field, scrolls within a fixed height and can be
      searched (REQ-15-16): the browser's own <select> list of a long set can run off the screen.
      $options is [value => label]. Bind it like an input: <x-select-menu wire:model="field" …>.
-     The value changes in the browser only (x-modelable), like a non-live wire:model.
+     The value changes in the browser (x-modelable) and follows wire:model's modifiers (.live sends it).
      The search box is the ARIA combobox; arrows move, Enter chooses, Escape closes. --}}
 @php
     $model = $attributes->wire('model')->value();

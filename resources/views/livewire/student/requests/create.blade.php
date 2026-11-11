@@ -29,7 +29,7 @@
         <section aria-labelledby="what-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
             <h2 id="what-heading" class="text-lg font-semibold text-primary">{{ __('1. What Do You Need?') }}</h2>
 
-            <x-select-menu wire:model="form.credential_type_id" :label="__('Credential')"
+            <x-select-menu wire:model.live="form.credential_type_id" :label="__('Credential')"
                 :options="$types->pluck('name', 'id')->all()" :value="$form->credential_type_id"
                 :placeholder="__('Choose a credential…')" :search-label="__('Search credentials')" />
 
@@ -106,7 +106,7 @@
                     <flux:select.option :value="\App\Livewire\Forms\CredentialRequestForm::OTHER_PURPOSE">{{ __('Others (please specify)') }}</flux:select.option>
                 </flux:select>
                 @if ($form->purpose === \App\Livewire\Forms\CredentialRequestForm::OTHER_PURPOSE)
-                    <flux:input wire:model="form.purpose_other" :label="__('Please specify')" :placeholder="__('Type the purpose of your request')" maxlength="500" required />
+                    <flux:input wire:model.live.blur="form.purpose_other" :label="__('Please specify')" :placeholder="__('Type the purpose of your request')" maxlength="500" required />
                 @endif
             </div>
 
@@ -122,7 +122,7 @@
                     <flux:description>
                         <span x-text="transfer ? @js(__('Its complete name.')) : @js(__('If the credential is for a specific institution.'))">{{ $selectedType?->requires_receiving_institution ? __('Its complete name.') : __('If the credential is for a specific institution.') }}</span>
                     </flux:description>
-                    <flux:input wire:model="form.receiving_institution" x-bind:required="transfer" />
+                    <flux:input wire:model.live.blur="form.receiving_institution" x-bind:required="transfer" />
                     <flux:error name="form.receiving_institution" />
                 </flux:field>
             </div>
@@ -251,10 +251,10 @@
             <div class="space-y-6" data-representative-fields
                 x-show="$wire.form.requester_mode === 'representative'" @if ($form->requester_mode !== 'representative') x-cloak style="display: none" @endif>
                 <flux:text>{{ __('They present the originals, with your valid ID, in person. Files: JPG, PNG, WebP or PDF, up to 5 MB each.') }}</flux:text>
-                <flux:input wire:model="form.representative_name" :label="__('Representative\'s full name')" required />
+                <flux:input wire:model.live.blur="form.representative_name" :label="__('Representative\'s full name')" required />
                 <div class="grid gap-6 sm:grid-cols-2">
-                    <flux:input wire:model="form.representative_relationship" :label="__('Relationship to you')" badge="Optional" />
-                    <flux:input wire:model="form.representative_contact" type="tel" :label="__('Representative\'s contact number')" badge="Optional" inputmode="numeric" maxlength="11" placeholder="09171234567" />
+                    <flux:input wire:model.live.blur="form.representative_relationship" :label="__('Relationship to you')" badge="Optional" />
+                    <flux:input wire:model.live.blur="form.representative_contact" type="tel" :label="__('Representative\'s contact number')" badge="Optional" inputmode="numeric" maxlength="11" placeholder="09171234567" />
                 </div>
                 {{-- The same picker as the valid ID: the name links to the file viewer (REQ-11-01). --}}
                 <div class="grid gap-6 sm:grid-cols-2">

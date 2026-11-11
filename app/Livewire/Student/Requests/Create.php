@@ -8,6 +8,7 @@ use App\Enums\RouteTask;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\RemovesSavedId;
 use App\Livewire\Concerns\TrimsInput;
+use App\Livewire\Concerns\UpdatesFieldErrors;
 use App\Livewire\Concerns\ValidatesRepresentativeDocuments;
 use App\Livewire\Forms\CredentialRequestForm;
 use App\Livewire\Forms\RequesterProfileForm;
@@ -50,6 +51,7 @@ class Create extends Component
 {
     use RemovesSavedId;
     use TrimsInput;
+    use UpdatesFieldErrors;
     use ValidatesRepresentativeDocuments;
     use WithFileUploads;
 

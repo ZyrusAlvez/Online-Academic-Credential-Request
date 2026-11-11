@@ -220,7 +220,7 @@ test('REQ-21-06 New Request, Edit Request and Settings → Profile show each sec
             ->and($html)->not->toContain('data-reverify-note')
             ->not->toContain('Verified by the Office of the Registrar.')
             // Still editable.
-            ->toContain('wire:model="')->toContain('.contact_number"');
+            ->toContain('wire:model.live.blur="')->toContain('.contact_number"');
     }
 
     // A new contact number: only Personal Information goes back for verification.

@@ -2,6 +2,7 @@
 
 use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
+use App\Livewire\Forms\RequesterProfileForm;
 use App\Livewire\Student\Profile;
 use App\Models\Department;
 use App\Models\IdentityDocument;
@@ -85,7 +86,7 @@ test('REQ-15-07 the profile is never locked: a requester with requests can still
 
     $this->actingAs($student)->get(route('settings.profile'))
         ->assertOk()
-        ->assertSeeHtml('wire:model="form.first_name"')
+        ->assertSeeHtml('wire:model.live.blur="form.first_name"')
         ->assertSeeHtml('data-remove-saved-id')
         ->assertSee('Your Saved ID');
 
@@ -305,6 +306,44 @@ test('REQ-01-26 an entry that fails on saving returns to the form with the modal
         ->call('save')
         ->assertDispatched('modal-show', name: 'profile-errors')
         ->assertSet('reviewing', false);
+});
+
+test('REQ-01-31 on Settings → Profile a fixed entry loses its error at once; one still invalid keeps it', function () {
+    reviewProfile(['form.first_name' => '', 'form.contact_number' => '123', 'form.attended_from' => 2024, 'form.attended_to' => 2020])
+        ->assertHasErrors(['form.first_name' => 'required', 'form.contact_number' => 'regex', 'form.attended_to' => 'gte'])
+        ->set('form.first_name', 'Juan')
+        ->assertHasNoErrors('form.first_name')
+        ->assertHasErrors(['form.contact_number' => RequesterProfileForm::PHONE_MESSAGE])
+        ->set('form.contact_number', '0917')
+        ->assertHasErrors(['form.contact_number' => RequesterProfileForm::PHONE_MESSAGE])
+        ->set('form.contact_number', '09171234567')
+        ->assertHasNoErrors('form.contact_number')
+        // A change to one field that fixes another clears that one too.
+        ->set('form.attended_from', 2019)
+        ->assertHasNoErrors(['form.attended_from', 'form.attended_to']);
+});
+
+test('REQ-01-31 choosing a valid ID file or type clears its error', function () {
+    reviewProfile(['form.id_file' => null])
+        ->assertHasErrors('form.id_file')
+        ->set('form.id_file', UploadedFile::fake()->image('passport.jpg'))
+        ->assertHasNoErrors('form.id_file');
+});
+
+test('REQ-01-31 a field without an error is not checked before Confirm', function () {
+    Livewire::actingAs($this->student)->test(Profile::class)
+        ->set('form.contact_number', '123')
+        ->set('form.first_name', '')
+        ->assertHasNoErrors();
+});
+
+test('REQ-01-31 Settings → Profile sends choices at once and typed entries when the field is left', function () {
+    $this->actingAs($this->student)->get(route('settings.profile'))
+        ->assertSeeHtml('wire:model.live.blur="form.first_name"')
+        ->assertSeeHtml('wire:model.live.blur="form.contact_number"')
+        ->assertSeeHtml('wire:model.live.blur="form.attended_to"')
+        ->assertSeeHtml('wire:model.live="form.academic_status"')
+        ->assertSeeHtml('wire:model.live="form.program"');
 });
 
 test('REQ-01-29 when the ID cannot be stored nothing is saved and the error shows on the form', function () {
