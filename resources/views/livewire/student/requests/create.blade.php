@@ -176,7 +176,15 @@
                                                         @php($name = $file->getClientOriginalName())
                                                         <li class="flex items-center gap-3 py-1.5 ps-3 pe-1.5" wire:key="requirement-{{ $type->id }}-{{ $index }}-file-{{ $file->getFilename() }}">
                                                             <flux:icon.document variant="mini" class="shrink-0 text-zinc-500" />
-                                                            <span class="min-w-0 flex-1 truncate text-ink" title="{{ $name }}">{{ $name }}</span>
+                                                            {{-- The name opens the file in the file viewer, as on the summary;
+                                                                 a file Livewire cannot preview stays plain text (REQ-04-18). --}}
+                                                            <span class="min-w-0 flex-1 truncate text-ink" title="{{ $name }}">
+                                                                @if ($file instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile && $file->isPreviewable())
+                                                                    <x-file-link :href="$file->temporaryUrl()" :name="$name" :type="(string) $file->getMimeType()">{{ $name }}</x-file-link>
+                                                                @else
+                                                                    {{ $name }}
+                                                                @endif
+                                                            </span>
                                                             <span class="shrink-0 text-zinc-500">{{ \Illuminate\Support\Number::fileSize((int) $file->getSize(), maxPrecision: 1) }}</span>
                                                             <flux:button size="xs" variant="ghost" icon="x-mark" wire:click="removeRequirementFile({{ $type->id }}, {{ $index }}, {{ $position }})" :aria-label="__('Remove :file', ['file' => $name])">{{ __('Remove') }}</flux:button>
                                                         </li>
