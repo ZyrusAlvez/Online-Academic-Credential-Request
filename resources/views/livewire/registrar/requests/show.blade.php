@@ -108,7 +108,7 @@
         @if ($panel === Page::PANEL_EVALUATION)
             {{-- The evaluation checklist (REQ-16-10); each part's data as summary rows (REQ-16-24). --}}
             @foreach ($items as $item)
-                <x-check-card :item="$item" :result="$results[$item->value] ?? null" wire:key="check-{{ $item->value }}">
+                <x-check-card :item="$item" :result="$results[$item->value] ?? null" :carried="$carried[$item->value] ?? null" wire:key="check-{{ $item->value }}">
                     @switch($item)
                         @case(Item::CredentialRequest)
                             <dl class="divide-y divide-zinc-200 text-sm">

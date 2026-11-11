@@ -1,11 +1,24 @@
 {{-- The requester's personal and academic information and valid ID (REQ-01-16, REQ-15-03, 04),
      on New Request and Settings → Profile.
      Expects: $prefix (the RequesterProfileForm property), $fields (that form), $number (first
-     section number, or null), $statuses, $colleges, $programs, $idTypes, $savedId. --}}
+     section number, or null), $statuses, $colleges, $programs, $idTypes, $savedId, $verified
+     (section → verified, REQ-21-06). --}}
 @php($sectionTitle = fn (string $text, int $offset): string => $number !== null ? ($number + $offset).'. '.__($text) : __($text))
+@php($verified ??= [])
+{{-- Each heading carries whether the saved details are verified; a verified section says that a
+     change is verified again, and stays editable (REQ-21-02, 06). --}}
+@php($reverifyNote = __('Verified by the Office of the Registrar. If you change it, it is verified again on your next request.'))
 
-<section aria-labelledby="personal-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
-    <h2 id="personal-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Personal Information', 0) }}</h2>
+<section aria-labelledby="personal-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6" data-section-verification="personal">
+    <div class="space-y-1">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h2 id="personal-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Personal Information', 0) }}</h2>
+            <x-verification-badge :verified="$verified['personal'] ?? false" />
+        </div>
+        @if ($verified['personal'] ?? false)
+            <p class="text-sm text-zinc-600" data-reverify-note>{{ $reverifyNote }}</p>
+        @endif
+    </div>
 
     <div class="grid gap-6 sm:grid-cols-3">
         <flux:input wire:model="{{ $prefix }}.first_name" :label="__('First name')" autocomplete="given-name" required />
@@ -18,8 +31,16 @@
     </div>
 </section>
 
-<section aria-labelledby="academic-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
-    <h2 id="academic-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Academic Information', 1) }}</h2>
+<section aria-labelledby="academic-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6" data-section-verification="academic">
+    <div class="space-y-1">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h2 id="academic-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Academic Information', 1) }}</h2>
+            <x-verification-badge :verified="$verified['academic'] ?? false" />
+        </div>
+        @if ($verified['academic'] ?? false)
+            <p class="text-sm text-zinc-600" data-reverify-note>{{ $reverifyNote }}</p>
+        @endif
+    </div>
 
     <flux:radio.group wire:model="{{ $prefix }}.academic_status" :label="__('Status')">
         @foreach ($statuses as $status)
@@ -54,8 +75,16 @@
     </div>
 </section>
 
-<section aria-labelledby="identity-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6">
-    <h2 id="identity-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Valid ID', 2) }}</h2>
+<section aria-labelledby="identity-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6" data-section-verification="valid_id">
+    <div class="space-y-1">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h2 id="identity-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Valid ID', 2) }}</h2>
+            <x-verification-badge :verified="$verified['valid_id'] ?? false" />
+        </div>
+        @if ($verified['valid_id'] ?? false)
+            <p class="text-sm text-zinc-600" data-reverify-note>{{ __('Verified by the Office of the Registrar. If you remove it and upload another, the new one is verified on your next request.') }}</p>
+        @endif
+    </div>
 
     {{-- One saved ID at most: while it is saved there are no ID fields; removing it brings them
          back (REQ-15-04, 18). --}}

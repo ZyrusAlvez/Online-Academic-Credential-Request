@@ -181,6 +181,16 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * The parts of the requester's details verified on a request (REQ-21-01).
+     *
+     * @return HasMany<RequesterVerification, $this>
+     */
+    public function verifications(): HasMany
+    {
+        return $this->hasMany(RequesterVerification::class);
+    }
+
+    /**
      * Everything a request copies from the profile is filled in (REQ-15-06).
      */
     public function hasRequesterDetails(): bool

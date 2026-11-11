@@ -12,6 +12,7 @@ use App\Models\IdentityDocument;
 use App\Models\Program;
 use App\Models\User;
 use App\Services\RequestWorkflow;
+use App\Support\VerifiedDetails;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -142,6 +143,7 @@ class Profile extends Component
                 : collect(),
             'idTypes' => IdentityDocument::ID_TYPES,
             'savedId' => $user->latestIdentityDocument()->first(),
+            'verified' => VerifiedDetails::sections($user),
             'summary' => $this->reviewing ? $this->form->summary() : [],
         ]);
     }

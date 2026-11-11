@@ -101,7 +101,8 @@ identity, and My Profile in REQ-09-09/12.
 - **REQ-15-08** THE SYSTEM SHALL keep each request's name, contact number, academic information and
   ID as they were when it was submitted: a later profile change or new ID SHALL NOT change it. The
   requester's, registrar's and offices' request pages and lists and the reports SHALL show the
-  request's copy of the name.
+  request's copy of the name. *Since spec 21 (2026-11-11):* details verified once stay verified
+  for later requests that carry the same copy (REQ-21-01..06).
 
 ### Identity check during evaluation
 - ~~REQ-15-09, REQ-15-10~~ *Superseded by REQ-16-10, 12 and 13 (2026-11-06):* the ID is the User

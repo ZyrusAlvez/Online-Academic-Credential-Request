@@ -29,10 +29,12 @@ use App\Models\PaymentProof;
 use App\Models\RequestCheck;
 use App\Models\RequestDeficiency;
 use App\Models\RequestDocument;
+use App\Models\RequesterVerification;
 use App\Models\RequestEvent;
 use App\Models\RequestRepresentative;
 use App\Models\RequestStep;
 use App\Models\User;
+use App\Support\VerifiedDetails;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -119,6 +121,10 @@ class RequestWorkflow
 
             $this->record($request, $owner, RequestEventType::Submitted, null, $request->status);
 
+            // Details verified on an earlier request are confirmed already (REQ-21-04).
+            $this->carryVerifiedParts($request, $owner);
+            $request->save();
+
             return $request;
         });
     }
@@ -153,9 +159,10 @@ class RequestWorkflow
                 throw new InvalidTransition('This part does not apply to this request.');
             }
 
+            // The evaluator's own result replaces one carried from an earlier verification (REQ-21-05).
             RequestCheck::query()->updateOrInsert(
                 ['credential_request_id' => $locked->id, 'item' => $item->value],
-                ['result' => $result->value, 'checked_by' => $registrar->id, 'checked_at' => now()],
+                ['result' => $result->value, 'checked_by' => $registrar->id, 'checked_at' => now(), 'carried_from_request_id' => null],
             );
         });
     }
@@ -210,6 +217,13 @@ class RequestWorkflow
 
             if (in_array(CheckItem::Representative, $rejected, true)) {
                 $this->reviewPendingRepresentatives($locked, $registrar, ReviewStatus::Rejected, $remarks);
+            }
+
+            // A rejected part is no longer verified, so the next request has it checked (REQ-21-03).
+            $dropped = array_values(array_intersect(array_map(fn (CheckItem $item) => $item->value, $rejected), array_map(fn (CheckItem $item) => $item->value, VerifiedDetails::PARTS)));
+
+            if ($dropped !== []) {
+                RequesterVerification::query()->where('user_id', $locked->user_id)->whereIn('part', $dropped)->delete();
             }
 
             // The lock ends with the status (REQ-16-09); the evaluator stays recorded for the reports.
@@ -289,7 +303,7 @@ class RequestWorkflow
             foreach (CheckItem::for(CheckStage::Evaluation, $locked) as $item) {
                 RequestCheck::query()->updateOrInsert(
                     ['credential_request_id' => $locked->id, 'item' => $item->value],
-                    ['result' => CheckResult::Confirmed->value, 'checked_by' => $registrar->id, 'checked_at' => now()],
+                    ['result' => CheckResult::Confirmed->value, 'checked_by' => $registrar->id, 'checked_at' => now(), 'carried_from_request_id' => null],
                 );
             }
 
@@ -350,6 +364,9 @@ class RequestWorkflow
                 $locked->save();
                 $this->record($locked, $owner, RequestEventType::IdentityResubmitted, null, null, $identity->id_type);
             }
+
+            // Parts checked again whose new copy was verified before are confirmed already (REQ-21-04).
+            $this->carryVerifiedParts($locked, $owner);
 
             $this->transition($locked, $request, RequestStatus::Submitted, $owner, RequestEventType::Resubmitted, filled($note) ? $note : null);
         });
@@ -877,6 +894,7 @@ class RequestWorkflow
             'requirements_completed_at' => now(),
         ]);
         $this->reviewPendingRepresentatives($locked, $registrar, ReviewStatus::Verified);
+        $this->recordVerifications($locked, $registrar);
 
         if ($locked->requires_payment) {
             $this->transition($locked, $original, RequestStatus::AwaitingPayment, $registrar, RequestEventType::RequirementsCompleted, $remarks);
@@ -887,6 +905,66 @@ class RequestWorkflow
         $locked->save();
         $this->record($locked, $registrar, RequestEventType::RequirementsCompleted, null, null, $remarks);
         $this->accept($locked, $original, $registrar);
+    }
+
+    /**
+     * The evaluation is complete: each part of the requester's details is verified on this request,
+     * when the request's copy is still their saved details. A part already verified with the same
+     * details keeps its first verification (REQ-21-01).
+     */
+    private function recordVerifications(CredentialRequest $locked, User $registrar): void
+    {
+        $owner = User::query()->findOrFail($locked->user_id);
+
+        foreach (VerifiedDetails::PARTS as $part) {
+            if (VerifiedDetails::current($owner, $part) !== null || ! VerifiedDetails::match($part, $owner, $locked)) {
+                continue;
+            }
+
+            RequesterVerification::query()->upsert(
+                [['user_id' => $owner->id, 'part' => $part->value, 'credential_request_id' => $locked->id, 'verified_by' => $registrar->id, 'verified_at' => now()]],
+                ['user_id', 'part'],
+                ['credential_request_id', 'verified_by', 'verified_at'],
+            );
+        }
+    }
+
+    /**
+     * Confirm each part not checked yet whose copy equals the copy the requester's details were
+     * verified on, as the registrar who verified them did then; a carried identity marks the
+     * request's ID verified (REQ-21-04). The caller saves the request.
+     */
+    private function carryVerifiedParts(CredentialRequest $locked, User $owner): void
+    {
+        $checked = $locked->checks()->get()->map(fn (RequestCheck $check): CheckItem => $check->item)->all();
+
+        foreach (VerifiedDetails::PARTS as $part) {
+            $verification = in_array($part, $checked, true) ? null : VerifiedDetails::verification($owner, $part);
+
+            if ($verification === null || ! VerifiedDetails::match($part, $locked, $verification->credentialRequest)) {
+                continue;
+            }
+
+            RequestCheck::query()->insert([
+                'credential_request_id' => $locked->id,
+                'item' => $part->value,
+                'result' => CheckResult::Confirmed->value,
+                'checked_by' => $verification->verified_by,
+                'checked_at' => $verification->verified_at,
+                'carried_from_request_id' => $verification->credential_request_id,
+            ]);
+
+            if ($part === CheckItem::Identity) {
+                $locked->forceFill([
+                    'identity_status' => ReviewStatus::Verified,
+                    'identity_reviewed_by' => $verification->verified_by,
+                    'identity_reviewed_at' => $verification->verified_at,
+                    'identity_remarks' => null,
+                ]);
+            }
+        }
+
+        $locked->unsetRelation('checks');
     }
 
     /**

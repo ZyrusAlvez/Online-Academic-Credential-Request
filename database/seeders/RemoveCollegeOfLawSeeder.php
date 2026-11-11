@@ -36,6 +36,7 @@ class RemoveCollegeOfLawSeeder extends Seeder
     private const REQUEST_TABLES = [
         'request_events', 'delay_notes', 'releases', 'request_documents', 'office_visits', 'request_steps',
         'payment_proofs', 'request_checks', 'request_deficiencies', 'due_date_pauses', 'request_representatives', 'reminder_logs',
+        'requester_verifications',
     ];
 
     public function run(): void

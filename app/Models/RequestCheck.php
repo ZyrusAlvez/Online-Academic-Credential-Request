@@ -15,6 +15,7 @@ use Illuminate\Support\Carbon;
  * @property CheckItem $item
  * @property CheckResult $result
  * @property Carbon $checked_at
+ * @property ?int $carried_from_request_id set when confirmed from an earlier verification (REQ-21-04)
  */
 class RequestCheck extends Model
 {
@@ -46,5 +47,15 @@ class RequestCheck extends Model
     public function checker(): BelongsTo
     {
         return $this->belongsTo(User::class, 'checked_by');
+    }
+
+    /**
+     * The earlier request whose verified details confirmed this part (REQ-21-05).
+     *
+     * @return BelongsTo<CredentialRequest, $this>
+     */
+    public function carriedFrom(): BelongsTo
+    {
+        return $this->belongsTo(CredentialRequest::class, 'carried_from_request_id');
     }
 }
