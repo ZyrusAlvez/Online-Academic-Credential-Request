@@ -225,23 +225,23 @@ test('REQ-09-09 the requester sidebar has no group heading and lists New Request
         ->and($nav)->not->toContain('My Requests');
 });
 
-test('REQ-09-21 the list is "Request Tracker", request pages live under /student/request/, and old addresses redirect', function () {
+test('REQ-09-21 the list is "Request Tracker", request pages live under /student/requests/, and singular addresses redirect', function () {
     $org = organisation();
     $owner = requester($org->ccs);
     $request = submitRequest($owner, $org->free);
     $this->actingAs($owner);
 
-    expect(route('student.requests.create', absolute: false))->toBe('/student/request/new')
-        ->and(route('student.requests.show', $request, absolute: false))->toBe('/student/request/'.$request->reference_no)
-        ->and(route('student.requests.edit', $request, absolute: false))->toBe('/student/request/'.$request->reference_no.'/edit');
+    expect(route('student.requests.create', absolute: false))->toBe('/student/requests/new')
+        ->and(route('student.requests.show', $request, absolute: false))->toBe('/student/requests/'.$request->reference_no)
+        ->and(route('student.requests.edit', $request, absolute: false))->toBe('/student/requests/'.$request->reference_no.'/edit');
 
     $this->get(route('student.dashboard'))->assertOk()->assertSeeHtml('Request Tracker</h1>')->assertDontSee('My Requests');
     $this->get(route('student.requests.show', $request))->assertOk()->assertSee('Request Tracker')->assertDontSee('My Requests');
 
-    // Links in earlier emails still work.
-    $this->get('/student/requests/new')->assertRedirect('/student/request/new')->assertStatus(301);
-    $this->get('/student/requests/'.$request->reference_no)->assertRedirect('/student/request/'.$request->reference_no);
-    $this->get('/student/requests/'.$request->reference_no.'/edit')->assertRedirect('/student/request/'.$request->reference_no.'/edit');
+    // Links in emails sent while the addresses were singular still work.
+    $this->get('/student/request/new')->assertRedirect('/student/requests/new')->assertStatus(301);
+    $this->get('/student/request/'.$request->reference_no)->assertRedirect('/student/requests/'.$request->reference_no);
+    $this->get('/student/request/'.$request->reference_no.'/edit')->assertRedirect('/student/requests/'.$request->reference_no.'/edit');
 
     // New Request has no breadcrumb.
     $this->get(route('student.requests.create'))->assertOk()->assertDontSeeHtml('data-flux-breadcrumbs')->assertDontSee('My Requests');
