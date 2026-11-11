@@ -23,8 +23,9 @@ done, filled primary when current, grey when upcoming; offices use `building-off
 quality check `shield-check`), a line between circles that is green once the next milestone is
 reached, and the date under each finished milestone. A row on `md` and up (about seven
 milestones), a column below. Below the bar, a panel names the current milestone. Dates come from
-`requirements_completed_at`, `accepted_at`, each step's `completed_at`, and `released_at`. On a
-declined or cancelled request an office that was current shows as still to come.
+`requirements_completed_at`, `accepted_at`, each step's `completed_at`, and `released_at`. A
+request declined at the final quality check keeps that step current, so on a declined or
+cancelled request a current office shows as still to come.
 
 `<x-office-visits :visits>` — the internal monitoring table: office, date received, date
 released, working days spent, status (registrar and office pages).

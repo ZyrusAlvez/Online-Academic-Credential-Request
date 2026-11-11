@@ -14,5 +14,5 @@
 - [x] `App\Support\OfficeRoute` (planned route of a credential, or a request's own steps with
       done/current/upcoming), shared with New Request's card; office list under the tracker (REQ-06-17)
 - [x] Pest tests for REQ-06-17
-- [ ] Offices inside the step bar instead of a list under it (REQ-06-01, REQ-06-17, 2026-11-12)
-- [ ] Pest tests for the changed REQ-06-01 and REQ-06-17
+- [x] Offices inside the step bar instead of a list under it (REQ-06-01, REQ-06-17, 2026-11-12)
+- [x] Pest tests for the changed REQ-06-01 and REQ-06-17
