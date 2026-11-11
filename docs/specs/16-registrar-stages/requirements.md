@@ -90,7 +90,8 @@ This replaces:
 
   Each part SHALL have Confirm and Reject buttons on its right, show its current result, and stay
   changeable until the decision. THE SYSTEM SHALL NOT let the registrar change anything the
-  requester entered.
+  requester entered. *Since spec 21 (2026-11-11):* User identity and Academic record start
+  confirmed when the requester's details were verified on an earlier request (REQ-21-04, 05).
 - **REQ-16-24** WHERE a checklist part shows the request's data (Credential request, User
   identity, Academic record, Amount and reference, Credential document) THE SYSTEM SHALL show it
   as summary rows, one per entry, label on the left and value on the right, stacked on narrow
