@@ -95,6 +95,12 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   errors, and move focus to the first of them when the modal closes. A type of ID without a file,
   or a file without a type, SHALL count as invalid. The browser's own validation SHALL NOT replace
   this modal.
+- **REQ-01-31** WHEN a requester changes a field marked with an error on New Request, Edit Request
+  or Settings → Profile THE SYSTEM SHALL check the form's marked fields again and remove each error
+  that is now fixed, without waiting for "Review request" or "Confirm"; an entry still invalid
+  keeps (or updates) its error. Choices take effect as soon as they are made, typed entries when
+  the field is left. *(User's request, 2026-11-11: a valid credential and purpose kept their
+  "field is required" errors.)*
 - ~~REQ-01-27, REQ-01-28, REQ-01-30~~ *Superseded by REQ-15-07/08:* the profile is never locked
   (each request keeps its own copy), so there is no locked name and no registrar name correction.
 - **REQ-01-29** WHEN a requester saves from the summary THE SYSTEM SHALL save the profile, the
