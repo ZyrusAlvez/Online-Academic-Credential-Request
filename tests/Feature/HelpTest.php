@@ -35,11 +35,13 @@ test('REQ-22-01 the requester sidebar has an expandable Help group of the topics
     expect($positions)->not->toContain(false)
         ->and($positions)->toBe(collect($positions)->sort()->values()->all())
         ->and(array_map(fn (HelpTopic $topic) => $topic->label(), HelpTopic::cases()))->toBe([
-            'Getting Started', 'Your Details & Valid ID', 'Requesting a Credential', 'Payment', 'Tracking & Statuses', 'Representatives & Release',
+            'Getting Started', 'Your Details & Valid ID', 'Requesting a Credential', 'Payment', 'Tracking & Statuses', 'Claiming a Credential',
         ]);
 
+    // Each item links to its page and stays inside the sidebar: a label too long ends in "…",
+    // shown in full on hover.
     foreach (HelpTopic::cases() as $topic) {
-        expect($nav)->toContain('href="'.route('student.help', $topic->value).'"');
+        expect($nav)->toMatch('#<a(?=[^>]*href="'.preg_quote(route('student.help', $topic->value), '#').'")(?=[^>]*title="'.preg_quote(e($topic->label()), '#').'")(?=[^>]*class="[^"]*\[&(?:amp;)?_\[data-content\]\]:truncate)[^>]*>#');
     }
 
     // Collapsed away from Help.

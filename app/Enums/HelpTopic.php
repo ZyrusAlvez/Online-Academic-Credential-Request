@@ -27,7 +27,8 @@ enum HelpTopic: string
             self::Requesting => 'Requesting a Credential',
             self::Payment => 'Payment',
             self::Tracking => 'Tracking & Statuses',
-            self::RepresentativesAndRelease => 'Representatives & Release',
+            // Short enough for the indented sidebar group (REQ-22-01).
+            self::RepresentativesAndRelease => 'Claiming a Credential',
         };
     }
 
@@ -39,7 +40,7 @@ enum HelpTopic: string
             self::Requesting => 'Filling in New Request, and what happens after you submit.',
             self::Payment => 'When and how to pay, and your proof of payment.',
             self::Tracking => 'Following your request, its statuses, dates and notifications.',
-            self::RepresentativesAndRelease => 'Claiming your credential, yourself or through a representative.',
+            self::RepresentativesAndRelease => 'Claiming your credential, yourself or through an authorized representative.',
         };
     }
 
