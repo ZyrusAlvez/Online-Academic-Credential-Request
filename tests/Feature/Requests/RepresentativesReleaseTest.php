@@ -225,7 +225,7 @@ test('REQ-11-11 choosing who will transact shows or hides the representative\'s 
     // The choice is not sent to the server; the fields are on the page, hidden until chosen.
     expect($html)->toContain('wire:model="form.requester_mode"')->not->toContain('wire:model.live="form.requester_mode"')
         ->toMatch('/<div class="space-y-6" data-representative-fields\s+x-show="\$wire\.form\.requester_mode === \'representative\'"\s+x-cloak style="display: none"\s*>/')
-        ->and(Str::after($html, 'data-representative-fields'))->toContain('wire:model="form.representative_name"')->toContain('data-spa-picker');
+        ->and(Str::after($html, 'data-representative-fields'))->toContain('wire:model.live.blur="form.representative_name"')->toContain('data-spa-picker');
 
     // Coming back to the form with a representative chosen, the fields show from the start.
     $chosen = Livewire::actingAs($this->owner)->test(Create::class)->set('form.requester_mode', 'representative')->html();

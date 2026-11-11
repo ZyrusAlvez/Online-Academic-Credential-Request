@@ -6,6 +6,7 @@ use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
 use App\Livewire\Concerns\RemovesSavedId;
 use App\Livewire\Concerns\TrimsInput;
+use App\Livewire\Concerns\UpdatesFieldErrors;
 use App\Livewire\Forms\RequesterProfileForm;
 use App\Models\Department;
 use App\Models\IdentityDocument;
@@ -35,6 +36,7 @@ class Profile extends Component
 {
     use RemovesSavedId;
     use TrimsInput;
+    use UpdatesFieldErrors;
     use WithFileUploads;
 
     public RequesterProfileForm $form;

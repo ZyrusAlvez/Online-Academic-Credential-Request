@@ -15,13 +15,13 @@
     </div>
 
     <div class="grid gap-6 sm:grid-cols-3">
-        <flux:input wire:model="{{ $prefix }}.first_name" :label="__('First name')" autocomplete="given-name" required />
-        <flux:input wire:model="{{ $prefix }}.middle_name" :label="__('Middle name (optional)')" autocomplete="additional-name" />
-        <flux:input wire:model="{{ $prefix }}.last_name" :label="__('Last name')" autocomplete="family-name" required />
+        <flux:input wire:model.live.blur="{{ $prefix }}.first_name" :label="__('First name')" autocomplete="given-name" required />
+        <flux:input wire:model.live.blur="{{ $prefix }}.middle_name" :label="__('Middle name (optional)')" autocomplete="additional-name" />
+        <flux:input wire:model.live.blur="{{ $prefix }}.last_name" :label="__('Last name')" autocomplete="family-name" required />
     </div>
 
     <div class="grid gap-6 sm:grid-cols-3">
-        <flux:input wire:model="{{ $prefix }}.contact_number" type="tel" :label="__('Contact number')" autocomplete="tel" inputmode="numeric" maxlength="11" x-mask="99999999999" placeholder="09171234567" required />
+        <flux:input wire:model.live.blur="{{ $prefix }}.contact_number" type="tel" :label="__('Contact number')" autocomplete="tel" inputmode="numeric" maxlength="11" x-mask="99999999999" placeholder="09171234567" required />
     </div>
 </section>
 
@@ -31,7 +31,7 @@
         <x-verification-badge :verified="$verified['academic'] ?? false" />
     </div>
 
-    <flux:radio.group wire:model="{{ $prefix }}.academic_status" :label="__('Status')">
+    <flux:radio.group wire:model.live="{{ $prefix }}.academic_status" :label="__('Status')">
         @foreach ($statuses as $status)
             <flux:radio :value="$status->value" :label="$status->label()" />
         @endforeach
@@ -45,7 +45,7 @@
             @endforeach
         </flux:select>
         <div>
-            <flux:select wire:model="{{ $prefix }}.program" :label="__('Program')" :disabled="$programs->isEmpty()" required>
+            <flux:select wire:model.live="{{ $prefix }}.program" :label="__('Program')" :disabled="$programs->isEmpty()" required>
                 <flux:select.option value="">{{ blank($fields->college_id) ? __('Choose a college first') : __('Choose…') }}</flux:select.option>
                 @foreach ($programs as $program)
                     <flux:select.option :value="$program">{{ $program }}</flux:select.option>
@@ -58,9 +58,9 @@
     </div>
 
     <div class="grid gap-6 md:grid-cols-3">
-        <flux:input wire:model="{{ $prefix }}.student_number" :label="__('Student number (optional)')" autocomplete="off" />
-        <flux:input wire:model="{{ $prefix }}.attended_from" type="number" min="1950" :max="now()->year" inputmode="numeric" :label="__('First year attended')" placeholder="2020" required />
-        <flux:input wire:model="{{ $prefix }}.attended_to" type="number" min="1950" :max="now()->year" inputmode="numeric" :label="__('Last year attended')" placeholder="2024" required />
+        <flux:input wire:model.live.blur="{{ $prefix }}.student_number" :label="__('Student number (optional)')" autocomplete="off" />
+        <flux:input wire:model.live.blur="{{ $prefix }}.attended_from" type="number" min="1950" :max="now()->year" inputmode="numeric" :label="__('First year attended')" placeholder="2020" required />
+        <flux:input wire:model.live.blur="{{ $prefix }}.attended_to" type="number" min="1950" :max="now()->year" inputmode="numeric" :label="__('Last year attended')" placeholder="2024" required />
     </div>
 </section>
 
@@ -89,7 +89,7 @@
     @else
     <p class="text-sm text-zinc-600">{{ __('A government-issued or school ID (JPG, PNG, WebP or PDF, up to 5 MB).') }}</p>
     <div class="grid gap-6 sm:grid-cols-2">
-        <flux:select wire:model="{{ $prefix }}.id_type" :label="__('Type of ID')">
+        <flux:select wire:model.live="{{ $prefix }}.id_type" :label="__('Type of ID')">
             <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
             @foreach ($idTypes as $type)
                 <flux:select.option :value="$type">{{ $type }}</flux:select.option>

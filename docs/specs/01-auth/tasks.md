@@ -47,7 +47,7 @@
 - [x] Pest tests for the changed REQ-01-17
 - [x] Whole My Profile read-only while the identity check is pending or verified (REQ-01-30)
 - [x] Pest tests for REQ-01-30
-- [ ] `UpdatesFieldErrors` concern on New Request/Edit Request and Settings → Profile: a change
+- [x] `UpdatesFieldErrors` concern on New Request/Edit Request and Settings → Profile: a change
       re-checks the form's marked fields; choices `wire:model.live`, typed entries
       `wire:model.live.blur` (REQ-01-31)
-- [ ] Pest tests for REQ-01-31
+- [x] Pest tests for REQ-01-31
