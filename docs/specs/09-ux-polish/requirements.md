@@ -71,7 +71,7 @@
 ### Navigation
 - **REQ-09-09** THE SYSTEM SHALL show the requester's sidebar links without a group heading, in the
   order New Request, Request Tracker (My Profile was removed by REQ-15-02; "Request Tracker" was
-  "My Requests" until 2026-11-11, REQ-09-21).
+  "My Requests" until 2026-11-11, REQ-09-21), followed by the expandable Help group (REQ-22-01).
 
 ### New Request
 - **REQ-09-10** THE SYSTEM SHALL show New Request's *Incomplete requirements* notice (REQ-04-02)

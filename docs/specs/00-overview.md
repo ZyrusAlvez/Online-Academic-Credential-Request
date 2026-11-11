@@ -290,3 +290,5 @@ All feature specs describe this model.
 | 18 | The Admin account: administration, dashboard and reports | in progress |
 | 19 | Request status table | done |
 | 20 | Initial Evaluation decisions: clarification and office visit | done |
+| 21 | Details verified once: identity and academic information carry over | done |
+| 22 | Help for requesters (FAQ) | done |
