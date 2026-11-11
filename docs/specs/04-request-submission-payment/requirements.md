@@ -36,7 +36,9 @@ period starts only at acceptance.
   5. *(User's report, 2026-11-10: the browser's own picker showed only the last file's name.)*
   The count SHALL stay at the right of the requirement's name, however long the name, and the
   button at the right of the field; while files upload, the field SHALL show a progress bar with
-  the percentage in place of the button. *(User's request, 2026-11-10.)*
+  the percentage in place of the button. *(User's request, 2026-11-10.)* Each listed file's name
+  SHALL be a link that opens it in the file viewer, as on the summary (REQ-15-17). *(User's
+  request, 2026-11-11.)*
   Files chosen for another credential SHALL NOT be sent. *(User's decision, 2026-11-10: copies help the evaluator; the originals are
   still checked at the Registrar's Office, REQ-16-15.)*
 - **REQ-04-19** THE SYSTEM SHALL store the requirement files privately with the request, each

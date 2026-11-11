@@ -195,6 +195,17 @@ test('REQ-04-18 each field lists its chosen files by name and size, each with Re
         ->call('removeRequirementFile', $tor, 0, 5)->assertHasNoErrors([$field]);
 });
 
+test('REQ-04-18 each chosen file\'s name in its field is a link that opens it in the file viewer', function () {
+    $tor = $this->org->tor->id;
+    $field = Str::between(requirementBlock(torRequestForm()
+        ->set("requirementFiles.{$tor}.0", [fakePdf('clearance.pdf'), UploadedFile::fake()->image('clearance-page-2.jpg')])
+        ->html(), $this->org->tor), 'data-requirement-field="0"', 'data-requirement-field="1"');
+
+    expect($field)->toMatch('#<a\s+href="[^"]*preview-file[^"]*"[^>]*aria-haspopup="dialog"[^>]*data-file-link[^>]*>clearance\.pdf</a>#')
+        ->toMatch('#<a\s+href="[^"]*preview-file[^"]*"[^>]*data-file-link[^>]*>clearance-page-2\.jpg</a>#')
+        ->toMatch('#application\\\\?/pdf#');
+});
+
 test('REQ-04-18 files chosen for another credential are not sent', function () {
     $other = CredentialType::factory()->withSteps([$this->org->registrarOffice])->create(['requirements' => ['Affidavit of loss']]);
 
