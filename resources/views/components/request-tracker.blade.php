@@ -17,7 +17,8 @@
         ['title' => __('Payment verified'), 'task' => null, 'text' => __('Payment confirmed by authorized personnel.'), 'icon' => 'banknotes',
             'state' => $paid ? 'done' : ($request->requirements_completed_at && ! $closed ? 'current' : 'upcoming'), 'date' => $request->accepted_at],
         ...array_map(fn (array $stop): array => [
-            'title' => $stop['office'], 'task' => $stop['task'], 'text' => $stop['task'],
+            // Where the paper physically is, which can differ from the step's office (REQ-17-18).
+            'title' => $stop['office'], 'task' => $stop['task'], 'text' => __('Currently with :office.', ['office' => $request->whereabouts()]),
             'icon' => $stop['task'] === $finalCheck ? 'shield-check' : 'building-office-2',
             'state' => $closed && $stop['state'] === 'current' ? 'upcoming' : $stop['state'], 'date' => $stop['completed_at'],
         ], \App\Support\OfficeRoute::forRequest($request)),

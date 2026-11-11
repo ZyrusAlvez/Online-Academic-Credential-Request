@@ -22,7 +22,8 @@ drawn as one step bar (like a parcel tracker): an outlined icon circle per miles
 done, filled primary when current, grey when upcoming; offices use `building-office-2`, the final
 quality check `shield-check`), a line between circles that is green once the next milestone is
 reached, and the date under each finished milestone. A row on `md` and up (about seven
-milestones), a column below. Below the bar, a panel names the current milestone. Dates come from
+milestones), a column below. Below the bar, a panel names the current milestone; for an office it
+says where the paper physically is, from `whereabouts()` ("Currently with …", REQ-17-18). Dates come from
 `requirements_completed_at`, `accepted_at`, each step's `completed_at`, and `released_at`. A
 request declined at the final quality check keeps that step current, so on a declined or
 cancelled request a current office shows as still to come.
