@@ -7,9 +7,9 @@
 <div class="space-y-6" data-queue="{{ $queue->value }}">
     <x-page-header :title="__($queue->label())" :description="__($queue->description())" />
 
-    @if ($queue === Q::Evaluation)
-        <div class="flex flex-wrap gap-2" role="group" aria-label="{{ __('Show') }}">
-            <flux:button size="sm" wire:click="$set('waiting', false)" :variant="$showWaiting ? 'outline' : 'primary'" aria-pressed="{{ $showWaiting ? 'false' : 'true' }}">{{ __('To evaluate') }}</flux:button>
+    @if ($hasWaitingTab)
+        <div class="flex flex-wrap gap-2" role="group" aria-label="{{ __('Show') }}" data-queue-tabs>
+            <flux:button size="sm" wire:click="$set('waiting', false)" :variant="$showWaiting ? 'outline' : 'primary'" aria-pressed="{{ $showWaiting ? 'false' : 'true' }}">{{ __($queue->activeTabLabel()) }}</flux:button>
             <flux:button size="sm" wire:click="$set('waiting', true)" :variant="$showWaiting ? 'primary' : 'outline'" aria-pressed="{{ $showWaiting ? 'true' : 'false' }}">{{ __('Waiting for the requester (:count)', ['count' => $waitingCount]) }}</flux:button>
         </div>
     @endif

@@ -104,8 +104,7 @@ test('REQ-16-02 Initial Evaluation lists submitted and evaluated requests with t
         ->assertDontSee($this->request->reference_no);
 });
 
-test('REQ-16-03 Payment Validation lists the proofs to verify, then the requests awaiting payment', function () {
-    // Approved first but not paid yet, so it is older than the proof to verify.
+test('REQ-16-03 Payment Validation lists the proofs to verify; the requests awaiting payment wait in their own tab', function () {
     $unpaid = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar)->fresh();
     $paying = awaitingValidation(submitRequest($this->owner, $this->org->tor));
 
@@ -113,9 +112,20 @@ test('REQ-16-03 Payment Validation lists the proofs to verify, then the requests
         ->and($paying->status)->toBe(RequestStatus::PaymentVerification);
 
     queuePage('payment')
-        ->assertSee('Proofs of payment to verify, then requests awaiting payment.')
-        ->assertSeeInOrder([$paying->reference_no, RequestStatus::PaymentVerification->label(), '₱530.00', $unpaid->reference_no, RequestStatus::AwaitingPayment->label(), '₱530.00'])
+        ->assertSee('Proofs of payment to verify.')
+        ->assertSeeHtml('data-queue-tabs')
+        ->assertSeeInOrder(['To verify', 'Waiting for the requester (1)'])
+        ->assertSeeInOrder([$paying->reference_no, RequestStatus::PaymentVerification->label(), '₱530.00'])
+        ->assertDontSee($unpaid->reference_no)
         ->assertDontSee($this->request->reference_no);
+
+    queuePage('payment', ['waiting' => true])
+        ->assertSeeInOrder([$unpaid->reference_no, RequestStatus::AwaitingPayment->label(), '₱530.00'])
+        ->assertDontSee($paying->reference_no)
+        ->assertDontSee($this->request->reference_no);
+
+    // The other queues keep a single list.
+    queuePage('release')->assertDontSeeHtml('data-queue-tabs');
 });
 
 test('REQ-16-04 In Progress tracks the office holding each document, filterable by office, without actions', function () {

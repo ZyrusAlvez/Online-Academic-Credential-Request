@@ -17,7 +17,8 @@ use Illuminate\Database\Eloquent\Builder;
 final class StageQueue
 {
     /**
-     * @param  bool  $waiting  Initial Evaluation only: the requests returned to the requester instead
+     * @param  bool  $waiting  Initial Evaluation and Payment Validation: the requests waiting for the
+     *                         requester instead (returned, or awaiting payment)
      * @return Builder<CredentialRequest>
      */
     public static function for(RegistrarQueue $queue, bool $waiting = false, string $office = ''): Builder
@@ -31,10 +32,9 @@ final class StageQueue
             RegistrarQueue::Evaluation => $query
                 ->whereIn('status', $waiting ? RequestStatus::waitingForRequester() : [RequestStatus::Submitted, RequestStatus::UnderEvaluation])
                 ->orderBy('submitted_at')->orderBy('id'),
-            // Proofs to verify first, then the requests still awaiting payment (REQ-16-03).
+            // Proofs to verify; the requests still awaiting payment wait apart (REQ-16-03).
             RegistrarQueue::Payment => $query
-                ->whereIn('status', [RequestStatus::PaymentVerification, RequestStatus::AwaitingPayment])
-                ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [RequestStatus::PaymentVerification->value])
+                ->where('status', $waiting ? RequestStatus::AwaitingPayment : RequestStatus::PaymentVerification)
                 ->orderBy('updated_at')->orderBy('id'),
             // Where each paper is and goes next, from acceptance on (REQ-17-11).
             RegistrarQueue::InProgress => $query
