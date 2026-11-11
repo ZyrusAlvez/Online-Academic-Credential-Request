@@ -25,7 +25,7 @@ class Queue extends Component
     #[Locked]
     public RegistrarQueue $stage;
 
-    /** Initial Evaluation: show the requests waiting for the requester instead. */
+    /** Initial Evaluation and Payment Validation: show the requests waiting for the requester instead. */
     #[Url(except: false)]
     public bool $waiting = false;
 
@@ -68,13 +68,15 @@ class Queue extends Component
     public function render(): View
     {
         $stage = $this->stage;
-        $waiting = $stage === RegistrarQueue::Evaluation && $this->waiting;
+        $hasWaitingTab = $stage->hasWaitingTab();
+        $waiting = $hasWaitingTab && $this->waiting;
 
         return view('livewire.registrar.queue', [
             'queue' => $stage,
             'requests' => StageQueue::for($stage, $waiting, $stage === RegistrarQueue::InProgress ? $this->office : '')->paginate(20),
+            'hasWaitingTab' => $hasWaitingTab,
             'showWaiting' => $waiting,
-            'waitingCount' => $stage === RegistrarQueue::Evaluation ? StageQueue::for($stage, true)->count() : 0,
+            'waitingCount' => $hasWaitingTab ? StageQueue::for($stage, true)->count() : 0,
             'offices' => $stage === RegistrarQueue::InProgress ? Department::active()->orderBy('name')->get(['id', 'name']) : collect(),
             'linkRoute' => 'registrar.requests.show',
         ])->title(__($stage->label()));

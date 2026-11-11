@@ -28,11 +28,23 @@ enum RegistrarQueue: string
     {
         return match ($this) {
             self::Evaluation => 'Requests to evaluate.',
-            self::Payment => 'Proofs of payment to verify, then requests awaiting payment.',
+            self::Payment => 'Proofs of payment to verify.',
             self::InProgress => 'Where each document is and where it goes next.',
             self::FinalCheck => 'Documents back for the final check.',
             self::Release => 'Credentials ready to be claimed.',
         };
+    }
+
+    /** Queues with a second tab for the requests waiting for the requester (REQ-16-02, 03). */
+    public function hasWaitingTab(): bool
+    {
+        return $this === self::Evaluation || $this === self::Payment;
+    }
+
+    /** The first tab's name, beside "Waiting for the requester". */
+    public function activeTabLabel(): string
+    {
+        return $this === self::Payment ? 'To verify' : 'To evaluate';
     }
 
     public function routeName(): string

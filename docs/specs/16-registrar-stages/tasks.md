@@ -18,3 +18,6 @@
 - [x] `StageQueue` Payment: payment verification first, then awaiting payment; description names
       both (REQ-16-03)
 - [x] Pest test for the changed REQ-16-03
+- [x] Payment Validation: "To verify" and "Waiting for the requester (n)" tabs, the awaiting-payment
+      requests in the second (REQ-16-03)
+- [x] Pest test for the tabbed REQ-16-03
