@@ -86,7 +86,10 @@
 - **REQ-09-12** THE SYSTEM SHALL lay out New Request and Request Tracker alike: one centred
   column of the same width, with the content in bordered sections that share their padding and
   heading style; Request Tracker lists the requests inside one section, with no heading of its own
-  above the list *(user's request, 2026-11-11: the "Your Requests" heading is removed)*.
+  above the list *(user's request, 2026-11-11: the "Your Requests" heading is removed)*. Each row
+  SHALL show the credential, its tracking number and where the request is (REQ-20-11), without a
+  status badge or the submission date; the request's page has both *(user's request,
+  2026-11-11)*.
 - **REQ-09-20** THE SYSTEM SHALL show a search box at the top of Request Tracker that, as the requester
   types, narrows their list to the requests whose credential name or tracking number contains the
   text (any case), back to the first page; the search stays in the address so a reload keeps it.
