@@ -15,17 +15,21 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
 
 ### Tracking
 - **REQ-06-01** THE SYSTEM SHALL show on the requester's request page a progress tracker (submitted
-  and evaluated, payment verified, processing, final approval and quality check, ready for release,
-  released), the office currently holding the document, and — once accepted — the processing
+  and evaluated, payment verified, then each office that processes it, ending with the final quality
+  check (REQ-06-17), then ready for release or released; the sample portal's "processing" and "final
+  approval and quality check" are shown as those offices, by the user's decision of 2026-11-12),
+  the office currently holding the document, and — once accepted — the processing
   period and the expected release date. The tracker SHALL be a step bar: an icon per milestone,
   joined by a line that turns green up to the furthest milestone reached, with the date and time
   under each finished milestone; left to right on wider screens and top to bottom on phones.
-- **REQ-06-17** UNDER the step bar THE SYSTEM SHALL list, in order and numbered, every office the
-  document goes through (the Dean as "Dean, <college>"), each with its task and ending with the
-  Registrar's final quality check; each office SHALL show whether it is done (with the date), the
-  current one, or still to come. Before acceptance the list SHALL be the credential's route, all
-  still to come; once accepted, the request's own route. A declined or cancelled request SHALL not
-  show the list. *(User's request, 2026-11-11.)*
+- **REQ-06-17** THE step bar SHALL have one milestone per office the document goes through, in
+  order, between "payment verified" and "ready for release" (the Dean as "Dean, <college>"), each
+  with its task and ending with the Registrar's final quality check, so the whole process reads as
+  one line with no separate list of offices. Each office SHALL show whether it is done (with the
+  date), the current one, or still to come. Before acceptance they SHALL be the credential's route,
+  all still to come; once accepted, the request's own route. On a declined or cancelled request no
+  office SHALL be current. *(User's request, 2026-11-11; one bar instead of a list under it,
+  2026-11-12.)*
 - **REQ-06-02** THE SYSTEM SHALL show the requester a history of their request built from the
   ledger, newest first, naming offices but never individual staff, and leaving out internal
   entries (forwarding, internal returns and delay notes); an internal return SHALL show as

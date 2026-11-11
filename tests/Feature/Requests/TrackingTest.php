@@ -27,7 +27,7 @@ test('REQ-06-01 the requester sees the tracker, the holding office and the expec
     Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])
         ->assertSee('Request submitted and evaluated')
         ->assertSee('Payment verified')
-        ->assertSee('Final approval and quality check')
+        ->assertSee('(final quality check)')
         ->assertSee('7 working days')
         ->assertSee('Set on acceptance');
 
@@ -60,8 +60,8 @@ test('REQ-06-01 the tracker is a step bar with the date under each finished mile
         ->assertSeeInOrder([
             'Request submitted and evaluated', '(done)', 'Oct 9, 2026', '10:00 AM',
             'Payment verified', '(done)', 'Oct 9, 2026',
-            'Processing in progress', '(done)', 'Oct 12, 2026', '2:30 PM',
-            'Final approval and quality check', '(current)', 'Current step',
+            'Office of the Registrar', '(prepare)', '(done)', 'Oct 12, 2026', '2:30 PM',
+            'Office of the Registrar', '(final quality check)', '(current)', 'Current step',
             'Ready for release', '(not yet)',
         ])
         ->assertSee('bg-green-600', false);
@@ -69,31 +69,35 @@ test('REQ-06-01 the tracker is a step bar with the date under each finished mile
     checkAll($request, $this->registrar, CheckStage::FinalCheck);   // REQ-16-19
     workflow()->completeVisit(openVisit($request), $this->registrar);
 
-    $tracker($request)->assertSeeInOrder(['Final approval and quality check', '(done)', 'Ready for release', '(current)']);
+    $tracker($request)->assertSeeInOrder(['(final quality check)', '(done)', 'Ready for release', '(current)']);
 });
 
 /**
- * The tracker's list of offices (REQ-06-17), as rendered for the requester.
+ * The tracker's step bar (REQ-06-17), as rendered for the requester.
  */
-function officeRoute(string $html): string
+function stepBar(string $html): string
 {
-    return Str::between($html, 'data-office-route', '</ol>');
+    return Str::between($html, 'data-step-bar', '</ol>');
 }
 
-test('REQ-06-17 before acceptance the tracker lists the credential\'s whole route, every office still to come', function () {
+test('REQ-06-17 before acceptance the step bar has every office of the credential\'s route, all still to come', function () {
     $request = submitRequest($this->owner, $this->org->tor);
 
-    $route = officeRoute(Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])->html());
+    $html = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])->html();
+    $bar = stepBar($html);
 
-    expect($route)->toContain('Offices That Process It')
-        ->and(substr_count($route, 'data-office-state="upcoming"'))->toBe(5)
-        ->and(substr_count($route, 'data-office-state='))->toBe(5)
-        ->and(Str::of($route)->stripTags()->squish()->toString())->toMatch(
-            '/Office of the Registrar \(prepare\).*Dean, College of Computer Studies \(sign\).*Office of the VP for Finance \(documentary stamp\).*Office of the Chancellor \(sign\).*Office of the Registrar \(final quality check\)/'
-        );
+    expect(substr_count($bar, 'data-step-state='))->toBe(8)   // submitted, payment, 5 offices, ready
+        ->and(substr_count($bar, 'data-step-state="upcoming"'))->toBe(7)
+        ->and(Str::of($bar)->stripTags()->squish()->toString())->toMatch(
+            '/Request submitted and evaluated.*Payment verified'
+            .'.*Office of the Registrar \(prepare\).*Dean, College of Computer Studies \(sign\).*Office of the VP for Finance \(documentary stamp\)'
+            .'.*Office of the Chancellor \(sign\).*Office of the Registrar \(final quality check\).*Ready for release/'
+        )
+        ->and($html)->not->toContain('Offices That Process It')
+        ->and($html)->not->toContain('Processing in progress');
 });
 
-test('REQ-06-17 once accepted each office shows whether it is done, with the date, current or still to come', function () {
+test('REQ-06-17 once accepted each office in the step bar shows whether it is done, with the date, current or still to come', function () {
     $request = submitRequest($this->owner, $this->org->tor);
     Carbon::setTestNow('2026-10-09 10:00:00');
     acceptRequest($request, $this->registrar);
@@ -101,27 +105,35 @@ test('REQ-06-17 once accepted each office shows whether it is done, with the dat
     passOffice($request, $this->registrar);
     passOffice($request, $this->dean);
 
-    $route = officeRoute(Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])->html());
+    $bar = stepBar(Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])->html());
 
-    expect(Str::of($route)->stripTags()->squish()->toString())->toMatch(
-        '/Office of the Registrar \(prepare\) \(done\) Oct 12, 2026 2:30 PM'
+    expect(Str::of($bar)->stripTags()->squish()->toString())->toMatch(
+        '/Office of the Registrar \(prepare\) \(done\) Oct 12, 2026 · 2:30 PM'
         .'.*Dean, College of Computer Studies \(sign\) \(done\) Oct 12, 2026'
-        .'.*Office of the VP for Finance \(documentary stamp\) \(current\) Current office'
+        .'.*Office of the VP for Finance \(documentary stamp\) \(current\) Current step'
         .'.*Office of the Chancellor \(sign\) \(not yet\)'
         .'.*Office of the Registrar \(final quality check\) \(not yet\)/'
     )
-        ->and(substr_count($route, 'data-office-state="done"'))->toBe(2)
-        ->and(substr_count($route, 'aria-current="step"'))->toBe(1)
-        ->and($route)->toContain('bg-green-600');
+        ->and(substr_count($bar, 'data-step-state="done"'))->toBe(4)
+        ->and(substr_count($bar, 'aria-current="step"'))->toBe(1)
+        ->and($bar)->toContain('bg-green-600');
 });
 
-test('REQ-06-17 a cancelled request shows no list of offices', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
-    workflow()->cancel($request, $this->owner);
+test('REQ-06-17 a cancelled or declined request shows no office as current', function () {
+    $cancelled = submitRequest($this->owner, $this->org->tor);
+    workflow()->cancel($cancelled, $this->owner);
 
-    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])
-        ->assertDontSeeHtml('data-office-route')
-        ->assertDontSee('Offices That Process It');
+    $declined = acceptRequest(submitRequest($this->owner, $this->org->free), $this->registrar);
+    passOffice($declined, $this->registrar);   // now at the final quality check
+    workflow()->decline($declined->fresh(), $this->registrar, 'Records do not match');
+
+    foreach ([$cancelled, $declined] as $request) {
+        $bar = stepBar(Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])->html());
+
+        expect($bar)->toContain('(final quality check)')
+            ->and($bar)->not->toContain('aria-current="step"')
+            ->and($bar)->not->toContain('data-step-state="current"');
+    }
 });
 
 test('REQ-06-02 the requester history names offices, never staff, and hides internal entries', function () {
