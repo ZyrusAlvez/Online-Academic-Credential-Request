@@ -11,3 +11,6 @@
 - [x] Pest tests for REQ-06-16
 - [x] Tracker as a step bar with icons, green progress line and milestone dates (REQ-06-01)
 - [x] Pest tests for the changed REQ-06-01
+- [x] `App\Support\OfficeRoute` (planned route of a credential, or a request's own steps with
+      done/current/upcoming), shared with New Request's card; office list under the tracker (REQ-06-17)
+- [x] Pest tests for REQ-06-17

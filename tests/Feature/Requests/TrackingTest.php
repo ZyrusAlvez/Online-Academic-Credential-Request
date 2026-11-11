@@ -7,6 +7,7 @@ use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -69,6 +70,58 @@ test('REQ-06-01 the tracker is a step bar with the date under each finished mile
     workflow()->completeVisit(openVisit($request), $this->registrar);
 
     $tracker($request)->assertSeeInOrder(['Final approval and quality check', '(done)', 'Ready for release', '(current)']);
+});
+
+/**
+ * The tracker's list of offices (REQ-06-17), as rendered for the requester.
+ */
+function officeRoute(string $html): string
+{
+    return Str::between($html, 'data-office-route', '</ol>');
+}
+
+test('REQ-06-17 before acceptance the tracker lists the credential\'s whole route, every office still to come', function () {
+    $request = submitRequest($this->owner, $this->org->tor);
+
+    $route = officeRoute(Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])->html());
+
+    expect($route)->toContain('Offices That Process It')
+        ->and(substr_count($route, 'data-office-state="upcoming"'))->toBe(5)
+        ->and(substr_count($route, 'data-office-state='))->toBe(5)
+        ->and(Str::of($route)->stripTags()->squish()->toString())->toMatch(
+            '/Office of the Registrar \(prepare\).*Dean, College of Computer Studies \(sign\).*Office of the VP for Finance \(documentary stamp\).*Office of the Chancellor \(sign\).*Office of the Registrar \(final quality check\)/'
+        );
+});
+
+test('REQ-06-17 once accepted each office shows whether it is done, with the date, current or still to come', function () {
+    $request = submitRequest($this->owner, $this->org->tor);
+    Carbon::setTestNow('2026-10-09 10:00:00');
+    acceptRequest($request, $this->registrar);
+    Carbon::setTestNow('2026-10-12 14:30:00');
+    passOffice($request, $this->registrar);
+    passOffice($request, $this->dean);
+
+    $route = officeRoute(Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])->html());
+
+    expect(Str::of($route)->stripTags()->squish()->toString())->toMatch(
+        '/Office of the Registrar \(prepare\) \(done\) Oct 12, 2026 2:30 PM'
+        .'.*Dean, College of Computer Studies \(sign\) \(done\) Oct 12, 2026'
+        .'.*Office of the VP for Finance \(documentary stamp\) \(current\) Current office'
+        .'.*Office of the Chancellor \(sign\) \(not yet\)'
+        .'.*Office of the Registrar \(final quality check\) \(not yet\)/'
+    )
+        ->and(substr_count($route, 'data-office-state="done"'))->toBe(2)
+        ->and(substr_count($route, 'aria-current="step"'))->toBe(1)
+        ->and($route)->toContain('bg-green-600');
+});
+
+test('REQ-06-17 a cancelled request shows no list of offices', function () {
+    $request = submitRequest($this->owner, $this->org->tor);
+    workflow()->cancel($request, $this->owner);
+
+    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])
+        ->assertDontSeeHtml('data-office-route')
+        ->assertDontSee('Offices That Process It');
 });
 
 test('REQ-06-02 the requester history names offices, never staff, and hides internal entries', function () {
