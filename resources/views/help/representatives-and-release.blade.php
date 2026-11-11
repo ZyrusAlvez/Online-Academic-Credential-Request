@@ -1,4 +1,4 @@
-{{-- Help: Representatives & Release (REQ-22-03). --}}
+{{-- Help: Claiming a Credential, yourself or through a representative (REQ-22-03). --}}
 <x-faq-item question="How do I get my credential?">
     <p>When your request shows <strong>Ready for release</strong>, claim it at the Office of the Registrar and bring a valid ID. It is a paper document: it is never sent by email or as a download.</p>
 </x-faq-item>

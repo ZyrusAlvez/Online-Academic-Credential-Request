@@ -6,11 +6,14 @@
             <flux:navlist.item icon="plus-circle" :href="route('student.requests.create')" :current="request()->routeIs('student.requests.create')" wire:navigate>{{ __('New Request') }}</flux:navlist.item>
             <flux:navlist.item icon="document-text" :href="route('student.dashboard')" :current="request()->routeIs('student.dashboard', 'student.requests.show')" wire:navigate>{{ __('Request Tracker') }}</flux:navlist.item>
         </flux:navlist.group>
-        {{-- Help opens into its topics; open on a help page, with that topic current (REQ-22-01). --}}
+        {{-- Help opens into its topics; open on a help page, with that topic current (REQ-22-01).
+             The group is indented, so a label too long for it ends in "…" (full on hover) instead of
+             running past the sidebar. --}}
         @php($helpTopic = request()->routeIs('student.help') ? request()->route('topic') : null)
         <flux:navlist.group expandable :expanded="$helpTopic !== null" :heading="__('Help')" class="grid" data-help-nav>
             @foreach (\App\Enums\HelpTopic::cases() as $topic)
-                <flux:navlist.item :icon="$topic->icon()" :href="route('student.help', $topic->value)" :current="$helpTopic === $topic->value" wire:navigate>{{ __($topic->label()) }}</flux:navlist.item>
+                <flux:navlist.item :icon="$topic->icon()" :href="route('student.help', $topic->value)" :current="$helpTopic === $topic->value" wire:navigate
+                    :title="__($topic->label())" class="min-w-0 [&_[data-content]]:min-w-0 [&_[data-content]]:truncate">{{ __($topic->label()) }}</flux:navlist.item>
             @endforeach
         </flux:navlist.group>
     @elseif ($role === \App\Enums\Role::Registrar)

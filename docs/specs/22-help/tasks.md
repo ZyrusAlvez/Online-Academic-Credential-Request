@@ -5,3 +5,6 @@
 - [x] `<x-faq-item>`; the help page; one view per topic with its questions (REQ-22-03..05)
 - [x] Overview: specs 21 and 22 in the feature table
 - [x] Pest tests for every REQ-22 criterion
+- [x] "Representatives & Release" becomes "Claiming a Credential"; help items end in "…" instead
+      of running past the sidebar (REQ-22-01)
+- [x] Pest test for it
