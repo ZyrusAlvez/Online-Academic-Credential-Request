@@ -90,6 +90,6 @@ be made. Requests at `payment_verification` or later keep the amount that was pa
   It runs inside New Request's submit transaction, which also deletes them if a later step fails.
   No ledger entry of its own: the files arrive with the *Submitted* entry.
 - `<x-requirement-document-list>` lists each requirement with its files (or "No file uploaded")
-  for the evaluator's *Academic Record Verification* card, the Records page's details and the
+  for the evaluator's *Credential Request Verification* card, the Records page's details and the
   owner's Request Details.
 

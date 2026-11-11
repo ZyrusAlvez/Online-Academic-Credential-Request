@@ -43,8 +43,10 @@ period starts only at acceptance.
   still checked at the Registrar's Office, REQ-16-15.)*
 - **REQ-04-19** THE SYSTEM SHALL store the requirement files privately with the request, each
   under its requirement, and SHALL let only the owner, registrars and admins open them; the
-  evaluator sees them under *Academic Record Verification*, and they appear on the Records page
-  and the owner's request page.
+  evaluator sees them under *Credential Request Verification*, and they appear on the Records
+  page and the owner's request page. *(User's decision, 2026-11-11: the requirements are checked
+  on every request, like the credential itself, whereas a verified identity and academic record
+  carry over to later requests, REQ-21-04.)*
 - **REQ-04-03** WHEN a request is submitted THE SYSTEM SHALL give it the status `submitted`, a
   unique tracking number `cr<2-digit year>-<id>` in lowercase, the id padded with zeros to at
   least 5 digits (`cr26-00042`) and growing past 99999 without a cap (`cr26-100000`); requests

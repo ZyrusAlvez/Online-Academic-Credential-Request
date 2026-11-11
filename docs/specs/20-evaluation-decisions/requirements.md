@@ -83,9 +83,9 @@ This replaces:
   copy of their details; attach a new ID (it becomes their saved ID and awaits verification) and
   any new requirement copies; set the status `submitted`, so the request is back in the Initial
   Evaluation queue; write the note to the ledger and notify the registrars. Rejected parts SHALL be
-  cleared, and so SHALL each part whose data changed: Credential request (credential, purpose or
-  receiving school), User identity (name, contact number or ID) and Academic record (academic
-  information or new requirement copies). Other confirmed parts SHALL stay confirmed.
+  cleared, and so SHALL each part whose data changed: Credential request (credential, purpose,
+  receiving school or new requirement copies), User identity (name, contact number or ID) and
+  Academic record (academic information). Other confirmed parts SHALL stay confirmed.
 
 ### Office visit
 - **REQ-20-08** WHILE a request is pending compliance THE SYSTEM SHALL show its requester "Visit the
