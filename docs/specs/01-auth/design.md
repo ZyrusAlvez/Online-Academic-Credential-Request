@@ -88,6 +88,8 @@ Identity code:
 - `/dashboard` → closure redirecting to `auth()->user()->role->homeRoute()`.
 - Role homes: `App\Livewire\{Student,Registrar,Department}\Dashboard` at `/student`,
   `/registrar`, `/department` behind `auth`, `verified`, `role:*`. Content comes in later specs.
+  (The requester's list, Request Tracker, moved to `/student/requests` on 2026-11-11, and
+  `/student` redirects there, REQ-09-21.)
 - Sidebar navigation is chosen by role.
 - `DatabaseSeeder` creates `registrar@uphsl.edu.ph` with password from
   `INITIAL_REGISTRAR_PASSWORD` in production (renamed from `SEED_REGISTRAR_PASSWORD` for clarity).

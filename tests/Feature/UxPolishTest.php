@@ -231,12 +231,16 @@ test('REQ-09-21 the list is "Request Tracker", request pages live under /student
     $request = submitRequest($owner, $org->free);
     $this->actingAs($owner);
 
-    expect(route('student.requests.create', absolute: false))->toBe('/student/requests/new')
+    expect(route('student.dashboard', absolute: false))->toBe('/student/requests')
+        ->and(route('student.requests.create', absolute: false))->toBe('/student/requests/new')
         ->and(route('student.requests.show', $request, absolute: false))->toBe('/student/requests/'.$request->reference_no)
         ->and(route('student.requests.edit', $request, absolute: false))->toBe('/student/requests/'.$request->reference_no.'/edit');
 
     $this->get(route('student.dashboard'))->assertOk()->assertSeeHtml('Request Tracker</h1>')->assertDontSee('My Requests');
     $this->get(route('student.requests.show', $request))->assertOk()->assertSee('Request Tracker')->assertDontSee('My Requests');
+
+    // /student leads to Request Tracker.
+    $this->get('/student')->assertRedirect('/student/requests');
 
     // Links in emails sent while the addresses were singular still work.
     $this->get('/student/request/new')->assertRedirect('/student/requests/new')->assertStatus(301);

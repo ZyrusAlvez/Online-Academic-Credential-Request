@@ -21,7 +21,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('dashboard');
 
     Route::prefix('student')->name('student.')->middleware('role:student')->group(function () {
-        Route::get('/', Student\Dashboard::class)->name('dashboard');
+        // Request Tracker lives at requests; /student leads there (REQ-09-21).
+        Route::redirect('/', '/student/requests');
+        Route::get('requests', Student\Dashboard::class)->name('dashboard');
         // My Profile became Settings → Profile; links in older notifications still land (REQ-15-02).
         Route::redirect('profile', '/settings/profile');
         // A requester's request pages live under requests/, plural like every collection (REQ-09-21).

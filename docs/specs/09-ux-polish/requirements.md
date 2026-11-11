@@ -96,9 +96,10 @@
   WHEN nothing matches THE SYSTEM SHALL say so and offer to clear the search. It only ever searches
   the requester's own requests. *(User's request, 2026-11-11.)*
 - **REQ-09-21** THE requester's list of requests SHALL be named "Request Tracker" (sidebar, page
-  title, browser tab, breadcrumb), and the requester's request pages SHALL live under
-  `/student/requests/` (plural, like every collection in the app's addresses):
-  `/student/requests/new`, `/student/requests/<tracking no.>` and
+  title, browser tab, breadcrumb) and SHALL live at `/student/requests`; WHEN a requester opens
+  `/student` THE SYSTEM SHALL redirect them there *(user's request, 2026-11-11)*. The requester's
+  request pages SHALL live under `/student/requests/` (plural, like every collection in the app's
+  addresses): `/student/requests/new`, `/student/requests/<tracking no.>` and
   `/student/requests/<tracking no.>/edit`. WHEN a requester opens a singular `/student/request/…`
   address (links in emails sent while it was singular) THE SYSTEM SHALL redirect them to the
   plural one. New Request SHALL have no breadcrumb above its title. *(User's request, 2026-11-11;
