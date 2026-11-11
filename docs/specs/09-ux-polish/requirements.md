@@ -97,10 +97,18 @@
   the requester's own requests. *(User's request, 2026-11-11.)*
 - **REQ-09-21** THE requester's list of requests SHALL be named "Request Tracker" (sidebar, page
   title, browser tab, breadcrumb), and the requester's request pages SHALL live under
-  `/student/request/` (singular): `/student/request/new`, `/student/request/<tracking no.>` and
-  `/student/request/<tracking no.>/edit`. WHEN a requester opens an old `/student/requests/…`
-  address (links in earlier emails) THE SYSTEM SHALL redirect them to the new one. New Request
-  SHALL have no breadcrumb above its title. *(User's request, 2026-11-11.)*
+  `/student/requests/` (plural, like every collection in the app's addresses):
+  `/student/requests/new`, `/student/requests/<tracking no.>` and
+  `/student/requests/<tracking no.>/edit`. WHEN a requester opens a singular `/student/request/…`
+  address (links in emails sent while it was singular) THE SYSTEM SHALL redirect them to the
+  plural one. New Request SHALL have no breadcrumb above its title. *(User's request, 2026-11-11;
+  the same day the user asked for plural addresses instead of the singular ones.)*
+
+  Addresses name a collection in the plural (`requests`, `records`, `users`, `reports`,
+  `notifications`, `payment-proofs`…). Not collections, so they stay as they are: the role areas
+  (`/student`, `/registrar`, `/department`, `/admin`), the registrar's stage queues
+  (`evaluation`, `payments`, `in-progress`, `final-check`, `release`, named after the stages),
+  the one working `calendar`, `help` and `settings`, and the sign-in pages.
 - **REQ-09-22** THE requester's request page SHALL show "Tracking History" as its last section,
   after "Request Details". "Request Details" SHALL list each entry as a row, the field's name on
   the left and its value on the right (stacked on narrow screens, like the summary rows of
