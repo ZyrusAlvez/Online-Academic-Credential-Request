@@ -47,9 +47,10 @@ This replaces:
   view SHALL list the requests pending compliance. *Changed by REQ-20-10:* it also lists the
   requests returned for clarification.
 - **REQ-16-03** THE Payment Validation queue SHALL list the requests whose proof of payment awaits
-  verification, oldest first, followed by the requests awaiting payment (approved, no proof sent
-  yet), oldest first, each row showing its status and amount due. *(User's request, 2026-11-11:
-  the requests awaiting payment are added.)*
+  verification, oldest first, each row showing its status and amount due. A "Waiting for the
+  requester" tab, like Initial Evaluation's (REQ-16-02), SHALL list the requests awaiting payment
+  (approved, no proof sent yet), oldest first, and show their count. *(User's requests,
+  2026-11-11: the requests awaiting payment are added, then moved to their own tab.)*
 - **REQ-16-04** THE In Progress queue SHALL list the requests in progress or returned for correction
   between offices (not those sent for the final check), with the office holding the document now,
   whether it has been received there, since when, the due date and an overdue mark, and SHALL let
