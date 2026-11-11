@@ -3,12 +3,15 @@
 use App\Enums\DocumentKind;
 use App\Livewire\Registrar\Requests\Show;
 use App\Livewire\Student\Profile;
+use App\Livewire\Student\Requests\Create;
 use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\CredentialRequest;
 use App\Models\IdentityDocument;
 use App\Models\User;
 use App\Services\RequestWorkflow;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -108,6 +111,35 @@ test('REQ-09-14 every uploaded file opens in the viewer and stays a real link to
 
     // The proof's thumbnail on the request page opens the viewer too.
     expect($requestPage)->toMatch('/data-file-link[^>]*>\s*<span[^>]*data-loading-image.*?<img src="'.preg_quote(e(route('payment-proofs.show', $proof)), '/').'"/s');
+});
+
+test('REQ-09-14 a PDF is shown from the browser\'s copy, so a preview served as a download still shows inline', function () {
+    $html = $this->actingAs($this->owner)->get(route('settings.profile'))->assertOk()->getContent();
+
+    expect($html)
+        ->toContain('if (this.isPdf) this.loadPdf(this.url);')
+        ->toContain("await fetch(url, { credentials: 'same-origin' })")
+        ->toContain("new Blob([await response.blob()], { type: 'application/pdf' })")
+        // A failed fetch shows the load-error message, not an endless spinner.
+        ->toContain('this.loading = false; this.failed = true;')
+        ->toMatch('/<template x-if="pdfUrl && isPdf && ! failed">\s*<iframe x-bind:src="pdfUrl"/')
+        ->toContain('x-bind:href="pdfUrl ?? url ?? \'#\'"')
+        // The copy is let go when the viewer closes or opens another file.
+        ->toContain('x-on:close="clearPdf(); url = null; loading = false"')
+        ->toContain('URL.revokeObjectURL(this.pdfUrl)');
+});
+
+test('REQ-09-14 a file chosen on New Request downloads through its signed preview, unchanged', function () {
+    $tor = $this->org->tor;
+    $form = Livewire::actingAs($this->owner)->test(Create::class)
+        ->set('form.credential_type_id', $tor->id)
+        ->set('form.purpose', 'Employment abroad')
+        ->set("requirementFiles.{$tor->id}.0", [UploadedFile::fake()->create('clearance.pdf', 200, 'application/pdf')]);
+
+    // In its field, and on the summary.
+    foreach ([$form->html(), Str::after($form->call('review')->assertHasNoErrors()->html(), 'data-summary-title')] as $html) {
+        expect($html)->toMatch("#\\\$dispatch\('open-file', \{ url: '([^']*preview-file[^']*)'[^}]*download: '\\1' \}\)#");
+    }
 });
 
 test('REQ-09-15 a file is served inline for the viewer, or as a download when asked', function () {
