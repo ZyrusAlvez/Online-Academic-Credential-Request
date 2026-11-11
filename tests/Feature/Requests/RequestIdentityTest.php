@@ -114,7 +114,7 @@ test('REQ-15-04 a saved ID is shown and used; without one an ID is required', fu
     Livewire::actingAs($owner)->test(Create::class)
         ->assertSee('Your Saved ID')
         ->assertSee("{$saved->id_type}: {$saved->original_name}")
-        ->assertSee('To use a different ID, remove this one first.')
+        ->assertDontSee('To use a different ID, remove this one first.')
         ->assertSeeHtml('data-remove-saved-id')
         ->assertDontSeeHtml('data-id-preview')
         ->assertDontSeeHtml('wire:model="profile.id_type"');

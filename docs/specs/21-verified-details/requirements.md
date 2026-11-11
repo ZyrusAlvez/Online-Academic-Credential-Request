@@ -50,13 +50,13 @@ details (REQ-15-08).
   automatic result and its note.
 
 ### What the requester sees
-- **REQ-21-06** ON New Request, Edit Request and Settings → Profile, THE SYSTEM SHALL show beside
-  the headings Personal Information, Academic Information and Valid ID a badge for the saved
-  details: "Verified" (green) or "For verification" (amber). Personal Information is verified when
-  the name and contact number equal the verified identity copy, Valid ID when the saved ID is the
-  verified one, Academic Information when the academic part is verified. Under a verified section
-  THE SYSTEM SHALL say that changing it means the Office of the Registrar verifies it again on the
-  next request. The fields SHALL stay editable.
+- **REQ-21-06** ON New Request, Edit Request and Settings → Profile, THE SYSTEM SHALL show at the
+  right end of the headings Personal Information, Academic Information and Valid ID a badge for
+  the saved details: "Verified" (green) or "For verification" (amber). Personal Information is
+  verified when the name and contact number equal the verified identity copy, Valid ID when the
+  saved ID is the verified one, Academic Information when the academic part is verified. The fields
+  SHALL stay editable. The sections carry no note explaining re-verification; Help explains it
+  (REQ-22-03). *(User's request, 2026-11-11: badge on the right, explanatory notes removed.)*
 
 ### Existing data
 - **REQ-21-07** WHEN the change is deployed THE SYSTEM SHALL record, for each requester, their

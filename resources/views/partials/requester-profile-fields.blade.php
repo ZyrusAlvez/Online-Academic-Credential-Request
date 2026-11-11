@@ -5,19 +5,13 @@
      (section → verified, REQ-21-06). --}}
 @php($sectionTitle = fn (string $text, int $offset): string => $number !== null ? ($number + $offset).'. '.__($text) : __($text))
 @php($verified ??= [])
-{{-- Each heading carries whether the saved details are verified; a verified section says that a
-     change is verified again, and stays editable (REQ-21-02, 06). --}}
-@php($reverifyNote = __('Verified by the Office of the Registrar. If you change it, it is verified again on your next request.'))
+{{-- Each heading carries, at its right end, whether the saved details are verified; the fields stay
+     editable, and Help explains re-verification (REQ-21-02, 06). --}}
 
 <section aria-labelledby="personal-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6" data-section-verification="personal">
-    <div class="space-y-1">
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h2 id="personal-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Personal Information', 0) }}</h2>
-            <x-verification-badge :verified="$verified['personal'] ?? false" />
-        </div>
-        @if ($verified['personal'] ?? false)
-            <p class="text-sm text-zinc-600" data-reverify-note>{{ $reverifyNote }}</p>
-        @endif
+    <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h2 id="personal-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Personal Information', 0) }}</h2>
+        <x-verification-badge :verified="$verified['personal'] ?? false" />
     </div>
 
     <div class="grid gap-6 sm:grid-cols-3">
@@ -32,14 +26,9 @@
 </section>
 
 <section aria-labelledby="academic-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6" data-section-verification="academic">
-    <div class="space-y-1">
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h2 id="academic-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Academic Information', 1) }}</h2>
-            <x-verification-badge :verified="$verified['academic'] ?? false" />
-        </div>
-        @if ($verified['academic'] ?? false)
-            <p class="text-sm text-zinc-600" data-reverify-note>{{ $reverifyNote }}</p>
-        @endif
+    <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h2 id="academic-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Academic Information', 1) }}</h2>
+        <x-verification-badge :verified="$verified['academic'] ?? false" />
     </div>
 
     <flux:radio.group wire:model="{{ $prefix }}.academic_status" :label="__('Status')">
@@ -76,14 +65,9 @@
 </section>
 
 <section aria-labelledby="identity-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6" data-section-verification="valid_id">
-    <div class="space-y-1">
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h2 id="identity-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Valid ID', 2) }}</h2>
-            <x-verification-badge :verified="$verified['valid_id'] ?? false" />
-        </div>
-        @if ($verified['valid_id'] ?? false)
-            <p class="text-sm text-zinc-600" data-reverify-note>{{ __('Verified by the Office of the Registrar. If you remove it and upload another, the new one is verified on your next request.') }}</p>
-        @endif
+    <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h2 id="identity-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Valid ID', 2) }}</h2>
+        <x-verification-badge :verified="$verified['valid_id'] ?? false" />
     </div>
 
     {{-- One saved ID at most: while it is saved there are no ID fields; removing it brings them
@@ -101,7 +85,6 @@
                 <flux:button size="sm" variant="ghost" icon="trash" class="text-red-700!" wire:click="removeSavedId" data-remove-saved-id
                     data-confirm-title="{{ __('Remove saved ID') }}" data-confirm-label="{{ __('Remove') }}" data-confirm-variant="danger" wire:confirm="{{ __('Remove your saved ID? You will need to upload a valid ID again. Requests already sent with it keep it.') }}">{{ __('Remove') }}</flux:button>
             </div>
-            <p class="text-sm text-zinc-600">{{ __('To use a different ID, remove this one first.') }}</p>
         </div>
     @else
     <p class="text-sm text-zinc-600">{{ __('A government-issued or school ID (JPG, PNG, WebP or PDF, up to 5 MB).') }}</p>
