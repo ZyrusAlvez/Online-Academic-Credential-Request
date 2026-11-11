@@ -24,12 +24,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', Student\Dashboard::class)->name('dashboard');
         // My Profile became Settings → Profile; links in older notifications still land (REQ-15-02).
         Route::redirect('profile', '/settings/profile');
-        // A requester's request pages live under request/ (singular, REQ-09-21).
-        Route::get('request/new', Student\Requests\Create::class)->name('requests.create');
-        Route::get('request/{credentialRequest}', Student\Requests\Show::class)->name('requests.show');
-        Route::get('request/{credentialRequest}/edit', Student\Requests\Edit::class)->name('requests.edit');
-        // The old requests/… addresses, still in earlier emails, move to request/… (REQ-09-21).
-        Route::permanentRedirect('requests/{path}', '/student/request/{path}')
+        // A requester's request pages live under requests/, plural like every collection (REQ-09-21).
+        Route::get('requests/new', Student\Requests\Create::class)->name('requests.create');
+        Route::get('requests/{credentialRequest}', Student\Requests\Show::class)->name('requests.show');
+        Route::get('requests/{credentialRequest}/edit', Student\Requests\Edit::class)->name('requests.edit');
+        // The singular request/… addresses, in emails sent while they were in use, move to requests/… (REQ-09-21).
+        Route::permanentRedirect('request/{path}', '/student/requests/{path}')
             ->where('path', '[A-Za-z0-9-]+(/edit)?');
         // Help: one page of questions per topic, the first by default (REQ-22-02).
         Route::redirect('help', '/student/help/'.HelpTopic::first()->value)->name('help.index');
