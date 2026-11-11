@@ -4,7 +4,6 @@ namespace App\Livewire\Student\Requests;
 
 use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
-use App\Enums\RouteTask;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\RemovesSavedId;
 use App\Livewire\Concerns\TrimsInput;
@@ -20,9 +19,9 @@ use App\Models\Program;
 use App\Models\Purpose;
 use App\Models\RequestDocument;
 use App\Models\User;
-use App\Models\WorkflowStep;
 use App\Services\RequestWorkflow;
 use App\Support\EmptyValue;
+use App\Support\OfficeRoute;
 use App\Support\VerifiedDetails;
 use Flux\Flux;
 use Illuminate\Http\UploadedFile;
@@ -252,7 +251,7 @@ class Create extends Component
             'types' => $types,
             'selectedType' => $selectedType,
             // Every credential's route is on the page so the chosen one shows at once (REQ-15-15).
-            'routes' => $types->mapWithKeys(fn (CredentialType $type): array => [$type->id => $this->route($type, $college, $registrarOffice)])->all(),
+            'routes' => $types->mapWithKeys(fn (CredentialType $type): array => [$type->id => OfficeRoute::planned($type, $college, $registrarOffice)])->all(),
             'purposes' => Purpose::active()->orderBy('name')->pluck('name'),
             'statuses' => AcademicStatus::cases(),
             'colleges' => Department::active()->colleges()->orderBy('name')->get(['id', 'name']),
@@ -534,28 +533,6 @@ class Create extends Component
             __('SPA') => $this->spa instanceof UploadedFile ? [$this->summaryFile($this->spa)] : '',
             __('Representative\'s valid ID') => $this->representativeId instanceof UploadedFile ? [$this->summaryFile($this->representativeId)] : '',
         ];
-    }
-
-    /**
-     * The offices a credential passes through, ending with the Registrar's final check (REQ-09-11).
-     *
-     * @return list<array{office: string, task: string}>
-     */
-    private function route(CredentialType $type, ?Department $college, string $registrarOffice): array
-    {
-        $route = $type->steps->map(fn (WorkflowStep $step): array => [
-            'office' => $step->is_student_college
-                ? ($college ? __('Dean, :college', ['college' => $college->name]) : __('Dean of your college'))
-                : (string) $step->department?->name,
-            'task' => $step->task->label(),
-        ])->values()->all();
-
-        $route[] = [
-            'office' => $registrarOffice,
-            'task' => RouteTask::FinalCheck->label(),
-        ];
-
-        return $route;
     }
 
     /**

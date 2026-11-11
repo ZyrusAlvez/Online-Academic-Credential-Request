@@ -28,6 +28,9 @@
 
     $current = collect($milestones)->first(fn ($milestone) => $milestone[3] === 'current')
         ?? ($status === S::Released ? end($milestones) : null);
+
+    // Every office the document goes through, done, current or to come (REQ-06-17).
+    $offices = $closed ? [] : \App\Support\OfficeRoute::forRequest($request);
 @endphp
 
 <div {{ $attributes->class('space-y-5') }}>
@@ -74,6 +77,51 @@
         <div class="rounded-lg bg-primary-50 px-4 py-3 text-sm">
             <p class="font-semibold text-primary">{{ $current[0] }}</p>
             <p class="text-zinc-700">{{ $current[1] }}</p>
+        </div>
+    @endif
+
+    @if ($offices !== [])
+        <div data-office-route>
+            <h3 class="text-sm font-semibold text-ink">{{ __('Offices That Process It') }}</h3>
+            <ol role="list" class="mt-3">
+                @foreach ($offices as $index => $stop)
+                    @php $nextReached = ($offices[$index + 1]['state'] ?? 'upcoming') !== 'upcoming'; @endphp
+                    <li class="relative flex gap-3 pb-4 last:pb-0" data-office-state="{{ $stop['state'] }}"
+                        @if ($stop['state'] === 'current') aria-current="step" @endif>
+                        @unless ($loop->last)
+                            <span @class([
+                                'absolute top-7 bottom-1 left-3 w-0.5 -translate-x-1/2',
+                                'bg-green-600' => $nextReached,
+                                'bg-zinc-200' => ! $nextReached,
+                            ]) aria-hidden="true"></span>
+                        @endunless
+                        <span @class([
+                            'flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
+                            'bg-green-600 text-white' => $stop['state'] === 'done',
+                            'bg-primary text-white ring-4 ring-primary-100' => $stop['state'] === 'current',
+                            'bg-zinc-200 text-zinc-600' => $stop['state'] === 'upcoming',
+                        ]) aria-hidden="true">
+                            @if ($stop['state'] === 'done')
+                                <flux:icon.check variant="micro" />
+                            @else
+                                {{ $loop->iteration }}
+                            @endif
+                        </span>
+                        <div class="min-w-0 pt-0.5 text-sm">
+                            <p @class(['text-ink' => $stop['state'] !== 'upcoming', 'text-zinc-600' => $stop['state'] === 'upcoming'])>
+                                <span class="font-medium">{{ $stop['office'] }}</span>
+                                <span class="text-zinc-600">({{ strtolower($stop['task']) }})</span>
+                                <span class="sr-only">({{ match ($stop['state']) { 'done' => __('done'), 'current' => __('current'), default => __('not yet') } }})</span>
+                            </p>
+                            @if ($stop['state'] === 'done' && $stop['completed_at'])
+                                <p class="text-xs text-zinc-600"><time datetime="{{ $stop['completed_at']->toIso8601String() }}">{{ $stop['completed_at']->format('M j, Y g:i A') }}</time></p>
+                            @elseif ($stop['state'] === 'current')
+                                <p class="text-xs font-medium text-primary">{{ __('Current office') }}</p>
+                            @endif
+                        </div>
+                    </li>
+                @endforeach
+            </ol>
         </div>
     @endif
 
