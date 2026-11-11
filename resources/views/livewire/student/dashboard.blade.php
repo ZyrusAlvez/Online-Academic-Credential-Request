@@ -32,17 +32,16 @@
                     <li wire:key="request-{{ $request->id }}" class="py-1">
                         <a href="{{ route('student.requests.show', $request) }}" wire:navigate
                             class="flex flex-col gap-3 rounded-lg px-2 py-3 transition hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight sm:flex-row sm:items-center sm:justify-between">
+                            {{-- The credential, its tracking number and where it is; no status badge or
+                                 submission date, which the request's page shows (REQ-09-12). --}}
                             <div class="min-w-0">
                                 <p class="font-semibold text-ink">{{ $request->credentialType->name }}</p>
-                                <p class="text-xs text-zinc-600">{{ $request->reference_no }} · {{ __('Submitted :date', ['date' => $request->submitted_at?->format('M j, Y')]) }}</p>
+                                <p class="text-xs text-zinc-600" data-tracking-no>{{ $request->reference_no }}</p>
                             </div>
-                            <div class="flex flex-wrap items-center gap-3 sm:justify-end">
-                                <span class="flex items-center gap-1 text-sm text-zinc-700">
-                                    <flux:icon.map-pin class="size-4 text-secondary" />
-                                    {{ $request->whereabouts() }}
-                                </span>
-                                <x-request-status :status="$request->status" customer />
-                            </div>
+                            <span class="flex items-center gap-1 text-sm text-zinc-700 sm:justify-end sm:text-end" data-whereabouts>
+                                <flux:icon.map-pin class="size-4 shrink-0 text-secondary" />
+                                {{ $request->whereabouts() }}
+                            </span>
                         </a>
                     </li>
                 @endforeach

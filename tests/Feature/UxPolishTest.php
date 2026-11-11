@@ -345,6 +345,23 @@ test('REQ-09-12 New Request and Request Tracker share one column and one section
         ->assertDontSee('Your Requests');
 });
 
+test('REQ-09-12 each Request Tracker row shows the credential, tracking number and whereabouts, without status or date', function () {
+    $org = organisation();
+    $owner = requester($org->ccs);
+    $request = submitRequest($owner, $org->free);
+
+    $html = $this->actingAs($owner)->get(route('student.dashboard'))->assertOk()->getContent();
+    $list = Str::between($html, 'aria-label="Your requests"', '</section>');
+
+    expect($list)->toContain('Certification of Enrollment')
+        ->toMatch('/data-tracking-no>\s*'.preg_quote($request->reference_no, '/').'\s*</')
+        ->toContain('data-whereabouts')
+        ->toContain(e($request->fresh()->whereabouts()))
+        ->not->toContain('Submitted ')
+        ->not->toContain($request->submitted_at->format('M j, Y'))
+        ->not->toContain('data-flux-badge');
+});
+
 test('REQ-09-20 Request Tracker searches the requester\'s own requests by credential name or tracking number', function () {
     $org = organisation();
     $owner = requester($org->ccs);
