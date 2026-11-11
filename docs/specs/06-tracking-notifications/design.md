@@ -15,15 +15,16 @@ summary, remarks, and (registrar only) the actor's name and role. Requester page
 non-internal events; only the registrar passes `show-actors`.
 
 `<x-request-tracker :request :events>` — the requester's progress tracker (*Proposed Workflow*, sample
-customer portal): five milestones with done / current / upcoming states, the office holding the
-document, and the processing period and expected release date once accepted. It is drawn as a
-step bar (like a parcel tracker): an outlined icon circle per milestone (green when done, filled
-primary when current, grey when upcoming), a line between circles that is green once the next
-milestone is reached, and the date under each finished milestone. A row of five on `sm` and up,
-a column below `sm`. Below the bar, a panel describes the current milestone (e.g. "Currently with
-College of Computer Studies"). Dates come from `requirements_completed_at`, `accepted_at`,
-`ready_at` and `released_at`; "Processing in progress" has no column, so its date is the first
-ledger event whose `to_status` is `for_final_approval` (from the `events` the page already loads).
+customer portal): submitted and evaluated, payment verified, one milestone per office from
+`App\Support\OfficeRoute::forRequest()` (REQ-06-17), and ready for release / released, each done /
+current / upcoming, plus the processing period and expected release date once accepted. It is
+drawn as one step bar (like a parcel tracker): an outlined icon circle per milestone (green when
+done, filled primary when current, grey when upcoming; offices use `building-office-2`, the final
+quality check `shield-check`), a line between circles that is green once the next milestone is
+reached, and the date under each finished milestone. A row on `md` and up (about seven
+milestones), a column below. Below the bar, a panel names the current milestone. Dates come from
+`requirements_completed_at`, `accepted_at`, each step's `completed_at`, and `released_at`. On a
+declined or cancelled request an office that was current shows as still to come.
 
 `<x-office-visits :visits>` — the internal monitoring table: office, date received, date
 released, working days spent, status (registrar and office pages).
