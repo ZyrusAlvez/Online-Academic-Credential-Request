@@ -206,8 +206,7 @@ test('REQ-21-06 New Request, Edit Request and Settings → Profile show each sec
         expect(sectionBadge($html, 'personal'))->toBe('pending')
             ->and(sectionBadge($html, 'academic'))->toBe('pending')
             ->and(sectionBadge($html, 'valid_id'))->toBe('pending')
-            ->and($html)->toContain('For verification')
-            ->not->toContain('data-reverify-note');
+            ->and($html)->toContain('For verification');
     }
 
     evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
@@ -216,8 +215,10 @@ test('REQ-21-06 New Request, Edit Request and Settings → Profile show each sec
         expect(sectionBadge($html, 'personal'))->toBe('verified')
             ->and(sectionBadge($html, 'academic'))->toBe('verified')
             ->and(sectionBadge($html, 'valid_id'))->toBe('verified')
-            ->and(substr_count($html, 'data-reverify-note'))->toBe(3)
-            ->and($html)->toContain('If you change it, it is verified again on your next request.')
+            // The badge sits at the right of the heading, with no explanatory note (Help has it).
+            ->and(preg_match_all('/<div class="flex flex-wrap items-center justify-between[^"]*">\s*<h2 id="(personal|academic|identity)-heading"/', $html))->toBe(3)
+            ->and($html)->not->toContain('data-reverify-note')
+            ->not->toContain('Verified by the Office of the Registrar.')
             // Still editable.
             ->toContain('wire:model="')->toContain('.contact_number"');
     }
