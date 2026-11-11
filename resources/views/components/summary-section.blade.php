@@ -17,7 +17,7 @@
                     <ul role="list" class="space-y-1">
                         @foreach ($value as $line)
                             @if (is_array($line))
-                                <li><x-summary-file :href="$line['href']" :name="$line['name']" :size="$line['size']" :type="$line['type']" /></li>
+                                <li><x-summary-file :href="$line['href']" :download="$line['download'] ?? null" :name="$line['name']" :size="$line['size']" :type="$line['type']" /></li>
                             @else
                                 <li>{{ $line }}</li>
                             @endif

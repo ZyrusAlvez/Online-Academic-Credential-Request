@@ -434,7 +434,7 @@ class Create extends Component
     /**
      * Sections 1 and 2 of the summary, numbered and labelled like the form (REQ-15-05, 17).
      *
-     * @return array<string, array<string, string|EmptyValue|list<string|array{name: string, size: string, href: string, type: string}>>>
+     * @return array<string, array<string, string|EmptyValue|list<string|array{name: string, size: string, href: string, download: string, type: string}>>>
      */
     protected function requestSummary(?CredentialType $type): array
     {
@@ -456,7 +456,7 @@ class Create extends Component
      * Every requirement of the credential with the names and sizes of the files chosen for it, each
      * name a link to the file viewer (REQ-15-17).
      *
-     * @return array<string, string|EmptyValue|list<string|array{name: string, size: string, href: string, type: string}>>
+     * @return array<string, string|EmptyValue|list<string|array{name: string, size: string, href: string, download: string, type: string}>>
      */
     private function requirementSummary(?CredentialType $type): array
     {
@@ -479,9 +479,11 @@ class Create extends Component
 
     /**
      * A chosen file on the summary: its name, linked to a signed, short-lived preview that the file
-     * viewer opens, and its size. A file Livewire cannot preview is its name and size only.
+     * viewer opens, and its size. The preview also serves the download: it already answers as one,
+     * and an added `?download=1` would break its signature (REQ-09-14). A file Livewire cannot
+     * preview is its name and size only.
      *
-     * @return string|array{name: string, size: string, href: string, type: string}
+     * @return string|array{name: string, size: string, href: string, download: string, type: string}
      */
     private function summaryFile(UploadedFile $file): string|array
     {
@@ -492,7 +494,9 @@ class Create extends Component
             return $name.' ('.$size.')';
         }
 
-        return ['name' => $name, 'size' => $size, 'href' => $file->temporaryUrl(), 'type' => (string) $file->getMimeType()];
+        $preview = $file->temporaryUrl();
+
+        return ['name' => $name, 'size' => $size, 'href' => $preview, 'download' => $preview, 'type' => (string) $file->getMimeType()];
     }
 
     /**
@@ -507,7 +511,7 @@ class Create extends Component
      * Section 6 of the summary: who submits the documents and claims the credential, the SPA and
      * the representative's ID linked to the file viewer (REQ-15-17).
      *
-     * @return array<string, string|EmptyValue|list<string|array{name: string, size: string, href: string, type: string}>>
+     * @return array<string, string|EmptyValue|list<string|array{name: string, size: string, href: string, download: string, type: string}>>
      */
     protected function transactSummary(): array
     {

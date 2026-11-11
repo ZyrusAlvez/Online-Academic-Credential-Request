@@ -180,7 +180,8 @@
                                                                  a file Livewire cannot preview stays plain text (REQ-04-18). --}}
                                                             <span class="min-w-0 flex-1 truncate text-ink" title="{{ $name }}">
                                                                 @if ($file instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile && $file->isPreviewable())
-                                                                    <x-file-link :href="$file->temporaryUrl()" :name="$name" :type="(string) $file->getMimeType()">{{ $name }}</x-file-link>
+                                                                    @php($preview = $file->temporaryUrl())
+                                                                    <x-file-link :href="$preview" :download="$preview" :name="$name" :type="(string) $file->getMimeType()">{{ $name }}</x-file-link>
                                                                 @else
                                                                     {{ $name }}
                                                                 @endif

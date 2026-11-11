@@ -12,22 +12,42 @@
         {{-- A file not saved yet (a browser copy or a signed preview) brings its own download address. --}}
         download: null,
         get downloadUrl() { return ! this.url ? '#' : this.download ?? this.url + (this.url.includes('?') ? '&' : '?') + 'download=1' },
+        {{-- A PDF is shown from the browser's copy: Livewire's signed preview of a file not sent yet
+             answers as a download, which a frame would not show. A browser copy (blob:) is used as is. --}}
+        pdfUrl: null,
+        async loadPdf(url) {
+            if (url.startsWith('blob:')) { this.pdfUrl = url; return; }
+            try {
+                const response = await fetch(url, { credentials: 'same-origin' });
+                if (! response.ok) throw new Error(response.status);
+                const copy = new Blob([await response.blob()], { type: 'application/pdf' });
+                if (this.url === url) this.pdfUrl = URL.createObjectURL(copy);
+            } catch (error) {
+                if (this.url === url) { this.loading = false; this.failed = true; }
+            }
+        },
+        clearPdf() {
+            if (this.pdfUrl && this.pdfUrl !== this.url) URL.revokeObjectURL(this.pdfUrl);
+            this.pdfUrl = null;
+        },
         open(detail) {
+            this.clearPdf();
             this.url = detail.url; this.name = detail.name; this.type = detail.type || ''; this.download = detail.download ?? null;
             this.failed = false;
             this.loading = this.isImage || this.isPdf;
+            if (this.isPdf) this.loadPdf(this.url);
             $flux.modal('file-viewer').show();
         } }"
     x-on:open-file.window="open($event.detail)"
 >
-    <flux:modal name="file-viewer" class="w-full max-w-5xl" x-on:close="url = null; loading = false">
+    <flux:modal name="file-viewer" class="w-full max-w-5xl" x-on:close="clearPdf(); url = null; loading = false">
         <div class="space-y-4">
             <div class="flex flex-wrap items-start justify-between gap-3 pe-8">
                 <flux:heading size="lg" class="min-w-0 break-all" x-text="name"></flux:heading>
                 <div class="flex flex-wrap gap-2">
                     {{-- href="#" makes Flux render a link; Alpine sets the real address. --}}
                     <flux:button size="sm" icon="arrow-down-tray" href="#" x-bind:href="downloadUrl" data-file-download>{{ __('Download') }}</flux:button>
-                    <flux:button size="sm" variant="ghost" icon="arrow-top-right-on-square" href="#" x-bind:href="url ?? '#'" target="_blank" rel="noopener">{{ __('Open in new tab') }}</flux:button>
+                    <flux:button size="sm" variant="ghost" icon="arrow-top-right-on-square" href="#" x-bind:href="pdfUrl ?? url ?? '#'" target="_blank" rel="noopener">{{ __('Open in new tab') }}</flux:button>
                 </div>
             </div>
 
@@ -46,8 +66,8 @@
                         x-bind:class="loading ? 'opacity-0' : 'opacity-100'"
                         class="max-h-[73vh] max-w-full object-contain transition-opacity duration-200">
                 </template>
-                <template x-if="url && isPdf">
-                    <iframe x-bind:src="url" x-bind:title="name" x-on:load="loading = false" class="h-[73vh] w-full bg-white"></iframe>
+                <template x-if="pdfUrl && isPdf && ! failed">
+                    <iframe x-bind:src="pdfUrl" x-bind:title="name" x-on:load="loading = false" class="h-[73vh] w-full bg-white"></iframe>
                 </template>
                 <template x-if="url && failed">
                     <p class="p-6 text-sm text-zinc-600" role="alert">{{ __('This file couldn\'t be loaded. Try Download or Open in new tab.') }}</p>
