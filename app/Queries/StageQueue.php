@@ -19,11 +19,12 @@ final class StageQueue
     /**
      * @param  bool  $waiting  Initial Evaluation and Payment Validation: the requests waiting for the
      *                         requester instead (returned, or awaiting payment)
+     * @param  string  $search  tracking number or requester name, as on Records (REQ-16-25)
      * @return Builder<CredentialRequest>
      */
-    public static function for(RegistrarQueue $queue, bool $waiting = false, string $office = ''): Builder
+    public static function for(RegistrarQueue $queue, bool $waiting = false, string $office = '', string $search = ''): Builder
     {
-        $query = CredentialRequest::query()->with([
+        $query = RegistrarRequestFilter::matching(CredentialRequest::query(), $search)->with([
             'credentialType:id,name', 'evaluator:id,first_name,middle_name,last_name',
             'openVisit.department:id,name,code', 'openVisit.fromDepartment:id,name', 'openVisit.step:id,task,position,department_id',
         ]);

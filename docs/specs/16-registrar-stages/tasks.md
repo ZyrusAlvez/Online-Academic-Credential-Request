@@ -21,6 +21,6 @@
 - [x] Payment Validation: "To verify" and "Waiting for the requester (n)" tabs, the awaiting-payment
       requests in the second (REQ-16-03)
 - [x] Pest test for the tabbed REQ-16-03
-- [ ] `RegistrarRequestFilter::matching()` shared by Records and the stage queues; search field on
+- [x] `RegistrarRequestFilter::matching()` shared by Records and the stage queues; search field on
       every queue but Release (REQ-16-25)
-- [ ] Pest test for REQ-16-25
+- [x] Pest test for REQ-16-25

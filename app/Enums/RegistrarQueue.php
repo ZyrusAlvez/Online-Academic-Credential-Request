@@ -41,6 +41,12 @@ enum RegistrarQueue: string
         return $this === self::Evaluation || $this === self::Payment;
     }
 
+    /** Queues with a search by tracking number or name (REQ-16-25). */
+    public function isSearchable(): bool
+    {
+        return $this !== self::Release;
+    }
+
     /** The first tab's name, beside "Waiting for the requester". */
     public function activeTabLabel(): string
     {

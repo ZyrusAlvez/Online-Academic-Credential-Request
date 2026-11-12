@@ -161,6 +161,37 @@ test('REQ-16-06 Release lists the credentials ready for release', function () {
     queuePage('release')->assertSee($ready->reference_no)->assertDontSee($this->request->reference_no);
 });
 
+test('REQ-16-25 the stage queues but Release search by tracking number or requester name', function () {
+    $other = User::factory()->withProfile($this->org->ccs)->create(['first_name' => 'Zephyrine', 'last_name' => 'Quillborne']);
+
+    // One request of each requester per searchable queue.
+    $pairs = [
+        'evaluation' => [$this->request, submitRequest($other, $this->org->tor)],
+        'payment' => [awaitingValidation(submitRequest($this->owner, $this->org->tor)), awaitingValidation(submitRequest($other, $this->org->tor))],
+        'in_progress' => [acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar), acceptRequest(submitRequest($other, $this->org->tor), $this->registrar)],
+        'final_check' => [atFinalCheck(submitRequest($this->owner, $this->org->tor)), atFinalCheck(submitRequest($other, $this->org->tor))],
+    ];
+
+    foreach ($pairs as $queue => [$mine, $hers]) {
+        queuePage($queue)->assertSeeHtml('data-queue-search')->assertSee($mine->reference_no)->assertSee($hers->reference_no);
+
+        queuePage($queue, ['search' => 'zephyrine quill'])->assertSee($hers->reference_no)->assertDontSee($mine->reference_no);
+        queuePage($queue, ['search' => 'Quillborne'])->assertSee($hers->reference_no)->assertDontSee($mine->reference_no);
+        queuePage($queue)->set('search', " {$mine->reference_no} ")->assertSee($mine->reference_no)->assertDontSee($hers->reference_no);
+        queuePage($queue, ['search' => 'no such request'])->assertSee('No requests match your search.');
+    }
+
+    // With the waiting tab and the office filter.
+    $returned = underEvaluation(submitRequest($other, $this->org->free), [CheckItem::Identity->value => CheckResult::Rejected]);
+    workflow()->returnForClarification($returned, $this->registrar, 'Blurred ID.');
+    queuePage('evaluation', ['waiting' => true, 'search' => 'Zephyrine'])->assertSee($returned->reference_no);
+    queuePage('evaluation', ['waiting' => true, 'search' => $this->request->reference_no])->assertDontSee($returned->reference_no);
+    queuePage('in_progress', ['office' => (string) $this->org->registrarOffice->id, 'search' => 'Zephyrine'])
+        ->assertSee($pairs['in_progress'][1]->reference_no)->assertDontSee($pairs['in_progress'][0]->reference_no);
+
+    queuePage('release')->assertDontSeeHtml('data-queue-search');
+});
+
 test('REQ-16-07 Records lists every request, searchable and filterable, and a record is read-only', function () {
     $declined = underEvaluation(submitRequest($this->owner, $this->org->free));
     workflow()->decline($declined, $this->registrar, 'Not a UPHSL graduate.');
