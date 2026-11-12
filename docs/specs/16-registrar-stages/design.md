@@ -76,7 +76,10 @@ Nothing creates new ones.
 | `registrar/records/{request}` | `Registrar\Records\Show` | read-only |
 | `registrar/requests/{request}` | `Registrar\Requests\Show` | the working page for the current stage |
 
-`App\Queries\StageQueue` builds each queue's query.
+`App\Queries\StageQueue` builds each queue's query. Every queue but Release has a `search`
+property (`?search=` in the URL, debounced) that `StageQueue::for()` applies with
+`RegistrarRequestFilter::matching()`, the same match as Records, so the two searches never drift
+(REQ-16-25). The "Waiting for the requester (n)" count stays the tab's full count.
 
 The working page shows one stage panel. It uses `x-check-card`: a heading, the part's data, and
 on the right Confirm / Reject with the current result. A part's data is a `<dl>` of
