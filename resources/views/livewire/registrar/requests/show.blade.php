@@ -16,7 +16,7 @@
         default => [__('Records'), 'records'],
     };
 
-    // The decision applies only when every part shown is confirmed (REQ-16-12, 17, 19).
+    // The decision applies only when every part shown is confirmed (REQ-16-12, 17).
     $allConfirmed = collect($items)->every(fn ($item) => ($results[$item->value] ?? null) === CheckResult::Confirmed);
     $anyRejected = collect($items)->contains(fn ($item) => ($results[$item->value] ?? null) === CheckResult::Rejected);
 @endphp
@@ -204,23 +204,22 @@
                     <flux:button wire:click="acceptReceipt" variant="primary" icon="inbox-arrow-down">{{ __('Accept receipt') }}</flux:button>
                 </section>
             @else
-                {{-- The final quality check checklist (REQ-16-19). --}}
-                @foreach ($items as $item)
-                    <x-check-card :item="$item" :result="$results[$item->value] ?? null" wire:key="check-{{ $item->value }}">
-                        @if ($item === Item::CredentialDocument)
-                            <dl class="divide-y divide-zinc-200 text-sm">
-                                <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
-                                <x-summary-row :label="__('Issued to')">{{ $request->requester_name }}</x-summary-row>
-                                <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
-                                @if ($request->receiving_institution)
-                                    <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
-                                @endif
-                            </dl>
-                        @else
-                            <x-request-route :steps="$request->steps" />
+                {{-- The final quality check: the credential and its route, read-only (REQ-16-19). --}}
+                <section aria-labelledby="final-document-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-final-check-details>
+                    <h2 id="final-document-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Credential Document') }}</h2>
+                    <dl class="divide-y divide-zinc-200 text-sm">
+                        <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
+                        <x-summary-row :label="__('Issued to')">{{ $request->requester_name }}</x-summary-row>
+                        <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
+                        @if ($request->receiving_institution)
+                            <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
                         @endif
-                    </x-check-card>
-                @endforeach
+                    </dl>
+                </section>
+                <section aria-labelledby="final-route-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-final-check-route>
+                    <h2 id="final-route-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Signatures and Stamps') }}</h2>
+                    <x-request-route :steps="$request->steps" />
+                </section>
             @endif
         @endif
 
@@ -229,15 +228,17 @@
             <section aria-labelledby="decision-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-decision>
                 <div>
                     <h2 id="decision-heading" class="text-lg font-semibold text-primary">{{ __('Decision') }}</h2>
-                    <p class="text-sm text-zinc-700">
-                        @if ($allConfirmed)
-                            {{ __('Every part is confirmed.') }}
-                        @elseif ($anyRejected)
-                            {{ __('Some parts are rejected.') }}
-                        @else
-                            {{ __('Confirm every part to approve.') }}
-                        @endif
-                    </p>
+                    @unless ($panel === Page::PANEL_FINAL_CHECK)
+                        <p class="text-sm text-zinc-700">
+                            @if ($allConfirmed)
+                                {{ __('Every part is confirmed.') }}
+                            @elseif ($anyRejected)
+                                {{ __('Some parts are rejected.') }}
+                            @else
+                                {{ __('Confirm every part to approve.') }}
+                            @endif
+                        </p>
+                    @endunless
                     @if ($panel === Page::PANEL_EVALUATION)
                         <p class="text-xs text-zinc-600">{{ __('Evaluator: :name', ['name' => $request->evaluator?->name]) }}</p>
                     @endif

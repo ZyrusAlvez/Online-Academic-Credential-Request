@@ -166,22 +166,15 @@ test('REQ-17-17 Approve and Return are always enabled; a blocked one lists every
     expect($request->fresh()->status)->toBe(RequestStatus::ReturnedForClarification);
 });
 
-test('REQ-17-17 at the final check one rejected part says to change it to Confirm', function () {
-    // Taken through every office to a received final check.
-    $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
-    passOffice($request, $this->registrar);
-    passOffice($request, $this->dean);
-    passOffice($request, $this->vpf);
-    passOffice($request, User::factory()->departmentStaff($this->org->chancellor)->create());
-    workflow()->acceptReceipt(openVisit($request), $this->registrar);
-    $request = $request->fresh();
-
-    workflow()->recordCheck($request, $this->registrar, CheckItem::CredentialDocument, CheckResult::Rejected);
-    workflow()->recordCheck($request, $this->registrar, CheckItem::Signatures, CheckResult::Confirmed);
+test('REQ-17-17 one rejected part says to change it to Confirm', function () {
+    $request = submitRequest($this->owner, $this->org->tor);
+    workflow()->startEvaluation($request, $this->registrar);
+    checkAll($request, $this->registrar, CheckStage::Evaluation);
+    workflow()->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
 
     $page = handoffPage($request)->call('approve')
-        ->assertSet('blockedParts', [['label' => 'Credential Document', 'state' => 'rejected']])
-        ->assertSeeInOrder(["Can't approve yet", 'Approve needs every part of the checklist confirmed.', 'Credential Document', 'rejected', 'To approve, change it to Confirm.']);
+        ->assertSet('blockedParts', [['label' => 'User Identity Verification', 'state' => 'rejected']])
+        ->assertSeeInOrder(["Can't approve yet", 'Approve needs every part of the checklist confirmed.', 'User Identity Verification', 'rejected', 'To approve, change it to Confirm.']);
 
     expect(blockedDialog($page))->not->toContain('decline')->not->toContain('Decline');
 });
@@ -353,7 +346,6 @@ test('REQ-17-08 the next office accepts receipt, which records the delivery', fu
 test('REQ-17-09 approving the final quality check makes it ready for release at once', function () {
     $request = acceptRequest(submitRequest($this->owner, $this->org->free), $this->registrar);
     workflow()->completeVisit(openVisit($request), $this->registrar);
-    checkAll($request, $this->registrar, CheckStage::FinalCheck);
 
     workflow()->approveFinalCheck($request->fresh(), $this->registrar);
 

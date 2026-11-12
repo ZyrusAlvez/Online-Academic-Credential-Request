@@ -9,14 +9,12 @@ enum CheckStage: string
 {
     case Evaluation = 'evaluation';
     case Payment = 'payment';
-    case FinalCheck = 'final_check';
 
     public function label(): string
     {
         return match ($this) {
             self::Evaluation => 'Initial Evaluation',
             self::Payment => 'Payment Validation',
-            self::FinalCheck => 'Final Quality Check',
         };
     }
 }

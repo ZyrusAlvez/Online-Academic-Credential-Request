@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\CheckStage;
 use App\Enums\DelayCategory;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
@@ -120,7 +119,6 @@ test('REQ-05-05 the final quality check makes the request ready for release', fu
     workflow()->acceptReceipt(openVisit($request), $this->registrar);
     expect($request->fresh()->status)->toBe(RequestStatus::ForFinalApproval);
 
-    checkAll($request, $this->registrar, CheckStage::FinalCheck);   // REQ-16-19
     workflow()->completeVisit(openVisit($request), $this->registrar);
     expect($request->fresh())
         ->status->toBe(RequestStatus::ReadyForRelease)

@@ -554,8 +554,8 @@ class RequestWorkflow
     }
 
     /**
-     * Both final checks confirmed: complete the Registrar's final-check visit, which makes the
-     * credential ready for release (REQ-16-19, REQ-05-05).
+     * The Registrar found the credential complete and accurate: complete the final-check visit,
+     * which makes the credential ready for release (REQ-16-19, REQ-05-05).
      */
     public function approveFinalCheck(CredentialRequest $request, User $registrar, ?string $remarks = null): void
     {
@@ -826,7 +826,6 @@ class RequestWorkflow
     private const STAGE_STATUS = [
         'evaluation' => RequestStatus::UnderEvaluation,
         'payment' => RequestStatus::PaymentVerification,
-        'final_check' => RequestStatus::ForFinalApproval,
     ];
 
     /**
@@ -1145,10 +1144,6 @@ class RequestWorkflow
     {
         $step = $current->step()->with('department')->firstOrFail();
         $correction = $current->purpose === VisitPurpose::Correction;
-
-        if ($step->task === RouteTask::FinalCheck && ! $correction) {
-            $this->assertAllConfirmed($locked, CheckStage::FinalCheck);   // REQ-16-19
-        }
 
         $current->forceFill(['status' => VisitStatus::Done, 'done_at' => now(), 'done_by' => $actor->id, 'remarks' => filled($remarks) ? $remarks : null])->save();
 
