@@ -4,6 +4,7 @@ use App\Enums\Role;
 use App\Models\User;
 use App\Notifications\VerificationCode;
 use Illuminate\Database\Eloquent\MassAssignmentException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Volt\Volt;
@@ -58,7 +59,42 @@ test('REQ-01-02 role and activation cannot be mass assigned', function () {
 test('REQ-01-03 registration is rejected for a duplicate email', function () {
     User::factory()->create(['email' => 'juan@example.com']);
 
+    registerForm()->assertHasErrors(['email' => 'unique'])->assertSee('The email has already been taken.');
+
+    expect(User::count())->toBe(1);
+    $this->assertGuest();
+});
+
+test('REQ-01-03 an email already registered in any form cannot register again', function (string $typed) {
+    User::factory()->create(['email' => 'juan@example.com']);
+
+    registerForm(['email' => $typed])->assertHasErrors('email');
+
+    expect(User::count())->toBe(1);
+    $this->assertGuest();
+})->with([
+    'with spaces around it' => '  juan@example.com  ',
+    'in capitals' => 'JUAN@Example.com',
+]);
+
+test('REQ-01-03 no kind of existing account can be registered again', function (User $existing) {
     registerForm()->assertHasErrors(['email' => 'unique']);
+
+    expect(User::where('email', 'juan@example.com')->sole()->is($existing))->toBeTrue();
+})->with([
+    'an unverified account' => fn () => User::factory()->unverified()->create(['email' => 'juan@example.com']),
+    'a deactivated account' => fn () => User::factory()->inactive()->create(['email' => 'juan@example.com']),
+    'an account made with Google (no password)' => fn () => User::factory()->create(['email' => 'juan@example.com', 'password' => null, 'google_id' => 'google-123']),
+    'a staff account' => fn () => User::factory()->registrar()->create(['email' => 'juan@example.com']),
+    'an admin account' => fn () => User::factory()->admin()->create(['email' => 'juan@example.com']),
+]);
+
+test('REQ-01-03 a second account with the same email is refused by the database too', function () {
+    User::factory()->create(['email' => 'juan@example.com']);
+
+    expect(fn () => User::factory()->create(['email' => 'juan@example.com']))->toThrow(UniqueConstraintViolationException::class)
+        ->and(fn () => User::factory()->create(['email' => 'JUAN@example.com']))->toThrow(UniqueConstraintViolationException::class)
+        ->and(User::count())->toBe(1);
 });
 
 test('REQ-01-03 registration is rejected for an invalid email', function () {
