@@ -24,3 +24,7 @@
 - [x] `RegistrarRequestFilter::matching()` shared by Records and the stage queues; search field on
       every queue but Release (REQ-16-25)
 - [x] Pest test for REQ-16-25
+- [x] Final quality check without a checklist: remove `CheckStage::FinalCheck` and the items
+      `credential_document`, `signatures` (migration deletes their rows); details and route shown
+      read-only; Approve needs no parts (REQ-16-19)
+- [x] Pest tests for the changed REQ-16-19

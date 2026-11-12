@@ -141,9 +141,11 @@ This replaces:
 ### Final Quality Check
 - **REQ-16-19** WHILE a request's document is at the final quality check THE SYSTEM SHALL first let
   the registrar accept its receipt (REQ-05-03). Once it is received, THE SYSTEM SHALL show the
-  checklist parts Credential document (complete and correct) and Signatures and stamps (each office
-  on the route and when it finished), Remarks, and the buttons Approve and Decline:
-  - Approve SHALL require both parts confirmed; it marks the request `ready_for_release`.
+  credential's details (credential, issued to, purpose, receiving school) and its route (each office
+  and when it finished), read-only with no checklist, then Remarks and the buttons Approve and
+  Decline. The BRD asks only that the Registrar confirm the credential is complete and accurate
+  before it is ready for release (user's decision, 2026-11-13, replacing the two checklist parts):
+  - Approve marks the request `ready_for_release`.
   - Decline SHALL require remarks; it closes the office visit, declines the request and notifies
     the requester.
 

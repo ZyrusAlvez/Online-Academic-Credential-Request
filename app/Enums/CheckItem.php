@@ -5,7 +5,8 @@ namespace App\Enums;
 use App\Models\CredentialRequest;
 
 /**
- * One part of a Registrar stage's checklist (REQ-16-10, 17, 19).
+ * One part of a Registrar stage's checklist (REQ-16-10, 17). The final quality check has none
+ * (REQ-16-19).
  */
 enum CheckItem: string
 {
@@ -19,16 +20,11 @@ enum CheckItem: string
     case PaymentProof = 'payment_proof';
     case PaymentAmount = 'payment_amount';
 
-    // Final Quality Check
-    case CredentialDocument = 'credential_document';
-    case Signatures = 'signatures';
-
     public function stage(): CheckStage
     {
         return match ($this) {
             self::CredentialRequest, self::Identity, self::AcademicRecord, self::Representative => CheckStage::Evaluation,
             self::PaymentProof, self::PaymentAmount => CheckStage::Payment,
-            self::CredentialDocument, self::Signatures => CheckStage::FinalCheck,
         };
     }
 
@@ -41,8 +37,6 @@ enum CheckItem: string
             self::Representative => 'Representative Verification',
             self::PaymentProof => 'Proof of Payment',
             self::PaymentAmount => 'Amount and Reference',
-            self::CredentialDocument => 'Credential Document',
-            self::Signatures => 'Signatures and Stamps',
         };
     }
 
@@ -56,8 +50,6 @@ enum CheckItem: string
             self::Representative => 'The SPA and the IDs of the owner and the representative are valid.',
             self::PaymentProof => 'The proof matches a payment in the official payment record.',
             self::PaymentAmount => 'The amount paid covers the amount due, and the reference and date match.',
-            self::CredentialDocument => 'The credential is complete and accurate.',
-            self::Signatures => 'Every office on the route has signed or stamped it.',
         };
     }
 

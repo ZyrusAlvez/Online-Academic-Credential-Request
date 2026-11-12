@@ -155,7 +155,6 @@ test('REQ-16-05 Final Quality Check lists the documents back at the Registrar fo
 
 test('REQ-16-06 Release lists the credentials ready for release', function () {
     $ready = atFinalCheck(submitRequest($this->owner, $this->org->tor));
-    checkAll($ready, $this->registrar, CheckStage::FinalCheck);
     workflow()->approveFinalCheck($ready, $this->registrar);
 
     queuePage('release')->assertSee($ready->reference_no)->assertDontSee($this->request->reference_no);
@@ -404,7 +403,7 @@ test('REQ-16-18 the request is in progress only once the paper leaves the first 
 
 // ── Final Quality Check ─────────────────────────────────────────────────────────────────────
 
-test('REQ-16-19 the final check is received first, then approved with both parts or declined with remarks', function () {
+test('REQ-16-19 the final check is received first, then shows the details and route read-only, and is approved or declined with remarks', function () {
     Notification::fake();
     acceptRequest($this->request, $this->registrar);
     passOffice($this->request, $this->registrar);
@@ -415,10 +414,19 @@ test('REQ-16-19 the final check is received first, then approved with both parts
     stagePage()->assertSee('Accept receipt')->assertDontSee('Credential Document')->call('acceptReceipt');
     expect($this->request->fresh()->status)->toBe(RequestStatus::ForFinalApproval);
 
-    stagePage()->assertSee('Credential Document')->assertSee('Signatures and Stamps')->assertDontSee('Return to requester')
-        ->call('approve')->assertSet('blockedParts', [['label' => 'Credential Document', 'state' => 'unchecked'], ['label' => 'Signatures and Stamps', 'state' => 'unchecked']]);
-    checkAll($this->request, $this->registrar, CheckStage::FinalCheck);
-    stagePage()->call('approve');
+    // No checklist: the details and the route, with no Reject/Confirm and no part to confirm.
+    stagePage()
+        ->assertSeeHtmlInOrder(['data-final-check-details', 'Credential Document', $this->request->credentialType->name, $this->request->requester_name, $this->request->purpose])
+        ->assertSeeHtmlInOrder(['data-final-check-route', 'Signatures and Stamps', 'College of Computer Studies', 'Office of the Chancellor'])
+        ->assertDontSeeHtml('data-check=')
+        ->assertDontSeeHtml('data-confirm-button')
+        ->assertDontSee('The credential is complete and accurate.')
+        ->assertDontSee('Every office on the route has signed or stamped it.')
+        ->assertDontSee('Confirm every part to approve.')
+        ->assertDontSee('Return to requester')
+        ->call('check', 'credential_document', 'confirmed')->assertStatus(422);
+
+    stagePage()->set('remarks', 'Checked against the records.')->call('approve')->assertSet('blockedParts', [])->assertHasNoErrors();
     expect($this->request->fresh()->status)->toBe(RequestStatus::ReadyForRelease);
 
     $declined = atFinalCheck(submitRequest($this->owner, $this->org->tor));
@@ -435,7 +443,6 @@ test('REQ-16-19 the final check is received first, then approved with both parts
 
 test('REQ-16-20 release records who claimed it; a representative must be verified, also when declared later', function () {
     $ready = atFinalCheck($this->request);
-    checkAll($ready, $this->registrar, CheckStage::FinalCheck);
     workflow()->approveFinalCheck($ready, $this->registrar);
     $representative = declareRepresentative($ready, $this->owner, ['full_name' => 'Rosa Reyes']);
 
@@ -451,7 +458,6 @@ test('REQ-16-20 release records who claimed it; a representative must be verifie
         ->released_by->toBe($this->registrar->id)->id_presented->toBeNull();
 
     $owners = atFinalCheck(submitRequest($this->owner, $this->org->tor));
-    checkAll($owners, $this->registrar, CheckStage::FinalCheck);
     workflow()->approveFinalCheck($owners, $this->registrar);
     workflow()->release($owners, $this->registrar, RecipientType::Owner);
     expect($owners->fresh()->release->recipient_name)->toBe($owners->requester_name);

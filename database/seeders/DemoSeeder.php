@@ -203,7 +203,6 @@ class DemoSeeder extends Seeder
             $this->at(10, function () use ($ana, $type): void {
                 $request = $this->accepted($ana, $type('Certification of Graduation'), 'Employment');
                 $this->advanceUntil($request, Department::REGISTRAR_CODE, receive: true, finalCheck: true);
-                $this->workflow->recordCheck($request, $this->registrar, CheckItem::CredentialDocument, CheckResult::Rejected);
                 $this->workflow->decline($request, $this->registrar, 'The records show the requester has not completed the program.');
             });
 
@@ -344,10 +343,6 @@ class DemoSeeder extends Seeder
             }
 
             $this->later(fake()->numberBetween(3, 30));
-
-            if ($visit->step->task === RouteTask::FinalCheck) {
-                $this->check($request, CheckStage::FinalCheck);
-            }
 
             $this->workflow->completeVisit($visit, $this->actorFor($code), fake()->optional(0.3)->randomElement(['Signed.', 'Verified.', 'Stamped.']));
 

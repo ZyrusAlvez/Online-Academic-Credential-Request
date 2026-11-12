@@ -331,7 +331,6 @@ class Show extends Component
         $stage = match ($panel) {
             self::PANEL_EVALUATION, self::PANEL_CLARIFICATION => CheckStage::Evaluation,
             self::PANEL_PAYMENT => CheckStage::Payment,
-            self::PANEL_FINAL_CHECK => CheckStage::FinalCheck,
             default => null,
         };
 
@@ -427,7 +426,6 @@ class Show extends Component
         return match ($this->credentialRequest->status) {
             RequestStatus::UnderEvaluation => CheckStage::Evaluation,
             RequestStatus::PaymentVerification => CheckStage::Payment,
-            RequestStatus::ForFinalApproval => CheckStage::FinalCheck,
             default => null,
         };
     }

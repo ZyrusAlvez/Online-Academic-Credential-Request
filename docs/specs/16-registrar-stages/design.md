@@ -14,7 +14,7 @@
 | `checked_at` | datetime | |
 
 There is a unique key on (`credential_request_id`, `item`). An item belongs to one stage
-(`App\Enums\CheckStage`: `evaluation`, `payment`, `final_check`), so the stage is not stored. A
+(`App\Enums\CheckStage`: `evaluation`, `payment`), so the stage is not stored. A
 result is updated when the evaluator changes their mind. Clearing the rejected parts on resubmit or
 reopen deletes their rows. The decision's ledger entry keeps the history (REQ-16-22).
 
@@ -27,9 +27,13 @@ not the ID they showed (REQ-16-20).
 |---|---|
 | evaluation | `credential_request`, `identity`, `academic_record`, `representative` (only when `requester_mode` is representative) |
 | payment | `payment_proof`, `payment_amount` |
-| final_check | `credential_document`, `signatures` |
 
 `CheckItem::for(CheckStage, CredentialRequest)` lists the items that apply to a request.
+
+The final quality check has no checklist (REQ-16-19): its page shows the credential's details and
+route read-only. The migration `2026_11_13_000001_remove_final_check_items` deletes the
+`credential_document` and `signatures` rows saved before; each final check stays in the ledger
+(`StepCompleted` with the registrar, time and remarks).
 
 ## Workflow (`App\Services\RequestWorkflow`)
 
@@ -44,7 +48,7 @@ not the ID they showed (REQ-16-20).
 | `reopenEvaluation(request, registrar)` | pending_compliance → under_evaluation | clears rejected items; the registrar becomes the evaluator |
 | `verifyPaymentAndAccept` | payment_verification → accepted_for_processing | also needs both payment items confirmed |
 | `rejectPayment` | payment_verification → awaiting_payment | unchanged; clears the payment items so the next proof is checked anew |
-| `approveFinalCheck(request, registrar, ?remarks)` | for_final_approval → ready_for_release | both final items confirmed; completes the final-check visit (`completeVisit`) |
+| `approveFinalCheck(request, registrar, ?remarks)` | for_final_approval → ready_for_release | completes the final-check visit (`completeVisit`) |
 | `release(request, registrar, recipientType, ?representativeId)` | ready_for_release → released | the name comes from the owner or the representative |
 
 `forward()` moves `accepted_for_processing` to `in_progress` when it sends the document on from an
