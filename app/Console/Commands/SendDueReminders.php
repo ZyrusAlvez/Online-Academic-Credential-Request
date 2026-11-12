@@ -3,7 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Enums\RequestStatus;
+use App\Enums\Role;
 use App\Models\CredentialRequest;
+use App\Models\User;
 use App\Notifications\DueReminder;
 use App\Services\WorkingCalendar;
 use App\Support\OfficeStaff;
@@ -54,9 +56,24 @@ class SendDueReminders extends Command
         $sent = 0;
         $visit = $request->openVisit;
 
+        // The holding office's department staff; registrars hear about every request below.
         if ($visit !== null && $this->firstTime($overdue ? 'office_overdue' : 'office_due_soon', $visit->id, $request)) {
-            Notification::send(OfficeStaff::of($visit->department), new DueReminder($request, $overdue));
-            $sent++;
+            $staff = OfficeStaff::of($visit->department)->reject(fn (User $user): bool => $user->hasRole(Role::Registrar));
+
+            if ($staff->isNotEmpty()) {
+                Notification::send($staff, new DueReminder($request, $overdue));
+                $sent++;
+            }
+        }
+
+        // Every registrar, once per request for each kind, wherever the paper is (REQ-06-20).
+        if ($this->firstTime($overdue ? 'registrar_overdue' : 'registrar_due_soon', $request->id, $request)) {
+            $registrars = User::query()->where('role', Role::Registrar)->where('is_active', true)->get();
+
+            if ($registrars->isNotEmpty()) {
+                Notification::send($registrars, new DueReminder($request, $overdue));
+                $sent++;
+            }
         }
 
         if ($overdue && $request->student->is_active && $this->firstTime('requester_overdue', $request->id, $request)) {

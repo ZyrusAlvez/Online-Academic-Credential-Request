@@ -16,11 +16,11 @@
 - [x] Pest tests for REQ-06-17
 - [x] Offices inside the step bar instead of a list under it (REQ-06-01, REQ-06-17, 2026-11-12)
 - [x] Pest tests for the changed REQ-06-01 and REQ-06-17
-- [ ] `RequestEventType::requiresRequesterAction()`; `RequestActivity` mails every requester update,
+- [x] `RequestEventType::requiresRequesterAction()`; `RequestActivity` mails every requester update,
       always mails [ACTION REQUIRED], mails staff, staff email variant (REQ-06-05..08, 16, 18, 19)
-- [ ] "Action required" badge in the bell and on the Notifications page (REQ-06-18)
-- [ ] Registrar-wide due/overdue reminders; office reminders to department staff; staff emails
+- [x] "Action required" badge in the bell and on the Notifications page (REQ-06-18)
+- [x] Registrar-wide due/overdue reminders; office reminders to department staff; staff emails
       (REQ-06-11, 12, 20)
-- [ ] Email notifications page for registrars and department staff, with the [ACTION REQUIRED]
+- [x] Email notifications page for registrars and department staff, with the [ACTION REQUIRED]
       note for requesters (REQ-06-16); Help updated
-- [ ] Pest tests for the changed REQ-06-05..08, 11, 12, 16 and the new REQ-06-18..20
+- [x] Pest tests for the changed REQ-06-05..08, 11, 12, 16 and the new REQ-06-18..20

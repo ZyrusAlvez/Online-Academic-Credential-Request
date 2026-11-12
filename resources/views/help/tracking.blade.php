@@ -31,8 +31,9 @@
 </x-faq-item>
 
 <x-faq-item question="How will I know when something changes?">
-    <p>You are notified in the app (the bell at the top) and by email: when your request is received, returned to you, approved with payment instructions, when your payment is verified or not accepted, when your credential is ready for release, and if it is declined or overdue.</p>
-    <p>You can turn the emails off in <a href="{{ route('settings.notifications') }}" wire:navigate>Settings → Email notifications</a>; the notifications in the app always stay on.</p>
+    <p>You are notified in the app (the bell at the top) and by email of every update on your request: when it is received, returned to you, approved with payment instructions, received and signed by each office, ready for release, and if it is declined or overdue.</p>
+    <p>Anything you need to do is marked <strong>[ACTION REQUIRED]</strong>: correcting your request, visiting the Office of the Registrar, uploading another ID or proof of payment, paying, naming another representative, or claiming your credential.</p>
+    <p>You can turn the emails off in <a href="{{ route('settings.notifications') }}" wire:navigate>Settings → Email notifications</a>. [ACTION REQUIRED] emails are still sent, and the notifications in the app always stay on.</p>
 </x-faq-item>
 
 <x-faq-item question="My request is overdue. What happens now?">

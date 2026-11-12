@@ -83,7 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    // Requesters land on their profile (REQ-15-07); staff have only the password.
+    // Requesters land on their profile (REQ-15-07); staff on their password.
     Route::get('settings', fn () => redirect()->route(
         auth()->user()->hasRole(Role::Student) ? 'settings.profile' : 'settings.password'
     ))->name('settings');
@@ -91,8 +91,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('settings/profile', Student\Profile::class)
         ->middleware(['verified', 'role:student'])->name('settings.profile');
     Volt::route('settings/password', 'settings.password')->name('settings.password');
-    Route::get('settings/notifications', Student\EmailNotifications::class)
-        ->middleware('role:student')->name('settings.notifications');
+    Route::get('settings/notifications', Notifications\EmailSettings::class)
+        ->middleware('role:student,registrar,department')->name('settings.notifications');
 });
 
 require __DIR__.'/auth.php';

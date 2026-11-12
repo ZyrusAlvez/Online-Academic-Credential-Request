@@ -11,8 +11,8 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * A request is due soon or overdue (REQ-06-11..13). Offices get it in-app; the requester also by
- * email.
+ * A request is due soon or overdue (REQ-06-11..13, REQ-06-20): to the holding office's staff,
+ * every registrar, and (overdue only) the requester; in-app, and by email unless switched off.
  */
 class DueReminder extends Notification implements ShouldQueue
 {
@@ -25,17 +25,25 @@ class DueReminder extends Notification implements ShouldQueue
      */
     public function via(User $notifiable): array
     {
-        return $notifiable->hasRole(Role::Student) && $notifiable->wantsEmailNotifications() ? ['database', 'mail'] : ['database'];
+        return ! $notifiable->hasRole(Role::Admin) && $notifiable->wantsEmailNotifications() ? ['database', 'mail'] : ['database'];
     }
 
     public function toMail(User $notifiable): MailMessage
     {
-        return (new MailMessage)
+        $message = (new MailMessage)
             ->subject("{$this->request->reference_no}: {$this->title($notifiable)}")
             ->greeting($notifiable->greeting())
-            ->line($this->message($notifiable))
+            ->line($this->message($notifiable));
+
+        if (! $notifiable->hasRole(Role::Student)) {
+            return $message
+                ->action('Open request', $this->url($notifiable))
+                ->salutation((string) config('app.name'));
+        }
+
+        return $message
             ->line('We are sorry for the delay. You can follow your request at any time.')
-            ->action('Track your request', route('student.requests.show', $this->request))
+            ->action('Track your request', $this->url($notifiable))
             ->salutation('Office of the Registrar, University of Perpetual Help System');
     }
 
@@ -49,13 +57,18 @@ class DueReminder extends Notification implements ShouldQueue
             'reference_no' => $this->request->reference_no,
             'title' => $this->title($notifiable),
             'message' => $this->message($notifiable),
-            'url' => route(match ($notifiable->role) {
-                Role::Student => 'student.requests.show',
-                Role::Department => 'department.requests.show',
-                Role::Registrar => 'registrar.requests.show',
-                Role::Admin => 'records.show',   // admins are not reminded; the read-only record (REQ-18-06)
-            }, $this->request),
+            'url' => $this->url($notifiable),
         ];
+    }
+
+    private function url(User $notifiable): string
+    {
+        return route(match ($notifiable->role) {
+            Role::Student => 'student.requests.show',
+            Role::Department => 'department.requests.show',
+            Role::Registrar => 'registrar.requests.show',
+            Role::Admin => 'records.show',   // admins are not reminded; the read-only record (REQ-18-06)
+        }, $this->request);
     }
 
     private function title(User $notifiable): string
@@ -73,6 +86,15 @@ class DueReminder extends Notification implements ShouldQueue
     {
         if ($notifiable->hasRole(Role::Student)) {
             return "Your {$this->request->credentialType->name} request was expected to be ready by {$this->due()}. It is still being processed.";
+        }
+
+        // Registrars are told about every request, wherever the paper is (REQ-06-20).
+        if ($notifiable->hasRole(Role::Registrar)) {
+            $where = $this->request->staffWhereabouts();
+
+            return $this->overdue
+                ? "It was due {$this->due()}. Current location: {$where}."
+                : "It is due {$this->due()}. Current location: {$where}.";
         }
 
         return $this->overdue
