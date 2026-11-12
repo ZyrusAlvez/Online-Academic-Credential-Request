@@ -63,6 +63,31 @@ test('REQ-02-08 the admin can create a verified department staff account', funct
         ->and(Hash::check('Secret123!', $staff->password))->toBeTrue();
 });
 
+test('REQ-02-08 a staff account cannot reuse an email that is already registered', function () {
+    $student = User::factory()->student()->create(['email' => 'juan@example.com']);
+    $staff = User::factory()->departmentStaff($this->library)->create(['email' => 'lina@uphsl.edu.ph']);
+
+    Livewire::actingAs($this->admin)->test(Index::class)
+        ->call('create')
+        ->set('form.first_name', 'Juan')->set('form.last_name', 'Again')
+        ->set('form.email', 'juan@example.com')->set('form.role', 'registrar')
+        ->set('form.password', 'Secret123!')
+        ->call('save')
+        ->assertHasErrors(['form.email' => 'unique']);
+
+    // Editing another account to an email in use is refused; keeping its own email is not.
+    Livewire::actingAs($this->admin)->test(Index::class)
+        ->call('edit', $staff->id)
+        ->set('form.email', 'juan@example.com')
+        ->call('save')
+        ->assertHasErrors(['form.email' => 'unique'])
+        ->set('form.email', 'lina@uphsl.edu.ph')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(User::where('email', 'juan@example.com')->sole()->is($student))->toBeTrue();
+});
+
 test('REQ-01-03 a staff account password must meet the password rules', function () {
     Livewire::actingAs($this->admin)->test(Index::class)
         ->call('create')
