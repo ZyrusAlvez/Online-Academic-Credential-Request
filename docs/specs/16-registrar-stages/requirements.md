@@ -60,6 +60,11 @@ This replaces:
 - **REQ-16-05** THE Final Quality Check queue SHALL list the requests whose document is sent to, or
   held by, the Registrar for the final quality check, oldest first.
 - **REQ-16-06** THE Release queue SHALL list the credentials ready for release, oldest first.
+- **REQ-16-25** THE Initial Evaluation, Payment Validation, In Progress and Final Quality Check
+  queues SHALL have a search field that narrows the list shown (either tab, and with the office
+  filter) to the requests whose tracking number or requester name matches, as Records searches
+  them (REQ-16-07, which also matches the student number). Release keeps its plain list. *(User's
+  request, 2026-11-12.)*
 - **REQ-16-07** THE Records list SHALL show every request, searchable by tracking number, student
   number or name, and filterable by status (including "Overdue"), credential type and the office
   holding it. A record SHALL open a read-only page with the request's details, route, office visits
