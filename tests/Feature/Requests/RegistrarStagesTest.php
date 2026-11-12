@@ -192,6 +192,12 @@ test('REQ-16-25 the stage queues but Release search by tracking number or reques
     queuePage('release')->assertDontSeeHtml('data-queue-search');
 });
 
+test('REQ-16-25 on the queues with a waiting tab the search sits right of the tabs, on their line', function () {
+    foreach (['evaluation', 'payment'] as $queue) {
+        queuePage($queue)->assertSeeHtmlInOrder(['justify-between', 'data-queue-tabs', 'sm:ml-auto sm:w-72', 'data-queue-search']);
+    }
+});
+
 test('REQ-16-07 Records lists every request, searchable and filterable, and a record is read-only', function () {
     $declined = underEvaluation(submitRequest($this->owner, $this->org->free));
     workflow()->decline($declined, $this->registrar, 'Not a UPHSL graduate.');

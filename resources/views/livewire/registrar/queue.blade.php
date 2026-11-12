@@ -7,23 +7,32 @@
 <div class="space-y-6" data-queue="{{ $queue->value }}">
     <x-page-header :title="__($queue->label())" :description="__($queue->description())" />
 
-    @if ($hasWaitingTab)
-        <div class="flex flex-wrap gap-2" role="group" aria-label="{{ __('Show') }}" data-queue-tabs>
-            <flux:button size="sm" wire:click="$set('waiting', false)" :variant="$showWaiting ? 'outline' : 'primary'" aria-pressed="{{ $showWaiting ? 'false' : 'true' }}">{{ __($queue->activeTabLabel()) }}</flux:button>
-            <flux:button size="sm" wire:click="$set('waiting', true)" :variant="$showWaiting ? 'primary' : 'outline'" aria-pressed="{{ $showWaiting ? 'true' : 'false' }}">{{ __('Waiting for the requester (:count)', ['count' => $waitingCount]) }}</flux:button>
-        </div>
-    @endif
+    @if ($hasWaitingTab || $queue->isSearchable())
+        {{-- Tabs on the left, search on the right of the same line (wraps on small screens). --}}
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            @if ($hasWaitingTab)
+                <div class="flex flex-wrap gap-2" role="group" aria-label="{{ __('Show') }}" data-queue-tabs>
+                    <flux:button size="sm" wire:click="$set('waiting', false)" :variant="$showWaiting ? 'outline' : 'primary'" aria-pressed="{{ $showWaiting ? 'false' : 'true' }}">{{ __($queue->activeTabLabel()) }}</flux:button>
+                    <flux:button size="sm" wire:click="$set('waiting', true)" :variant="$showWaiting ? 'primary' : 'outline'" aria-pressed="{{ $showWaiting ? 'true' : 'false' }}">{{ __('Waiting for the requester (:count)', ['count' => $waitingCount]) }}</flux:button>
+                </div>
+            @endif
 
-    @if ($queue->isSearchable())
-        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3" data-queue-search>
-            <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" label:sr-only :placeholder="__('Tracking no. or name')" clearable />
-            @if ($queue === Q::InProgress)
-                <flux:select wire:model.live="office" :label="__('Currently at')" label:sr-only>
-                    <flux:select.option value="">{{ __('Any office') }}</flux:select.option>
-                    @foreach ($offices as $option)
-                        <flux:select.option :value="$option->id">{{ __('At :office', ['office' => $option->name]) }}</flux:select.option>
-                    @endforeach
-                </flux:select>
+            @if ($queue->isSearchable())
+                <div @class([
+                    'grid w-full gap-3',
+                    'sm:ml-auto sm:w-72' => $hasWaitingTab,
+                    'md:grid-cols-2 xl:grid-cols-3' => ! $hasWaitingTab,
+                ]) data-queue-search>
+                    <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" label:sr-only :placeholder="__('Tracking no. or name')" clearable />
+                    @if ($queue === Q::InProgress)
+                        <flux:select wire:model.live="office" :label="__('Currently at')" label:sr-only>
+                            <flux:select.option value="">{{ __('Any office') }}</flux:select.option>
+                            @foreach ($offices as $option)
+                                <flux:select.option :value="$option->id">{{ __('At :office', ['office' => $option->name]) }}</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                    @endif
+                </div>
             @endif
         </div>
     @endif

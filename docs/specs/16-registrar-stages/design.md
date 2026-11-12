@@ -79,7 +79,9 @@ Nothing creates new ones.
 `App\Queries\StageQueue` builds each queue's query. Every queue but Release has a `search`
 property (`?search=` in the URL, debounced) that `StageQueue::for()` applies with
 `RegistrarRequestFilter::matching()`, the same match as Records, so the two searches never drift
-(REQ-16-25). The "Waiting for the requester (n)" count stays the tab's full count.
+(REQ-16-25). The "Waiting for the requester (n)" count stays the tab's full count. On the queues
+with that tab (Initial Evaluation, Payment Validation) the search box sits on the tabs' line,
+right-aligned; it wraps below them on narrow screens.
 
 The working page shows one stage panel. It uses `x-check-card`: a heading, the part's data, and
 on the right Confirm / Reject with the current result. A part's data is a `<dl>` of
