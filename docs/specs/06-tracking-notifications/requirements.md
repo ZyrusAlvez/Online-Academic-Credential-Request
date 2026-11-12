@@ -47,26 +47,48 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
   (with the expected release date), when the credential is ready for release, and when the request
   is declined. *(Only the requester cancels now, REQ-16-21, and their own actions are not sent to
   them.)*
-- **REQ-06-16** THE SYSTEM SHALL let a requester turn email notifications on or off in Settings →
-  Email notifications; they are on for every new and existing account. WHILE they are off THE
-  SYSTEM SHALL send no request, reminder or ID-review emails to that requester, and SHALL still
-  notify them in-app. Verification codes and password-reset emails are always sent. Staff, who are
-  notified in-app only, do not see the setting.
-- **REQ-06-06** THE SYSTEM SHALL notify the requester in-app of the other milestones shown in their
-  history (evaluation started, compliance recorded, received or completed by an office, representative
-  verified), and never about their own actions other than the submission confirmation.
+- **REQ-06-16** THE SYSTEM SHALL let requesters, registrars and department staff turn email
+  notifications on or off in Settings → Email notifications; they are on for every new and
+  existing account. WHILE they are off THE SYSTEM SHALL send that account no informational request
+  or reminder emails, SHALL still send [ACTION REQUIRED] emails (REQ-06-18), and SHALL still notify
+  in-app; the requester's page SHALL say that [ACTION REQUIRED] notifications are always emailed.
+  Verification codes and password-reset emails are always sent. Admins, who are not notified, do
+  not see the setting. *(Staff and the [ACTION REQUIRED] exception: user's decision, 2026-11-12.)*
+- **REQ-06-06** THE SYSTEM SHALL notify the requester in-app and by email of the other milestones
+  shown in their history (evaluation started, compliance recorded, received or completed by an
+  office, representative verified), and never about their own actions other than the submission
+  confirmation. *(By email too: user's decision, 2026-11-12.)*
+- **REQ-06-18** THE SYSTEM SHALL mark a requester notification [ACTION REQUIRED] when they must act:
+  returned for clarification, office visit required (pending compliance), valid ID not accepted,
+  payment instructions (an amount is due), payment not accepted, representative not accepted, and
+  ready for release (claim it). Its email subject SHALL start with "[ACTION REQUIRED]", and the
+  bell and the Notifications page SHALL show it with an "Action required" badge.
+  *(User's request, 2026-11-12.)*
 
 ### Staff notifications
 - **REQ-06-07** WHEN a document is forwarded or returned to an office THE SYSTEM SHALL notify that
-  office's active staff in-app; for the Office of the Registrar, registrar accounts are notified.
-- **REQ-06-08** WHEN a request is submitted or resubmitted (REQ-16-15), a proof of payment is
-  uploaded, or a representative is declared THE SYSTEM SHALL notify active registrar accounts in-app.
+  office's active staff in-app and by email; for the Office of the Registrar, registrar accounts
+  are notified. *(By email too: user's decision, 2026-11-12.)*
+- **REQ-06-08** WHEN a request is submitted or resubmitted (REQ-16-15), a proof of payment or
+  another valid ID is uploaded, the requester replies, or a representative is declared THE SYSTEM
+  SHALL notify active registrar accounts in-app and by email. *(By email too: user's decision,
+  2026-11-12.)*
+- **REQ-06-19** A staff notification SHALL be sent to each account separately, so each account has
+  its own read status, and its email SHALL name the request, the credential and the requester,
+  say what happened and where the document is, and link to the staff member's own request page.
+  *(User's request, 2026-11-12.)*
 
 ### Reminders
 - **REQ-06-11** WHEN a document's effective due date falls within the next working day THE SYSTEM
-  SHALL remind the staff of the office holding it, once per office visit.
-- **REQ-06-12** WHEN a document becomes overdue THE SYSTEM SHALL alert the staff of the office
-  holding it, once per office visit, so an office that receives an overdue document is alerted too.
+  SHALL remind the department staff of the office holding it, once per office visit, in-app and by
+  email. *(Registrars get REQ-06-20 instead; email: user's decision, 2026-11-12.)*
+- **REQ-06-12** WHEN a document becomes overdue THE SYSTEM SHALL alert the department staff of the
+  office holding it, once per office visit, so an office that receives an overdue document is
+  alerted too, in-app and by email. *(Registrars get REQ-06-20 instead; email: user's decision,
+  2026-11-12.)*
+- **REQ-06-20** WHEN any request being processed is due within the next working day, and again when
+  it becomes overdue, THE SYSTEM SHALL alert every active registrar account once per request,
+  in-app and by email, naming where the document is. *(User's request, 2026-11-12.)*
 - **REQ-06-13** WHEN a request becomes overdue THE SYSTEM SHALL tell the requester once, in-app and
   by email.
 - **REQ-06-14** THE SYSTEM SHALL send reminders every working day at 07:00, skip non-working days,

@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Livewire\Student;
+namespace App\Livewire\Notifications;
 
 use App\Actions\Account\SetEmailNotifications;
+use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -10,10 +11,11 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Settings → Email notifications (REQ-06-16): one switch, saved as soon as it is flipped.
+ * Settings → Email notifications (REQ-06-16) for requesters, registrars and department staff:
+ * one switch, saved as soon as it is flipped.
  */
 #[Title('Email notifications')]
-class EmailNotifications extends Component
+class EmailSettings extends Component
 {
     public bool $enabled = true;
 
@@ -37,6 +39,8 @@ class EmailNotifications extends Component
 
     public function render(): View
     {
-        return view('livewire.student.email-notifications');
+        return view('livewire.notifications.email-settings', [
+            'requester' => $this->user()->hasRole(Role::Student),
+        ]);
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use App\Models\CredentialRequest;
+
 /**
  * Kinds of ledger entries (request_events). Every action on a request writes one.
  */
@@ -58,6 +60,21 @@ enum RequestEventType: string
     public function label(): string
     {
         return ucfirst(str_replace('_', ' ', $this->value));
+    }
+
+    /**
+     * Whether this entry asks the requester to do something: correct the request, visit the
+     * office, upload another ID or proof, pay, name another representative, or claim the
+     * credential. Their notifications are marked [ACTION REQUIRED] (REQ-06-18).
+     */
+    public function requiresRequesterAction(CredentialRequest $request): bool
+    {
+        return match ($this) {
+            self::CustomerActionRequested, self::ComplianceRequested, self::IdentityRejected,
+            self::PaymentRejected, self::RepresentativeRejected, self::ReadyForRelease => true,
+            self::RequirementsCompleted => (float) $request->amount_due > 0,
+            default => false,
+        };
     }
 
     /**
