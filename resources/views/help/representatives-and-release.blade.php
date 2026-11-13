@@ -4,7 +4,7 @@
 </x-faq-item>
 
 <x-faq-item question="Can someone else claim it or go to the office for me?">
-    <p>Yes, an authorized representative. They need a <strong>Special Power of Attorney (SPA)</strong> and the valid IDs of you both. The Office of the Registrar verifies the representative before releasing anything; a representative who isn't verified can't claim your credential.</p>
+    <p>Yes, an authorized representative you named on New Request. They need a <strong>Special Power of Attorney (SPA)</strong> and the valid IDs of you both. The Office of the Registrar verifies the representative before releasing anything; a representative who isn't verified can't claim your credential.</p>
 </x-faq-item>
 
 <x-faq-item question="What is an SPA?">
@@ -12,11 +12,7 @@
 </x-faq-item>
 
 <x-faq-item question="When can I name a representative?">
-    <ul>
-        <li>On New Request, under <strong>Who Will Transact?</strong></li>
-        <li>On your request page, while you are asked to visit the Office of the Registrar (pending compliance) or once your credential is ready for release.</li>
-    </ul>
-    <p>Give their full name, relationship and contact number, and upload the SPA and their valid ID (JPG, PNG, WebP or PDF, up to 5 MB each). Both files are required.</p>
+    <p>Only on New Request, under <strong>Who Will Transact?</strong> It can't be added after you submit. Give their full name, relationship and contact number, and upload the SPA and their valid ID (JPG, PNG, WebP or PDF, up to 5 MB each). Both files are required.</p>
 </x-faq-item>
 
 <x-faq-item question="What does my representative bring?">

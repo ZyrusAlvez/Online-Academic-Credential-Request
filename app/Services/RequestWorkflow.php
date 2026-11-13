@@ -243,7 +243,7 @@ class RequestWorkflow
         $missing = array_values(array_unique(array_filter(array_map(trim(...), $missing), filled(...))));
 
         if ($missing === []) {
-            throw new InvalidTransition('Tick at least one missing requirement, so the requester knows what to bring.');
+            throw new InvalidTransition('Tick at least one requirement, so the requester knows what to bring.');
         }
 
         if (blank($remarks)) {
@@ -261,7 +261,8 @@ class RequestWorkflow
             }
 
             $this->transition($locked, $request, RequestStatus::PendingCompliance, $registrar, RequestEventType::ComplianceRequested,
-                'Missing: '.implode('; ', $missing)."\n{$remarks}");
+                // "Required", not "Missing": a copy may already be uploaded; the office needs the original.
+                'Required: '.implode('; ', $missing)."\n{$remarks}");
         });
     }
 

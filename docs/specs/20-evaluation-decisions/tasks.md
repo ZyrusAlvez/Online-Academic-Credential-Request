@@ -8,6 +8,6 @@
 - [x] Spec notes in 15, 16 and the overview
 - [x] Pest tests for every REQ-20 criterion; tests of superseded criteria replaced
 - [x] Edit Request no longer repeats the rejected ID's reason; the request page shows it (REQ-20-06)
-- [ ] Office visit worded "Requirements" / "Required: …", never "missing"; record heading "Office
+- [x] Office visit worded "Requirements" / "Required: …", never "missing"; record heading "Office
       Visit Requirements"; compliance report rows match (REQ-20-04, 2026-11-13)
-- [ ] Pest tests for the changed REQ-20-04 and REQ-20-08
+- [x] Pest tests for the changed REQ-20-04 and REQ-20-08

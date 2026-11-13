@@ -25,6 +25,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
@@ -160,14 +161,17 @@ test('REQ-20-03 Return for Clarification needs a rejected part, then sends the r
         ->assertDontSee('is under evaluation by')->assertSee('Returned for Clarification')->assertSee('The ID photo is blurred');
 });
 
-test('REQ-20-04 Require Office Visit asks what is missing, records each item and waits for the requester at the office', function () {
+test('REQ-20-04 Require Office Visit asks what is required, records each item and waits for the requester at the office', function () {
     Notification::fake();
     evaluating($this->request, [CheckItem::AcademicRecord->value => CheckResult::Rejected]);
 
-    // The dialog lists the credential's requirements.
-    decisionPage()->assertSeeHtml('data-office-visit-modal')->assertSee('Completed clearance')->assertSee('PSA-authenticated birth certificate');
+    // The dialog lists the credential's requirements, never calling them missing.
+    $dialog = Str::after(decisionPage()->html(), 'data-office-visit-modal');
+    expect($dialog)->toContain('Requirements')->toContain('Completed clearance')->toContain('PSA-authenticated birth certificate')
+        ->and(Str::lower($dialog))->not->toContain('missing requirement');
 
-    decisionPage()->set('remarks', 'Bring them.')->call('requireOfficeVisit')->assertHasErrors('otherMissing');
+    decisionPage()->set('remarks', 'Bring them.')->call('requireOfficeVisit')
+        ->assertHasErrors('otherMissing')->assertSee('Tick at least one requirement, or describe it under Other.');
     decisionPage()->set('missing', ['Not a requirement'])->set('remarks', 'Bring them.')->call('requireOfficeVisit')->assertHasErrors('missing.0');
     expect($this->request->fresh()->status)->toBe(RequestStatus::UnderEvaluation);
 
@@ -185,7 +189,11 @@ test('REQ-20-04 Require Office Visit asks what is missing, records each item and
         ->and($request->deficiencies->pluck('recorded_by')->unique()->all())->toBe([$this->registrar->id])
         ->and($request->events()->get()->last())
         ->type->toBe(RequestEventType::ComplianceRequested)
-        ->remarks->toBe("Missing: PSA-authenticated birth certificate; Original Form 137\nBring the originals, personally or through a representative.");
+        ->remarks->toBe("Required: PSA-authenticated birth certificate; Original Form 137\nBring the originals, personally or through a representative.");
+
+    // The request record heads them as what the office visit requires.
+    $this->actingAs($this->registrar)->get(route('records.show', $request))
+        ->assertSee('Office Visit Requirements')->assertDontSee('Missing Requirements');
 
     Notification::assertSentTo($this->owner, RequestActivity::class, fn ($n) => $n->event->type === RequestEventType::ComplianceRequested);
 
@@ -356,9 +364,11 @@ test('REQ-20-08 the requester is told to visit the office, with what to bring, a
         ->assertSee('Visit the Office of the Registrar')
         ->assertSeeInOrder(['PSA-authenticated birth certificate', 'Completed clearance'])
         ->assertSee('Bring the originals.')
-        ->assertSee('Special Power of Attorney')
+        // No representative was declared on New Request, so none is offered (REQ-11-01, 05).
+        ->assertSee('Come in person with a valid ID.')
+        ->assertDontSee('Special Power of Attorney')
         ->assertDontSeeHtml('data-edit-request')
-        ->assertSee('Add representative')
+        ->assertDontSee('Add representative')
         ->assertSee('Cancel request');
 
     $this->actingAs($this->owner)->get(route('student.requests.edit', $this->request))->assertForbidden();
@@ -435,7 +445,7 @@ test('REQ-20-12 the reports keep the two returns apart', function () {
     expect($rows[$clarify->reference_no][4])->toBe('Returned for clarification')
         ->and($rows[$clarify->reference_no][5])->toBe('Rejected: User Identity Verification – The ID photo is blurred.')
         ->and($rows[$visit->reference_no][4])->toBe('Pending compliance')
-        ->and($rows[$visit->reference_no][5])->toBe('Missing: Completed clearance');
+        ->and($rows[$visit->reference_no][5])->toBe('Required: Completed clearance');
 
     // Evaluator, taken up, complete, returned for clarification, sent for compliance, declined…
     expect(collect((new EvaluatorReport)->rows(new ReportFilter))->firstWhere(0, $this->registrar->name))

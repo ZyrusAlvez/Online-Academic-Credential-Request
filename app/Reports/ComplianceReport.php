@@ -65,9 +65,9 @@ final class ComplianceReport implements Report
     private function waitingFor(CredentialRequest $request): string
     {
         return match ($request->status) {
-            // What is still missing at the office, else the return's ledger line (REQ-20-12).
+            // What the office still has to receive, else the return's ledger line (REQ-20-12).
             RequestStatus::PendingCompliance => $request->deficiencies->whereNull('resolved_at')->isNotEmpty()
-                ? 'Missing: '.$request->deficiencies->whereNull('resolved_at')->pluck('description')->implode('; ')
+                ? 'Required: '.$request->deficiencies->whereNull('resolved_at')->pluck('description')->implode('; ')
                 : str_replace("\n", ' – ', (string) $request->events->last(fn ($event) => $event->type === RequestEventType::ComplianceRequested)?->remarks),
             // The rejected parts and the remarks (REQ-20-12).
             RequestStatus::ReturnedForClarification, RequestStatus::ReturnedForCustomerAction => str_replace("\n", ' – ',

@@ -301,6 +301,15 @@ class CredentialRequest extends Model
     }
 
     /**
+     * The representative who may come for the owner: the latest declared on New Request and not
+     * rejected. Null means the owner comes in person (REQ-11-05).
+     */
+    public function claimingRepresentative(): ?RequestRepresentative
+    {
+        return $this->representatives->reject(fn (RequestRepresentative $representative) => $representative->status === ReviewStatus::Rejected)->last();
+    }
+
+    /**
      * @return HasMany<RequestDocument, $this>
      */
     public function documents(): HasMany

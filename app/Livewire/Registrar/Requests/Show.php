@@ -229,14 +229,14 @@ class Show extends Component
             'otherMissing' => [Rule::requiredIf($this->missing === []), 'nullable', 'string', 'max:250'],
             'remarks' => ['required', 'string', 'max:500'],
         ], [
-            'otherMissing.required' => 'Tick at least one missing requirement, or describe it under Other.',
+            'otherMissing.required' => 'Tick at least one requirement, or describe it under Other.',
             'remarks.required' => 'Write your remarks; the requester sees them.',
-        ], ['otherMissing' => 'other missing requirement']);
+        ], ['otherMissing' => 'other requirement']);
 
         $missing = [...array_values(array_intersect($listed, $this->missing)), ...(filled($this->otherMissing) ? [$this->otherMissing] : [])];
 
         if ($this->attempt(fn () => $workflow->requireOfficeVisit($this->credentialRequest, $this->actor(), $missing, $this->remarks),
-            'The requester was asked to bring the missing requirements to the Office of the Registrar.')) {
+            'The requester was asked to visit the Office of the Registrar.')) {
             Flux::modal('office-visit')->close();
             $this->reset('missing', 'otherMissing', 'remarks');
         }
