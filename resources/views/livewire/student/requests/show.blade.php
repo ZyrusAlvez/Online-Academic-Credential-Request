@@ -131,6 +131,10 @@
                                 <flux:input wire:model="amountPaid" type="number" step="0.01" min="0" inputmode="decimal" :label="__('Amount paid (₱)')" required />
                                 <flux:input wire:model="paidOn" type="date" :max="now()->format('Y-m-d')" :label="__('Date paid')" required />
                             </div>
+                            {{-- A reply to the returned proof's remarks (REQ-04-20). --}}
+                            @if ($rejectedProof)
+                                <flux:textarea wire:model="paymentNote" :label="__('Note to the Office of the Registrar')" badge="Optional" rows="3" maxlength="500" data-payment-note />
+                            @endif
                             <flux:button type="submit" variant="primary" icon="arrow-up-tray" wire:loading.attr="disabled" wire:target="receipt,uploadReceipt">{{ __('Submit proof of payment') }}</flux:button>
                         </form>
                     </li>

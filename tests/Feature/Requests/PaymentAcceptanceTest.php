@@ -10,10 +10,13 @@ use App\Enums\VisitStatus;
 use App\Livewire\Registrar\Requests\Show;
 use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\User;
+use App\Notifications\RequestActivity;
 use App\Services\RequestWorkflow;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -90,6 +93,64 @@ test('REQ-04-13 verification needs the official receipt number; a proof alone is
         ->status->toBe(PaymentStatus::Verified)
         ->official_receipt_no->toBe('OR-778899')
         ->reviewed_by->toBe($this->registrar->id);
+});
+
+/** The requester's page with a new proof filled in, ready to upload. */
+function newProof(): Testable
+{
+    return Livewire::actingAs(test()->owner)->test(RequesterShow::class, ['credentialRequest' => test()->request->fresh()])
+        ->set('receipt', UploadedFile::fake()->image('receipt.jpg'))
+        ->set('paymentReference', 'UPHSL-456')
+        ->set('amountPaid', '530')
+        ->set('paidOn', now()->format('Y-m-d'));
+}
+
+test('REQ-04-20 after a returned proof the requester can send a note with the new one, and only then', function () {
+    // No return yet: no note field.
+    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $this->request])
+        ->assertDontSeeHtml('data-payment-note')->assertDontSee('Note to the Office of the Registrar');
+
+    uploadPayment($this->request);
+    workflow()->rejectPayment($this->request, $this->registrar, 'The reference does not match our record.');
+
+    newProof()
+        ->assertSee('The reference does not match our record.')
+        ->assertSeeHtml('data-payment-note')->assertSee('Note to the Office of the Registrar')
+        ->set('paymentNote', str_repeat('x', 501))->call('uploadReceipt')->assertHasErrors(['paymentNote' => 'max'])
+        ->set('paymentNote', 'I paid at the bank; the reference is on the stamped slip.')->call('uploadReceipt')->assertHasNoErrors()
+        ->assertSet('paymentNote', '');
+
+    expect($this->request->fresh()->status)->toBe(RequestStatus::PaymentVerification)
+        ->and($this->request->events()->get()->last())
+        ->type->toBe(RequestEventType::PaymentSubmitted)
+        ->remarks->toBe('I paid at the bank; the reference is on the stamped slip.');
+
+    // Without a note, the upload records no remarks.
+    workflow()->rejectPayment($this->request, $this->registrar, 'Still unreadable.');
+    newProof()->call('uploadReceipt')->assertHasNoErrors();
+    expect($this->request->events()->get()->last()->remarks)->toBeNull();
+});
+
+test('REQ-04-20 the registrar sees the note on Payment Validation, in the notification and in the email', function () {
+    Notification::fake();
+    uploadPayment($this->request);
+    workflow()->rejectPayment($this->request, $this->registrar, 'The reference does not match our record.');
+    newProof()->set('paymentNote', 'I paid at the bank; the reference is on the stamped slip.')->call('uploadReceipt')->assertHasNoErrors();
+
+    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request->fresh()])
+        ->assertSeeHtml('data-payment-note')
+        ->assertSeeInOrder(["Requester's note:", 'I paid at the bank; the reference is on the stamped slip.', 'Proof of Payment']);
+
+    Notification::assertSentTo($this->registrar, RequestActivity::class, function (RequestActivity $notification) {
+        return $notification->event->type === RequestEventType::PaymentSubmitted
+            && str_contains($notification->toArray($this->registrar)['message'], 'I paid at the bank')
+            && str_contains(implode(' ', $notification->toMail($this->registrar)->introLines), 'Remarks: I paid at the bank');
+    });
+
+    // A first proof, sent without a return, shows no note box.
+    $other = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    uploadPayment($other);
+    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $other])->assertDontSeeHtml('data-payment-note');
 });
 
 test('REQ-04-14 acceptance starts the clock: due date, route and first hand-off', function () {
