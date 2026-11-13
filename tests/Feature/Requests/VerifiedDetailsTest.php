@@ -242,6 +242,22 @@ test('REQ-21-06 New Request, Edit Request and Settings → Profile badge each ve
         ->and(sectionBadge($edit, 'academic'))->toBe('verified');
 });
 
+test('REQ-21-06 the requester\'s request page shows the valid ID without a verification badge', function () {
+    $idRow = fn (CredentialRequest $request): string => Str::before(
+        Str::after($this->actingAs($this->owner)->get(route('student.requests.show', $request))->getContent(), 'data-request-id'),
+        '</dd>',
+    );
+
+    $request = submitRequest($this->owner, $this->org->tor);
+    expect($request->identity_status)->toBe(ReviewStatus::Pending)
+        ->and($idRow($request))->toContain($request->identityDocument->original_name)
+        ->not->toContain('For verification')->not->toContain('data-flux-badge');
+
+    evaluate($request, $this->registrar);
+    expect($request->fresh()->identity_status)->toBe(ReviewStatus::Verified)
+        ->and($idRow($request->fresh()))->not->toContain('Verified')->not->toContain('data-flux-badge');
+});
+
 // ── REQ-21-07: existing data ────────────────────────────────────────────────────────────────
 
 test('REQ-21-07 the migration takes each requester\'s latest completed request as verified', function () {

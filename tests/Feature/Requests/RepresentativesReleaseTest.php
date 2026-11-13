@@ -251,12 +251,18 @@ test('REQ-11-01 a representative\'s contact number, when given, must be exactly 
 
 test('REQ-11-02 the representative is recorded apart from the owner and shown with their status', function () {
     $request = submitRequest($this->owner, $this->org->tor);
-    declareRepresentative($request, $this->owner, ['full_name' => 'Pedro Santos']);
+    $representative = declareRepresentative($request, $this->owner, ['full_name' => 'Pedro Santos']);
 
     expect(User::where('first_name', 'Pedro')->exists())->toBeFalse();
 
-    $this->actingAs($this->owner)->get(route('student.requests.show', $request))->assertSee('Pedro Santos')->assertSee('For verification');
-    $this->actingAs($this->registrar)->get(route('registrar.requests.show', $request))->assertSee('Pedro Santos');
+    // The owner sees no "For verification" (2026-11-13); the registrar still does, to act on it.
+    $ownerPage = fn (): string => Str::after($this->actingAs($this->owner)->get(route('student.requests.show', $request))->getContent(), 'id="representatives-heading"');
+    expect($ownerPage())->toContain('Pedro Santos')->not->toContain('For verification');
+    $this->actingAs($this->registrar)->get(route('registrar.requests.show', $request))->assertSee('Pedro Santos')->assertSee('For verification');
+
+    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])
+        ->call('verifyRepresentative', $representative->id);
+    expect(Str::before($ownerPage(), 'id="details-heading"'))->toContain('Verified');
 });
 
 test('REQ-11-03 the registrar verifies or rejects a representative', function () {
