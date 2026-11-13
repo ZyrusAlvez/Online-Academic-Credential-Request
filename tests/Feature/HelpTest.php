@@ -131,8 +131,8 @@ test('REQ-22-03 the details topic explains giving and verifying details once, an
 
     expect($html)->toContain('You fill in your personal information, academic information and valid ID once')
         ->toContain('verifies them only once')
-        ->toContain('Verified')->toContain('For verification')
-        ->toContain('goes back to <strong>For verification</strong> and is checked again on your next request');
+        ->toContain('Verified')->not->toContain('For verification')
+        ->toContain('loses its <strong>Verified</strong> badge and is checked again on your next request');
 });
 
 test('REQ-22-04 answers link to the pages they name and read the same settings as the forms', function () {
