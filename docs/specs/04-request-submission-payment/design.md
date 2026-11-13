@@ -77,6 +77,14 @@ for `customerResponded` is kept on the event that opened the request for custome
   checklist as "Requester's note: …". The notification and staff email already add the event's
   remarks; `payment_submitted` is not internal, so both histories show it.
 
+## Payment section layout (REQ-04-12, 21, 2026-11-13)
+
+- The proof field is `<x-file-picker model="receipt">` (its own progress bar replaces the
+  "Uploading…" line).
+- The notice is a `flux:callout inline` whose `actions` slot holds a `flux:modal.trigger` for the
+  `payment-history` modal, shown once a proof exists. The modal holds `<x-payment-proof-list>`;
+  the inline "Uploaded Proofs of Payment" block is gone. Records keeps its own list.
+
 ## Dropping copies (2026-11-05)
 
 The client's workflow has no number of copies, so `credential_requests.copies` is dropped. Before

@@ -16,6 +16,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
@@ -54,6 +55,40 @@ test('REQ-04-12 the proof must be an image or PDF of at most 5 MB with its detai
         ->assertHasErrors(['receipt' => 'mimes', 'paymentReference' => 'required', 'amountPaid' => 'required', 'paidOn' => 'required']);
 
     expect($this->request->fresh()->status)->toBe(RequestStatus::AwaitingPayment);
+});
+
+test('REQ-04-12 the proof field is the valid ID\'s picker, its file name a link to the viewer', function () {
+    $html = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $this->request])->html();
+    $field = Str::after($html, 'data-receipt-picker');
+
+    expect($html)->toContain('data-receipt-picker')
+        ->and($field)->toMatch('/<input type="file" wire:model="receipt"[^>]*class="sr-only"/')
+        ->toContain('Choose file')->toContain('No file chosen')
+        ->toMatch('/<a href="#"[^>]*data-chosen-file[^>]*x-text="chosen\?\.name"\s*x-on:click\.prevent="\$dispatch\(\'open-file\', chosen\)"/')
+        ->and(substr_count($html, 'wire:model="receipt"'))->toBe(1);
+});
+
+test('REQ-04-21 the uploaded proofs open from a Payment History button beside the notice, not inline', function () {
+    $page = fn () => Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $this->request->fresh()]);
+
+    // Nothing uploaded yet: no button, no dialog.
+    $page()->assertDontSeeHtml('data-payment-history-button')->assertDontSeeHtml('data-payment-history');
+
+    // Being verified: the button sits in the notice; the proof is in the dialog only.
+    uploadPayment($this->request);
+    $proof = $this->request->paymentProofs()->sole();
+    $page()->assertDontSee('Uploaded Proofs of Payment')
+        ->assertSeeHtmlInOrder(['Your payment is being verified.', 'data-payment-history-button', 'Payment History'])
+        ->assertSeeHtmlInOrder(['data-payment-history', 'Payment History', $proof->original_name, 'Ref REF-123', 'For verification']);
+
+    // Returned: the button sits beside the reason; the dialog lists both proofs, newest first.
+    workflow()->rejectPayment($this->request, $this->registrar, 'The reference does not match our record.');
+    workflow()->submitPaymentProof($this->request, $this->owner, UploadedFile::fake()->image('second.jpg'), 'REF-456', '530', now()->format('Y-m-d'));
+    workflow()->rejectPayment($this->request, $this->registrar, 'Still unreadable.');
+
+    $html = Str::after($page()->assertDontSee('Uploaded Proofs of Payment')->html(), 'Your last proof of payment was not accepted');
+    expect(Str::before($html, 'data-payment-history-button'))->toContain('Still unreadable.')
+        ->and(Str::after($html, 'data-payment-history>'))->toMatch('/second\.jpg.*Remarks: Still unreadable\..*receipt\.jpg.*Remarks: The reference does not match our record\./s');
 });
 
 test('REQ-04-13 the registrar rejects a proof with remarks', function () {
