@@ -104,9 +104,15 @@
 
             @if ($request->status === \App\Enums\RequestStatus::AwaitingPayment)
                 @if ($rejectedProof)
-                    <flux:callout icon="exclamation-triangle" color="red">
+                    {{-- Earlier proofs open from here, not listed on the page (REQ-04-21). --}}
+                    <flux:callout icon="exclamation-triangle" color="red" inline>
                         <flux:callout.heading>{{ __('Your last proof of payment was not accepted') }}</flux:callout.heading>
                         <flux:callout.text>{{ $rejectedProof->remarks }}</flux:callout.text>
+                        <x-slot name="actions">
+                            <flux:modal.trigger name="payment-history">
+                                <flux:button size="sm" icon="clock" data-payment-history-button>{{ __('Payment History') }}</flux:button>
+                            </flux:modal.trigger>
+                        </x-slot>
                     </flux:callout>
                 @endif
 
@@ -124,8 +130,8 @@
                         <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white" aria-hidden="true">2</span>
                         <form wire:submit="uploadReceipt" class="w-full space-y-4">
                             <p class="text-sm">{{ __('Upload your proof of payment (JPG, PNG, WebP or PDF, up to 5 MB).') }}</p>
-                            <flux:input type="file" wire:model="receipt" :label="__('Proof of payment')" accept=".jpg,.jpeg,.png,.webp,.pdf" required />
-                            <div wire:loading wire:target="receipt" class="text-sm text-zinc-600">{{ __('Uploading…') }}</div>
+                            {{-- The valid ID's picker: the chosen file's name opens the viewer (REQ-04-12). --}}
+                            <x-file-picker model="receipt" :label="__('Proof of payment')" data-receipt-picker />
                             <div class="grid gap-4 md:grid-cols-3">
                                 <flux:input wire:model="paymentReference" :label="__('Payment reference no.')" required />
                                 <flux:input wire:model="amountPaid" type="number" step="0.01" min="0" inputmode="decimal" :label="__('Amount paid (₱)')" required />
@@ -140,18 +146,26 @@
                     </li>
                 </ol>
             @else
-                <flux:callout icon="clock" color="sky">
+                <flux:callout icon="clock" color="sky" inline>
                     <flux:callout.text>{{ __('Your payment is being verified.') }}</flux:callout.text>
+                    <x-slot name="actions">
+                        <flux:modal.trigger name="payment-history">
+                            <flux:button size="sm" icon="clock" data-payment-history-button>{{ __('Payment History') }}</flux:button>
+                        </flux:modal.trigger>
+                    </x-slot>
                 </flux:callout>
             @endif
+        </section>
 
-            @if ($request->paymentProofs->isNotEmpty())
-                <div class="space-y-2">
-                    <h3 class="text-sm font-semibold text-ink">{{ __('Uploaded Proofs of Payment') }}</h3>
+        {{-- Every proof uploaded, newest first (REQ-04-21). --}}
+        @if ($request->paymentProofs->isNotEmpty())
+            <flux:modal name="payment-history" class="w-full md:w-[36rem]" data-payment-history>
+                <div class="space-y-4">
+                    <flux:heading size="lg">{{ __('Payment History') }}</flux:heading>
                     <x-payment-proof-list :proofs="$request->paymentProofs" />
                 </div>
-            @endif
-        </section>
+            </flux:modal>
+        @endif
     @endif
 
     @if ($request->status === \App\Enums\RequestStatus::ReadyForRelease)
