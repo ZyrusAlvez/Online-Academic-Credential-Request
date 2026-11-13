@@ -30,6 +30,8 @@ claiming procedure).
   replaces "or later while the request is open".)*
 - **REQ-11-02** THE SYSTEM SHALL record the representative's identity separately from the owner's
   account and show the owner and the registrar the representative and their verification status.
+  The owner sees "Verified" or "Rejected" only, with no badge while the representative is still
+  to be checked. *(User's request, 2026-11-13: no "For verification" on the requester's pages.)*
 - **REQ-11-03** THE SYSTEM SHALL let the registrar verify a representative (SPA and IDs checked,
   online or presented in person) or reject them: during the evaluation through the Representative
   part of the checklist (REQ-16-12, 13), and on the release page for one declared later, with a

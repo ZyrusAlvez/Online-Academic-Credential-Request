@@ -1,4 +1,6 @@
-@props(['representatives', 'reviewable' => false])
+@props(['representatives', 'reviewable' => false, 'hidePending' => false])
+
+{{-- hide-pending: the requester's page shows no badge until a representative is checked (REQ-11-02). --}}
 
 <ul {{ $attributes->class('divide-y divide-secondary/40 rounded-lg border border-secondary/50') }}>
     @foreach ($representatives as $representative)
@@ -11,7 +13,9 @@
                         @if ($representative->contact_number) · {{ $representative->contact_number }} @endif
                     </p>
                 </div>
-                <flux:badge size="sm" :color="$representative->status->color()">{{ $representative->status->label() }}</flux:badge>
+                @unless ($hidePending && $representative->status === \App\Enums\ReviewStatus::Pending)
+                    <flux:badge size="sm" :color="$representative->status->color()">{{ $representative->status->label() }}</flux:badge>
+                @endunless
             </div>
             @if ($representative->documents->isNotEmpty())
                 <ul class="flex flex-wrap gap-x-4 gap-y-1 text-xs">

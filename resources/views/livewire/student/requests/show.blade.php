@@ -169,7 +169,7 @@
             @if ($request->representatives->isEmpty())
                 <p class="text-sm text-zinc-600">{{ __('None. You are transacting personally.') }}</p>
             @else
-                <x-representative-list :representatives="$request->representatives" />
+                <x-representative-list :representatives="$request->representatives" hide-pending />
             @endif
         </section>
     @endif
@@ -179,12 +179,12 @@
         {{-- Field left, value right; the ID and the requirement files are rows too (REQ-09-22). --}}
         <x-request-details :request="$request">
             @if ($request->identityDocument)
-                {{-- The ID sent with this request and its check (REQ-15-08, 09). --}}
+                {{-- The ID sent with this request, without a verification badge: "Verified" shows on
+                     New Request and Settings → Profile only (REQ-15-08, REQ-21-06). --}}
                 <x-summary-row :label="__('Valid ID')" data-request-id>
                     <x-file-link :href="route('identity-documents.show', $request->identityDocument)" :name="$request->identityDocument->id_type.': '.$request->identityDocument->original_name" :type="$request->identityDocument->mime_type" class="break-all">
                         {{ $request->identityDocument->id_type }}: {{ $request->identityDocument->original_name }}
                     </x-file-link>
-                    <flux:badge size="sm" :color="$request->identity_status->color()" class="ms-1">{{ $request->identity_status->label() }}</flux:badge>
                 </x-summary-row>
             @endif
             {{-- The copies of the requirements sent with this request (REQ-04-19). --}}
