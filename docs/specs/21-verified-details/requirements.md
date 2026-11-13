@@ -16,8 +16,8 @@ details (REQ-15-08).
 
 - **US-21-1** As a requester, I want my personal information, academic information and valid ID
   verified once, so that I don't wait for the same check on every request.
-- **US-21-2** As a requester, I want to see whether my details are verified or still for
-  verification, and to be able to correct them, knowing a change is verified again.
+- **US-21-2** As a requester, I want to see which of my details are verified, and to be able to
+  correct them, knowing a change is verified again.
 - **US-21-3** As an evaluator, I want parts verified earlier to be confirmed already, with who
   verified them and when, so that I only check what is new, and can still reject them.
 
@@ -33,7 +33,7 @@ details (REQ-15-08).
   the request it was verified on. The identity details are the name, the contact number and the
   saved valid ID; the academic details are the status, college, program, student number and years
   attended. Any change, from Settings → Profile, New Request or Edit Request, or removing the saved
-  ID (REQ-15-18), SHALL make the part "For verification" again.
+  ID (REQ-15-18), SHALL make the part unverified again.
 - **REQ-21-03** WHEN a request is returned for clarification with the User Identity Verification or
   Academic Record Verification part rejected (REQ-20-03) THE SYSTEM SHALL drop the requester's
   verification of that part.
@@ -52,11 +52,12 @@ details (REQ-15-08).
 ### What the requester sees
 - **REQ-21-06** ON New Request, Edit Request and Settings → Profile, THE SYSTEM SHALL show at the
   right end of the headings Personal Information, Academic Information and Valid ID a badge for
-  the saved details: "Verified" (green) or "For verification" (amber). Personal Information is
-  verified when the name and contact number equal the verified identity copy, Valid ID when the
-  saved ID is the verified one, Academic Information when the academic part is verified. The fields
-  SHALL stay editable. The sections carry no note explaining re-verification; Help explains it
-  (REQ-22-03). *(User's request, 2026-11-11: badge on the right, explanatory notes removed.)*
+  the saved details: "Verified" (green) while they are verified, and no badge otherwise. Personal
+  Information is verified when the name and contact number equal the verified identity copy, Valid
+  ID when the saved ID is the verified one, Academic Information when the academic part is
+  verified. The fields SHALL stay editable. The sections carry no note explaining re-verification;
+  Help explains it (REQ-22-03). *(User's request, 2026-11-11: badge on the right, explanatory notes
+  removed. User's request, 2026-11-13: no "For verification" badge, only "Verified".)*
 
 ### Existing data
 - **REQ-21-07** WHEN the change is deployed THE SYSTEM SHALL record, for each requester, their
