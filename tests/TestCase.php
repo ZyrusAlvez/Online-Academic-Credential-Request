@@ -13,6 +13,10 @@ abstract class TestCase extends BaseTestCase
 
         // Tests should not depend on a compiled front-end build.
         $this->withoutVite();
+
+        // Notifications are deferred until after the response in the app (REQ-06-10); tests send
+        // them inline so they can be asserted right after the action.
+        config(['queue.default' => 'sync']);
     }
 
     /**

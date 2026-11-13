@@ -98,8 +98,11 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
 - **REQ-06-09** THE SYSTEM SHALL show a bell with the unread count to every signed-in user, a list
   of recent notifications, and a page with all notifications; opening one marks it read and goes
   to its page; users can mark all as read.
-- **REQ-06-10** THE SYSTEM SHALL send notifications through the queue so that actions are not slowed
-  down by email delivery.
+- **REQ-06-10** THE SYSTEM SHALL send notifications (in-app and email) right after the response to
+  the action that caused them, so that actions are not slowed down by email delivery and no
+  background worker has to run on the server. A notification that fails to send SHALL be logged
+  and SHALL NOT stop the others. *(User's decision, 2026-11-13: staging never had a queue worker,
+  so queued notifications were never delivered.)*
 - **REQ-06-15** THE SYSTEM SHALL style every email like its sign-in pages: the UPHSL crest and app
   name in UPHSL navy (`primary` #012265) over a pale-blue (`primary-50`) background, the message
   in a white card with a `secondary` border, navy buttons, and a footer naming the Office of the
