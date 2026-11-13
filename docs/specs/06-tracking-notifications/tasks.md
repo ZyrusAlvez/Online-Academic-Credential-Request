@@ -24,7 +24,7 @@
 - [x] Email notifications page for registrars and department staff, with the [ACTION REQUIRED]
       note for requesters (REQ-06-16); Help updated
 - [x] Pest tests for the changed REQ-06-05..08, 11, 12, 16 and the new REQ-06-18..20
-- [ ] Default queue connection `deferred` (not from `.env`), tests on `sync`; drop the queue
+- [x] Default queue connection `deferred` (not from `.env`), tests on `sync`; drop the queue
       process from `composer dev` and `queue:restart` from the deploy; deployment docs without a
       worker (REQ-06-10, 2026-11-13)
-- [ ] Pest test for the changed REQ-06-10
+- [x] Pest test for the changed REQ-06-10

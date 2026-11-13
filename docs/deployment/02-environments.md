@@ -33,7 +33,7 @@ Staging exists to catch problems before real users do, so it works **exactly lik
 - it sends real email the same way;
 - it gets its first registrar and admin accounts the same way (`INITIAL_REGISTRAR_*`,
   `INITIAL_ADMIN_*`);
-- it installs the same packages, runs the same queue worker and scheduler, and uses HTTPS.
+- it installs the same packages, runs the same scheduler, and uses HTTPS.
 
 It differs only where it has to:
 
@@ -228,8 +228,7 @@ server at `/usr/local/bin/uphsl-deploy`. For the chosen environment it:
 3. switches the folder to its branch and fast-forwards it;
 4. installs packages (`composer install --no-dev`), builds the CSS/JS, runs the migrations and
    caches the settings;
-5. restarts the queue workers so they load the new code;
-6. for staging, installs the newest version of `uphsl-deploy` itself, so changes to the script
+5. for staging, installs the newest version of `uphsl-deploy` itself, so changes to the script
    reach the server with the next staging deploy and are used for the next production release.
 
 It stops at the first error, so a failed step never leaves half-cached settings behind.

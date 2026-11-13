@@ -41,7 +41,7 @@ writing this guide and how to fix it.
 9. [Install, build and fill the databases](#9-install-build-and-fill-the-databases)
 10. [Configure Nginx](#10-configure-nginx)
 11. [Turn on HTTPS](#11-turn-on-https)
-12. [Start the queue workers](#12-start-the-queue-workers) and [the scheduler](#121-start-the-scheduler)
+12. [Start the scheduler](#12-start-the-scheduler)
 13. [Set up email and receipt storage](#13-set-up-email-and-receipt-storage)
 14. [Access the databases with DBeaver](#14-access-the-databases-with-dbeaver)
 15. [Deploy updates](#15-deploy-updates)
@@ -54,7 +54,8 @@ writing this guide and how to fix it.
 ```
 Browser ──HTTPS──> Nginx ──> PHP-FPM ──> Laravel (one folder per environment) ──> MySQL
                                                                               └──> Cloudflare R2 (receipts)
-Supervisor keeps one queue worker per environment running; the workers send the email notifications.
+Notifications are sent by PHP-FPM right after each page's response (no queue worker).
+Cron runs the scheduler every minute for the daily due-date reminders.
 ```
 
 | Software | Job |
@@ -62,7 +63,6 @@ Supervisor keeps one queue worker per environment running; the workers send the 
 | **Nginx** | Web server. Receives every request on ports 80/443 and picks the site by the name the browser asked for |
 | **PHP-FPM** | Runs the PHP code. Nginx hands it every page request |
 | **MySQL** | Holds both databases |
-| **Supervisor** | Keeps the queue workers running and restarts them if they crash |
 | **Composer / Node** | Install the PHP libraries and build the CSS/JS. Node is used only at deploy time |
 
 This is a **LEMP** stack (Linux, Nginx, MySQL, PHP).
@@ -237,7 +237,7 @@ sudo add-apt-repository -y ppa:ondrej/php
 ```
 
 ```bash
-sudo apt install -y nginx mysql-server supervisor git unzip certbot python3-certbot-nginx \
+sudo apt install -y nginx mysql-server git unzip certbot python3-certbot-nginx \
   php8.5-fpm php8.5-cli php8.5-mysql php8.5-mbstring php8.5-xml php8.5-curl php8.5-zip php8.5-intl php8.5-bcmath
 ```
 
@@ -258,7 +258,7 @@ sudo systemctl restart php8.5-fpm
 php -v              # PHP 8.5.x
 nginx -v
 mysql --version     # MySQL 8.0.x (Ubuntu 24.04's version works fine)
-systemctl status nginx php8.5-fpm mysql supervisor    # each "active (running)"; press q to exit
+systemctl status nginx php8.5-fpm mysql    # each "active (running)"; press q to exit
 ```
 
 Open `http://<SERVER_IP>` in a browser. You should see **"Welcome to nginx!"**.
@@ -806,44 +806,11 @@ because the browser refuses to send a secure cookie over HTTP. Finishing HTTPS f
 
 ---
 
-## 12. Start the queue workers
+## 12. Start the scheduler
 
-Sign-up verification and password-reset emails are sent immediately. **Request notifications are
-queued**: they are saved in the `jobs` table and sent by a worker process running in the
-background. Supervisor keeps one worker per environment running and restarts it if it stops.
-
-As `ubuntu` (safe to paste whole):
-
-```bash
-sudo tee /etc/supervisor/conf.d/uphsl.conf > /dev/null <<'EOF'
-[program:uphsl-production-queue]
-command=php /var/www/uphsl-production/artisan queue:work --tries=3 --max-time=3600
-user=www-data
-autostart=true
-autorestart=true
-
-[program:uphsl-staging-queue]
-command=php /var/www/uphsl-staging/artisan queue:work --tries=3 --max-time=3600
-user=www-data
-autostart=true
-autorestart=true
-EOF
-```
-
-```bash
-sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl status
-```
-
-Both programs should show **RUNNING**. `--max-time=3600` makes each worker restart every hour,
-which keeps memory use in check.
-
-### Check
-
-```bash
-sudo mysql -e "SELECT COUNT(*) FROM uphsl_credential_tracker.jobs;"    # drops to 0 as jobs are sent
-```
-
-### 12.1 Start the scheduler
+Notifications need nothing here. Sign-up codes and password resets are sent immediately; request
+notifications (in-app and email) are sent by PHP-FPM right after the page has been returned to the
+user, so nobody waits for Gmail and no queue worker has to run.
 
 The app has **scheduled tasks**, listed in `routes/console.php`; for example, the due-date
 reminders (`app:send-due-reminders`) go out every working day at 07:00. Laravel needs **one** cron entry per environment, which
@@ -1040,15 +1007,13 @@ sudo install -m 755 /var/www/uphsl-staging/scripts/server/uphsl-deploy /usr/loca
 staging deploy installs the newest version from the repository by itself.
 
 For the chosen environment, `uphsl-deploy` fetches GitHub, switches the folder to its branch,
-installs packages, builds the assets, runs the migrations, caches the settings and restarts the
-queue workers. It stops at the first error.
+installs packages, builds the assets, runs the migrations and caches the settings. It stops at
+the first error.
 
 - **No deploy without an app key.** If the folder's `.env` has no `APP_KEY`, it stops before
   changing anything and prints the `key:generate` command to run.
 - **Production only takes what staging is running.** If the code on the `production` branch
   differs from the code deployed on staging, it stops with *"Deploy staging first"*.
-- `queue:restart` makes the workers load the new code. Without it, they keep running the old
-  code from memory.
 
 ### 15.2 Use it
 
@@ -1137,7 +1102,7 @@ have never restored is a hope, not a backup, so try a restore into a scratch dat
 | nano shows an empty `.env` | As `ubuntu`, you can't read a file owned by `www-data` with mode 600 | **Ctrl+X** without saving, then `sudo -u www-data nano .env` |
 | Registrar login fails after changing `INITIAL_REGISTRAR_PASSWORD` | The seeder only creates the account; it never changes an existing one | Use the old password, or reset it through **Forgot password** |
 | "419 Page Expired" on login | The address is `https://…` (secure cookie) but the site is still on plain HTTP | Finish step 11 (HTTPS) |
-| No emails arrive | `MAIL_USERNAME`/`MAIL_PASSWORD` missing, a `MAIL_MAILER=log` line, `optimize` wasn't run, no queue worker is running, or the address is on `example.com` (never emailed) | Step 13.1 (`app:test-mail`) and step 12 (`supervisorctl status`) |
+| No emails arrive | `MAIL_USERNAME`/`MAIL_PASSWORD` missing, a `MAIL_MAILER=log` line, `optimize` wasn't run, or the address is on `example.com` (never emailed). A failed send is logged | Step 13.1 (`app:test-mail`), then search `storage/logs/laravel.log` for the error |
 | DBeaver: "Public Key Retrieval is not allowed" | MySQL 8 password exchange without SSL | Driver properties → `allowPublicKeyRetrieval` = `true` |
 | DBeaver: `Access denied for user '<name>'` | Wrong username or password, or the user doesn't exist | `sudo mysql -e "SELECT user, host FROM mysql.user;"`, then test with `mysql -u <name> -p -h 127.0.0.1` |
 | DBeaver can't read the key file | A Snap or Flatpak DBeaver can't read hidden folders like `~/.ssh` | Keep the key in a normal folder such as `~/key/` |
@@ -1164,7 +1129,7 @@ have never restored is a hope, not a backup, so try a restore into a scratch dat
 | your personal user | MySQL person account | read-only | full | You, in DBeaver |
 | MySQL `root` | Admin | full | full | `sudo mysql` on the server only |
 | `ubuntu` | Linux admin | | | You, over SSH, with `sudo` |
-| `www-data` | Linux service user | | | Nginx, PHP-FPM, queue workers, app commands |
+| `www-data` | Linux service user | | | Nginx, PHP-FPM, the scheduler, app commands |
 
 Passwords for programs live in config files. Passwords for people live in a password manager.
 Never paste either into chats, documents or Git.
@@ -1179,7 +1144,6 @@ Never paste either into chats, documents or Git.
 | Nginx sites | `/etc/nginx/sites-available/uphsl-*` |
 | Nginx errors | `/var/log/nginx/error.log` |
 | PHP settings | `/etc/php/8.5/fpm/php.ini` |
-| Queue workers | `/etc/supervisor/conf.d/uphsl.conf` |
 | Scheduler | `/etc/cron.d/uphsl-scheduler` |
 | Deploy command | `/usr/local/bin/uphsl-deploy` |
 | Certificates | `/etc/letsencrypt/live/` (managed by certbot) |
@@ -1188,7 +1152,6 @@ Never paste either into chats, documents or Git.
 
 ```bash
 uphsl-deploy staging | production                       # deploy (as ubuntu)
-sudo supervisorctl status                               # are the workers running?
 sudo systemctl reload nginx                             # after editing Nginx (run nginx -t first)
 sudo -u www-data php /var/www/uphsl-<env>/artisan optimize    # after editing a .env
 sudo -u www-data php /var/www/uphsl-<env>/artisan about       # environment summary

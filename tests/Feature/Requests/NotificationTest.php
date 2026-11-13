@@ -8,8 +8,13 @@ use App\Livewire\NotificationBell;
 use App\Livewire\Notifications\Index;
 use App\Models\User;
 use App\Notifications\RequestActivity;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Defer\DeferredCallbackCollection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -263,7 +268,36 @@ test('REQ-06-09 users cannot open other users\' notifications', function () {
         ->assertNotFound();
 });
 
-test('REQ-06-10 request notifications are queued', function () {
-    expect(new RequestActivity(submitRequest($this->owner, $this->org->tor)->events()->first(), 't'))
-        ->toBeInstanceOf(ShouldQueue::class);
+test('REQ-06-10 notifications go out right after the response, with no queue worker', function () {
+    expect((require config_path('queue.php'))['default'])->toBe('deferred');
+    config(['queue.default' => 'deferred']);
+    $channels = collect();
+    Event::listen(NotificationSent::class, fn (NotificationSent $event) => $channels->push($event->channel));
+
+    submitRequest($this->owner, $this->org->tor);
+
+    // Nothing is sent while the action runs, and nothing waits in the jobs table for a worker.
+    expect(DB::table('jobs')->count())->toBe(0)
+        ->and($channels)->toBeEmpty();
+
+    app(DeferredCallbackCollection::class)->invoke();   // what Laravel does once the response is sent
+
+    expect($this->registrar->notifications()->count())->toBe(1)
+        ->and($this->owner->notifications()->count())->toBe(1)
+        ->and($channels->countBy()->all())->toBe(['database' => 2, 'mail' => 2]);
+});
+
+test('REQ-06-10 a notification that fails to send is logged and the others still go out', function () {
+    Exceptions::fake();
+    config(['queue.default' => 'deferred']);
+    Event::listen(NotificationSending::class, function (NotificationSending $event) {
+        throw_if($event->notifiable->is($this->registrar), new RuntimeException('Gmail is down'));
+    });
+
+    submitRequest($this->owner, $this->org->tor);
+    app(DeferredCallbackCollection::class)->invoke();
+
+    Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'Gmail is down');
+    expect($this->registrar->notifications()->count())->toBe(0)
+        ->and($this->owner->notifications()->count())->toBe(1);
 });
