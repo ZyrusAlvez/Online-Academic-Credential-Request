@@ -43,10 +43,11 @@ function returnWithRejected(CredentialRequest $request, User $registrar, CheckIt
     workflow()->returnForClarification($request, $registrar, 'Please correct this.');
 }
 
-/** The badge of one section of the requester's form: verified or pending (REQ-21-06). */
+/** The badge of one section of the requester's form: 'verified', or '' when it has none (REQ-21-06). */
 function sectionBadge(string $html, string $section): string
 {
-    preg_match('/data-section-verification="'.$section.'".*?data-verification="(\w+)"/s', $html, $match);
+    preg_match('/data-section-verification="'.$section.'"(.*?)<\/section>/s', $html, $sectionHtml);
+    preg_match('/data-verification="(\w+)"/', $sectionHtml[1] ?? '', $match);
 
     return $match[1] ?? '';
 }
@@ -196,17 +197,17 @@ test('REQ-21-05 the checklist says who verified a carried part and when, linked 
 
 // ── REQ-21-06: what the requester sees ──────────────────────────────────────────────────────
 
-test('REQ-21-06 New Request, Edit Request and Settings → Profile show each section as verified or for verification', function () {
+test('REQ-21-06 New Request, Edit Request and Settings → Profile badge each verified section, and only those', function () {
     $pages = fn (): array => [
         'new request' => Livewire::actingAs($this->owner)->test(Create::class)->html(),
         'profile' => Livewire::actingAs($this->owner)->test(Profile::class)->html(),
     ];
 
     foreach ($pages() as $html) {
-        expect(sectionBadge($html, 'personal'))->toBe('pending')
-            ->and(sectionBadge($html, 'academic'))->toBe('pending')
-            ->and(sectionBadge($html, 'valid_id'))->toBe('pending')
-            ->and($html)->toContain('For verification');
+        expect(sectionBadge($html, 'personal'))->toBe('')
+            ->and(sectionBadge($html, 'academic'))->toBe('')
+            ->and(sectionBadge($html, 'valid_id'))->toBe('')
+            ->and($html)->not->toContain('For verification');
     }
 
     evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
@@ -227,7 +228,7 @@ test('REQ-21-06 New Request, Edit Request and Settings → Profile show each sec
     $this->owner->update(['contact_number' => '09990001111']);
 
     foreach ($pages() as $html) {
-        expect(sectionBadge($html, 'personal'))->toBe('pending')
+        expect(sectionBadge($html, 'personal'))->toBe('')
             ->and(sectionBadge($html, 'academic'))->toBe('verified')
             ->and(sectionBadge($html, 'valid_id'))->toBe('verified');
     }
@@ -237,7 +238,7 @@ test('REQ-21-06 New Request, Edit Request and Settings → Profile show each sec
     returnWithRejected($returned, $this->registrar, CheckItem::CredentialRequest);
     $edit = Livewire::actingAs($this->owner)->test(Edit::class, ['credentialRequest' => $returned->fresh()])->html();
 
-    expect(sectionBadge($edit, 'personal'))->toBe('pending')
+    expect(sectionBadge($edit, 'personal'))->toBe('')
         ->and(sectionBadge($edit, 'academic'))->toBe('verified');
 });
 

@@ -5,16 +5,12 @@
 </x-faq-item>
 
 <x-faq-item question="How do I know whether my details are verified?">
-    <p>On <a href="{{ route('student.requests.create') }}" wire:navigate>New Request</a> and in <a href="{{ route('settings.profile') }}" wire:navigate>Settings → Profile</a>, each of the sections Personal Information, Academic Information and Valid ID shows a badge:</p>
-    <ul>
-        <li><strong>Verified</strong>: the Office of the Registrar has checked it, and it hasn't changed since.</li>
-        <li><strong>For verification</strong>: it hasn't been checked yet, or you changed it after it was checked. It is checked when the Office of the Registrar evaluates your next request.</li>
-    </ul>
-    <p>"For verification" never stops you from submitting a request.</p>
+    <p>On <a href="{{ route('student.requests.create') }}" wire:navigate>New Request</a> and in <a href="{{ route('settings.profile') }}" wire:navigate>Settings → Profile</a>, each of the sections Personal Information, Academic Information and Valid ID shows a <strong>Verified</strong> badge once the Office of the Registrar has checked it, as long as it hasn't changed since.</p>
+    <p>A section without the badge hasn't been checked yet, or you changed it after it was checked. It is checked when the Office of the Registrar evaluates your next request, and it never stops you from submitting one.</p>
 </x-faq-item>
 
 <x-faq-item question="Can I still change my details after they are verified?">
-    <p>Yes, at any time, in <a href="{{ route('settings.profile') }}" wire:navigate>Settings → Profile</a> or directly on New Request. The section you change goes back to <strong>For verification</strong> and is checked again on your next request; the sections you didn't change stay verified.</p>
+    <p>Yes, at any time, in <a href="{{ route('settings.profile') }}" wire:navigate>Settings → Profile</a> or directly on New Request. The section you change loses its <strong>Verified</strong> badge and is checked again on your next request; the sections you didn't change stay verified.</p>
     <p>Only change your details to correct them. A name or student number that doesn't match the university's records can get your request returned.</p>
 </x-faq-item>
 
@@ -35,7 +31,7 @@
 
 <x-faq-item question="How do I use a different ID?">
     <p>You keep one saved ID. To use another, choose <strong>Remove</strong> beside your saved ID (on New Request or in <a href="{{ route('settings.profile') }}" wire:navigate>Settings → Profile</a>), then upload the new one. Requests you already sent keep the ID they were sent with.</p>
-    <p>A new ID is <strong>For verification</strong> until the Office of the Registrar checks it on your next request.</p>
+    <p>A new ID shows <strong>Verified</strong> once the Office of the Registrar checks it on your next request.</p>
 </x-faq-item>
 
 <x-faq-item question="What if my ID is not accepted?">
