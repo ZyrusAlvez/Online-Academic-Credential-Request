@@ -258,6 +258,23 @@ test('REQ-21-06 the requester\'s request page shows the valid ID without a verif
         ->and($idRow($request->fresh()))->not->toContain('Verified')->not->toContain('data-flux-badge');
 });
 
+test('REQ-21-06 the registrar\'s request page and Records badge the valid ID only once it is checked', function () {
+    $idRow = fn (string $url): string => Str::before(
+        Str::after($this->actingAs($this->registrar)->get($url)->getContent(), 'data-record-id'),
+        '</dd>',
+    );
+
+    // Before Start evaluation: the ID with no badge.
+    $request = submitRequest($this->owner, $this->org->tor);
+    foreach ([route('registrar.requests.show', $request), route('records.show', $request)] as $url) {
+        expect($idRow($url))->toContain($request->identityDocument->id_type)
+            ->not->toContain('For verification')->not->toContain('data-flux-badge');
+    }
+
+    evaluate($request, $this->registrar);
+    expect($idRow(route('records.show', $request)))->toContain('Verified');
+});
+
 // ── REQ-21-07: existing data ────────────────────────────────────────────────────────────────
 
 test('REQ-21-07 the migration takes each requester\'s latest completed request as verified', function () {
