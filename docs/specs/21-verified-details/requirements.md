@@ -59,8 +59,10 @@ details (REQ-15-08).
   Help explains it (REQ-22-03). *(User's request, 2026-11-11: badge on the right, explanatory notes
   removed. User's request, 2026-11-13: no "For verification" badge, only "Verified".) The
   requester's request page SHALL show the Valid ID sent with the request without a verification
-  badge: "Verified" shows only on New Request, Edit Request and Settings → Profile. *(User's
-  request, 2026-11-13.)*
+  badge: "Verified" shows only on New Request, Edit Request and Settings → Profile. On the
+  registrar's request page and in Records, the Valid ID row SHALL show "Verified" or "Rejected"
+  once the ID is checked, and no badge before (e.g. before Start evaluation). *(User's requests,
+  2026-11-13.)*
 
 ### Existing data
 - **REQ-21-07** WHEN the change is deployed THE SYSTEM SHALL record, for each requester, their
