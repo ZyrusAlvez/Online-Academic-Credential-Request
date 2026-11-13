@@ -120,7 +120,7 @@ This replaces:
   clarification is edited and resubmitted online; one pending compliance waits for the office
   visit.
 - ~~REQ-16-16~~ *Superseded by REQ-20-09 and 13 (2026-11-10):* there is no Reopen evaluation; the
-  registrar marks the missing items received and confirms compliance.
+  registrar marks the required items received and confirms compliance.
 
 ### Payment Validation
 - **REQ-16-17** WHILE a request's proof of payment awaits verification THE SYSTEM SHALL show the

@@ -24,7 +24,7 @@ test('a TOR request follows the client\'s flowchart from portal to release', fun
     $chancellor = User::factory()->departmentStaff($org->chancellor)->create();
 
     // Submit → evaluate: the purpose needs clarifying → returned → corrected and resubmitted →
-    // originals missing → office visit → received → compliance confirmed (spec 20).
+    // originals required → office visit → received → compliance confirmed (spec 20).
     $request = submitRequest($owner, $org->tor);
     workflow()->startEvaluation($request, $registrar);
     workflow()->recordCheck($request, $registrar, CheckItem::CredentialRequest, CheckResult::Rejected);

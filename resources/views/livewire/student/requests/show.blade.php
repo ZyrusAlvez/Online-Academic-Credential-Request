@@ -65,7 +65,7 @@
             <h2 id="compliance-heading" class="text-lg font-semibold text-amber-900">{{ __('Visit the Office of the Registrar') }}</h2>
             <div>
                 <p class="text-sm text-amber-950">{{ __('Bring the originals of, or complete:') }}</p>
-                <ul class="mt-1 space-y-1" data-missing-items>
+                <ul class="mt-1 space-y-1" data-required-items>
                     @foreach ($request->deficiencies as $deficiency)
                         <li class="flex items-start gap-2 text-sm">
                             @if ($deficiency->resolved_at)

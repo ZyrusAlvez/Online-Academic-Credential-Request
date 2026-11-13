@@ -7,6 +7,7 @@ use App\Enums\RequestStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use LogicException;
 
 /**
@@ -97,6 +98,26 @@ class RequestEvent extends Model
             RequestEventType::Released => 'Released',
             RequestEventType::Cancelled => 'Request cancelled',
         };
+    }
+
+    /**
+     * The remarks as shown anywhere: an office visit's items are "Required", never "missing"
+     * (REQ-20-04). Entries written before 2026-11-13 say "Missing: …"; they stay as stored.
+     */
+    public function displayRemarks(): ?string
+    {
+        return $this->type === RequestEventType::ComplianceRequested && $this->remarks !== null
+            ? self::requiredWording($this->remarks)
+            : $this->remarks;
+    }
+
+    /**
+     * An office visit's older wording made current, for text copied from its ledger entry (the
+     * notification message, the activity log).
+     */
+    public static function requiredWording(string $text): string
+    {
+        return Str::replaceFirst('Missing: ', 'Required: ', $text);
     }
 
     /**

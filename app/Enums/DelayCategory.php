@@ -36,7 +36,7 @@ enum DelayCategory: string
     {
         return match ($this) {
             self::RegistrarEvaluation => 'Academic record verification, incomplete information or document preparation',
-            self::CustomerCompliance => 'Missing admission requirements, clearance, affidavit of loss or other documents',
+            self::CustomerCompliance => 'Admission requirements, clearance, affidavit of loss or other documents still to submit',
             self::PaymentVerification => 'Payment not yet confirmed or needs clarification',
             self::AcademicDepartment => 'Pending review, correction or approval',
             self::DocumentaryStamp => 'Documentary stamp processing or related clarification',

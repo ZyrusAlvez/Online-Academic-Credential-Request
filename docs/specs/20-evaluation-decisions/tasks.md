@@ -11,3 +11,8 @@
 - [x] Office visit worded "Requirements" / "Required: …", never "missing"; record heading "Office
       Visit Requirements"; compliance report rows match (REQ-20-04, 2026-11-13)
 - [x] Pest tests for the changed REQ-20-04 and REQ-20-08
+- [x] Compliance panel shows the remarks once, without the items; Confirm Compliance disabled until
+      every item is received (REQ-20-09, 2026-11-13)
+- [x] No "missing" anywhere: older "Missing: …" ledger lines and notifications shown as
+      "Required: …"; messages, report text, delay category, code names (REQ-20-04)
+- [x] Pest tests for the changed REQ-20-04 and REQ-20-09

@@ -51,7 +51,9 @@ another criterion says "the office holding the document", REQ-07-07's office fil
   user's decision: the good action goes on the right.)*
 - **REQ-17-03** THE Remarks field SHALL have no hint text. The rules stay the same: remarks are
   optional to approve and required to return or decline.
-- **REQ-17-17** THE decision buttons SHALL always be enabled. WHEN the registrar clicks Approve,
+- **REQ-17-17** THE decision buttons SHALL always be enabled, except Confirm Compliance, which is
+  disabled until every office-visit item is received (REQ-20-09; the panel says how many are still
+  to receive, user's request 2026-11-13). WHEN the registrar clicks Approve,
   Return or Decline and the action's conditions (spec 16) are not met THE SYSTEM SHALL change
   nothing, keep what was typed and checked, and open a dialog that says why:
   - Approve: the rule "Approve needs every part of the checklist confirmed" (at Payment
@@ -61,9 +63,9 @@ another criterion says "the office holding the document", REQ-07-07's office fil
     official receipt number"). It SHALL NOT suggest Return or Decline, because the registrar's
     goal is to approve.
   - Return at the Initial Evaluation: no rejected part.
-  - Return and Decline: missing remarks.
+  - Return and Decline: no remarks.
 
-  A missing field SHALL also be marked on the field itself. *(Added 2026-11-07, user's decision:
+  An empty required field SHALL also be marked on the field itself. *(Added 2026-11-07, user's decision:
   disabled buttons did not say why. Approve wording revised the same day: the first version
   read "Rejected: …. Confirm it to approve, or return or decline the request.", which was
   unclear.)*

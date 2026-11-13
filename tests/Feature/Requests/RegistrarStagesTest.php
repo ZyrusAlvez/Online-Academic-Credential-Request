@@ -370,7 +370,7 @@ test('REQ-16-17 payment validation: approve with both parts and the OR number; r
     stagePage()->set('officialReceiptNo', 'OR-1')->call('approve')
         ->assertSet('blockedParts', [['label' => 'Proof of Payment', 'state' => 'unchecked'], ['label' => 'Amount and Reference', 'state' => 'unchecked']]);
     checkAll($this->request, $this->registrar, CheckStage::Payment);
-    stagePage()->call('approve')->assertHasErrors('officialReceiptNo')->assertSet('blockedParts', [['label' => 'Official receipt number', 'state' => 'missing']])->assertSet('blockers', []);
+    stagePage()->call('approve')->assertHasErrors('officialReceiptNo')->assertSet('blockedParts', [['label' => 'Official receipt number', 'state' => 'not_entered']])->assertSet('blockers', []);
     stagePage()->set('officialReceiptNo', 'OR-1')->call('approve')->assertHasNoErrors();
 
     expect($this->request->fresh())->status->toBe(RequestStatus::AcceptedForProcessing)->due_at->not->toBeNull()

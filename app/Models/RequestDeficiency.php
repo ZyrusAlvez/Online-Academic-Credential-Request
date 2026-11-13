@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * A requirement found missing during evaluation (spec 04), resolved when the Registrar records
+ * A requirement the evaluator requires at the office (REQ-20-04), resolved when the Registrar records
  * its physical submission or clearance.
  *
  * @property string $description
