@@ -46,6 +46,12 @@ released, working days spent, status (registrar and office pages).
   its own `notifications` row, so read status is per account (REQ-06-19). Payload: `request_id`,
   `reference_no`, `event_type`, `title`, `message`, `url` (role-specific request page) and
   `action_required`.
+- Delivery (REQ-06-10): `RequestActivity` and `DueReminder` implement `ShouldQueue`, and the
+  default queue connection is Laravel's `deferred` driver (`config/queue.php`, not read from
+  `.env`). Each notification runs in the same PHP process after the response has been sent (or,
+  for `app:send-due-reminders`, after the command finishes), so there is no worker and no `jobs`
+  rows. Each send is wrapped in `rescue()`: a Gmail failure is logged, the rest still go out, and
+  nothing is retried. Tests use `sync` (`tests/TestCase.php`).
 - [ACTION REQUIRED] (REQ-06-18): `RequestEventType::requiresRequesterAction($request)` —
   `customer_action_requested`, `compliance_requested`, `identity_rejected`,
   `requirements_completed` with an amount due, `payment_rejected`, `representative_rejected`,
