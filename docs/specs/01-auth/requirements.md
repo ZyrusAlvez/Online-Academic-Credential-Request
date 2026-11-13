@@ -62,6 +62,9 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   role's home: student → the new-request page (`/student/requests/new`, REQ-09-21), registrar → Initial
   Evaluation, department → `/department`, admin → `/admin`.
 - **REQ-01-11** IF a user opens a page belonging to another role THEN THE SYSTEM SHALL respond 403.
+- **REQ-01-32** WHEN a logged-in user opens the landing page (`/`) THE SYSTEM SHALL take them to
+  their role's home (as `/dashboard` does); only guests see the landing page. *(User's request,
+  2026-11-13.)*
 
 ### Profile
 - **REQ-01-12** THE SYSTEM SHALL NOT let users change their own email in settings; settings holds
