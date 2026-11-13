@@ -12,12 +12,15 @@
         {{-- One list of rows, field left and value right (REQ-09-22). --}}
         <x-request-details :request="$request">
             <x-summary-row :label="__('Email and contact number')" class="[&_dd]:break-all">{{ $request->student->email }}@if ($request->contact_number) · {{ $request->contact_number }}@endif</x-summary-row>
-            <x-summary-row :label="__('Valid ID')">
+            <x-summary-row :label="__('Valid ID')" data-record-id>
                 @if ($request->identityDocument)
                     <x-file-link :href="route('identity-documents.show', $request->identityDocument)" :name="$request->identityDocument->id_type.' – '.$request->requester_name" :type="$request->identityDocument->mime_type">
                         {{ $request->identityDocument->id_type }}
                     </x-file-link>
-                    <flux:badge size="sm" :color="$request->identity_status->color()" class="ms-1">{{ $request->identity_status->label() }}</flux:badge>
+                    {{-- No badge until the ID is checked (REQ-21-06). --}}
+                    @unless ($request->identity_status === \App\Enums\ReviewStatus::Pending)
+                        <flux:badge size="sm" :color="$request->identity_status->color()" class="ms-1">{{ $request->identity_status->label() }}</flux:badge>
+                    @endunless
                 @else
                     —
                 @endif
