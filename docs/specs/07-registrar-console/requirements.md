@@ -67,8 +67,8 @@ office filter (REQ-07-07) serve both the Registrar and the Admin, at `/records` 
   credential, acceptance and due dates, the office holding it, the stage, days overdue, the number
   of returns, the recorded cause (the latest delay reason, otherwise inferred from the stage) and
   the corrective action, distinguishing the holding office from the cause.
-- **REQ-07-19** THE customer compliance report SHALL list requests waiting for missing
-  requirements, clarification or payment, with what is missing and since when; THE release report
+- **REQ-07-19** THE customer compliance report SHALL list requests waiting for office-visit
+  requirements, clarification or payment, with what is still required and since when; THE release report
   SHALL list credentials ready for release, released (and to whom) and unclaimed (ready for more
   than 10 working days).
 - **REQ-07-20** THE SYSTEM SHALL refuse reports to other roles. *(The CSV download of each report

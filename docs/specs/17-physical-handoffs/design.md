@@ -64,8 +64,9 @@ office as before.
   and `decline()` gather the reasons before calling `RequestWorkflow`:
   - Approve: the parts that block it come from the stage's parts (`CheckItem::for`) and their
     results, rejected first and then not checked yet. They go in the locked `$blockedParts`
-    (`label`, `state`: `rejected` / `unchecked` / `missing`), with a missing official receipt
-    number added as `missing`. The dialog shows the rule, that list (✗ rejected, – not checked
+    (`label`, `state`: `rejected` / `unchecked` / `not_entered`), with an official receipt
+    number not entered added as `not_entered` (and, for Confirm Compliance, items not received as
+    `to_receive`). The dialog shows the rule, that list (✗ rejected, – not checked
     yet / not entered yet) and "To approve, …".
   - Return and Decline: the reasons are sentences in the locked `$blockers`: no rejected part
     for Return at the evaluation, and the validation messages (remarks), with friendly wording.

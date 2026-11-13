@@ -21,7 +21,7 @@
                                 <flux:badge size="sm" color="red" icon="exclamation-triangle" class="mb-1" data-action-required>{{ __('Action required') }}</flux:badge>
                             @endif
                             <span @class(['block text-ink', 'font-semibold' => ! $notification->read_at])>{{ $notification->data['title'] ?? '' }}</span>
-                            <span class="block text-sm text-zinc-700">{{ $notification->data['message'] ?? '' }}</span>
+                            <span class="block text-sm text-zinc-700">{{ ($notification->data['event_type'] ?? null) === 'compliance_requested' ? \App\Models\RequestEvent::requiredWording((string) $notification->data['message']) : ($notification->data['message'] ?? '') }}</span>
                             <span class="mt-1 block text-xs text-zinc-500">{{ $notification->data['reference_no'] ?? '' }} · {{ $notification->created_at->format('M j, Y g:i A') }}</span>
                             @if (! $notification->read_at)<span class="sr-only">{{ __('(unread)') }}</span>@endif
                         </span>

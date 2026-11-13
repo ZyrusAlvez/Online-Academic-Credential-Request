@@ -56,7 +56,8 @@
                     </flux:table.cell>
                     <flux:table.cell class="align-top whitespace-normal">
                         <flux:badge size="sm" :color="$log->category->color()">{{ $log->category->label() }}</flux:badge>
-                        <div class="mt-1 text-ink">{{ $log->description }}</div>
+                        {{-- An office visit's older entries said "Missing: …" (REQ-20-04). --}}
+                        <div class="mt-1 text-ink">{{ $log->action === 'request.compliance_requested' ? \App\Models\RequestEvent::requiredWording($log->description) : $log->description }}</div>
 
                         @if ($log->reference_no)
                             <div class="mt-1 text-xs md:hidden">

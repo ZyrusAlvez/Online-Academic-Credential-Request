@@ -90,5 +90,5 @@ the meaning of `pending_compliance`. No request or ledger row changes.
   remarks. `EvaluatorReport`: a "Returned for clarification" column counting requests with a
   `customer_action_requested` event; "Sent for compliance" keeps counting requests with
   deficiencies.
-- `DemoSeeder`: one request returned for clarification and one pending compliance with a missing
-  item received.
+- `DemoSeeder`: one request returned for clarification and one pending compliance with one of its
+  required items received.

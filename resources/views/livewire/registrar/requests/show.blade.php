@@ -62,26 +62,28 @@
             <section aria-labelledby="clarification-heading" class="space-y-3 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6" data-clarification-panel>
                 <h2 id="clarification-heading" class="text-lg font-semibold text-amber-900">{{ __('Returned for Clarification') }}</h2>
                 @if ($lastReturn)
-                    <p class="text-sm whitespace-pre-line text-amber-950">{{ $lastReturn->remarks }}</p>
+                    <p class="text-sm whitespace-pre-line text-amber-950">{{ $lastReturn->displayRemarks() }}</p>
                     <p class="text-xs text-amber-900">{{ __(':date · :name', ['date' => $lastReturn->created_at->format('M j, Y g:i A'), 'name' => $lastReturn->actor?->name]) }}</p>
                 @endif
             </section>
         @endif
 
         @if ($panel === Page::PANEL_COMPLIANCE)
-            {{-- Office visit: each missing item is marked received, then compliance is confirmed (REQ-20-09). --}}
+            {{-- Office visit: each required item is marked received, then compliance is confirmed (REQ-20-09). --}}
             @php($outstanding = $request->deficiencies->whereNull('resolved_at')->count())
+            {{-- The ledger line is "Required: <items>\n<remarks>"; the items are listed below, so only the remarks show here. --}}
+            @php($visitRemarks = $lastReturn && str_contains((string) $lastReturn->remarks, "\n") ? \Illuminate\Support\Str::after((string) $lastReturn->remarks, "\n") : '')
             <section aria-labelledby="compliance-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-compliance-panel>
                 <div>
                     <h2 id="compliance-heading" class="text-lg font-semibold text-primary">{{ __('Office Visit') }}</h2>
                     <p class="text-sm text-zinc-700">{{ __('Mark each item received, then confirm compliance.') }}</p>
                 </div>
-                @if ($lastReturn)
-                    <p class="rounded-md bg-white p-3 text-sm whitespace-pre-line text-ink">{{ $lastReturn->remarks }}</p>
+                @if ($visitRemarks !== '')
+                    <p class="rounded-md bg-white p-3 text-sm whitespace-pre-line text-ink" data-visit-remarks><span class="font-semibold">{{ __('Remarks:') }}</span> {{ $visitRemarks }}</p>
                 @endif
-                <ul class="divide-y divide-secondary/40 rounded-lg border border-secondary/50 bg-white" data-missing-items>
+                <ul class="divide-y divide-secondary/40 rounded-lg border border-secondary/50 bg-white" data-required-items>
                     @foreach ($request->deficiencies as $deficiency)
-                        <li wire:key="missing-{{ $deficiency->id }}" class="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
+                        <li wire:key="required-{{ $deficiency->id }}" class="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
                             <span class="font-medium text-ink">{{ $deficiency->description }}</span>
                             @if ($deficiency->resolved_at)
                                 <span class="inline-flex items-center gap-1 text-green-800" data-received>
@@ -97,7 +99,8 @@
                 <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
                 <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
                     <flux:button wire:click="decline" variant="danger" icon="no-symbol" data-decline-button data-confirm-title="{{ __('Decline request') }}" data-confirm-label="{{ __('Decline') }}" :wire:confirm="__('Decline :ref? The requester is notified with your remarks. This cannot be undone.', ['ref' => $request->reference_no])">{{ __('Decline') }}</flux:button>
-                    <flux:button wire:click="confirmCompliance" variant="primary" icon="check" data-confirm-compliance>{{ __('Confirm Compliance') }}</flux:button>
+                    {{-- Not until every item is received; the server refuses it too (REQ-20-09). --}}
+                    <flux:button wire:click="confirmCompliance" variant="primary" icon="check" :disabled="$outstanding > 0" data-confirm-compliance>{{ __('Confirm Compliance') }}</flux:button>
                 </div>
                 @if ($outstanding > 0)
                     <p class="text-center text-xs text-zinc-600">{{ trans_choice(':count requirement still to receive.|:count requirements still to receive.', $outstanding) }}</p>
@@ -356,8 +359,8 @@
             @elseif ($blockedParts !== [])
                 {{-- Approve: the rule, what blocks it, and how to approve; never Return or Decline. --}}
                 {{-- One-line PHP directives only: a PHP block here would pair with the one-line directive above and swallow the page. --}}
-                @php($toConfirm = collect($blockedParts)->where('state', '!==', 'missing')->count())
-                @php($receiptMissing = collect($blockedParts)->contains('state', 'missing'))
+                @php($toConfirm = collect($blockedParts)->where('state', '!==', 'not_entered')->count())
+                @php($receiptNotEntered = collect($blockedParts)->contains('state', 'not_entered'))
                 <p class="text-sm text-ink">
                     {{ $panel === Page::PANEL_PAYMENT
                         ? __('Approve needs every part of the checklist confirmed and the official receipt number.')
@@ -375,7 +378,7 @@
                                 <span class="font-medium">{{ __($part['label']) }}</span>
                                 — {{ match ($part['state']) {
                                     'rejected' => __('rejected'),
-                                    'missing' => __('not entered yet'),
+                                    'not_entered' => __('not entered yet'),
                                     default => __('not checked yet'),
                                 } }}
                             </span>
@@ -383,7 +386,7 @@
                     @endforeach
                 </ul>
                 <p class="text-sm text-ink" data-blocked-hint>
-                    @if ($toConfirm > 0 && $receiptMissing)
+                    @if ($toConfirm > 0 && $receiptNotEntered)
                         {{ __('To approve, change the checklist parts to Confirm and enter the official receipt number.') }}
                     @elseif ($toConfirm > 0)
                         {{ $toConfirm === 1 ? __('To approve, change it to Confirm.') : __('To approve, change these to Confirm.') }}
@@ -416,13 +419,13 @@
                     <flux:text class="mt-2">{{ __('Tick what the requester must bring or complete at the office.') }}</flux:text>
                 </div>
                 @if ($request->credentialType->requirements)
-                    <flux:checkbox.group wire:model="missing" :label="__('Requirements')">
+                    <flux:checkbox.group wire:model="requiredItems" :label="__('Requirements')">
                         @foreach ($request->credentialType->requirements as $requirement)
                             <flux:checkbox :value="$requirement" :label="$requirement" />
                         @endforeach
                     </flux:checkbox.group>
                 @endif
-                <flux:input wire:model="otherMissing" :label="__('Other')" :badge="$request->credentialType->requirements ? __('Optional') : null" :placeholder="__('e.g. Completed clearance form')" maxlength="250" />
+                <flux:input wire:model="otherRequirement" :label="__('Other')" :badge="$request->credentialType->requirements ? __('Optional') : null" :placeholder="__('e.g. Completed clearance form')" maxlength="250" />
                 <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
                 <div class="flex justify-end gap-2">
                     <flux:modal.close><flux:button variant="ghost">{{ __('Back') }}</flux:button></flux:modal.close>

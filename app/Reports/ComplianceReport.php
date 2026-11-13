@@ -28,7 +28,7 @@ final class ComplianceReport implements Report
 
     public function description(): string
     {
-        return 'Requests waiting for missing requirements, clarification or payment right now (the date range does not apply).';
+        return 'Requests waiting for office-visit requirements, clarification or payment right now (the date range does not apply).';
     }
 
     public function columns(): array
@@ -68,7 +68,7 @@ final class ComplianceReport implements Report
             // What the office still has to receive, else the return's ledger line (REQ-20-12).
             RequestStatus::PendingCompliance => $request->deficiencies->whereNull('resolved_at')->isNotEmpty()
                 ? 'Required: '.$request->deficiencies->whereNull('resolved_at')->pluck('description')->implode('; ')
-                : str_replace("\n", ' – ', (string) $request->events->last(fn ($event) => $event->type === RequestEventType::ComplianceRequested)?->remarks),
+                : str_replace("\n", ' – ', (string) $request->events->last(fn ($event) => $event->type === RequestEventType::ComplianceRequested)?->displayRemarks()),
             // The rejected parts and the remarks (REQ-20-12).
             RequestStatus::ReturnedForClarification, RequestStatus::ReturnedForCustomerAction => str_replace("\n", ' – ',
                 (string) $request->events->last(fn ($event) => $event->type === RequestEventType::CustomerActionRequested)?->remarks),

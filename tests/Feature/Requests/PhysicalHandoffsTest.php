@@ -179,7 +179,7 @@ test('REQ-17-17 one rejected part says to change it to Confirm', function () {
     expect(blockedDialog($page))->not->toContain('decline')->not->toContain('Decline');
 });
 
-test('REQ-17-17 at payment validation the missing receipt number is listed with the parts', function () {
+test('REQ-17-17 at payment validation a receipt number not entered is listed with the parts', function () {
     $request = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
     uploadPayment($request);
 
@@ -188,7 +188,7 @@ test('REQ-17-17 at payment validation the missing receipt number is listed with 
         ->assertSet('blockedParts', [
             ['label' => 'Proof of Payment', 'state' => 'unchecked'],
             ['label' => 'Amount and Reference', 'state' => 'unchecked'],
-            ['label' => 'Official receipt number', 'state' => 'missing'],
+            ['label' => 'Official receipt number', 'state' => 'not_entered'],
         ])
         ->assertSet('blockers', [])
         ->assertSeeInOrder([
@@ -199,7 +199,7 @@ test('REQ-17-17 at payment validation the missing receipt number is listed with 
 
     checkAll($request, $this->registrar, CheckStage::Payment);
     handoffPage($request)->call('approve')
-        ->assertSet('blockedParts', [['label' => 'Official receipt number', 'state' => 'missing']])
+        ->assertSet('blockedParts', [['label' => 'Official receipt number', 'state' => 'not_entered']])
         ->assertSee('To approve, enter the official receipt number.');
 });
 

@@ -14,7 +14,7 @@ Source: *Proposed Workflow*:
   Action".
 
 Decided by the user on 2026-11-10. Spec 16 had one return, and the requester could resubmit it
-online even when original documents were missing. Initial Evaluation now ends with one of four
+online even when original documents were still required at the office. Initial Evaluation now ends with one of four
 decisions:
 
 | Button | Status | What happens next |

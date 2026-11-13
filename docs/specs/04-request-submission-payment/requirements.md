@@ -10,10 +10,10 @@ period starts only at acceptance.
 - **US-04-1** As a requester, I want to see a credential's requirements, fee, processing period,
   signatories and special conditions before I submit, so that I know what to prepare.
 - **US-04-2** As a requester, I want a tracking number and confirmation that my request was
-  received for evaluation, and to be told exactly what is missing if my requirements are incomplete.
+  received for evaluation, and to be told exactly what is required if my requirements are incomplete.
 - **US-04-3** As the Registrar's evaluator, I want to record the outcome of my evaluation
   (complete, incomplete, needs clarification, not eligible), so that each request follows the
-  right path and nothing proceeds to payment with missing requirements.
+  right path and nothing proceeds to payment with requirements still to submit.
 - **US-04-4** As the registrar, I want to verify a payment against the official record before
   accepting the request, so that an uploaded screenshot alone never counts as paid.
 

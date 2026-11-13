@@ -233,16 +233,16 @@ class RequestWorkflow
     }
 
     /**
-     * Originals or clearance are missing: the requester complies at the office, and the request
-     * waits for the registrar to record it (REQ-20-04, Proposed Workflow III-C).
+     * Originals or clearance are required at the office: the requester complies there, and the
+     * request waits for the registrar to record it (REQ-20-04, Proposed Workflow III-C).
      *
-     * @param  list<string>  $missing  each missing requirement, as the requester will read it
+     * @param  list<string>  $items  each required item, as the requester will read it
      */
-    public function requireOfficeVisit(CredentialRequest $request, User $registrar, array $missing, string $remarks): void
+    public function requireOfficeVisit(CredentialRequest $request, User $registrar, array $items, string $remarks): void
     {
-        $missing = array_values(array_unique(array_filter(array_map(trim(...), $missing), filled(...))));
+        $items = array_values(array_unique(array_filter(array_map(trim(...), $items), filled(...))));
 
-        if ($missing === []) {
+        if ($items === []) {
             throw new InvalidTransition('Tick at least one requirement, so the requester knows what to bring.');
         }
 
@@ -250,29 +250,29 @@ class RequestWorkflow
             throw new InvalidTransition('Tell the requester what to bring.');
         }
 
-        DB::transaction(function () use ($request, $registrar, $missing, $remarks): void {
+        DB::transaction(function () use ($request, $registrar, $items, $remarks): void {
             $locked = $this->lock($request, [RequestStatus::UnderEvaluation], 'Only a request under evaluation can require an office visit.');
             $this->assertEvaluator($locked, $registrar);
 
-            foreach ($missing as $item) {
+            foreach ($items as $item) {
                 $locked->deficiencies()->make(['description' => Str::limit($item, 250, '')])
                     ->forceFill(['recorded_by' => $registrar->id])
                     ->save();
             }
 
             $this->transition($locked, $request, RequestStatus::PendingCompliance, $registrar, RequestEventType::ComplianceRequested,
-                // "Required", not "Missing": a copy may already be uploaded; the office needs the original.
-                'Required: '.implode('; ', $missing)."\n{$remarks}");
+                // "Required": a copy may already be uploaded; the office needs the original.
+                'Required: '.implode('; ', $items)."\n{$remarks}");
         });
     }
 
     /**
-     * One missing item was submitted at the office: when, and who verified it (REQ-20-09).
+     * One required item was submitted at the office: when, and who verified it (REQ-20-09).
      */
     public function markReceived(RequestDeficiency $deficiency, User $registrar): void
     {
         DB::transaction(function () use ($deficiency, $registrar): void {
-            $locked = $this->lock($deficiency->credentialRequest()->firstOrFail(), [RequestStatus::PendingCompliance], 'Only a request pending compliance takes missing documents.');
+            $locked = $this->lock($deficiency->credentialRequest()->firstOrFail(), [RequestStatus::PendingCompliance], 'Only a request pending compliance has items to receive.');
 
             /** @var RequestDeficiency $current */
             $current = RequestDeficiency::whereKey($deficiency->id)->lockForUpdate()->firstOrFail();
@@ -289,7 +289,7 @@ class RequestWorkflow
     }
 
     /**
-     * Everything missing was received: the evaluation is complete, so payment instructions follow,
+     * Every required item was received: the evaluation is complete, so payment instructions follow,
      * or a free request is accepted (REQ-20-09).
      */
     public function confirmCompliance(CredentialRequest $request, User $registrar, ?string $remarks = null): void
@@ -298,7 +298,7 @@ class RequestWorkflow
             $locked = $this->lock($request, [RequestStatus::PendingCompliance], 'Only a request pending compliance can be confirmed.');
 
             if ($locked->deficiencies()->whereNull('resolved_at')->exists()) {
-                throw new InvalidTransition('Mark every missing requirement received first.');
+                throw new InvalidTransition('Mark every requirement received first.');
             }
 
             foreach (CheckItem::for(CheckStage::Evaluation, $locked) as $item) {

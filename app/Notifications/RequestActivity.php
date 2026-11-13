@@ -57,7 +57,7 @@ class RequestActivity extends Notification implements ShouldQueue
             'reference_no' => $request->reference_no,
             'event_type' => $this->event->type->value,
             'title' => $this->title,
-            'message' => $this->event->summary().(filled($this->event->remarks) ? " – {$this->event->remarks}" : ''),
+            'message' => $this->event->summary().(filled($this->event->remarks) ? " – {$this->event->displayRemarks()}" : ''),
             'url' => $this->url($notifiable, $request),
             'action_required' => $this->actionRequired($notifiable),
         ];
@@ -82,7 +82,7 @@ class RequestActivity extends Notification implements ShouldQueue
             ->line("**{$this->event->summary()}**");
 
         if (filled($this->event->remarks)) {
-            $message->line("Remarks: {$this->event->remarks}");
+            $message->line("Remarks: {$this->event->displayRemarks()}");
         }
 
         if ($this->event->type === RequestEventType::RequirementsCompleted && $request->amount_due !== null) {
@@ -119,7 +119,7 @@ class RequestActivity extends Notification implements ShouldQueue
             ->line("**{$this->event->summary()}**");
 
         if (filled($this->event->remarks)) {
-            $message->line("Remarks: {$this->event->remarks}");
+            $message->line("Remarks: {$this->event->displayRemarks()}");
         }
 
         return $message

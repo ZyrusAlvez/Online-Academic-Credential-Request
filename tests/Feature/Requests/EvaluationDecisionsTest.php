@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ActivityCategory;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
@@ -14,7 +15,9 @@ use App\Livewire\Registrar\Records\Index as RecordsIndex;
 use App\Livewire\Registrar\Requests\Show as RegistrarShow;
 use App\Livewire\Student\Requests\Edit;
 use App\Livewire\Student\Requests\Show as RequesterShow;
+use App\Models\ActivityLog;
 use App\Models\CredentialRequest;
+use App\Models\RequestEvent;
 use App\Models\User;
 use App\Notifications\RequestActivity;
 use App\Reports\ComplianceReport;
@@ -88,11 +91,11 @@ function returnedForClarification(CredentialRequest $request, array $rejected, s
     return $request->fresh();
 }
 
-/** Sent to the office for the given missing items. */
-function sentToOffice(CredentialRequest $request, array $missing = ['PSA-authenticated birth certificate'], string $remarks = 'Bring the original.'): CredentialRequest
+/** Sent to the office for the given required items. */
+function sentToOffice(CredentialRequest $request, array $items = ['PSA-authenticated birth certificate'], string $remarks = 'Bring the original.'): CredentialRequest
 {
     evaluating($request, [CheckItem::AcademicRecord->value => CheckResult::Rejected]);
-    workflow()->requireOfficeVisit($request, test()->registrar, $missing, $remarks);
+    workflow()->requireOfficeVisit($request, test()->registrar, $items, $remarks);
 
     return $request->fresh();
 }
@@ -118,7 +121,7 @@ test('REQ-20-02 Initial Evaluation has four buttons, Approve on the right; remar
 
     decisionPage()->assertSeeInOrder(['Remarks', 'Decline', 'Require Office Visit', 'Return for Clarification', 'Approve']);
     decisionPage()->call('returnRequest')->assertHasErrors('remarks');
-    decisionPage()->set('missing', ['PSA-authenticated birth certificate'])->call('requireOfficeVisit')->assertHasErrors('remarks');
+    decisionPage()->set('requiredItems', ['PSA-authenticated birth certificate'])->call('requireOfficeVisit')->assertHasErrors('remarks');
     decisionPage()->call('decline')->assertHasErrors('remarks');
 
     $free = submitRequest($this->owner, $this->org->free);
@@ -171,13 +174,13 @@ test('REQ-20-04 Require Office Visit asks what is required, records each item an
         ->and(Str::lower($dialog))->not->toContain('missing requirement');
 
     decisionPage()->set('remarks', 'Bring them.')->call('requireOfficeVisit')
-        ->assertHasErrors('otherMissing')->assertSee('Tick at least one requirement, or describe it under Other.');
-    decisionPage()->set('missing', ['Not a requirement'])->set('remarks', 'Bring them.')->call('requireOfficeVisit')->assertHasErrors('missing.0');
+        ->assertHasErrors('otherRequirement')->assertSee('Tick at least one requirement, or describe it under Other.');
+    decisionPage()->set('requiredItems', ['Not a requirement'])->set('remarks', 'Bring them.')->call('requireOfficeVisit')->assertHasErrors('requiredItems.0');
     expect($this->request->fresh()->status)->toBe(RequestStatus::UnderEvaluation);
 
     decisionPage()
-        ->set('missing', ['PSA-authenticated birth certificate'])
-        ->set('otherMissing', 'Original Form 137')
+        ->set('requiredItems', ['PSA-authenticated birth certificate'])
+        ->set('otherRequirement', 'Original Form 137')
         ->set('remarks', 'Bring the originals, personally or through a representative.')
         ->call('requireOfficeVisit')
         ->assertHasNoErrors()
@@ -199,6 +202,27 @@ test('REQ-20-04 Require Office Visit asks what is required, records each item an
 
     expect(fn () => workflow()->requireOfficeVisit(submitRequest($this->owner, $this->org->tor), $this->registrar, ['Form 137'], 'Bring it.'))
         ->toThrow(InvalidTransition::class);
+});
+
+test('REQ-20-04 entries written before the change say Required wherever they are shown, without being edited', function () {
+    $request = sentToOffice($this->request, ['Completed clearance'], 'Bring it.');
+
+    // An older ledger entry, as it was written then; its notification and activity log copies too.
+    $old = $request->events()->create(['type' => RequestEventType::ComplianceRequested, 'actor_id' => $this->registrar->id, 'remarks' => "Missing: Original Form 137\nBring the original."]);
+    $this->owner->notifications()->create(['id' => (string) Str::uuid(), 'type' => RequestActivity::class, 'data' => [
+        'request_id' => $request->id, 'reference_no' => $request->reference_no, 'event_type' => 'compliance_requested', 'title' => 'Office visit',
+        'message' => "Returned to you – please complete the requirements – Missing: Original Form 137\nBring the original.", 'url' => '/', 'action_required' => true,
+    ]]);
+    ActivityLog::create(['category' => ActivityCategory::Request, 'action' => 'request.compliance_requested', 'description' => 'Compliance requested: Missing: Original Form 137', 'reference_no' => $request->reference_no, 'created_at' => now()]);
+
+    expect($old->fresh()->remarks)->toStartWith('Missing: ')   // stored as written
+        ->and($old->displayRemarks())->toBe("Required: Original Form 137\nBring the original.")
+        ->and(RequestEvent::make(['type' => RequestEventType::CustomerActionRequested, 'remarks' => 'Missing: page 2'])->displayRemarks())->toBe('Missing: page 2');
+
+    $this->actingAs($this->owner)->get(route('student.requests.show', $request))->assertSee('Required: Original Form 137')->assertDontSee('Missing:');
+    $this->actingAs($this->owner)->get(route('notifications'))->assertSee('Required: Original Form 137')->assertDontSee('Missing:');
+    $this->actingAs($this->registrar)->get(route('records.show', $request))->assertSee('Required: Original Form 137')->assertDontSee('Missing:');
+    $this->actingAs(User::factory()->admin()->create())->get(route('admin.logs'))->assertSee('Compliance requested: Required: Original Form 137')->assertDontSee('Missing:');
 });
 
 // ── Returned for clarification ─────────────────────────────────────────────────────────────
@@ -376,20 +400,35 @@ test('REQ-20-08 the requester is told to visit the office, with what to bring, a
 });
 
 test('REQ-20-09 the registrar marks each item received, then confirms compliance and the request goes on to payment', function () {
-    sentToOffice($this->request, ['PSA-authenticated birth certificate', 'Completed clearance']);
+    sentToOffice($this->request, ['PSA-authenticated birth certificate', 'Completed clearance'], 'Bring the originals.');
     [$psa, $clearance] = $this->request->deficiencies()->get()->all();
+    $confirmButton = function (): string {
+        preg_match('/<button[^>]*data-confirm-compliance[^>]*>/', decisionPage()->html(), $match);
 
-    decisionPage()->assertSeeHtml('data-compliance-panel')->assertSee('Mark Received')
-        ->call('confirmCompliance')
+        return $match[0] ?? '';
+    };
+
+    // The remarks once, without the items again: they are listed below with Mark Received.
+    $panel = Str::of(decisionPage()->html())->after('data-compliance-panel')->before('data-decision-buttons')->toString();
+    expect(Str::of($panel)->after('data-visit-remarks')->before('</p>')->squish()->toString())->toBe('><span class="font-semibold">Remarks:</span> Bring the originals.')
+        ->and(substr_count($panel, 'PSA-authenticated birth certificate'))->toBe(1)
+        ->and($panel)->not->toContain('Required:')->not->toContain('Missing');
+
+    // Confirm Compliance is disabled until every item is received, and the server refuses it too.
+    expect($confirmButton())->toMatch('/\sdisabled[\s=>]/');
+    decisionPage()->call('confirmCompliance')
         ->assertDispatched('modal-show', name: 'decision-blocked')
         ->assertSee("Can't confirm compliance yet")
-        ->assertSet('blockedParts', [['label' => 'PSA-authenticated birth certificate', 'state' => 'missing'], ['label' => 'Completed clearance', 'state' => 'missing']]);
+        ->assertSet('blockedParts', [['label' => 'PSA-authenticated birth certificate', 'state' => 'to_receive'], ['label' => 'Completed clearance', 'state' => 'to_receive']]);
+    expect($this->request->fresh()->status)->toBe(RequestStatus::PendingCompliance);
 
     decisionPage()->call('markReceived', $psa->id)->assertDispatched('notify', message: 'Marked received.');
     expect($psa->fresh())->resolved_at->not->toBeNull()->resolved_by->toBe($this->registrar->id)
-        ->and(fn () => workflow()->confirmCompliance($this->request, $this->registrar))->toThrow(InvalidTransition::class);
+        ->and($confirmButton())->toMatch('/\sdisabled[\s=>]/')
+        ->and(fn () => workflow()->confirmCompliance($this->request, $this->registrar))->toThrow(InvalidTransition::class, 'Mark every requirement received first.');
 
     decisionPage()->call('markReceived', $clearance->id);
+    expect($confirmButton())->not->toBeEmpty()->not->toMatch('/\sdisabled[\s=>]/');
     decisionPage()->assertSee('Received')->call('confirmCompliance')->assertHasNoErrors();
 
     $request = $this->request->fresh();

@@ -90,7 +90,7 @@ class DemoSeeder extends Seeder
                 $this->workflow->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
             });
 
-            // Pending compliance: the originals are missing, so the requester must visit the office;
+            // Pending compliance: the originals are required, so the requester must visit the office;
             // one of the two was already received (spec 20).
             $this->at(3, function () use ($jose, $tor): void {
                 $request = $this->submit($jose, $tor, 'Board or licensure examination');

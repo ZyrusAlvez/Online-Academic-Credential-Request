@@ -76,7 +76,7 @@ at acceptance.
 | Dean step | A route placeholder that resolves to the college the requester belongs to |
 | Route step | One entry of a request's route, copied from the credential type at acceptance |
 | Office visit | One physical stay of the document at an office: forwarded → received → completed or returned. A return and re-send create a new visit; earlier visits are never overwritten. |
-| Deficiency | A missing requirement found during evaluation (a document, clearance or other), resolved when the Registrar records its physical submission |
+| Deficiency | A requirement the evaluator requires at the office (an original document, clearance or other), resolved when the Registrar records its physical submission. Shown as "Required", never "missing" (REQ-20-04) |
 | Representative | A person acting for the document owner, backed by an SPA and the IDs of both |
 | Accepted date | When the Registrar formally accepted the request; the processing period starts here |
 | Due date | Accepted date plus the processing period in working days. Never changed; approved pauses produce a separate *adjusted* due date. |

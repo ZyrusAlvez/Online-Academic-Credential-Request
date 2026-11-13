@@ -213,7 +213,7 @@ class CredentialRequest extends Model
     }
 
     /**
-     * What Require Office Visit found missing, each resolved when the registrar marks it received
+     * What Require Office Visit asked for, each resolved when the registrar marks it received
      * (REQ-20-04, 09).
      *
      * @return HasMany<RequestDeficiency, $this>

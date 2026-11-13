@@ -70,14 +70,14 @@ class Show extends Component
     public string $officialReceiptNo = '';
 
     /**
-     * Require Office Visit: the credential's requirements ticked as missing (REQ-20-04).
+     * Require Office Visit: the credential's requirements ticked as required at the office (REQ-20-04).
      *
      * @var list<string>
      */
-    public array $missing = [];
+    public array $requiredItems = [];
 
-    /** Require Office Visit: anything else missing, in the evaluator's words. */
-    public string $otherMissing = '';
+    /** Require Office Visit: anything else required, in the evaluator's words. */
+    public string $otherRequirement = '';
 
     #[Locked]
     public ?int $rejectingRepresentativeId = null;
@@ -93,9 +93,10 @@ class Show extends Component
     public string $blockedAction = '';
 
     /**
-     * What blocks Approve: each part not confirmed and a missing receipt number (REQ-17-17).
+     * What blocks a decision: each part not confirmed, a receipt number not entered, an office-visit
+     * item not received (REQ-17-17).
      *
-     * @var list<array{label: string, state: 'rejected'|'unchecked'|'missing'}>
+     * @var list<array{label: string, state: 'rejected'|'unchecked'|'not_entered'|'to_receive'}>
      */
     #[Locked]
     public array $blockedParts = [];
@@ -214,7 +215,7 @@ class Show extends Component
     }
 
     /**
-     * Require Office Visit, from its dialog: what is missing and the remarks (REQ-20-04).
+     * Require Office Visit, from its dialog: what is required at the office and the remarks (REQ-20-04).
      */
     public function requireOfficeVisit(RequestWorkflow $workflow): void
     {
@@ -224,26 +225,26 @@ class Show extends Component
         $listed = $this->credentialRequest->credentialType->requirements ?? [];
 
         $this->validate([
-            'missing' => ['array'],
-            'missing.*' => ['string', Rule::in($listed)],
-            'otherMissing' => [Rule::requiredIf($this->missing === []), 'nullable', 'string', 'max:250'],
+            'requiredItems' => ['array'],
+            'requiredItems.*' => ['string', Rule::in($listed)],
+            'otherRequirement' => [Rule::requiredIf($this->requiredItems === []), 'nullable', 'string', 'max:250'],
             'remarks' => ['required', 'string', 'max:500'],
         ], [
-            'otherMissing.required' => 'Tick at least one requirement, or describe it under Other.',
+            'otherRequirement.required' => 'Tick at least one requirement, or describe it under Other.',
             'remarks.required' => 'Write your remarks; the requester sees them.',
-        ], ['otherMissing' => 'other requirement']);
+        ], ['otherRequirement' => 'other requirement']);
 
-        $missing = [...array_values(array_intersect($listed, $this->missing)), ...(filled($this->otherMissing) ? [$this->otherMissing] : [])];
+        $items = [...array_values(array_intersect($listed, $this->requiredItems)), ...(filled($this->otherRequirement) ? [$this->otherRequirement] : [])];
 
-        if ($this->attempt(fn () => $workflow->requireOfficeVisit($this->credentialRequest, $this->actor(), $missing, $this->remarks),
+        if ($this->attempt(fn () => $workflow->requireOfficeVisit($this->credentialRequest, $this->actor(), $items, $this->remarks),
             'The requester was asked to visit the Office of the Registrar.')) {
             Flux::modal('office-visit')->close();
-            $this->reset('missing', 'otherMissing', 'remarks');
+            $this->reset('requiredItems', 'otherRequirement', 'remarks');
         }
     }
 
     /**
-     * A missing requirement was submitted at the office (REQ-20-09).
+     * A required item was submitted at the office (REQ-20-09).
      */
     public function markReceived(int $deficiencyId, RequestWorkflow $workflow): void
     {
@@ -255,7 +256,7 @@ class Show extends Component
     }
 
     /**
-     * Every missing requirement was received: on to payment (REQ-20-09).
+     * Every required item was received: on to payment (REQ-20-09).
      */
     public function confirmCompliance(RequestWorkflow $workflow): void
     {
@@ -386,13 +387,13 @@ class Show extends Component
             $parts = $this->unconfirmedParts();
 
             if (array_key_exists('officialReceiptNo', $rules) && blank($this->officialReceiptNo)) {
-                $parts[] = ['label' => 'Official receipt number', 'state' => 'missing'];
+                $parts[] = ['label' => 'Official receipt number', 'state' => 'not_entered'];
             }
         } elseif ($action === 'return' && $this->stage() === CheckStage::Evaluation && ! in_array('rejected', array_column($this->stageParts(), 'state'), true)) {
             $blockers[] = 'Reject at least one part of the checklist, so the requester knows what to correct.';
         } elseif ($action === 'confirm') {
             $parts = $this->credentialRequest->deficiencies()->whereNull('resolved_at')->pluck('description')
-                ->map(fn (string $item): array => ['label' => $item, 'state' => 'missing'])->values()->all();
+                ->map(fn (string $item): array => ['label' => $item, 'state' => 'to_receive'])->values()->all();
         }
 
         try {
@@ -456,7 +457,7 @@ class Show extends Component
      * The parts that keep Approve from running: rejected first, then not checked yet
      * (REQ-16-12, 17, 19).
      *
-     * @return list<array{label: string, state: 'rejected'|'unchecked'|'missing'}>
+     * @return list<array{label: string, state: 'rejected'|'unchecked'}>
      */
     private function unconfirmedParts(): array
     {
@@ -475,7 +476,7 @@ class Show extends Component
     }
 
     /**
-     * @param  list<array{label: string, state: 'rejected'|'unchecked'|'missing'}>  $parts
+     * @param  list<array{label: string, state: 'rejected'|'unchecked'|'not_entered'|'to_receive'}>  $parts
      * @param  list<string>  $reasons
      */
     private function block(string $action, array $parts, array $reasons): void
