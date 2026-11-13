@@ -15,6 +15,22 @@ test('REQ-18-02 REQ-18-03 dashboard redirects each role to its home', function (
     'admin' => ['admin', 'admin.dashboard'],
 ]);
 
+test('REQ-01-32 a logged-in user opening the landing page goes to their role\'s home', function (string $state, string $route) {
+    $user = User::factory()->{$state}()->create();
+
+    $this->actingAs($user)->get('/')->assertRedirect(route('dashboard'));
+    $this->get(route('dashboard'))->assertRedirect(route($route));
+})->with([
+    'student' => ['student', 'student.requests.create'],
+    'registrar' => ['registrar', 'registrar.evaluation'],
+    'department' => ['departmentStaff', 'department.dashboard'],
+    'admin' => ['admin', 'admin.dashboard'],
+]);
+
+test('REQ-01-32 guests see the landing page', function () {
+    $this->get('/')->assertOk()->assertSee('Create an account');
+});
+
 test('REQ-01-11 users cannot open another role\'s pages', function (string $state, array $forbidden) {
     $user = User::factory()->{$state}()->create();
 
