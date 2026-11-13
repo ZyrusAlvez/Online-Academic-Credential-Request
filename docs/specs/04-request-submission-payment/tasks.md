@@ -22,3 +22,6 @@
 - [x] Tracking number prefix in lowercase: `cr26-00042` (REQ-04-03)
 - [x] Each chosen requirement file's name on New Request links to the file viewer (REQ-04-18)
 - [x] Pest test for it
+- [ ] Optional note with a new proof after a return: workflow remarks, requester field, registrar
+      Payment Validation box (REQ-04-20)
+- [ ] Pest tests for REQ-04-20

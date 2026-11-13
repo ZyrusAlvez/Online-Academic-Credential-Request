@@ -77,6 +77,12 @@ period starts only at acceptance.
 - **REQ-04-13** THE SYSTEM SHALL let the registrar reject a proof with remarks (back to
   `awaiting_payment`) or verify it against the official record, recording the official receipt
   number; an uploaded proof alone SHALL NOT mark a request as paid.
+- **REQ-04-20** WHEN the requester uploads a new proof of payment after one was returned (REQ-04-13,
+  the Proposed Workflow's "request clarification or valid proof → customer uploads proof again")
+  THE SYSTEM SHALL offer an optional note to the Office of the Registrar (at most 500 characters),
+  record it with the upload in the ledger, and show it to the registrar on Payment Validation, in
+  the "Payment to verify" notification and email, and in both histories. The field SHALL NOT show
+  before a proof was returned. The statuses are unchanged. *(User's request, 2026-11-13.)*
 
 ### Acceptance
 - **REQ-04-14** WHEN the registrar verifies the payment (or completes the evaluation of a free
