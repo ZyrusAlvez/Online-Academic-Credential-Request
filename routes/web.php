@@ -14,7 +14,8 @@ use App\Livewire\Student;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
-Route::view('/', 'welcome')->name('home');
+// Guests only: the guest middleware sends a logged-in user to /dashboard, their role's home (REQ-01-32).
+Route::view('/', 'welcome')->middleware('guest')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', fn () => redirect()->route(auth()->user()->role->homeRoute()))
