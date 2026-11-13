@@ -15,7 +15,7 @@ the meaning of `pending_compliance`. No request or ledger row changes.
 | Decision | Event type | Remarks |
 |---|---|---|
 | Return for Clarification | `customer_action_requested` (existing) | "Rejected: <parts>\n<remarks>" |
-| Require Office Visit | `compliance_requested` (existing) | "Required: <items>\n<remarks>" (older entries: "Missing: …") |
+| Require Office Visit | `compliance_requested` (existing) | "Required: <items>\n<remarks>" (older entries: "Missing: …", shown through `RequestEvent::displayRemarks()` as "Required: …") |
 | Mark Received | `deficiency_resolved` (existing) | the item |
 | Confirm Compliance | `requirements_completed` (existing) | — |
 | Resubmit Request | `resubmitted` (existing) | the note |
@@ -26,7 +26,7 @@ the meaning of `pending_compliance`. No request or ledger row changes.
 
 - `returnForClarification($request, $registrar, $remarks)` replaces `returnToRequester()`: the same
   checks and side effects, to `ReturnedForClarification`.
-- `requireOfficeVisit($request, $registrar, list<string> $missing, $remarks)`: under evaluation, by
+- `requireOfficeVisit($request, $registrar, list<string> $items, $remarks)`: under evaluation, by
   its evaluator; creates a `request_deficiencies` row per item (`recorded_by` the evaluator), then
   `PendingCompliance`.
 - `markReceived(RequestDeficiency $deficiency, $registrar)`: pending compliance only; sets
@@ -54,8 +54,10 @@ the meaning of `pending_compliance`. No request or ledger row changes.
   "Can't … yet" dialog (REQ-17-17).
 - Returned for clarification (`PANEL_CLARIFICATION`): the remarks and "It comes back to Initial
   Evaluation when the requester resubmits."
-- Pending compliance (`PANEL_COMPLIANCE`): the missing items, each with Mark Received or the date
-  and registrar who received it; Remarks; Decline and Confirm Compliance.
+- Pending compliance (`PANEL_COMPLIANCE`): the evaluator's remarks only (the ledger line after its
+  "Required: …" first line, with a "Remarks:" label), the required items, each with Mark Received
+  or the date and registrar who received it; Remarks; Decline and Confirm Compliance, which is
+  `disabled` while any item is still to receive (REQ-20-09).
 
 **Requester, `Student\Requests\Show`**
 - Returned for clarification: the rejected parts, the remarks and **Edit Request** (a link).

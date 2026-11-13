@@ -21,7 +21,7 @@ decisions:
 |---|---|---|
 | **Approve** | `awaiting_payment` (a free request is accepted) | Payment instructions, as before |
 | **Return for Clarification** | `returned_for_clarification` | The requester edits the request and resubmits it online |
-| **Require Office Visit** | `pending_compliance` | The requester brings the missing originals or completes clearance at the office; the Registrar records it with **Confirm Compliance** |
+| **Require Office Visit** | `pending_compliance` | The requester brings the required originals or completes clearance at the office; the Registrar records it with **Confirm Compliance** |
 | **Decline** | `declined` | The request ends |
 
 This replaces:
@@ -33,13 +33,13 @@ This replaces:
 ## User stories
 
 - **US-20-1** As an evaluator, I want to choose between asking the requester to correct the request
-  online and asking them to come to the office, so that missing originals are never "fixed" with an
-  upload.
+  online and asking them to come to the office, so that required originals are never replaced by
+  an upload.
 - **US-20-2** As a requester whose request was returned for clarification, I want to edit what was
   wrong and resubmit it, so that it is evaluated again without a new request.
 - **US-20-3** As a requester asked to visit the office, I want to see exactly what to bring, so that
   one visit is enough.
-- **US-20-4** As the registrar, I want to record each missing document as it is received and then
+- **US-20-4** As the registrar, I want to record each required document as it is received and then
   confirm compliance, so that the request goes on to payment with a record of who verified what.
 
 ## Acceptance criteria
@@ -64,10 +64,11 @@ This replaces:
   required at the office: each documentary requirement of the credential as a checkbox under
   "Requirements", plus an optional "Other" item. It SHALL require at least one item and remarks.
   It SHALL then record each item with the evaluator, set the status `pending_compliance`, write
-  the items ("Required: …") and the remarks to the ledger and notify the requester. The dialog,
-  the ledger and the request record SHALL NOT call the items "missing": the requester may already
-  have uploaded a copy, and the office still needs the original (Proposed Workflow III-C).
-  *(User's request, 2026-11-13.)*
+  the items ("Required: …") and the remarks to the ledger and notify the requester. No screen,
+  email, message or report SHALL call the items "missing": the requester may already have uploaded
+  a copy, and the office still needs the original (Proposed Workflow III-C). Ledger entries written
+  before this change ("Missing: …") are shown as "Required: …"; the stored rows are not edited.
+  *(User's request, 2026-11-13: "let's not tag it as missing", project-wide.)*
 
 ### Returned for clarification
 - **REQ-20-05** WHILE a request is returned for clarification THE SYSTEM SHALL show its requester
@@ -96,9 +97,11 @@ This replaces:
   notice that originals are submitted in person, or through the representative declared on New
   Request with the SPA and the valid IDs of both (REQ-11-05). THE SYSTEM SHALL NOT let them edit or
   resubmit the request; they can still cancel.
-- **REQ-20-09** WHILE a request is pending compliance THE SYSTEM SHALL show the registrar its missing
-  items, each with **Mark Received**, which records the date and the registrar. **Confirm
-  Compliance** SHALL require every item received. It SHALL then confirm the evaluation's parts, mark
+- **REQ-20-09** WHILE a request is pending compliance THE SYSTEM SHALL show the registrar its required
+  items, each with **Mark Received**, which records the date and the registrar, and the evaluator's
+  remarks without repeating the items. **Confirm Compliance** SHALL be disabled until every item is
+  received, and the server SHALL refuse it until then. *(User's request, 2026-11-13: the remarks
+  box repeated the items, and Confirm Compliance looked available.)* It SHALL then confirm the evaluation's parts, mark
   the request's ID and its representatives verified, and move a paid request to `awaiting_payment`
   with payment instructions, or accept a free request directly. The registrar SHALL also be able to
   decline the request, with remarks.
@@ -113,7 +116,7 @@ This replaces:
   Registrar" (staff: "Waiting for the requester at the Office of the Registrar").
 - **REQ-20-12** THE Customer Compliance report SHALL list requests returned for clarification and
   those pending compliance as separate statuses: the first waiting for the evaluator's remarks, the
-  second for its missing items. THE Evaluator Performance report SHALL count, per evaluator, the
+  second for its required items. THE Evaluator Performance report SHALL count, per evaluator, the
   requests returned for clarification apart from those sent for compliance.
 - **REQ-20-13** THE SYSTEM SHALL NOT offer the registrar's Reopen evaluation, nor let a requester
   resubmit a request pending compliance. A requester SHALL be able to cancel a request in either
