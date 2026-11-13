@@ -61,10 +61,13 @@ This replaces:
   SHALL be marked rejected. If the representative part was rejected, its representatives SHALL be
   marked not accepted. The requester SHALL be notified, and the evaluation lock ends.
 - **REQ-20-04** WHEN the evaluator chooses Require Office Visit THE SYSTEM SHALL ask what is
-  missing: each documentary requirement of the credential as a checkbox, plus an optional "Other"
-  item. It SHALL require at least one missing item and remarks. It SHALL then record each missing
-  item with the evaluator, set the status `pending_compliance`, write the missing items and the
-  remarks to the ledger and notify the requester.
+  required at the office: each documentary requirement of the credential as a checkbox under
+  "Requirements", plus an optional "Other" item. It SHALL require at least one item and remarks.
+  It SHALL then record each item with the evaluator, set the status `pending_compliance`, write
+  the items ("Required: …") and the remarks to the ledger and notify the requester. The dialog,
+  the ledger and the request record SHALL NOT call the items "missing": the requester may already
+  have uploaded a copy, and the office still needs the original (Proposed Workflow III-C).
+  *(User's request, 2026-11-13.)*
 
 ### Returned for clarification
 - **REQ-20-05** WHILE a request is returned for clarification THE SYSTEM SHALL show its requester
@@ -89,10 +92,10 @@ This replaces:
 
 ### Office visit
 - **REQ-20-08** WHILE a request is pending compliance THE SYSTEM SHALL show its requester "Visit the
-  Office of the Registrar", the missing items with whether each was received, the remarks and the
-  notice that originals are submitted in person or through an authorized representative with an
-  SPA and the valid IDs of both. THE SYSTEM SHALL NOT let them edit or resubmit the request; they
-  can still add a representative or cancel.
+  Office of the Registrar", the required items with whether each was received, the remarks and the
+  notice that originals are submitted in person, or through the representative declared on New
+  Request with the SPA and the valid IDs of both (REQ-11-05). THE SYSTEM SHALL NOT let them edit or
+  resubmit the request; they can still cancel.
 - **REQ-20-09** WHILE a request is pending compliance THE SYSTEM SHALL show the registrar its missing
   items, each with **Mark Received**, which records the date and the registrar. **Confirm
   Compliance** SHALL require every item received. It SHALL then confirm the evaluation's parts, mark
