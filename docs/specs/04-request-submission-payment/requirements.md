@@ -73,7 +73,8 @@ period starts only at acceptance.
 - **REQ-04-12** WHILE a request is `awaiting_payment` THE SYSTEM SHALL show the amount due and a
   "Pay online" link to the UPHSL payment portal, and let the owner upload a proof of payment (JPG,
   PNG, WebP or PDF, max 5 MB, stored privately) with the payment reference, amount and date paid
-  (status `payment_verification`).
+  (status `payment_verification`). The proof field SHALL be the valid ID's picker (REQ-15-04): the
+  chosen file's name is a link that opens it in the file viewer. *(User's request, 2026-11-13.)*
 - **REQ-04-13** THE SYSTEM SHALL let the registrar reject a proof with remarks (back to
   `awaiting_payment`) or verify it against the official record, recording the official receipt
   number; an uploaded proof alone SHALL NOT mark a request as paid.
@@ -83,6 +84,12 @@ period starts only at acceptance.
   record it with the upload in the ledger, and show it to the registrar on Payment Validation, in
   the "Payment to verify" notification and email, and in both histories. The field SHALL NOT show
   before a proof was returned. The statuses are unchanged. *(User's request, 2026-11-13.)*
+- **REQ-04-21** THE requester's payment section SHALL NOT list the uploaded proofs inline. WHEN a
+  proof was uploaded THE notice at the top of the section ("Your last proof of payment was not
+  accepted" or "Your payment is being verified") SHALL have a **Payment History** button on its
+  right that opens a dialog listing every proof, newest first: the file name as a link to the file
+  viewer, when it was uploaded, the reference and amount, the registrar's remarks and its status.
+  *(User's request, 2026-11-13: the section showed too much at once.)*
 
 ### Acceptance
 - **REQ-04-14** WHEN the registrar verifies the payment (or completes the evaluation of a free

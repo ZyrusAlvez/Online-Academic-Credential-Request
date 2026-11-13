@@ -25,3 +25,6 @@
 - [x] Optional note with a new proof after a return: workflow remarks, requester field, registrar
       Payment Validation box (REQ-04-20)
 - [x] Pest tests for REQ-04-20
+- [ ] Proof of payment uses `x-file-picker` (REQ-04-12); proofs list moved into a Payment History
+      dialog opened from the notice's right side (REQ-04-21)
+- [ ] Pest tests for the changed REQ-04-12 and REQ-04-21
