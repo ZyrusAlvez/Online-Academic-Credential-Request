@@ -67,6 +67,16 @@ for `customerResponded` is kept on the event that opened the request for custome
   requirements checklist; record compliance per deficiency; verify payment & accept / reject;
   resume after customer action), the requester's identity with verify/reject, and cancel.
 
+## Requester's note after a returned proof (REQ-04-20, 2026-11-13)
+
+- `submitPaymentProof(..., ?string $note)`: a non-blank note becomes the remarks of the
+  `payment_submitted` ledger entry, like Resubmit's note (REQ-20-07). No new column.
+- Requester page: `Student\Requests\Show::$paymentNote` (`nullable|string|max:500`), a "Note to the
+  Office of the Registrar" textarea in the upload form, rendered only when a proof was rejected.
+- Registrar page: on `PANEL_PAYMENT`, the latest `payment_submitted` remarks show above the
+  checklist as "Requester's note: …". The notification and staff email already add the event's
+  remarks; `payment_submitted` is not internal, so both histories show it.
+
 ## Dropping copies (2026-11-05)
 
 The client's workflow has no number of copies, so `credential_requests.copies` is dropped. Before

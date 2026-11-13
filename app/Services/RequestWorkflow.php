@@ -410,11 +410,12 @@ class RequestWorkflow
         ?string $referenceNo = null,
         ?string $amount = null,
         ?string $paidOn = null,
+        ?string $note = null,
     ): PaymentProof {
         $path = $this->store($file, "payment-proofs/{$request->id}");
 
         try {
-            return DB::transaction(function () use ($request, $owner, $file, $path, $referenceNo, $amount, $paidOn): PaymentProof {
+            return DB::transaction(function () use ($request, $owner, $file, $path, $referenceNo, $amount, $paidOn, $note): PaymentProof {
                 $locked = $this->lock($request, [RequestStatus::AwaitingPayment], 'A proof of payment can only be uploaded while the request is awaiting payment.');
 
                 $proof = $locked->paymentProofs()->create([
@@ -429,7 +430,9 @@ class RequestWorkflow
                     'status' => PaymentStatus::Submitted,
                 ]);
 
-                $this->transition($locked, $request, RequestStatus::PaymentVerification, $owner, RequestEventType::PaymentSubmitted);
+                // The requester's note to the registrar, after a returned proof (REQ-04-20).
+                $this->transition($locked, $request, RequestStatus::PaymentVerification, $owner, RequestEventType::PaymentSubmitted,
+                    filled($note) ? $note : null);
 
                 return $proof;
             });

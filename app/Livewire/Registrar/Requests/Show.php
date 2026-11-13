@@ -346,6 +346,10 @@ class Show extends Component
             'returnOffices' => ReturnOffices::for($request),
             'verifiedRepresentatives' => $request->representatives->where('status', ReviewStatus::Verified)->values(),
             'lastReturn' => $request->events->last(fn ($event) => in_array($event->type, [RequestEventType::CustomerActionRequested, RequestEventType::ComplianceRequested], true)),
+            // What the requester wrote with the proof under review (REQ-04-20).
+            'paymentNote' => $panel === self::PANEL_PAYMENT
+                ? (string) $request->events->last(fn ($event) => $event->type === RequestEventType::PaymentSubmitted)?->remarks
+                : '',
         ])->title($request->reference_no);
     }
 

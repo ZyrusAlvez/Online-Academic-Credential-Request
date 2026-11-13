@@ -168,6 +168,10 @@
         @endif
 
         @if ($panel === Page::PANEL_PAYMENT)
+            {{-- The requester's note with a new proof, after a return (REQ-04-20). --}}
+            @if ($paymentNote !== '')
+                <p class="rounded-md border border-secondary/50 bg-white p-3 text-sm whitespace-pre-line text-ink" data-payment-note><span class="font-semibold">{{ __('Requester\'s note:') }}</span> {{ $paymentNote }}</p>
+            @endif
             {{-- The payment validation checklist (REQ-16-17). --}}
             @foreach ($items as $item)
                 <x-check-card :item="$item" :result="$results[$item->value] ?? null" wire:key="check-{{ $item->value }}">
