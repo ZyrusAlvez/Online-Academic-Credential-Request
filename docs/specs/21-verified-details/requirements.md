@@ -57,7 +57,10 @@ details (REQ-15-08).
   ID when the saved ID is the verified one, Academic Information when the academic part is
   verified. The fields SHALL stay editable. The sections carry no note explaining re-verification;
   Help explains it (REQ-22-03). *(User's request, 2026-11-11: badge on the right, explanatory notes
-  removed. User's request, 2026-11-13: no "For verification" badge, only "Verified".)*
+  removed. User's request, 2026-11-13: no "For verification" badge, only "Verified".) The
+  requester's request page SHALL show the Valid ID sent with the request without a verification
+  badge: "Verified" shows only on New Request, Edit Request and Settings → Profile. *(User's
+  request, 2026-11-13.)*
 
 ### Existing data
 - **REQ-21-07** WHEN the change is deployed THE SYSTEM SHALL record, for each requester, their
