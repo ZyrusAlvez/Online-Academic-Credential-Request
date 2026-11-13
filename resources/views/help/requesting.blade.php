@@ -42,7 +42,7 @@
 </x-faq-item>
 
 <x-faq-item question="It says “Visit the Office of the Registrar”. What do I do?">
-    <p>Some originals or your clearance must be submitted in person. Your request page lists exactly what to bring, and ticks off each item as the office receives it. Go yourself, or send a representative with a Special Power of Attorney (SPA) and the valid IDs of you both.</p>
+    <p>Some originals or your clearance must be submitted in person. Your request page lists exactly what to bring, and ticks off each item as the office receives it. Go yourself, or send the representative you named on New Request with a Special Power of Attorney (SPA) and the valid IDs of you both.</p>
     <p>There is nothing to do online: once everything is received, the Office of the Registrar moves your request on to payment.</p>
 </x-faq-item>
 

@@ -76,7 +76,8 @@ test('REQ-06-05 ready-for-release and declined are emailed with the details', fu
     $mail = (new RequestActivity($ready, 'Ready'))->toMail($this->owner);
     expect($mail)->toBeInstanceOf(MailMessage::class)
         ->and($mail->subject)->toContain($request->reference_no)
-        ->and(implode(' ', $mail->introLines))->toContain('Special Power of Attorney')
+        // No representative declared, so only the owner is told to come (REQ-11-05).
+        ->and(implode(' ', $mail->introLines))->toContain('Claim it at the Office of the Registrar with a valid ID.')
         ->and($mail->actionUrl)->toBe(route('student.requests.show', $request));
 
     Notification::fake();

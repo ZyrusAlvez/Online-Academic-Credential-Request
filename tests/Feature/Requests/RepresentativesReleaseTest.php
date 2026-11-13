@@ -14,6 +14,7 @@ use App\Livewire\Student\Requests\Create;
 use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\CredentialRequest;
 use App\Models\User;
+use App\Notifications\RequestActivity;
 use App\Services\RequestWorkflow;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -79,55 +80,25 @@ function officeVisitRequest(): CredentialRequest
     return $request->fresh();
 }
 
-test('REQ-11-01 after submitting, a representative can be added only while an office visit is required', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
+test('REQ-11-01 after submitting, the request page never offers to add a representative', function () {
+    $submitted = submitRequest($this->owner, $this->org->tor);
+    $requests = [$submitted, officeVisitRequest(), readyRequest()];
 
-    // Submitted, then under evaluation: no Add representative, and the server refuses it.
-    foreach ([fn () => null, fn () => workflow()->startEvaluation($request, $this->registrar)] as $step) {
-        $step();
+    expect(array_map(fn (CredentialRequest $r) => $r->fresh()->status, $requests))
+        ->toBe([RequestStatus::Submitted, RequestStatus::PendingCompliance, RequestStatus::ReadyForRelease]);
+
+    foreach ($requests as $request) {
+        expect($this->owner->can('declareRepresentative', $request->fresh()))->toBeFalse();
 
         $this->actingAs($this->owner)->get(route('student.requests.show', $request))
             ->assertOk()
             ->assertDontSee('Authorized Representative')
-            ->assertDontSee('Add representative');
-
-        Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])
-            ->set('representativeName', 'Pedro Santos')
-            ->set('spa', UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'))
-            ->set('representativeId', UploadedFile::fake()->image('id.jpg'))
-            ->call('declareRepresentative')
-            ->assertForbidden();
+            ->assertDontSee('Add representative')
+            ->assertDontSeeHtml('declare-representative')
+            ->assertDontSeeHtml('wire:model="spa"');
     }
 
-    // Sent to the office: now the owner may send a representative.
-    workflow()->recordCheck($request, $this->registrar, CheckItem::AcademicRecord, CheckResult::Rejected);
-    workflow()->requireOfficeVisit($request, $this->registrar, ['PSA-authenticated birth certificate'], 'Bring the original.');
-
-    $this->actingAs($this->owner)->get(route('student.requests.show', $request))->assertSee('Add representative');
-    expect($request->representatives()->count())->toBe(0);
-});
-
-test('REQ-11-01 once the credential is ready for release the owner can add someone to claim it, but not while it is processed', function () {
-    $request = acceptRequest(submitRequest($this->owner, $this->org->free), $this->registrar);
-
-    // Accepted and being processed by the offices: still no Add representative.
-    $this->actingAs($this->owner)->get(route('student.requests.show', $request))
-        ->assertOk()->assertDontSee('Add representative');
-
-    passOffice($request, $this->registrar);   // prepare
-    passOffice($request, $this->registrar);   // final check
-    expect($request->fresh()->status)->toBe(RequestStatus::ReadyForRelease);
-
-    $this->actingAs($this->owner)->get(route('student.requests.show', $request))->assertSee('Add representative');
-
-    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])
-        ->set('representativeName', 'Pedro Santos')
-        ->set('spa', UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'))
-        ->set('representativeId', UploadedFile::fake()->image('id.jpg'))
-        ->call('declareRepresentative')
-        ->assertHasNoErrors();
-
-    expect($request->representatives()->sole())->full_name->toBe('Pedro Santos')->status->toBe(ReviewStatus::Pending);
+    expect(method_exists(RequesterShow::class, 'declareRepresentative'))->toBeFalse();
 });
 
 test('REQ-11-01 a representative declared earlier stays listed, without the Add button', function () {
@@ -140,31 +111,6 @@ test('REQ-11-01 a representative declared earlier stays listed, without the Add 
         ->assertDontSee('Add representative');
 });
 
-test('REQ-11-01 a representative added later needs the SPA and their valid ID', function () {
-    $request = officeVisitRequest();
-
-    $page = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])
-        ->assertSeeHtml('wire:model="spa"')->assertSeeHtml('wire:model="representativeId"')
-        ->assertSee('JPG, PNG, WebP or PDF, up to 5 MB each')
-        ->set('representativeName', 'Pedro Santos')
-        ->call('declareRepresentative')
-        ->assertHasErrors(['spa' => 'required', 'representativeId' => 'required'])
-        ->set('spa', UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'))
-        ->call('declareRepresentative')
-        ->assertHasErrors(['representativeId' => 'required']);
-
-    expect($request->representatives()->count())->toBe(0)
-        ->and($request->documents()->count())->toBe(0);
-
-    $page->set('representativeId', UploadedFile::fake()->image('id.jpg'))
-        ->call('declareRepresentative')
-        ->assertHasNoErrors();
-
-    expect($request->representatives()->sole()->full_name)->toBe('Pedro Santos')
-        ->and($request->documents()->pluck('kind')->all())->toBe([DocumentKind::Spa, DocumentKind::RepresentativeId])
-        ->and($request->events()->get()->last()->type)->toBe(RequestEventType::RepresentativeDeclared);
-});
-
 test('REQ-11-01 the workflow takes no representative without both documents', function () {
     $parameters = (new ReflectionMethod(RequestWorkflow::class, 'declareRepresentative'))->getParameters();
 
@@ -175,48 +121,37 @@ test('REQ-11-01 the workflow takes no representative without both documents', fu
     }
 });
 
-test('REQ-11-09 a wrong file type or a file over 5 MB is reported as soon as it is chosen, on both screens', function () {
-    $request = officeVisitRequest();
-    $show = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request]);
+test('REQ-11-09 a wrong file type or a file over 5 MB is reported as soon as it is chosen', function () {
     $create = Livewire::actingAs($this->owner)->test(Create::class)->set('form.requester_mode', 'representative');
 
-    foreach ([$show, $create] as $page) {
-        $page->set('spa', UploadedFile::fake()->create('spa.docx', 100, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'))
-            ->assertHasErrors(['spa' => 'mimes'])->assertSee('The SPA must be a JPG, PNG, WebP or PDF file.')
-            ->set('representativeId', UploadedFile::fake()->create('id.pdf', 5121, 'application/pdf'))
-            ->assertHasErrors(['representativeId'])->assertSee('must be 5 MB or smaller.')
-            ->set('representativeId', UploadedFile::fake()->create('id.pdf', 5120, 'application/pdf'))
-            ->assertHasNoErrors('representativeId');
-    }
+    $create->set('spa', UploadedFile::fake()->create('spa.docx', 100, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'))
+        ->assertHasErrors(['spa' => 'mimes'])->assertSee('The SPA must be a JPG, PNG, WebP or PDF file.')
+        ->set('representativeId', UploadedFile::fake()->create('id.pdf', 5121, 'application/pdf'))
+        ->assertHasErrors(['representativeId'])->assertSee('must be 5 MB or smaller.')
+        ->set('representativeId', UploadedFile::fake()->create('id.pdf', 5120, 'application/pdf'))
+        ->assertHasNoErrors('representativeId');
 
     // Too big even for Livewire's temporary upload: the same plain words, not "12288 kilobytes".
-    $show->set('spa', UploadedFile::fake()->create('spa.pdf', 13000, 'application/pdf'))
+    $create->set('spa', UploadedFile::fake()->create('spa.pdf', 13000, 'application/pdf'))
         ->assertHasErrors('spa')->assertSee('The file must be 5 MB or smaller.')->assertDontSee('kilobytes');
-
-    $show->set('representativeName', 'Pedro Santos')->call('declareRepresentative')->assertHasErrors(['spa' => 'mimes']);
-    expect($request->representatives()->count())->toBe(0);
 });
 
-test('REQ-11-10 the SPA and representative\'s ID use the valid ID\'s picker, its name a link to the viewer, on both screens', function () {
-    $request = officeVisitRequest();
-    $show = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])->html();
-    $create = Livewire::actingAs($this->owner)->test(Create::class)->set('form.requester_mode', 'representative')->html();
+test('REQ-11-10 the SPA and representative\'s ID use the valid ID\'s picker, its name a link to the viewer', function () {
+    $html = Livewire::actingAs($this->owner)->test(Create::class)->set('form.requester_mode', 'representative')->html();
 
-    foreach ([$show, $create] as $html) {
-        foreach (['spa' => 'data-spa-picker', 'representativeId' => 'data-representative-id-picker'] as $model => $marker) {
-            $field = Str::after($html, $marker);
+    foreach (['spa' => 'data-spa-picker', 'representativeId' => 'data-representative-id-picker'] as $model => $marker) {
+        $field = Str::after($html, $marker);
 
-            expect($field)->toMatch('/^[^>]*x-data="\{ chosen: null/')
-                ->toMatch('/<input type="file" wire:model="'.$model.'"[^>]*class="sr-only"/')
-                ->toContain('Choose file')->toContain('No file chosen')
-                ->toMatch('/<a href="#"[^>]*data-chosen-file[^>]*x-text="chosen\?\.name"\s*x-on:click\.prevent="\$dispatch\(\'open-file\', chosen\)"/')
-                ->toMatch('/<div x-show="uploading"[^>]*role="status"[^>]*data-upload-progress>/');
-        }
-
-        // Only the picker's own input: the browser's picker with its repeated name is gone.
-        expect(substr_count($html, 'wire:model="spa"'))->toBe(1)
-            ->and(substr_count($html, 'wire:model="representativeId"'))->toBe(1);
+        expect($field)->toMatch('/^[^>]*x-data="\{ chosen: null/')
+            ->toMatch('/<input type="file" wire:model="'.$model.'"[^>]*class="sr-only"/')
+            ->toContain('Choose file')->toContain('No file chosen')
+            ->toMatch('/<a href="#"[^>]*data-chosen-file[^>]*x-text="chosen\?\.name"\s*x-on:click\.prevent="\$dispatch\(\'open-file\', chosen\)"/')
+            ->toMatch('/<div x-show="uploading"[^>]*role="status"[^>]*data-upload-progress>/');
     }
+
+    // Only the picker's own input: the browser's picker with its repeated name is gone.
+    expect(substr_count($html, 'wire:model="spa"'))->toBe(1)
+        ->and(substr_count($html, 'wire:model="representativeId"'))->toBe(1);
 });
 
 test('REQ-11-11 choosing who will transact shows or hides the representative\'s fields in the browser, without a round trip', function () {
@@ -233,20 +168,14 @@ test('REQ-11-11 choosing who will transact shows or hides the representative\'s 
 });
 
 test('REQ-11-01 a representative\'s contact number, when given, must be exactly 11 digits', function () {
-    $request = officeVisitRequest();
-
-    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])
-        ->set('representativeName', 'Pedro Santos')
-        ->set('spa', UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'))
-        ->set('representativeId', UploadedFile::fake()->image('id.jpg'))
-        ->set('representativeContact', '0918 555 0101')
-        ->call('declareRepresentative')
-        ->assertHasErrors(['representativeContact' => 'regex'])
-        ->set('representativeContact', '09185550101')
-        ->call('declareRepresentative')
-        ->assertHasNoErrors();
-
-    expect($request->representatives()->sole()->contact_number)->toBe('09185550101');
+    Livewire::actingAs($this->owner)->test(Create::class)
+        ->set('form.requester_mode', 'representative')
+        ->set('form.representative_contact', '0918 555 0101')
+        ->call('review')
+        ->assertHasErrors(['form.representative_contact'])
+        ->set('form.representative_contact', '09185550101')
+        ->call('review')
+        ->assertHasNoErrors('form.representative_contact');
 });
 
 test('REQ-11-02 the representative is recorded apart from the owner and shown with their status', function () {
@@ -298,6 +227,37 @@ test('REQ-11-05 the requester is told the credential is ready and what to bring'
     $this->actingAs($this->owner)->get(route('student.requests.show', $request))
         ->assertSee('Your Credential Is Ready for Release')
         ->assertSee('with a valid ID');
+});
+
+test('REQ-11-05 a representative is mentioned only when one was declared and not rejected', function () {
+    $readyMail = function (CredentialRequest $request): string {
+        $event = $request->events()->with(['department', 'step'])->get()->firstWhere('type', RequestEventType::ReadyForRelease);
+
+        return implode(' ', (new RequestActivity($event, 'Ready'))->toMail($this->owner)->introLines);
+    };
+    $claimText = fn (CredentialRequest $request) => Str::of($this->actingAs($this->owner)->get(route('student.requests.show', $request))->getContent())
+        ->after('data-claim-who')->before('</p>')->squish()->toString();
+    $visitText = fn (CredentialRequest $request) => Str::of($this->actingAs($this->owner)->get(route('student.requests.show', $request))->getContent())
+        ->after('data-office-visit-who')->before('</p>')->squish()->toString();
+
+    // Nobody declared: in person only, on the page and in the email.
+    $ready = readyRequest();
+    $visit = officeVisitRequest();
+    expect($claimText($ready))->toContain('Claim it at the Office of the Registrar with a valid ID.')->not->toContain('representative')->not->toContain('SPA')
+        ->and($visitText($visit))->toContain('Come in person with a valid ID.')->not->toContain('representative')
+        ->and($readyMail($ready))->not->toContain('representative')->not->toContain('Special Power of Attorney');
+
+    // Declared (here through the workflow, as New Request does): named everywhere.
+    $rosa = declareRepresentative($ready, $this->owner, ['full_name' => 'Rosa Reyes']);
+    declareRepresentative($visit, $this->owner, ['full_name' => 'Rosa Reyes']);
+    expect($claimText($ready))->toContain('or send Rosa Reyes, your representative, with the SPA')
+        ->and($visitText($visit))->toContain('or send Rosa Reyes, your representative, with the Special Power of Attorney (SPA)')
+        ->and($readyMail($ready))->toContain('or send Rosa Reyes, your representative');
+
+    // Rejected: back to in person only.
+    workflow()->reviewRepresentative($rosa, $this->registrar, false, 'SPA unsigned');
+    expect($claimText($ready))->not->toContain('Rosa Reyes')
+        ->and($readyMail($ready->fresh()))->not->toContain('Rosa Reyes');
 });
 
 test('REQ-11-07 no release to an unverified representative; a verified one can claim', function () {

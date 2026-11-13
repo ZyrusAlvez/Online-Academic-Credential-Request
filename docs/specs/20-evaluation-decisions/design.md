@@ -15,7 +15,7 @@ the meaning of `pending_compliance`. No request or ledger row changes.
 | Decision | Event type | Remarks |
 |---|---|---|
 | Return for Clarification | `customer_action_requested` (existing) | "Rejected: <parts>\n<remarks>" |
-| Require Office Visit | `compliance_requested` (existing) | "Missing: <items>\n<remarks>" |
+| Require Office Visit | `compliance_requested` (existing) | "Required: <items>\n<remarks>" (older entries: "Missing: …") |
 | Mark Received | `deficiency_resolved` (existing) | the item |
 | Confirm Compliance | `requirements_completed` (existing) | — |
 | Resubmit Request | `resubmitted` (existing) | the note |
@@ -49,7 +49,8 @@ the meaning of `pending_compliance`. No request or ledger row changes.
 **Registrar, `Registrar\Requests\Show`**
 - Under evaluation: the decision row is Decline, Require Office Visit, Return for Clarification,
   Approve. Require Office Visit opens the `office-visit` modal: the credential's requirements as
-  checkboxes, an Other field and the Remarks. A decision that can't run uses the existing
+  checkboxes under "Requirements", an Other field and the Remarks. The request record's list of
+  them is headed "Office Visit Requirements" (REQ-20-04). A decision that can't run uses the existing
   "Can't … yet" dialog (REQ-17-17).
 - Returned for clarification (`PANEL_CLARIFICATION`): the remarks and "It comes back to Initial
   Evaluation when the requester resubmits."
@@ -58,14 +59,16 @@ the meaning of `pending_compliance`. No request or ledger row changes.
 
 **Requester, `Student\Requests\Show`**
 - Returned for clarification: the rejected parts, the remarks and **Edit Request** (a link).
-- Pending compliance: "Visit the Office of the Registrar", the missing items with their received
-  state, the remarks and the in-person notice; no form.
+- Pending compliance: "Visit the Office of the Registrar", the required items with their received
+  state, the remarks and the in-person notice (naming the declared representative, if any,
+  REQ-11-05); no form.
 - The separate "Your Valid ID Was Not Accepted" section is removed (REQ-15-11 superseded).
 
 **Requester, `Student\Requests\Edit`** at `/requests/{reference}/edit` (`student.requests.edit`)
 - Extends `Create`: the same form, view and summary, with `$editing` set. Mount authorizes the
   `edit` policy (owner, `returned_for_clarification`) and fills the form from the request.
-- Section 5 (representative) is not shown; the request page keeps Add representative.
+- Section 5 (representative) is not shown; a representative is declared on New Request only
+  (REQ-11-01).
 - When the request's ID is rejected, the Valid ID section shows no saved ID and the ID is
   required. The reason is not repeated here: the request page shows it (REQ-20-05, 06).
 - The summary ends with a note field, the consent and Resubmit Request. Submit runs profile save,

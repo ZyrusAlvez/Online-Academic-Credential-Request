@@ -10,8 +10,6 @@ use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\TrimsInput;
-use App\Livewire\Concerns\ValidatesRepresentativeDocuments;
-use App\Livewire\Forms\RequesterProfileForm;
 use App\Models\CredentialRequest;
 use App\Models\User;
 use App\Services\RequestWorkflow;
@@ -31,7 +29,6 @@ use Livewire\WithFileUploads;
 class Show extends Component
 {
     use TrimsInput;
-    use ValidatesRepresentativeDocuments;
     use WithFileUploads;
 
     #[Locked]
@@ -47,12 +44,6 @@ class Show extends Component
     public string $paidOn = '';
 
     public string $cancelReason = '';
-
-    public string $representativeName = '';
-
-    public string $representativeRelationship = '';
-
-    public string $representativeContact = '';
 
     public function mount(CredentialRequest $credentialRequest): void
     {
@@ -82,43 +73,6 @@ class Show extends Component
 
         $this->reset('receipt', 'paymentReference', 'amountPaid', 'paidOn');
         $this->dispatch('notify', message: 'Proof of payment uploaded. The Office of the Registrar will verify it against the payment record.');
-    }
-
-    public function declareRepresentative(RequestWorkflow $workflow): void
-    {
-        $this->authorize('declareRepresentative', $this->credentialRequest);
-
-        // Every field at once, so all that needs attention shows together (REQ-11-01, 09).
-        $this->validate([
-            'representativeName' => ['required', 'string', 'max:150'],
-            'representativeRelationship' => ['nullable', 'string', 'max:100'],
-            'representativeContact' => ['nullable', 'string', 'max:20', RequesterProfileForm::PHONE_RULE],
-            ...$this->representativeDocumentRules(),
-        ], [
-            'representativeContact.regex' => RequesterProfileForm::PHONE_MESSAGE,
-            ...$this->representativeDocumentMessages(),
-        ], [
-            'representativeName' => "representative's full name",
-            ...$this->representativeDocumentAttributes(),
-        ]);
-
-        [$spa, $idFile] = $this->representativeDocuments();
-
-        try {
-            $workflow->declareRepresentative($this->credentialRequest, $this->owner(), [
-                'full_name' => $this->representativeName,
-                'relationship' => filled($this->representativeRelationship) ? $this->representativeRelationship : null,
-                'contact_number' => filled($this->representativeContact) ? $this->representativeContact : null,
-            ], $spa, $idFile);
-        } catch (InvalidTransition $e) {
-            $this->addError('representativeName', $e->getMessage());
-
-            return;
-        }
-
-        Flux::modal('declare-representative')->close();
-        $this->reset('representativeName', 'representativeRelationship', 'representativeContact', 'spa', 'representativeId');
-        $this->dispatch('notify', message: 'Representative added. The Office of the Registrar will verify their SPA and IDs.');
     }
 
     public function cancel(RequestWorkflow $workflow): void
@@ -153,7 +107,7 @@ class Show extends Component
 
         $results = $request->checkResults(CheckStage::Evaluation);
 
-        // The return's ledger line is "Rejected: …" or "Missing: …", then the remarks.
+        // The return's ledger line is "Rejected: …" or "Required: …", then the remarks.
         $returnType = $request->status === RequestStatus::PendingCompliance ? RequestEventType::ComplianceRequested : RequestEventType::CustomerActionRequested;
         $returnLine = (string) $events->last(fn ($event) => $event->type === $returnType)?->remarks;
 
@@ -166,6 +120,8 @@ class Show extends Component
                 fn (CheckItem $item) => ($results[$item->value] ?? null) === CheckResult::Rejected,
             )),
             'returnRemarks' => Str::contains($returnLine, "\n") ? Str::after($returnLine, "\n") : $returnLine,
+            // Who may come in the owner's place, if anyone (REQ-11-05).
+            'representative' => $request->claimingRepresentative(),
             'events' => $events,
         ])->title($request->reference_no);
     }

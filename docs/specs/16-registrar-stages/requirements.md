@@ -153,8 +153,9 @@ This replaces:
 - **REQ-16-20** WHILE a credential is ready for release THE SYSTEM SHALL let the registrar mark it
   released, choosing who claimed it: the owner, or a verified representative of the request. The
   recipient's name SHALL be filled in from them, and the release time and the staff member
-  recorded. A representative declared after the evaluation SHALL be verifiable or rejectable, with
-  a reason, on this page.
+  recorded. A representative not yet verified SHALL be verifiable or rejectable, with a reason, on
+  this page. (Representatives are declared on New Request only since 2026-11-13, REQ-11-01, so
+  they are normally verified during the evaluation.)
 
 ### Removed registrar actions
 - **REQ-16-21** THE SYSTEM SHALL NOT let the registrar change a request's college, cancel a

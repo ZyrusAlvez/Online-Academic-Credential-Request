@@ -416,7 +416,7 @@
                     <flux:text class="mt-2">{{ __('Tick what the requester must bring or complete at the office.') }}</flux:text>
                 </div>
                 @if ($request->credentialType->requirements)
-                    <flux:checkbox.group wire:model="missing" :label="__('Missing requirements')">
+                    <flux:checkbox.group wire:model="missing" :label="__('Requirements')">
                         @foreach ($request->credentialType->requirements as $requirement)
                             <flux:checkbox :value="$requirement" :label="$requirement" />
                         @endforeach

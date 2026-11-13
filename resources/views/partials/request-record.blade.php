@@ -38,7 +38,7 @@
 @if (! in_array('deficiencies', $hide, true) && $request->deficiencies->isNotEmpty())
     {{-- What an office visit required, and when each was received (REQ-20-04, 09). --}}
     <section aria-labelledby="deficiencies-heading" class="space-y-3 rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="deficiencies-heading" class="text-lg font-semibold text-primary">{{ __('Missing Requirements') }}</h2>
+        <h2 id="deficiencies-heading" class="text-lg font-semibold text-primary">{{ __('Office Visit Requirements') }}</h2>
         <ul class="space-y-1 text-sm">
             @foreach ($request->deficiencies as $deficiency)
                 <li wire:key="deficiency-{{ $deficiency->id }}">

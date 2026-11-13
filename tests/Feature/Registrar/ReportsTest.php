@@ -244,7 +244,7 @@ test('REQ-07-19 the customer compliance and release reports', function () {
     expect(reportRows(new ComplianceReport))->toBe([[
         // The request's own copy of the name and contact (REQ-15-08).
         $this->h->reference_no, $this->owner->requesterName(), $this->owner->contact_number, 'Transcript of Records', 'Pending compliance',
-        'Missing: Original Form 137', '2026-10-20', 0,   // no ledger entry in this fixture: since its last update
+        'Required: Original Form 137', '2026-10-20', 0,   // no ledger entry in this fixture: since its last update
     ]]);
 
     $release = collect(reportRows(new ReleaseReport))->keyBy(0);

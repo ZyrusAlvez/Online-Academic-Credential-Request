@@ -94,7 +94,11 @@ class RequestActivity extends Notification implements ShouldQueue
         }
 
         if ($this->event->type === RequestEventType::ReadyForRelease) {
-            $message->line('Claim it at the Office of the Registrar with a valid ID. A representative must present a Special Power of Attorney and the valid IDs of both of you.');
+            // A representative only when one was declared on New Request (REQ-11-05).
+            $representative = $request->claimingRepresentative();
+            $message->line($representative
+                ? "Claim it at the Office of the Registrar with a valid ID, or send {$representative->full_name}, your representative, with the Special Power of Attorney and the valid IDs of both of you."
+                : 'Claim it at the Office of the Registrar with a valid ID.');
         }
 
         return $message
@@ -128,7 +132,7 @@ class RequestActivity extends Notification implements ShouldQueue
     {
         $this->event->loadMissing(['department', 'step']);
 
-        return $this->event->credentialRequest()->with(['credentialType', 'student', 'openVisit.department', 'openVisit.fromDepartment'])->firstOrFail();
+        return $this->event->credentialRequest()->with(['credentialType', 'student', 'representatives', 'openVisit.department', 'openVisit.fromDepartment'])->firstOrFail();
     }
 
     private function url(User $notifiable, CredentialRequest $request): string

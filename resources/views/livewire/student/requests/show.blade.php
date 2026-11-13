@@ -82,7 +82,14 @@
             @if ($returnRemarks !== '')
                 <p class="rounded-md bg-white p-3 text-sm whitespace-pre-line text-ink"><span class="font-semibold">{{ __('Remarks:') }}</span> {{ $returnRemarks }}</p>
             @endif
-            <p class="text-sm text-amber-950">{{ __('Come in person, or send a representative with a Special Power of Attorney (SPA) and the valid IDs of both of you.') }}</p>
+            {{-- A representative only when one was declared on New Request (REQ-11-05). --}}
+            <p class="text-sm text-amber-950" data-office-visit-who>
+                @if ($representative)
+                    {{ __('Come in person, or send :name, your representative, with the Special Power of Attorney (SPA) and the valid IDs of both of you.', ['name' => $representative->full_name]) }}
+                @else
+                    {{ __('Come in person with a valid ID.') }}
+                @endif
+            </p>
         </section>
     @endif
 
@@ -146,7 +153,13 @@
     @if ($request->status === \App\Enums\RequestStatus::ReadyForRelease)
         <section aria-labelledby="claim-heading" class="space-y-3 rounded-xl border border-green-700 bg-green-50 p-5 sm:p-6">
             <h2 id="claim-heading" class="text-lg font-semibold text-green-900">{{ __('Your Credential Is Ready for Release') }}</h2>
-            <p class="text-sm text-green-950">{{ __('Claim it at the Office of the Registrar with a valid ID. A representative needs an SPA and the valid IDs of both of you.') }}</p>
+            <p class="text-sm text-green-950" data-claim-who>
+                @if ($representative)
+                    {{ __('Claim it at the Office of the Registrar with a valid ID, or send :name, your representative, with the SPA and the valid IDs of both of you.', ['name' => $representative->full_name]) }}
+                @else
+                    {{ __('Claim it at the Office of the Registrar with a valid ID.') }}
+                @endif
+            </p>
         </section>
     @endif
 
@@ -155,22 +168,11 @@
         <x-request-tracker :request="$request" :events="$events" />
     </section>
 
-    {{-- Shown when a representative was named, or while an office visit or the release lets the owner add one (REQ-11-01). --}}
-    @if ($request->representatives->isNotEmpty() || auth()->user()->can('declareRepresentative', $request))
+    {{-- Only when one was named on New Request; none is added afterwards (REQ-11-01). --}}
+    @if ($request->representatives->isNotEmpty())
         <section aria-labelledby="representatives-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 id="representatives-heading" class="text-lg font-semibold text-primary">{{ __('Authorized Representative') }}</h2>
-                @can('declareRepresentative', $request)
-                    <flux:modal.trigger name="declare-representative">
-                        <flux:button size="sm" icon="user-plus">{{ __('Add representative') }}</flux:button>
-                    </flux:modal.trigger>
-                @endcan
-            </div>
-            @if ($request->representatives->isEmpty())
-                <p class="text-sm text-zinc-600">{{ __('None. You are transacting personally.') }}</p>
-            @else
-                <x-representative-list :representatives="$request->representatives" hide-pending />
-            @endif
+            <h2 id="representatives-heading" class="text-lg font-semibold text-primary">{{ __('Authorized Representative') }}</h2>
+            <x-representative-list :representatives="$request->representatives" hide-pending />
         </section>
     @endif
 
@@ -197,32 +199,6 @@
         <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Tracking History') }}</h2>
         <x-request-timeline :events="$events" />
     </section>
-
-    @can('declareRepresentative', $request)
-        <flux:modal name="declare-representative" class="w-full md:w-[32rem]">
-            <form wire:submit="declareRepresentative" class="space-y-6">
-                <div>
-                    <flux:heading size="lg">{{ __('Add an authorized representative') }}</flux:heading>
-                    <flux:text class="mt-2">{{ __('They present the originals, with your valid ID, in person.') }}</flux:text>
-                </div>
-                <flux:input wire:model="representativeName" :label="__('Full name')" required />
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <flux:input wire:model="representativeRelationship" :label="__('Relationship to you')" badge="Optional" />
-                    <flux:input wire:model="representativeContact" type="tel" :label="__('Contact number')" badge="Optional" inputmode="numeric" maxlength="11" placeholder="09171234567" />
-                </div>
-                <div class="space-y-4">
-                    <flux:text>{{ __('JPG, PNG, WebP or PDF, up to 5 MB each.') }}</flux:text>
-                    {{-- The same picker as on New Request (REQ-11-01). --}}
-                    <x-file-picker model="spa" :label="__('SPA')" data-spa-picker />
-                    <x-file-picker model="representativeId" :label="__('Representative\'s valid ID')" data-representative-id-picker />
-                </div>
-                <div class="flex justify-end gap-2">
-                    <flux:modal.close><flux:button variant="ghost">{{ __('Back') }}</flux:button></flux:modal.close>
-                    <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:target="spa,representativeId,declareRepresentative">{{ __('Add representative') }}</flux:button>
-                </div>
-            </form>
-        </flux:modal>
-    @endcan
 
     @can('cancel', $request)
         <flux:modal name="cancel-request" class="w-full md:w-[28rem]">

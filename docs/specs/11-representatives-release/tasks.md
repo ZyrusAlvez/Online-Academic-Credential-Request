@@ -12,3 +12,8 @@
       the request page shows Add representative only then (REQ-11-01)
 - [x] ... and while `ready_for_release`, for someone to claim it (REQ-11-01)
 - [x] "Who will transact?" toggles the representative's fields in the browser, no round trip (REQ-11-11)
+- [x] Declared on New Request only: the policy refuses the owner, the request page loses Add
+      representative and its form (REQ-11-01, 09, 10, 2026-11-13)
+- [x] Office-visit and release panels and the ready-for-release email name the declared
+      representative, else in person only (REQ-11-05)
+- [x] Pest tests for the changed REQ-11-01, 05, 09, 10
