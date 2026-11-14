@@ -32,11 +32,11 @@ Open the local or staging address and log in with an **email and password** belo
 
 ### Registrar
 
-The registrar is **your own account** from `.env` (`INITIAL_REGISTRAR_EMAIL` /
-`INITIAL_REGISTRAR_PASSWORD`), the same way production gets its first registrar. The demo
-requests are evaluated, accepted, prepared, checked and released by this account. The registrar
-sees Initial Evaluation, Payment Validation, In Progress, Final Quality Check, Release and
-Records.
+| Email | Password | Sees |
+|---|---|---|
+| `registrar@example.com` | `@Test123` | Initial Evaluation, Payment Validation, In Progress, Final Quality Check, Release and Records |
+
+The demo requests are evaluated, accepted, prepared, checked and released by this account.
 
 ### Admin
 
@@ -44,8 +44,9 @@ Records.
 |---|---|---|
 | `admin@example.com` | `@Test123` | Dashboard, Records, Reports, and Administration (Credential Types, Departments, Programs, Purposes, Accounts, Working Calendar, Logs) |
 
-Production has no demo admin. Its first admin comes from `INITIAL_ADMIN_EMAIL` /
-`INITIAL_ADMIN_PASSWORD` (spec 18).
+Your own admin account from `.env` (`INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`) also exists,
+the same way production gets its first admin. Production has no demo accounts: its first admin is
+the only seeded account, and it creates the registrar and department staff accounts (spec 18).
 
 ### Requesters
 
@@ -127,8 +128,7 @@ quality check).
 |---|---|---|
 | Database user/password | `.env` (`DB_USERNAME`, `DB_PASSWORD`) | `.env` is git-ignored; never copy its values into docs or commits |
 | App key | `.env` (`APP_KEY`) | `php artisan key:generate` |
-| First registrar | Each `.env` (`INITIAL_REGISTRAR_EMAIL`, `INITIAL_REGISTRAR_PASSWORD`) | Created by the seeder only when no account with that email exists; changing these later does not change the account. Seeding and `app:reset-demo` refuse to run without them |
-| First admin | Each `.env` (`INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD`) | Created the same way, only when missing. Without them, seeding skips the admin with a warning. Deploys never seed, so add it once with `php artisan db:seed --class=AdminSeeder --force` |
+| First admin | Each `.env` (`INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD`) | The only seeded account. Created by the seeder only when no account with that email exists; changing these later does not change the account. Seeding and `app:reset-demo` refuse to run without them. Deploys never seed, so on a running server add it once with `php artisan db:seed --class=AdminSeeder --force` |
 | Gmail (email) | Each `.env` (`MAIL_USERNAME`, `MAIL_PASSWORD` = Google App Password) | Without them, emails are written to the log. Locally every email goes to your own inbox. Setup: [Lightsail guide §13.1](deployment/01-deploy-on-aws-lightsail.md#131-email-both-environments) |
 | Cloudflare R2 (receipts) | `.env` (`RECEIPTS_DISK=r2`, `R2_*`) | One private bucket, one folder per environment (`staging/`, `production/`). Setup: [Lightsail guide §13.2](deployment/01-deploy-on-aws-lightsail.md#132-receipts-cloudflare-r2) |
 

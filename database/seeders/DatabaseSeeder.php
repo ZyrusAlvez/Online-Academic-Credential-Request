@@ -13,7 +13,6 @@ class DatabaseSeeder extends Seeder
             ProgramSeeder::class,
             PurposeSeeder::class,
             CredentialTypeSeeder::class,
-            RegistrarSeeder::class,
             AdminSeeder::class,
             NonWorkingDaySeeder::class,
         ]);

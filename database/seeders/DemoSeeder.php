@@ -52,10 +52,10 @@ class DemoSeeder extends Seeder
             throw new RuntimeException('The demo seeder only runs in the local and staging environments.');
         }
 
-        $this->call([DepartmentSeeder::class, ProgramSeeder::class, PurposeSeeder::class, CredentialTypeSeeder::class, RegistrarSeeder::class, AdminSeeder::class, NonWorkingDaySeeder::class]);
+        $this->call([DepartmentSeeder::class, ProgramSeeder::class, PurposeSeeder::class, CredentialTypeSeeder::class, AdminSeeder::class, NonWorkingDaySeeder::class]);
 
         $this->workflow = $workflow;
-        $this->registrar = User::where('role', Role::Registrar)->orderBy('id')->firstOrFail();
+        $this->registrar = self::registrarAccount();
 
         $departments = Department::active()->get()->keyBy('code');
         $this->staff = $departments->map(fn (Department $department) => self::staffAccount($department));
@@ -242,6 +242,19 @@ class DemoSeeder extends Seeder
         $user = User::firstOrNew(['email' => 'admin@example.com']);
         $user->fill(['first_name' => 'Demo', 'middle_name' => null, 'last_name' => 'Admin', 'password' => self::PASSWORD]);
         $user->forceFill(['role' => Role::Admin, 'department_id' => null, 'is_active' => true, 'email_verified_at' => now()])->save();
+
+        return $user;
+    }
+
+    /**
+     * The demo registrar, `registrar@example.com` with the demo password, who works the demo
+     * requests (REQ-18-12).
+     */
+    public static function registrarAccount(): User
+    {
+        $user = User::firstOrNew(['email' => 'registrar@example.com']);
+        $user->fill(['first_name' => 'Demo', 'middle_name' => null, 'last_name' => 'Registrar', 'password' => self::PASSWORD]);
+        $user->forceFill(['role' => Role::Registrar, 'department_id' => null, 'is_active' => true, 'email_verified_at' => now()])->save();
 
         return $user;
     }

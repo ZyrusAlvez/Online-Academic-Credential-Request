@@ -11,9 +11,9 @@
 
 ## 2026-11-15 — the Admin is the only seeded account
 
-- [ ] Remove `RegistrarSeeder`, `config('uphsl.initial_registrar')` and `INITIAL_REGISTRAR_*` (`.env.example`, `phpunit.xml`) (REQ-18-11)
-- [ ] `AdminSeeder` refuses to seed without its settings (REQ-18-11)
-- [ ] `DemoSeeder` adds `registrar@example.com` and works the demo requests with it (REQ-18-12)
-- [ ] `app:reset-demo` checks `INITIAL_ADMIN_*` instead (REQ-18-13)
-- [ ] Docs: overview, spec 01 design, credentials, deployment
-- [ ] Tests: REQ-18-11..13; remove the REQ-01-15 tests
+- [x] Remove `RegistrarSeeder`, `config('uphsl.initial_registrar')` and `INITIAL_REGISTRAR_*` (`.env.example`, `phpunit.xml`) (REQ-18-11)
+- [x] `AdminSeeder` refuses to seed without its settings (REQ-18-11)
+- [x] `DemoSeeder` adds `registrar@example.com` and works the demo requests with it (REQ-18-12)
+- [x] `app:reset-demo` checks `INITIAL_ADMIN_*` instead (REQ-18-13)
+- [x] Docs: overview, spec 01 design, credentials, deployment
+- [x] Tests: REQ-18-11..13; remove the REQ-01-15 tests
