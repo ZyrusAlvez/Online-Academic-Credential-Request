@@ -24,29 +24,13 @@ and switch accounts to Admin (REQ-18-09).*
 - **REQ-02-01** THE SYSTEM SHALL seed the 15 offices from the overview: the 11 colleges (each
   acting as the Dean) and the Office of the Registrar, VP Finance, Chancellor and President, with
   a name, short code, type and role description; re-seeding SHALL NOT create duplicates.
-- **REQ-02-14** WHEN a deployment migrates THE SYSTEM SHALL replace the earlier college list with
-  the 11 colleges (list of 2026-11-06, see design):
-  - each earlier college becomes its successor under the new name and code, keeping its requests
-    and requesters. Requesters of BS Architecture move to Engineering and Architecture;
-  - the College of Law is deleted with everything that names it (REQ-02-18);
-  - the earlier colleges' staff accounts are removed. An account that has already acted (a
-    request, an office visit, a log entry) is deactivated instead, so the history stays;
-  - in local and staging, each college keeps or gets one demo staff account,
-    `<code>@example.com`, with the demo password. In production the registrar creates the new
-    staff accounts.
-- **REQ-02-18** WHEN a deployment migrates THE SYSTEM SHALL delete the College of Law (code
-  `LAW`) entirely, not keep it as an inactive row (client's decision, 2026-11-07); a college the
-  registrar adds later is left alone:
-  - every request filed under it or routed through it is deleted, with its steps, office visits,
-    ledger, uploads and notifications;
-  - requesters who named it as their college have their college and program cleared, and choose
-    again on their next request;
-  - its staff accounts, programs and route steps are deleted; activity log entries keep their
-    copied names and description but no longer link to it.
-  This is the one exception to the append-only request ledger and activity log.
-- **REQ-02-13** WHEN the offices are seeded THE SYSTEM SHALL deactivate the retired Library,
-  Cashier / Finance Office and Student Affairs offices (their clearance is now an evaluation
-  requirement), keeping them for the history of earlier requests.
+- ~~REQ-02-14~~ *Superseded by REQ-23-01 and 02 (2026-11-15):* the one-time replacement of the
+  earlier college list on existing databases is gone. Both servers are reset, and the 11 colleges
+  of the 2026-11-06 list are simply the seeded list (REQ-02-01).
+- ~~REQ-02-18~~ *Superseded by REQ-23-01 and 02 (2026-11-15):* the one-time deletion of the
+  College of Law is gone; the seeded list never had it.
+- ~~REQ-02-13~~ *Superseded by REQ-23-02 (2026-11-15):* the retired Library, Cashier / Finance
+  Office and Student Affairs offices are not seeded, so there is nothing to deactivate.
 - **REQ-02-02** THE SYSTEM SHALL let the registrar list departments with search by name/code and
   a filter by type (college / office) and status.
 - **REQ-02-03** THE SYSTEM SHALL let the registrar create a department with name, code, type and

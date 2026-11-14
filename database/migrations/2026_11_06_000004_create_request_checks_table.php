@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * The Registrar's stage checklists (REQ-16-22): one row per part of a request that was confirmed or
- * rejected. Release records who claimed the credential, not the ID shown (REQ-16-20).
+ * rejected. A part confirmed from an earlier request's verification names that request (spec 21).
  */
 return new class extends Migration
 {
@@ -19,12 +19,9 @@ return new class extends Migration
             $table->string('result', 20);
             $table->foreignId('checked_by')->constrained('users')->restrictOnDelete();
             $table->timestamp('checked_at');
+            $table->foreignId('carried_from_request_id')->nullable()->constrained('credential_requests')->nullOnDelete();
 
             $table->unique(['credential_request_id', 'item']);
-        });
-
-        Schema::table('releases', function (Blueprint $table) {
-            $table->string('id_presented', 100)->nullable()->change();
         });
     }
 

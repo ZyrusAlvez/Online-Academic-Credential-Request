@@ -14,8 +14,9 @@ registrar" as "the Admin" in REQ-13-03..06 (REQ-18-04).*
 
 ### Master list
 - **REQ-13-01** THE SYSTEM SHALL keep request purposes in the database, each with a unique name.
-- **REQ-13-02** WHEN a deployment migrates THE SYSTEM SHALL install a starter list of purposes
-  without duplicating or overwriting what the registrar has changed.
+- **REQ-13-02** WHEN the base data is seeded THE SYSTEM SHALL install a starter list of purposes
+  without duplicating or overwriting what the registrar has changed. *(Reworded 2026-11-15: the
+  list is seeded, not installed by a migration on deploy, REQ-23-02.)*
 
 ### Registrar
 - **REQ-13-03** THE SYSTEM SHALL let the registrar list purposes, search them by name and filter

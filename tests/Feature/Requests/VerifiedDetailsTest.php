@@ -274,24 +274,3 @@ test('REQ-21-06 the registrar\'s request page and Records badge the valid ID onl
     evaluate($request, $this->registrar);
     expect($idRow(route('records.show', $request)))->toContain('Verified');
 });
-
-// ── REQ-21-07: existing data ────────────────────────────────────────────────────────────────
-
-test('REQ-21-07 the migration takes each requester\'s latest completed request as verified', function () {
-    $older = evaluate(submitRequest($this->owner, $this->org->tor), $this->other);
-    $latest = submitRequest($this->owner, $this->org->free);
-    evaluate($latest, $this->registrar);
-    $pending = requester($this->org->cba);
-    submitRequest($pending, $this->org->free);
-
-    $migration = require database_path('migrations/2026_11_11_000001_create_requester_verifications_table.php');
-    $migration->down();
-    $migration->up();
-
-    expect(RequesterVerification::query()->where('user_id', $this->owner->id)->get())
-        ->toHaveCount(2)
-        ->each(fn ($verification) => $verification->credential_request_id->toBe($latest->id)->verified_by->toBe($this->registrar->id))
-        ->and(RequesterVerification::query()->where('user_id', $this->owner->id)->pluck('part')->map->value->sort()->values()->all())->toBe(['academic_record', 'identity'])
-        ->and(RequesterVerification::query()->where('user_id', $pending->id)->exists())->toBeFalse()
-        ->and($older->id)->not->toBe($latest->id);
-});

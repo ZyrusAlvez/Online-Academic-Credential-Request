@@ -222,8 +222,7 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * The office's demo account, `<code>@example.com` with the demo password. Also used by the
-     * migration that replaced the college list (REQ-02-14).
+     * The office's demo account, `<code>@example.com` with the demo password.
      */
     public static function staffAccount(Department $department): User
     {

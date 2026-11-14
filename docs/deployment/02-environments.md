@@ -239,6 +239,7 @@ It stops at the first error, so a failed step never leaves half-cached settings 
 |---|---|
 | Work on a feature | Branch from `staging`; `composer dev` (`composer qa` is optional, CI runs it) |
 | Reload demo data | `php artisan app:reset-demo` (local or staging folder) |
+| Empty production before going live | `php artisan app:reset` in the production folder (asks you to type `reset production`); see the Lightsail guide, "Resetting an environment" |
 | Test a change on the server | Merge your branch into `staging` and push; it deploys once `qa` passes |
 | Release to users | Merge the PR `staging` → `production`; it deploys once `qa` passes |
 | Redeploy without a code change | Actions → *deploy* → **Run workflow** on that branch |

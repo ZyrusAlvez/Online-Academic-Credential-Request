@@ -2,6 +2,9 @@
 
 ## Data
 
+*Since spec 23 (2026-11-15) these columns are part of `create_credential_requests_tables`; the
+`move_identity_check_to_requests` migration and its copy of existing data (REQ-15-14) are gone.*
+
 One migration, `move_identity_check_to_requests`:
 
 - `credential_requests` gains the requester's copy: `requester_name` (150), `contact_number` (20),

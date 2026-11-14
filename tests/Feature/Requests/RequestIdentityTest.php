@@ -11,8 +11,6 @@ use App\Models\IdentityDocument;
 use App\Models\User;
 use App\Services\RequestWorkflow;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -452,26 +450,4 @@ test('REQ-15-13 only the owner and registrars can open the request\'s ID; office
     $this->actingAs($owner)->get(route('identity-documents.show', $request->identity_document_id))->assertOk();
     $this->actingAs($this->registrar)->get(route('identity-documents.show', $request->identity_document_id))->assertOk();
     $this->actingAs($office)->get(route('identity-documents.show', $request->identity_document_id))->assertNotFound();
-});
-
-test('REQ-15-14 the migration copies each owner\'s name, contact and latest ID onto their requests and drops the account status', function () {
-    expect(Schema::hasColumns('users', ['identity_status', 'identity_verified_at']))->toBeFalse()
-        ->and(Schema::hasColumns('identity_documents', ['status', 'reviewed_by', 'reviewed_at', 'remarks']))->toBeFalse()
-        ->and(Schema::hasColumns('credential_requests', ['requester_name', 'contact_number', 'identity_document_id', 'identity_status', 'identity_reviewed_by', 'identity_reviewed_at', 'identity_remarks']))->toBeTrue();
-
-    $migration = require database_path('migrations/2026_11_06_000003_move_identity_check_to_requests.php');
-    $owner = User::factory()->withProfile($this->org->ccs)->create(['first_name' => 'Ana', 'middle_name' => 'Luz', 'last_name' => 'Mendoza', 'contact_number' => '09170000001']);
-    $request = CredentialRequest::factory()->create(['user_id' => $owner->id, 'requester_name' => '', 'contact_number' => null]);
-
-    $migration->down();
-    $latest = $owner->latestIdentityDocument()->firstOrFail();
-    DB::table('identity_documents')->where('id', $latest->id)->update(['status' => 'verified', 'reviewed_by' => $this->registrar->id, 'remarks' => null]);
-    $migration->up();
-
-    expect($request->fresh())
-        ->requester_name->toBe('Ana Luz Mendoza')
-        ->contact_number->toBe('09170000001')
-        ->identity_document_id->toBe($latest->id)
-        ->identity_status->toBe(ReviewStatus::Verified)
-        ->identity_reviewed_by->toBe($this->registrar->id);
 });

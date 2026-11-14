@@ -16,7 +16,8 @@ return new class extends Migration
     private const STATUSES = [
         ['submitted', 'Submitted', 'Online request received.'],
         ['under_evaluation', 'Under evaluation', 'Academic records and requirements are being reviewed.'],
-        ['pending_compliance', 'Pending compliance', 'Returned to the requester: they must fix what was rejected or comply in person.'],
+        ['returned_for_clarification', 'Returned for clarification', 'Returned to the requester to correct the request online and resubmit it.'],
+        ['pending_compliance', 'Pending compliance', 'The requester must bring originals or complete clearance at the Office of the Registrar.'],
         ['returned_for_customer_action', 'Returned for customer action', 'No longer used (spec 16); kept for older requests.'],
         ['awaiting_payment', 'Awaiting payment', 'Requirements complete; payment instructions provided.'],
         ['payment_verification', 'Payment verification', 'Proof of payment is awaiting verification.'],

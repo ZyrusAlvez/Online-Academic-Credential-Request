@@ -6,9 +6,9 @@
 `UnderEvaluation`. It is before acceptance (`beforeAcceptance()`), so the requester can cancel it,
 and its colour is amber like `pending_compliance`.
 
-Migration `2026_11_10_000003_add_returned_for_clarification_status` inserts the row into
-`request_statuses` and renumbers `sort_order` to the enum's order (REQ-19-02). It also rewrites
-the meaning of `pending_compliance`. No request or ledger row changes.
+Its row in `request_statuses`, third in `sort_order` (REQ-19-02), and the narrower meaning of
+`pending_compliance` are part of `create_request_statuses_table` (since spec 23, 2026-11-15;
+before that a separate migration added them).
 
 ## Ledger
 

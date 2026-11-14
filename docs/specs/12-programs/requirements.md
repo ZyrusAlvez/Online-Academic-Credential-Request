@@ -15,16 +15,15 @@ registrar" as "the Admin" in REQ-12-03..06 (REQ-18-04).*
 ### Master list
 - **REQ-12-01** THE SYSTEM SHALL keep programs and strands in the database, each belonging to one
   college, with a name that is unique within that college.
-- **REQ-12-02** WHEN a deployment migrates THE SYSTEM SHALL install the university's published
-  programs without duplicating or overwriting what the registrar has changed.
-- **REQ-12-12** WHEN a deployment migrates THE SYSTEM SHALL replace the earlier program list with
-  the 27 programs of the 2026-11-06 list (see design), deleting the earlier programs, and SHALL
-  rename a requester's saved program to its new name where the program continues; a program that
-  is no longer offered stays on the requester's profile (REQ-12-09). Past requests keep the
-  program they were made with.
-- **REQ-12-11** WHEN a deployment migrates AND a registrar exists AND the Basic Education Department
-  has no staff account THE SYSTEM SHALL create one that reaches the first registrar's inbox through
-  a `+bed` address, with a random password that only Forgot Password can replace.
+- **REQ-12-02** WHEN the base data is seeded THE SYSTEM SHALL install the university's published
+  programs (the 27 programs of the 2026-11-06 list, see design) without duplicating or overwriting
+  what the registrar has changed. *(Reworded 2026-11-15: the list is seeded, not installed by a
+  migration on deploy, REQ-23-02.)*
+- ~~REQ-12-12~~ *Superseded by REQ-23-01 and 02 (2026-11-15):* the one-time replacement of the
+  earlier program list on existing databases is gone; the 27 programs are the seeded list
+  (REQ-12-02).
+- ~~REQ-12-11~~ *Superseded by REQ-18-11 and REQ-23-02 (2026-11-15):* no staff account is created
+  automatically. The Admin creates every staff account, the Basic Education Department's included.
 
 ### Registrar
 - **REQ-12-03** THE SYSTEM SHALL let the registrar list programs, search them by name and filter

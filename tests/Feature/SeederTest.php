@@ -1,11 +1,18 @@
 <?php
 
 use App\Enums\Role;
+use App\Models\CredentialRequest;
+use App\Models\CredentialType;
 use App\Models\Department;
+use App\Models\NonWorkingDay;
+use App\Models\Program;
+use App\Models\Purpose;
 use App\Models\User;
-use Database\Seeders\BasicEducationAccountSeeder;
+use App\Models\WorkflowStep;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Support\Facades\Password;
+use Database\Seeders\ProgramSeeder;
+use Database\Seeders\PurposeSeeder;
+use Illuminate\Support\Facades\DB;
 
 test('REQ-18-11 normal seeding creates the first admin and no other account', function () {
     $this->seed(DatabaseSeeder::class);
@@ -16,37 +23,40 @@ test('REQ-18-11 normal seeding creates the first admin and no other account', fu
         ->and(Department::count())->toBeGreaterThan(0);
 });
 
-test('REQ-12-11 the Basic Education Department gets a working staff account on the registrar inbox', function () {
-    $office = Department::factory()->create(['code' => 'BED']);
-    $registrar = User::factory()->create(['role' => Role::Registrar, 'email' => 'registrar@uphsl.edu.ph']);
+test('REQ-23-02 normal seeding loads the base data every environment needs and nothing else', function () {
+    $this->seed(DatabaseSeeder::class);
 
-    $this->seed(BasicEducationAccountSeeder::class);
-
-    $account = User::where('email', 'registrar+bed@uphsl.edu.ph')->sole();
-    expect($account->role)->toBe(Role::Department)
-        ->and($account->department_id)->toBe($office->id)
-        ->and($account->is_active)->toBeTrue()
-        ->and($account->hasVerifiedEmail())->toBeTrue()
-        ->and($registrar->fresh()->email)->toBe('registrar@uphsl.edu.ph');
-
-    $this->actingAs($account)->get(route('department.dashboard'))->assertOk();
-    expect(Password::sendResetLink(['email' => $account->email]))->toBe(Password::RESET_LINK_SENT);
+    expect(Department::count())->toBe(15)
+        ->and(Program::count())->toBe(collect(ProgramSeeder::PROGRAMS)->flatten()->count())
+        ->and(Purpose::count())->toBe(count(PurposeSeeder::PURPOSES))
+        ->and(CredentialType::count())->toBe(17)
+        ->and(CredentialType::doesntHave('steps')->count())->toBe(0)
+        ->and(NonWorkingDay::count())->toBeGreaterThan(0)
+        ->and(User::count())->toBe(1)
+        ->and(CredentialRequest::count())->toBe(0);
 });
 
-test('REQ-12-11 the seeder leaves an office alone once it has staff', function () {
-    $office = Department::factory()->create(['code' => 'BED']);
-    User::factory()->create(['role' => Role::Registrar]);
-    User::factory()->create(['role' => Role::Department, 'department_id' => $office->id]);
+test('REQ-23-03 seeding the base data again adds nothing and keeps what the admin changed', function () {
+    $this->seed(DatabaseSeeder::class);
 
-    $this->seed(BasicEducationAccountSeeder::class);
+    $counts = fn (): array => [
+        Department::count(), Program::count(), Purpose::count(), CredentialType::count(),
+        WorkflowStep::count(), NonWorkingDay::count(), User::count(),
+    ];
+    $before = $counts();
+    $holiday = NonWorkingDay::orderBy('date')->firstOrFail();
 
-    expect(User::where('role', Role::Department)->count())->toBe(1);
-});
+    // What an admin would change in the app.
+    DB::table('departments')->where('code', 'CCS')->update(['name' => 'College of Computing']);
+    DB::table('non_working_days')->where('id', $holiday->id)->update(['name' => 'Renamed holiday']);
+    DB::table('credential_types')->where('name', 'Authentication')->update(['fee' => '75.00']);
+    DB::table('purposes')->where('name', PurposeSeeder::PURPOSES[0])->update(['is_active' => false]);
 
-test('REQ-12-11 the seeder does nothing before a registrar exists', function () {
-    Department::factory()->create(['code' => 'BED']);
+    $this->seed(DatabaseSeeder::class);
 
-    $this->seed(BasicEducationAccountSeeder::class);
-
-    expect(User::count())->toBe(0);
+    expect($counts())->toBe($before)
+        ->and(Department::where('code', 'CCS')->sole()->name)->toBe('College of Computing')
+        ->and($holiday->fresh()->name)->toBe('Renamed holiday')
+        ->and(CredentialType::where('name', 'Authentication')->sole()->fee)->toBe('75.00')
+        ->and(Purpose::where('name', PurposeSeeder::PURPOSES[0])->sole()->is_active)->toBeFalse();
 });
