@@ -79,10 +79,14 @@ The Logs page links a reference no. to `records.show`.
 
 - `config('uphsl.initial_admin.email' / '.password')` read `INITIAL_ADMIN_EMAIL` /
   `INITIAL_ADMIN_PASSWORD`.
-- `AdminSeeder` (in `DatabaseSeeder`, after `RegistrarSeeder`) creates "System Administrator"
-  when no account has the email. With no email or no password configured it prints a warning
-  and returns.
+- `AdminSeeder` (in `DatabaseSeeder`) creates "System Administrator" when no account has the
+  email. Without the email, or without a password while the account is missing, it throws a
+  `RuntimeException` naming the setting. It is the only account seeder: `RegistrarSeeder` and
+  `config('uphsl.initial_registrar')` were removed on 2026-11-15. Existing registrar accounts
+  on the servers stay as they are.
 - Deploys never seed. To add the first Admin, set the two lines in `.env` and run
   `php artisan db:seed --class=AdminSeeder --force && php artisan optimize`.
+- `app:reset-demo` checks the `INITIAL_ADMIN_*` settings before wiping anything (REQ-18-13).
 
-`DemoSeeder` adds `admin@example.com`.
+`DemoSeeder` adds `admin@example.com` and `registrar@example.com` (`DemoSeeder::registrarAccount()`),
+and the demo requests are worked by that registrar.

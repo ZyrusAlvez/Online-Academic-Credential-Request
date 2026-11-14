@@ -84,11 +84,15 @@ This replaces:
 
 ### The first Admin
 - **REQ-18-11** THE SYSTEM SHALL provide a seeder that creates the first Admin from
-  `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`:
+  `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`. It is the only account the normal seeding
+  creates: the Admin then creates the Registrar and Department Staff accounts (REQ-18-09).
+  *(Changed 2026-11-15, user's decision: there is no seeded registrar any more, REQ-01-15.)*
   - It runs as part of the normal seeding.
   - WHEN an account with that email already exists THE SYSTEM SHALL leave it unchanged.
-  - IF the settings are not set THEN THE SYSTEM SHALL skip it with a warning and go on seeding.
-    Existing installs keep seeding until they add the settings.
-  - `INITIAL_REGISTRAR_*` (REQ-01-15) is unchanged.
+  - IF the email is not set, or the account doesn't exist and no password is set, THEN THE SYSTEM
+    SHALL refuse to seed, so no install ends up without a way to sign in.
 - **REQ-18-12** THE demo data (local and staging only, REQ-07-09) SHALL include an Admin account,
-  `admin@example.com` with the demo password `@Test123` (REQ-07-09).
+  `admin@example.com`, and a Registrar account, `registrar@example.com`, both with the demo
+  password `@Test123` (REQ-07-09). The demo requests are evaluated and released by that Registrar.
+- **REQ-18-13** THE demo reset (`app:reset-demo`) SHALL refuse to start, changing nothing, unless
+  `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` are set.

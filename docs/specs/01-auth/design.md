@@ -91,9 +91,9 @@ Identity code:
   (The requester's list, Request Tracker, moved to `/student/requests` on 2026-11-11, and
   `/student` redirects there, REQ-09-21.)
 - Sidebar navigation is chosen by role.
-- `DatabaseSeeder` creates `registrar@uphsl.edu.ph` with password from
-  `INITIAL_REGISTRAR_PASSWORD` in production (renamed from `SEED_REGISTRAR_PASSWORD` for clarity).
-  Demo accounts use `@Test123` (REQ-07-09).
+- `DatabaseSeeder` creates no registrar (since 2026-11-15): the first Admin, from
+  `INITIAL_ADMIN_*`, creates the registrar accounts (REQ-18-11). Demo accounts use `@Test123`
+  (REQ-07-09).
 
 ## Routes
 

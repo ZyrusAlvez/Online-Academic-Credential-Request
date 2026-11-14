@@ -256,9 +256,8 @@ Every environment works the same way in everything else:
 - **Email** is sent through Gmail whenever its credentials are configured, and written to the log
   file otherwise. On local, every email is redirected to the developer's own inbox. Mail to
   reserved example domains (`example.com`, `.test`, …), which demo accounts use, is never sent.
-- **The first registrar** comes from `INITIAL_REGISTRAR_EMAIL` and `INITIAL_REGISTRAR_PASSWORD`
-  (REQ-01-15). **The first admin** comes from `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`
-  (REQ-18-11).
+- **The first admin** comes from `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` (REQ-18-11).
+  It is the only seeded account: the admin creates the registrar and department staff accounts.
 - **Installed packages** are the same: no development tools on the server.
 
 Automated tests run in Laravel's internal `testing` mode on their own database,
