@@ -69,3 +69,19 @@ types, defaults, column order, indexes and foreign keys are identical.
 
 A reset deletes every account. The first Admin is recreated from `.env`; the Admin then creates the
 registrar and department staff accounts again.
+
+## Rollout (one time)
+
+- **Staging** had run all 38 old migrations, so its deploy migrates nothing and its structure is
+  already the final one. `app:reset-demo` afterwards only clears the test data.
+- **Production** was still on the 2026-11-02 release when this was built: it had not run the 17
+  later migrations, which no longer exist. Its next release therefore leaves it with an
+  incomplete structure, and **`app:reset` must be run right after that deploy**; pages fail until
+  then. This is acceptable only because production holds no real data yet and is being reset
+  anyway. Steps on the server, in the production folder, as `www-data`:
+  1. add `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` to `.env` (that `.env` predates the
+     Admin role);
+  2. `php artisan optimize`, so the new settings are read;
+  3. `php artisan app:reset`, typing `reset production`.
+- From then on every database has run the same 16 files, and new changes are ordinary new
+  migrations.
