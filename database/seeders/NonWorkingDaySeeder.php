@@ -9,7 +9,8 @@ use Illuminate\Support\Carbon;
 
 /**
  * Philippine national holidays for 2026–2027 (spec 10, REQ-10-07). Eid holidays and one-off
- * proclamations are added by the registrar on the Working Calendar page. Safe to run again.
+ * proclamations are added by the Admin on the Working Calendar page. Only adds what is missing,
+ * so running it again keeps the Admin's changes (REQ-23-03).
  */
 class NonWorkingDaySeeder extends Seeder
 {
@@ -45,7 +46,7 @@ class NonWorkingDaySeeder extends Seeder
     public function run(): void
     {
         foreach ($this->days() as $date => [$name, $kind]) {
-            NonWorkingDay::updateOrCreate(['date' => $date], ['name' => $name, 'kind' => $kind]);
+            NonWorkingDay::firstOrCreate(['date' => $date], ['name' => $name, 'kind' => $kind]);
         }
     }
 

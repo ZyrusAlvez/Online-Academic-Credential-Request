@@ -15,8 +15,8 @@ requests, and requests made before this list existed keep their free-text purpos
   `Registrar\Programs\Index`: `PurposeForm`, `PurposePolicy`, a modal form, deactivate instead of
   delete.
 - `PurposeSeeder` holds the starter list and only creates missing rows, so a rename or
-  deactivation by the registrar survives. A migration runs it, because deploys only migrate (as
-  `install_program_list` does).
+  deactivation by the registrar survives. It runs with the base data, on a new or reset database
+  (spec 23); deploys do not run it.
 - `Student\Requests\Create` passes the active purposes to the view; `CredentialRequestForm` checks
   the name with an `exists` rule scoped to active purposes.
 - "Others (please specify)" is fixed in code, not a row: it is always last and can't be

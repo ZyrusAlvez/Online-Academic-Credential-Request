@@ -2,19 +2,18 @@
 
 namespace App\Console\Commands;
 
-use App\Services\RequestWorkflow;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Storage;
 
 /**
- * Rebuilds the database with the base and demo data. Local and staging only.
+ * The same reset as `app:reset`, followed by the demo accounts and requests. Local and staging
+ * only (REQ-23-07).
  */
 class ResetDemo extends Command
 {
     protected $signature = 'app:reset-demo';
 
-    protected $description = 'Wipe the database and reload the demo accounts and requests';
+    protected $description = 'Wipe the database and reload the base data, the demo accounts and the demo requests';
 
     public function handle(): int
     {
@@ -24,18 +23,10 @@ class ResetDemo extends Command
             return self::FAILURE;
         }
 
-        // The first admin is recreated after the wipe, so check its settings before deleting anything.
-        if (blank(config('uphsl.initial_admin.email')) || blank(config('uphsl.initial_admin.password'))) {
-            $this->error('Set INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD in .env first. Nothing was changed.');
-
+        if ($this->call('app:reset') !== self::SUCCESS) {
             return self::FAILURE;
         }
 
-        Storage::disk(RequestWorkflow::proofDisk())->deleteDirectory('payment-proofs');
-        Storage::disk(RequestWorkflow::proofDisk())->deleteDirectory('identity-documents');
-        Storage::disk(RequestWorkflow::proofDisk())->deleteDirectory('request-documents');
-
-        $this->call('migrate:fresh', ['--seed' => true, '--force' => true]);
         $this->call('db:seed', ['--class' => DemoSeeder::class, '--force' => true]);
 
         $this->info('Demo data reloaded.');

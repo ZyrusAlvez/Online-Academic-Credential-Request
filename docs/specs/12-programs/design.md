@@ -16,16 +16,13 @@ past requests after a rename; a request must keep what was true when it was made
   `Registrar\Departments\Index`: `ProgramForm`, `ProgramPolicy`, a modal form, deactivate instead
   of delete.
 - `ProgramSeeder` holds the published list by college code and only creates missing rows, so a
-  rename or deactivation by the registrar survives. A migration runs it, because deploys only
-  migrate (as `install_credential_master_list` does).
+  rename or deactivation by the registrar survives. It runs with the base data, on a new or reset
+  database (spec 23); deploys do not run it.
 - `Student\Profile` loads the chosen college's active programs and clears the program when the
   college changes. `RequesterProfileForm` checks the name with an `exists` rule scoped to the
   college and to active programs.
-- `BasicEducationAccountSeeder` gives the office added by the install migration a staff account,
-  so its queue isn't stuck until someone creates one. A migration runs it, because deploys can't
-  run commands on the server. The repo is public, so the address comes from the first registrar's
-  (`name+bed@domain`) and the password is random: the registrar sets it through Forgot Password,
-  then changes the name, email and password in Accounts when a real person takes over.
+- No staff account is created automatically (REQ-12-11 superseded, 2026-11-15): the Admin creates
+  the Basic Education Department's account like every other one.
 
 ## Source
 
@@ -50,6 +47,9 @@ university's site; the list's "category" labels aren't used by the app.
 `DepartmentSeeder::COLLEGES` and `ProgramSeeder::PROGRAMS` hold the list.
 
 ## Replacing the earlier list (REQ-02-14, REQ-12-12)
+
+*Removed on 2026-11-15 (spec 23): both servers are reset, so nothing is replaced any more and the
+seeded list is the 2026-11-06 one. This section is kept as the record of that one-time change.*
 
 The migration `replace_college_list` rewrites existing deployments. Fresh installs already seed
 the new list, and the migration then finds nothing to do.

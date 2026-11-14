@@ -25,21 +25,14 @@ lets registrar accounts act on its steps.
 - `App\Enums\DepartmentType` (`College`, `Office`) with `label()`.
 - `App\Models\Department` — `hasMany(User::class, 'staff')`, `scopeActive`, `scopeColleges`.
 - `App\Models\User` — `belongsTo(Department)`.
-- `Database\Seeders\DepartmentSeeder` — `updateOrCreate` by code; deactivates the retired codes
-  `LIB`, `FIN`, `SAS` if present. Seeded offices: `REG` Office of the Registrar, `VPF` Office of
+- `Database\Seeders\DepartmentSeeder` — `firstOrCreate` by code, so seeding again never overwrites
+  the Admin's edits (REQ-23-03). Seeded offices: `REG` Office of the Registrar, `VPF` Office of
   the VP for Finance (documentary stamp), `CHAN` Office of the Chancellor, `PRES` Office of the
-  President, plus the 11 colleges (Dean's review and signature). Deploys run it through the
-  master-list data migration (spec 03).
-- `Database\Seeders\RemoveCollegeOfLawSeeder` (REQ-02-18) — deletes the `college` with code
-  `LAW`, in one transaction, through the query builder (the
-  `RequestEvent` and `ActivityLog` models refuse deletes and updates): the requests that name it
-  (`college_id`, a step, a visit, an event or a delay note) with all their rows and the
-  `notifications` whose `data->request_id` is one of them; `users.college_id`/`program` → null;
-  its staff accounts (log entries' `actor_id` → null; an account still referenced elsewhere is
-  deactivated and detached instead); its programs and `workflow_steps`; `activity_logs.department_id`
-  → null. Uploaded receipts and documents are deleted from `RequestWorkflow::proofDisk()` after
-  the commit. Run by `ReplaceCollegeListSeeder` (deploys that have not replaced the list yet)
-  and by the `remove_college_of_law` migration (deploys that only deactivated Law).
+  President, plus the 11 colleges (Dean's review and signature). It runs with the base data, on
+  a new or reset database (spec 23).
+- The one-time `ReplaceCollegeListSeeder` and `RemoveCollegeOfLawSeeder` (REQ-02-14, 18) and
+  their migrations were removed on 2026-11-15 (spec 23): both servers are reset, and the seeded
+  list is the 2026-11-06 one.
 - Filter and pick lists use `Department::active()`, `CredentialType::active()` and
   `is_active` accounts (REQ-02-19): `Registrar\Queue` (In progress office filter),
   `Registrar\Records\Index`, `Registrar\Reports\Index`, `Registrar\Logs\Index`,

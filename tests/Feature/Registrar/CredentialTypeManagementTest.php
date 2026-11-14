@@ -46,22 +46,6 @@ test('REQ-03-01 re-seeding does not duplicate types or overwrite edited routes',
         ->and($tor->fresh()->fee)->toBe('600.00');
 });
 
-test('REQ-03-12 installing the master list replaces the placeholder types and routes', function () {
-    $library = Department::factory()->create(['name' => 'Library', 'code' => 'LIB']);
-    $this->seed(DepartmentSeeder::class);
-    $old = CredentialType::factory()->withSteps([$library])->create(['name' => 'Good Moral Certificate']);
-    $tor = CredentialType::factory()->withSteps([$library, 'college'])->create(['name' => 'Transcript of Records (TOR)', 'processing_days' => 10]);
-
-    (new CredentialTypeSeeder)->install();
-    (new CredentialTypeSeeder)->install();
-
-    expect($old->fresh()->is_active)->toBeFalse()
-        ->and($old->steps()->count())->toBe(1)
-        ->and(CredentialType::active()->count())->toBe(17)
-        ->and($tor->fresh()->processing_days)->toBe(7)
-        ->and($tor->fresh()->load('steps.department')->routeSummary())->toBe('REG → Dean → VPF → CHAN');
-});
-
 test('REQ-03-02 the registrar sees credential types with fee, processing period and route', function () {
     $registrarOffice = Department::factory()->registrarOffice()->create();
     CredentialType::factory()->paid('250.00')->withSteps([$registrarOffice, 'college'])->create(['name' => 'Transcript of Records', 'processing_days' => 10]);

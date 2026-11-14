@@ -559,7 +559,8 @@ Don't save that empty screen.
 | `php artisan key:generate` | Creates `APP_KEY` and writes it into `.env` |
 | `npm ci && npm run build` | Installs the exact build tools from the lock file, then Vite compiles Tailwind and JS into `public/build/` with hashed file names (so browsers fetch new versions after each change) |
 | `php artisan migrate --seed --force` | **Migrations** create the tables from `database/migrations/`. **Seeders** fill in the starter rows. `--force` confirms, since production asks "are you sure?" |
-| `php artisan app:reset-demo` | Staging (and local) only: rebuilds all tables and loads base + demo data. It refuses to run in production, and refuses to start without the `INITIAL_ADMIN_*` settings |
+| `php artisan app:reset` | Empties the environment and starts it clean: deletes every row and uploaded file, rebuilds all tables and loads the base data and the first admin (no demo data). In production it asks you to type `reset production`. Refuses to start without the `INITIAL_ADMIN_*` settings |
+| `php artisan app:reset-demo` | Staging (and local) only: the same reset, then the demo data. It refuses to run in production |
 | `php artisan optimize` | Caches config, routes and views |
 
 Both environments install with `--no-dev`, so staging runs exactly the packages production runs.
@@ -590,13 +591,44 @@ their own JavaScript.
 |---|---|
 | `DepartmentSeeder` | The 15 colleges and offices |
 | `ProgramSeeder`, `PurposeSeeder` | The program and purpose lists the request form offers |
-| `CredentialTypeSeeder` | The 7 credential types and their signing order (`workflow_steps`) |
+| `CredentialTypeSeeder` | The 17 credential types and their signing order (`workflow_steps`) |
 | `NonWorkingDaySeeder` | Philippine holidays, for the working-day due dates |
 | `AdminSeeder` | The first admin account, from `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`. It is the only account seeding creates |
 | `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff, a demo admin (`admin@example.com`), a demo registrar (`registrar@example.com`) and requests in every status, all at `@example.com` with the password `@Test123`. The demo requests are worked by the demo registrar |
 
-The lists (everything above except the accounts) also arrive through migrations, so a deploy
-brings any new list to a running server without seeding.
+### Migrations and seeders: who does what
+
+| Folder | Holds | Runs | Same in every environment? |
+|---|---|---|---|
+| `database/migrations` | The **structure**: tables, columns and keys, plus the fixed request statuses the code depends on | Every deploy (`php artisan migrate`), each file once per database | Yes. This is what keeps local, staging and production identical in structure |
+| `database/seeders` | The **starting content**: the lists above and the first admin; `DemoSeeder` adds demo data | Only when a database is created or reset, never on a deploy | Base data yes; demo data local and staging only |
+| `database/factories` | Fake rows for the automated tests | Tests only | Not used on a server |
+
+A deploy never changes content. After the first seeding, the admin changes the lists in the app
+(Administration). Seeding again is safe: every base seeder only adds what is missing and never
+overwrites what the admin changed.
+
+### Resetting an environment
+
+A reset deletes **every account, request and uploaded file** of that environment and starts it
+clean. Use it to clear test data before going live. The first admin is recreated from `.env`, so
+check that `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` are set there first (after editing
+`.env`, run `php artisan optimize`). Without them the command stops and changes nothing.
+
+Staging, with demo data (as `ubuntu`):
+
+```bash
+cd /var/www/uphsl-staging && sudo -u www-data php artisan app:reset-demo
+```
+
+Production, base data only (as `ubuntu`). It asks you to type `reset production`:
+
+```bash
+cd /var/www/uphsl-production && sudo -u www-data php artisan app:reset
+```
+
+After a production reset, sign in as the admin and create the registrar and department staff
+accounts again under **Administration → Accounts**.
 
 The first admin is needed because someone has to be able to log in and create every other
 account: only an admin manages accounts and setup (spec 18). Sign in with it and create the
@@ -1097,7 +1129,7 @@ have never restored is a hope, not a backup, so try a restore into a scratch dat
 | `Access denied for user 'uphsl_prod'@'localhost' (using password: YES)` | The password in `.env` doesn't match MySQL's. Common causes: placeholder text left in, or a typo | Test directly with `mysql -u uphsl_prod -p -h 127.0.0.1`. Reset both sides with the step 8.3 block, using `ALTER USER`, then `php artisan config:clear` |
 | The same error again after fixing `.env` | `optimize` cached the old password | `php artisan config:clear`, then re-run the command, then `php artisan optimize` |
 | `Set INITIAL_ADMIN_PASSWORD in .env to create the first admin.` (or `Set INITIAL_ADMIN_EMAIL ...`) | The admin seeder needs both settings to create the account | Set them in `.env`, then run only that seeder: `php artisan db:seed --class=AdminSeeder --force && php artisan optimize` |
-| `app:reset-demo`: `Set INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD in .env first. Nothing was changed.` | The demo reset recreates the first admin, so it checks first | Set both in staging's `.env`, run `php artisan optimize`, and run it again |
+| `app:reset` or `app:reset-demo`: `Set INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD in .env first. Nothing was changed.` | The reset recreates the first admin, so it checks first | Set both in that folder's `.env`, run `php artisan optimize`, and run it again |
 | `Failed opening required '.../vendor/autoload.php'` | `composer install` was never run in that folder | Run the step 9 chain in that folder. Each folder needs its own install |
 | `certbot: command not found` | certbot isn't installed | `sudo apt install -y certbot python3-certbot-nginx` |
 | nano shows an empty `.env` | As `ubuntu`, you can't read a file owned by `www-data` with mode 600 | **Ctrl+X** without saving, then `sudo -u www-data nano .env` |

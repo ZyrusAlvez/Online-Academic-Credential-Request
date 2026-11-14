@@ -8,14 +8,15 @@ use Illuminate\Database\Seeder;
 
 /**
  * The offices of the credential master list (spec 02): the colleges acting as the Dean, the
- * Registrar, VP Finance, Chancellor and President. Safe to run again.
+ * Registrar, VP Finance, Chancellor and President. Only adds what is missing, so running it again
+ * keeps the Admin's changes (REQ-23-03).
  */
 class DepartmentSeeder extends Seeder
 {
     public const DEAN = "Dean's review and signature";
 
     /**
-     * The 11 colleges, code => name (list of 2026-11-06, REQ-02-01, REQ-02-14).
+     * The 11 colleges, code => name (list of 2026-11-06, REQ-02-01).
      *
      * @var array<string, string>
      */
@@ -33,9 +34,6 @@ class DepartmentSeeder extends Seeder
         'CME' => 'College of Maritime Education',
     ];
 
-    /** Offices replaced by the evaluator's clearance check (REQ-02-13); kept for history. */
-    public const RETIRED = ['LIB', 'FIN', 'SAS'];
-
     public function run(): void
     {
         $departments = [
@@ -47,12 +45,10 @@ class DepartmentSeeder extends Seeder
         ];
 
         foreach ($departments as [$code, $name, $type, $description]) {
-            Department::updateOrCreate(
+            Department::firstOrCreate(
                 ['code' => $code],
                 ['name' => $name, 'type' => $type, 'description' => $description],
             );
         }
-
-        Department::whereIn('code', self::RETIRED)->update(['is_active' => false]);
     }
 }

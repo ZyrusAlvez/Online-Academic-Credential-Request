@@ -6,12 +6,10 @@ use App\Enums\RouteTask;
 use App\Models\CredentialType;
 use App\Models\Department;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 /**
- * The credential master list from the client's Proposed Workflow, section VII (spec 03).
- * run() only adds missing types, so re-seeding never overwrites the registrar's edits;
- * install() replaces the list on an existing system (the one-time data migration).
+ * The credential master list from the client's Proposed Workflow, section VII (spec 03). Only
+ * adds missing types, so seeding again never overwrites the Admin's edits (REQ-23-03).
  * Requires DepartmentSeeder.
  */
 class CredentialTypeSeeder extends Seeder
@@ -44,25 +42,6 @@ class CredentialTypeSeeder extends Seeder
                 $this->createSteps($type, $attributes['route']);
             }
         }
-    }
-
-    /**
-     * Create or replace every master-list type and its route, and deactivate every other type
-     * (REQ-03-12). Earlier requests keep their own copy of the steps.
-     */
-    public function install(): void
-    {
-        DB::transaction(function (): void {
-            $types = $this->types();
-
-            foreach ($types as $name => $attributes) {
-                $type = CredentialType::updateOrCreate(['name' => $name], $attributes['type'] + ['is_active' => true]);
-                $type->steps()->delete();
-                $this->createSteps($type, $attributes['route']);
-            }
-
-            CredentialType::whereNotIn('name', array_keys($types))->update(['is_active' => false]);
-        });
     }
 
     /**
