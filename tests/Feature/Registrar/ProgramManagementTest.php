@@ -1,6 +1,6 @@
 <?php
 
-use App\Livewire\Registrar\Programs\Index;
+use App\Livewire\Admin\Programs\Index;
 use App\Models\Department;
 use App\Models\Program;
 use App\Models\User;
@@ -10,7 +10,7 @@ use Illuminate\Database\QueryException;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    $this->registrar = User::factory()->registrar()->create();
+    $this->admin = User::factory()->admin()->create();   // programs are the Admin's (REQ-18-04)
     $this->college = Department::factory()->college()->create(['name' => 'College of Arts and Sciences', 'code' => 'CAS']);
 });
 
@@ -31,7 +31,7 @@ test('REQ-12-02 the seeder installs every college\'s programs without duplicates
     $count = Program::count();
     $this->seed(ProgramSeeder::class);
 
-    expect($count)->toBe(34)
+    expect($count)->toBe(27)
         ->and(Program::count())->toBe($count)
         ->and(Program::whereDoesntHave('college', fn ($query) => $query->colleges())->count())->toBe(0);
 });
@@ -49,7 +49,7 @@ test('REQ-12-03 the registrar can search and filter programs', function () {
     Program::factory()->for($this->college, 'college')->inactive()->create(['name' => 'Bachelor of Closed Studies']);
     $other = Program::factory()->create(['name' => 'Bachelor of Science in Biology']);
 
-    Livewire::actingAs($this->registrar)->test(Index::class)
+    Livewire::actingAs($this->admin)->test(Index::class)
         ->assertSee('Bachelor of Arts in Communication')
         ->assertSee('Bachelor of Science in Biology')
         ->set('search', 'Communication')
@@ -65,8 +65,21 @@ test('REQ-12-03 the registrar can search and filter programs', function () {
         ->assertDontSee('Bachelor of Arts in Communication');
 });
 
+test('REQ-12-03 the Programs page calls a college a department', function () {
+    Program::factory()->for($this->college, 'college')->create(['name' => 'Bachelor of Arts']);
+
+    Livewire::actingAs($this->admin)->test(Index::class)
+        ->assertSee('All departments')
+        ->assertDontSee('All colleges')
+        ->call('create')
+        ->set('form.department_id', $this->college->id)
+        ->set('form.name', 'Bachelor of Arts')
+        ->call('save')
+        ->assertHasErrors(['form.name' => 'This department already has a program with that name.']);
+});
+
 test('REQ-12-04 the registrar can add a program and edit it', function () {
-    $component = Livewire::actingAs($this->registrar)->test(Index::class)
+    $component = Livewire::actingAs($this->admin)->test(Index::class)
         ->call('create')
         ->assertDispatched('modal-show', name: 'program-form')
         ->set('form.department_id', $this->college->id)
@@ -93,7 +106,7 @@ test('REQ-12-04 a program needs a name and a college, and no twin in that colleg
     Program::factory()->for($this->college, 'college')->create(['name' => 'Bachelor of Arts']);
     $office = Department::factory()->create();
 
-    Livewire::actingAs($this->registrar)->test(Index::class)
+    Livewire::actingAs($this->admin)->test(Index::class)
         ->call('create')
         ->call('save')
         ->assertHasErrors(['form.name' => 'required', 'form.department_id' => 'required'])
@@ -112,7 +125,7 @@ test('REQ-12-04 a program needs a name and a college, and no twin in that colleg
 test('REQ-12-05 the registrar deactivates and reactivates a program', function () {
     $program = Program::factory()->for($this->college, 'college')->create();
 
-    $component = Livewire::actingAs($this->registrar)->test(Index::class)->call('toggleStatus', $program->id);
+    $component = Livewire::actingAs($this->admin)->test(Index::class)->call('toggleStatus', $program->id);
     expect($program->fresh()->is_active)->toBeFalse();
 
     $component->call('toggleStatus', $program->id);
@@ -122,10 +135,11 @@ test('REQ-12-05 the registrar deactivates and reactivates a program', function (
 test('REQ-12-06 only registrars can open the Programs page or change a program', function () {
     $program = Program::factory()->for($this->college, 'college')->create();
 
-    $this->actingAs($this->registrar)->get(route('registrar.programs'))->assertOk()->assertSee('Programs');
-    $this->actingAs(User::factory()->student()->create())->get(route('registrar.programs'))->assertForbidden();
-    $this->actingAs(User::factory()->departmentStaff()->create())->get(route('registrar.programs'))->assertForbidden();
-    $this->get(route('registrar.programs'))->assertForbidden();
+    $this->actingAs($this->admin)->get(route('admin.programs'))->assertOk()->assertSee('Programs');
+    $this->actingAs(User::factory()->student()->create())->get(route('admin.programs'))->assertForbidden();
+    $this->actingAs(User::factory()->departmentStaff()->create())->get(route('admin.programs'))->assertForbidden();
+    $this->actingAs(User::factory()->registrar()->create())->get(route('admin.programs'))->assertForbidden();
+    $this->get(route('admin.programs'))->assertForbidden();
 
     Livewire::actingAs(User::factory()->student()->create())->test(Index::class)->assertForbidden();
     expect($program->fresh()->is_active)->toBeTrue();

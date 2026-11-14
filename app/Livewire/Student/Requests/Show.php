@@ -2,11 +2,14 @@
 
 namespace App\Livewire\Student\Requests;
 
+use App\Enums\CheckItem;
+use App\Enums\CheckResult;
+use App\Enums\CheckStage;
 use App\Enums\PaymentStatus;
 use App\Enums\RequestEventType;
+use App\Enums\RequestStatus;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\TrimsInput;
-use App\Livewire\Forms\RequesterProfileForm;
 use App\Models\CredentialRequest;
 use App\Models\User;
 use App\Services\RequestWorkflow;
@@ -14,6 +17,7 @@ use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -39,21 +43,10 @@ class Show extends Component
 
     public string $paidOn = '';
 
-    public string $reply = '';
+    /** The requester's note with a new proof, after one was returned (REQ-04-20). */
+    public string $paymentNote = '';
 
     public string $cancelReason = '';
-
-    public string $representativeName = '';
-
-    public string $representativeRelationship = '';
-
-    public string $representativeContact = '';
-
-    /** @var UploadedFile|null */
-    public $spa = null;
-
-    /** @var UploadedFile|null */
-    public $representativeId = null;
 
     public function mount(CredentialRequest $credentialRequest): void
     {
@@ -71,64 +64,23 @@ class Show extends Component
             'paymentReference' => ['required', 'string', 'max:100'],
             'amountPaid' => ['required', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'],
             'paidOn' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
-        ], attributes: ['receipt' => 'proof of payment', 'paymentReference' => 'payment reference no.', 'amountPaid' => 'amount paid', 'paidOn' => 'date paid']);
+            'paymentNote' => ['nullable', 'string', 'max:500'],
+        ], attributes: ['receipt' => 'proof of payment', 'paymentReference' => 'payment reference no.', 'amountPaid' => 'amount paid', 'paidOn' => 'date paid', 'paymentNote' => 'note']);
+
+        // The note is offered only once a proof was returned (REQ-04-20).
+        $returned = $this->credentialRequest->paymentProofs()->where('status', PaymentStatus::Rejected)->exists();
 
         try {
-            $workflow->submitPaymentProof($this->credentialRequest, $this->owner(), $this->receipt, $this->paymentReference, $this->amountPaid, $this->paidOn);
+            $workflow->submitPaymentProof($this->credentialRequest, $this->owner(), $this->receipt, $this->paymentReference, $this->amountPaid, $this->paidOn,
+                $returned ? $this->paymentNote : null);
         } catch (InvalidTransition $e) {
             $this->addError('receipt', $e->getMessage());
 
             return;
         }
 
-        $this->reset('receipt', 'paymentReference', 'amountPaid', 'paidOn');
+        $this->reset('receipt', 'paymentReference', 'amountPaid', 'paidOn', 'paymentNote');
         $this->dispatch('notify', message: 'Proof of payment uploaded. The Office of the Registrar will verify it against the payment record.');
-    }
-
-    public function respond(RequestWorkflow $workflow): void
-    {
-        $this->authorize('respond', $this->credentialRequest);
-        $this->validate(['reply' => ['required', 'string', 'max:1000']], attributes: ['reply' => 'reply']);
-
-        try {
-            $workflow->customerResponded($this->credentialRequest, $this->owner(), $this->reply);
-        } catch (InvalidTransition $e) {
-            $this->addError('reply', $e->getMessage());
-
-            return;
-        }
-
-        $this->reset('reply');
-        $this->dispatch('notify', message: 'Reply sent to the Office of the Registrar.');
-    }
-
-    public function declareRepresentative(RequestWorkflow $workflow): void
-    {
-        $this->authorize('declareRepresentative', $this->credentialRequest);
-
-        $this->validate([
-            'representativeName' => ['required', 'string', 'max:150'],
-            'representativeRelationship' => ['nullable', 'string', 'max:100'],
-            'representativeContact' => ['nullable', 'string', 'max:20', RequesterProfileForm::PHONE_RULE],
-            'spa' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
-            'representativeId' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
-        ], ['representativeContact.regex' => RequesterProfileForm::PHONE_MESSAGE], ['representativeName' => "representative's full name", 'spa' => 'SPA', 'representativeId' => "representative's ID"]);
-
-        try {
-            $workflow->declareRepresentative($this->credentialRequest, $this->owner(), [
-                'full_name' => $this->representativeName,
-                'relationship' => filled($this->representativeRelationship) ? $this->representativeRelationship : null,
-                'contact_number' => filled($this->representativeContact) ? $this->representativeContact : null,
-            ], $this->spa, $this->representativeId);
-        } catch (InvalidTransition $e) {
-            $this->addError('representativeName', $e->getMessage());
-
-            return;
-        }
-
-        Flux::modal('declare-representative')->close();
-        $this->reset('representativeName', 'representativeRelationship', 'representativeContact', 'spa', 'representativeId');
-        $this->dispatch('notify', message: 'Representative added. The Office of the Registrar will verify their SPA and IDs.');
     }
 
     public function cancel(RequestWorkflow $workflow): void
@@ -153,18 +105,31 @@ class Show extends Component
     public function render(): View
     {
         $request = $this->credentialRequest->load([
-            'credentialType', 'college', 'openVisit.department', 'paymentProofs', 'deficiencies',
-            'representatives.documents', 'release', 'steps.department',
+            'credentialType', 'college', 'identityDocument', 'openVisit.department', 'openVisit.fromDepartment', 'paymentProofs', 'deficiencies',
+            'representatives.documents', 'requirementDocuments', 'release', 'steps.department', 'checks',
         ]);
 
         $events = $request->events()->with(['department', 'step'])->get()
             ->reject(fn ($event) => $event->type->isInternal())
             ->values();
 
+        $results = $request->checkResults(CheckStage::Evaluation);
+
+        // The return's ledger line is "Rejected: …" or "Required: …", then the remarks.
+        $returnType = $request->status === RequestStatus::PendingCompliance ? RequestEventType::ComplianceRequested : RequestEventType::CustomerActionRequested;
+        $returnLine = (string) $events->last(fn ($event) => $event->type === $returnType)?->remarks;
+
         return view('livewire.student.requests.show', [
             'request' => $request,
             'rejectedProof' => $request->paymentProofs->firstWhere('status', PaymentStatus::Rejected),
-            'actionMessage' => $events->last(fn ($event) => $event->type === RequestEventType::CustomerActionRequested)?->remarks,
+            // What the evaluator rejected and why (REQ-20-05).
+            'rejectedParts' => array_values(array_filter(
+                CheckItem::for(CheckStage::Evaluation, $request),
+                fn (CheckItem $item) => ($results[$item->value] ?? null) === CheckResult::Rejected,
+            )),
+            'returnRemarks' => Str::contains($returnLine, "\n") ? Str::after($returnLine, "\n") : $returnLine,
+            // Who may come in the owner's place, if anyone (REQ-11-05).
+            'representative' => $request->claimingRepresentative(),
             'events' => $events,
         ])->title($request->reference_no);
     }

@@ -15,26 +15,46 @@ claiming procedure).
 ## Acceptance criteria
 
 ### Representatives
-- **REQ-11-01** THE SYSTEM SHALL let the owner declare, when submitting or later while the request
-  is open, that they act through an authorized representative, giving the representative's full
-  name, relationship and contact number (exactly 11 digits when given), and optionally uploading the Special Power of Attorney
-  (SPA) and the representative's valid ID (images or PDF, max 5 MB each, stored privately).
+- **REQ-11-01** THE SYSTEM SHALL let the owner declare that they act through an authorized
+  representative only when submitting (New Request, "Who will transact?"), the Proposed Workflow's
+  "Declaration of requester" (IV-B). The request page SHALL have no "Add representative" button or
+  form in any status, and the `declareRepresentative` policy SHALL refuse the owner; a
+  representative already declared is still listed. The owner gives the representative's full name, relationship and contact number (exactly
+  11 digits when given), and uploads the Special Power of Attorney (SPA) and the representative's
+  valid ID (JPG, PNG, WebP or PDF, max 5 MB each, stored privately). Both uploads are required; a
+  representative without them is not saved. *(User's decision, 2026-11-13: replaces adding one
+  later during an office visit or once ready for release, 2026-11-11.)*
 - **REQ-11-02** THE SYSTEM SHALL record the representative's identity separately from the owner's
   account and show the owner and the registrar the representative and their verification status.
+  The owner sees "Verified" or "Rejected" only, with no badge while the representative is still
+  to be checked. *(User's request, 2026-11-13: no "For verification" on the requester's pages.)*
 - **REQ-11-03** THE SYSTEM SHALL let the registrar verify a representative (SPA and IDs checked,
-  online or presented in person) or reject them with a reason.
+  online or presented in person) or reject them: during the evaluation through the Representative
+  part of the checklist (REQ-16-12, 13), and on the release page for one not yet verified, with a
+  reason (REQ-16-20).
 - **REQ-11-04** THE SYSTEM SHALL let only the owner and registrars open a representative's
   documents (404 for others), without letting browsers cache them.
+- **REQ-11-09** WHEN the owner chooses an SPA or representative's ID that is not a JPG, PNG, WebP
+  or PDF file, or is larger than 5 MB, THE SYSTEM SHALL say so under that field as soon as it is
+  chosen, naming the accepted types or the 5 MB limit, and SHALL NOT save the representative
+  until both files are acceptable. The form states the accepted types and the limit beforehand.
+- **REQ-11-10** THE SPA and representative's ID fields on New Request SHALL be the same picker as the valid ID (REQ-15-04): a Choose file / Change file button, the
+  chosen file's name once beside it as a link that opens the file in the file viewer, and a
+  progress bar while it uploads. *(User's request, 2026-11-11.)*
+- **REQ-11-11** WHEN the requester chooses how they will transact on New Request (6. Who Will
+  Transact?) THE SYSTEM SHALL show or hide the representative's fields at once, in the browser,
+  without waiting for the server. *(User's request, 2026-11-11.)*
 
 ### Release
 - **REQ-11-05** WHILE a request is `ready_for_release` THE SYSTEM SHALL show the requester that the
-  credential can be claimed and what to bring.
-- **REQ-11-06** THE SYSTEM SHALL let the registrar release a credential by recording the claimant
-  (the owner, or a representative of the request), the recipient's name, the ID presented and the
-  recipient's acknowledgment of receipt; the release time and the releasing staff member are
-  recorded automatically (status `released`).
-- **REQ-11-07** IF the claimant is a representative who is not verified, or the owner's identity
-  or the recipient's acknowledgment is not confirmed, THEN THE SYSTEM SHALL NOT mark the credential
-  released.
+  credential can be claimed and what to bring. WHILE a request is ready for release or pending
+  compliance, the request page and the ready-for-release email SHALL mention a representative only
+  when one was declared and not rejected, naming them; otherwise they SHALL ask the owner to come
+  in person. *(User's decision, 2026-11-13.)*
+- ~~REQ-11-06~~ *Superseded by REQ-16-20:* release records who claimed the credential (the owner or
+  a verified representative), the time and the staff member, without the ID presented or the
+  checkboxes.
+- **REQ-11-07** IF the claimant is a representative who is not verified THEN THE SYSTEM SHALL NOT
+  mark the credential released.
 - **REQ-11-08** WHEN a credential is released THE SYSTEM SHALL store its processing time in working
   days from acceptance to release.

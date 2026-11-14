@@ -8,7 +8,7 @@ use App\Enums\RouteTask;
 use App\Enums\StepStatus;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
-use App\Livewire\Registrar\Reports\Index;
+use App\Livewire\Admin\Reports\Index;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
@@ -50,6 +50,7 @@ beforeEach(function () {
     $this->org = organisation();
     $this->owner = requester($this->org->ccs);
     $this->registrar = User::factory()->registrar()->create(['first_name' => 'Eva', 'middle_name' => null, 'last_name' => 'Luator']);
+    $this->admin = User::factory()->admin()->create();   // the dashboard and Reports are the Admin's (REQ-18-04)
     $this->filter = new ReportFilter('2026-10-01', '2026-10-31');
 
     $at = fn (?string $date) => $date === null ? null : Carbon::parse($date);
@@ -133,7 +134,7 @@ test('REQ-07-04 the indicators of a period', function () {
         ->and($metrics->overdueRate())->toBe(66.7)
         ->and($metrics->returnRate())->toBe(33.3);
 
-    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
+    $this->actingAs($this->admin)->get(route('admin.dashboard'))
         ->assertOk()
         ->assertSeeInOrder(['Total requests', '7', 'Released on time', '1', '33.3%', 'Overdue', '2', '66.7%', 'Average processing time', '8 working days']);
 });
@@ -155,13 +156,13 @@ test('REQ-07-12 the average working days per office, longest first', function ()
             ['College of Computer Studies', 3.0], ['Office of the VP for Finance', 2.0], ['Office of the Registrar', 1.0],
         ]);
 
-    $this->actingAs($this->registrar)->get(route('registrar.dashboard'))
-        ->assertSeeInOrder(['Processing time by office', 'College of Computer Studies', '3 working days', 'Office of the VP for Finance', '2 working days']);
+    $this->actingAs($this->admin)->get(route('admin.dashboard'))
+        ->assertSeeInOrder(['Processing Time by Office', 'College of Computer Studies', '3 working days', 'Office of the VP for Finance', '2 working days']);
 });
 
 test('REQ-07-13 the ten reports render with their filters, for the registrar only', function () {
     foreach (ReportKind::cases() as $kind) {
-        $this->actingAs($this->registrar)->get(route('registrar.reports', ['report' => $kind->value, 'from' => '2026-10-01', 'to' => '2026-10-31']))
+        $this->actingAs($this->admin)->get(route('admin.reports', ['report' => $kind->value, 'from' => '2026-10-01', 'to' => '2026-10-31']))
             ->assertOk()->assertSee($kind->report()->title());
     }
 
@@ -174,14 +175,15 @@ test('REQ-07-13 the ten reports render with their filters, for the registrar onl
         ->and(PerformanceMetrics::for($byOffice)->received)->toBe(1)       // only C visited the Chancellor
         ->and(PerformanceMetrics::for($byEvaluator)->received)->toBe(3);   // A, B, H
 
-    Livewire::actingAs($this->registrar)->test(Index::class)
+    Livewire::actingAs($this->admin)->test(Index::class)
         ->set('report', 'delay')->set('from', '2026-10-01')->set('to', '2026-10-31')
         ->assertSee($this->c->reference_no)
         ->set('office', (string) $this->org->vpf->id)
         ->assertDontSee($this->c->reference_no);
 
-    $this->actingAs($this->owner)->get(route('registrar.reports'))->assertForbidden();
-    $this->actingAs(User::factory()->departmentStaff($this->org->vpf)->create())->get(route('registrar.reports'))->assertForbidden();
+    $this->actingAs($this->owner)->get(route('admin.reports'))->assertForbidden();
+    $this->actingAs(User::factory()->departmentStaff($this->org->vpf)->create())->get(route('admin.reports'))->assertForbidden();
+    $this->actingAs($this->registrar)->get(route('admin.reports'))->assertForbidden();   // REQ-18-04
 });
 
 test('REQ-07-14 the periodic reports count per day, week and month', function () {
@@ -197,7 +199,8 @@ test('REQ-07-14 the periodic reports count per day, week and month', function ()
 });
 
 test('REQ-07-15 the evaluator report', function () {
-    expect(reportRows(new EvaluatorReport))->toBe([['Eva Luator', 3, 2, 1, 0, 4.0, 1]]);
+    // Taken up, complete, returned for clarification, sent for compliance (REQ-20-12), declined.
+    expect(reportRows(new EvaluatorReport))->toBe([['Eva Luator', 3, 2, 0, 1, 0, 4.0, 1]]);
 });
 
 test('REQ-07-16 the department and signatory monitoring reports', function () {
@@ -239,8 +242,9 @@ test('REQ-07-18 the delay analysis separates the holding office from the cause',
 
 test('REQ-07-19 the customer compliance and release reports', function () {
     expect(reportRows(new ComplianceReport))->toBe([[
-        $this->h->reference_no, $this->owner->name, $this->owner->contact_number, 'Transcript of Records', 'Pending compliance',
-        'Missing: Original Form 137', '2026-10-20', 0,   // no ledger entry in this fixture: since its last update
+        // The request's own copy of the name and contact (REQ-15-08).
+        $this->h->reference_no, $this->owner->requesterName(), $this->owner->contact_number, 'Transcript of Records', 'Pending compliance',
+        'Required: Original Form 137', '2026-10-20', 0,   // no ledger entry in this fixture: since its last update
     ]]);
 
     $release = collect(reportRows(new ReleaseReport))->keyBy(0);
@@ -249,18 +253,8 @@ test('REQ-07-19 the customer compliance and release reports', function () {
         ->and($release[$this->a->reference_no][3])->toBe('Released');
 });
 
-test('REQ-07-20 reports download as formula-safe CSV for the registrar only', function () {
-    $this->c->forceFill(['purpose' => 'x'])->save();
-    $this->owner->forceFill(['first_name' => '=cmd'])->save();
-
-    $response = $this->actingAs($this->registrar)->get(route('registrar.reports.export', ['report' => 'compliance']));
-    $response->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
-
-    expect($response->streamedContent())
-        ->toContain('"Tracking no.",Requester,Contact,Credential')
-        ->toContain($this->h->reference_no)
-        ->toContain("'=cmd");
-
-    $this->actingAs($this->registrar)->get(route('registrar.reports.export', ['report' => 'nope']))->assertNotFound();
-    $this->actingAs($this->owner)->get(route('registrar.reports.export', ['report' => 'delay']))->assertForbidden();
+test('REQ-07-20 reports are for the registrar only', function () {
+    $this->actingAs($this->admin)->get(route('admin.reports', ['report' => 'compliance']))->assertOk()->assertSee($this->h->reference_no);
+    $this->actingAs($this->owner)->get(route('admin.reports'))->assertForbidden();
+    $this->actingAs(User::factory()->departmentStaff($this->org->vpf)->create())->get(route('admin.reports'))->assertForbidden();
 });

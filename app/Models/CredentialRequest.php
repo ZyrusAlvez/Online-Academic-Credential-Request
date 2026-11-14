@@ -3,11 +3,17 @@
 namespace App\Models;
 
 use App\Enums\AcademicStatus;
+use App\Enums\CheckResult;
+use App\Enums\CheckStage;
+use App\Enums\DocumentKind;
 use App\Enums\RequesterMode;
 use App\Enums\RequestStatus;
+use App\Enums\ReviewStatus;
 use App\Enums\VisitStatus;
+use Carbon\CarbonInterface;
 use Database\Factories\CredentialRequestFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,8 +26,13 @@ use Illuminate\Support\Carbon;
  *
  * @property string $reference_no
  * @property int $user_id
+ * @property string $requester_name
+ * @property ?string $contact_number
+ * @property ?int $identity_document_id
+ * @property ReviewStatus $identity_status
+ * @property ?Carbon $identity_reviewed_at
+ * @property ?string $identity_remarks
  * @property int $college_id
- * @property int $copies
  * @property AcademicStatus $academic_status
  * @property RequesterMode $requester_mode
  * @property bool $requires_payment
@@ -30,6 +41,7 @@ use Illuminate\Support\Carbon;
  * @property RequestStatus $status
  * @property ?Carbon $submitted_at
  * @property ?Carbon $evaluation_started_at
+ * @property ?int $evaluated_by
  * @property ?Carbon $accepted_at
  * @property ?Carbon $due_at
  * @property ?Carbon $adjusted_due_at
@@ -45,7 +57,6 @@ class CredentialRequest extends Model
 
     protected $fillable = [
         'credential_type_id',
-        'copies',
         'purpose',
         'receiving_institution',
     ];
@@ -59,10 +70,11 @@ class CredentialRequest extends Model
             'status' => RequestStatus::class,
             'academic_status' => AcademicStatus::class,
             'requester_mode' => RequesterMode::class,
+            'identity_status' => ReviewStatus::class,
+            'identity_reviewed_at' => 'datetime',
             'requires_payment' => 'boolean',
             'fee' => 'decimal:2',
             'amount_due' => 'decimal:2',
-            'copies' => 'integer',
             'attended_from' => 'integer',
             'attended_to' => 'integer',
             'submitted_at' => 'datetime',
@@ -102,6 +114,21 @@ class CredentialRequest extends Model
     }
 
     /**
+     * The tracking number shown to requesters, e.g. cr26-00042 (REQ-04-03).
+     */
+    public static function trackingNumber(int $id, CarbonInterface $createdAt): string
+    {
+        // "cr" (lowercase) + the two-digit year it was made, e.g. cr26 for 2026.
+        $prefix = 'cr'.$createdAt->format('y');
+
+        // The request's id, padded with zeros to 5 digits (00042). Past 99999 it simply grows to
+        // 6 digits and more (100000), so the number never runs out or repeats.
+        $number = str_pad((string) $id, 5, '0', STR_PAD_LEFT);
+
+        return "{$prefix}-{$number}";
+    }
+
+    /**
      * The document owner.
      *
      * @return BelongsTo<User, $this>
@@ -109,6 +136,24 @@ class CredentialRequest extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * The valid ID sent with this request, checked on it (REQ-15-09).
+     *
+     * @return BelongsTo<IdentityDocument, $this>
+     */
+    public function identityDocument(): BelongsTo
+    {
+        return $this->belongsTo(IdentityDocument::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function identityReviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'identity_reviewed_by');
     }
 
     /**
@@ -136,6 +181,41 @@ class CredentialRequest extends Model
     }
 
     /**
+     * While under evaluation the request belongs to its evaluator; other registrars are kept out
+     * (REQ-16-09).
+     */
+    public function isEvaluatedBySomeoneElse(User $user): bool
+    {
+        return $this->status === RequestStatus::UnderEvaluation
+            && $this->evaluated_by !== null
+            && $this->evaluated_by !== $user->id;
+    }
+
+    /**
+     * The checklist results of a stage, keyed by item value (REQ-16-22). Uses the loaded `checks`.
+     *
+     * @return array<string, CheckResult>
+     */
+    public function checkResults(CheckStage $stage): array
+    {
+        return $this->checks
+            ->filter(fn (RequestCheck $check): bool => $check->item->stage() === $stage)
+            ->mapWithKeys(fn (RequestCheck $check): array => [$check->item->value => $check->result])
+            ->all();
+    }
+
+    /**
+     * @return HasMany<RequestCheck, $this>
+     */
+    public function checks(): HasMany
+    {
+        return $this->hasMany(RequestCheck::class)->orderBy('id');
+    }
+
+    /**
+     * What Require Office Visit asked for, each resolved when the registrar marks it received
+     * (REQ-20-04, 09).
+     *
      * @return HasMany<RequestDeficiency, $this>
      */
     public function deficiencies(): HasMany
@@ -167,8 +247,25 @@ class CredentialRequest extends Model
     public function openVisit(): HasOne
     {
         return $this->hasOne(OfficeVisit::class)
-            ->whereIn('status', [VisitStatus::InTransit, VisitStatus::Received])
+            ->whereIn('status', VisitStatus::open())
             ->latestOfMany();
+    }
+
+    /**
+     * The office the paper goes to after the one holding it now (REQ-17-11): for a forwarded
+     * paper not yet received, the office it was forwarded to (REQ-17-18). Reads the loaded
+     * `openVisit.department`, `openVisit.step` and `steps.department`.
+     */
+    public function nextOffice(): ?Department
+    {
+        $visit = $this->openVisit;
+
+        if ($visit?->status === VisitStatus::InTransit) {
+            return $visit->department;
+        }
+
+        // A copy, so the loaded visit does not point back at this request.
+        return $visit !== null ? (clone $visit)->setRelation('credentialRequest', $this)->nextStep()?->department : null;
     }
 
     /**
@@ -204,11 +301,50 @@ class CredentialRequest extends Model
     }
 
     /**
+     * The representative who may come for the owner: the latest declared on New Request and not
+     * rejected. Null means the owner comes in person (REQ-11-05).
+     */
+    public function claimingRepresentative(): ?RequestRepresentative
+    {
+        return $this->representatives->reject(fn (RequestRepresentative $representative) => $representative->status === ReviewStatus::Rejected)->last();
+    }
+
+    /**
      * @return HasMany<RequestDocument, $this>
      */
     public function documents(): HasMany
     {
         return $this->hasMany(RequestDocument::class)->orderBy('id');
+    }
+
+    /**
+     * The requester's copies of the credential's documentary requirements (REQ-04-19).
+     *
+     * @return HasMany<RequestDocument, $this>
+     */
+    public function requirementDocuments(): HasMany
+    {
+        return $this->documents()->where('kind', DocumentKind::Requirement);
+    }
+
+    /**
+     * Each documentary requirement with its files: the credential's current list, then any
+     * requirement a file was sent for that the list no longer has. Expects `credentialType` and
+     * `requirementDocuments` to be loaded.
+     *
+     * @return array<string, Collection<int, RequestDocument>>
+     */
+    public function requirementFiles(): array
+    {
+        $documents = $this->requirementDocuments;
+        $sent = $documents->pluck('requirement')->filter()->map(fn ($requirement): string => (string) $requirement)->all();
+        $files = [];
+
+        foreach (array_unique([...($this->credentialType->requirements ?? []), ...$sent]) as $requirement) {
+            $files[$requirement] = $documents->where('requirement', $requirement)->values();
+        }
+
+        return $files;
     }
 
     /**
@@ -228,17 +364,20 @@ class CredentialRequest extends Model
     }
 
     /**
-     * Where the request is, in words a requester understands (office names only).
-     * Expects `openVisit.department` to be loaded for requests being processed.
+     * Where the request is, in words a requester understands (office names only): the office
+     * holding the paper, the sender of one not yet received (REQ-17-18). Expects
+     * `openVisit.department` and `openVisit.fromDepartment` to be loaded for requests being
+     * processed.
      */
     public function whereabouts(): string
     {
-        $office = $this->openVisit?->department->name;
+        $office = $this->openVisit?->holder()->name;
 
         return match ($this->status) {
             RequestStatus::Submitted => 'Office of the Registrar – received for evaluation',
             RequestStatus::UnderEvaluation => 'Office of the Registrar – evaluating records and requirements',
-            RequestStatus::PendingCompliance => 'Waiting for you to complete the requirements',
+            RequestStatus::ReturnedForClarification => 'Waiting for you to correct your request',
+            RequestStatus::PendingCompliance => 'Waiting for you at the Office of the Registrar',
             RequestStatus::ReturnedForCustomerAction => 'Waiting for your response',
             RequestStatus::AwaitingPayment => 'Waiting for your payment',
             RequestStatus::PaymentVerification => 'Office of the Registrar – verifying payment',
@@ -248,6 +387,21 @@ class CredentialRequest extends Model
             RequestStatus::Released => 'Released',
             RequestStatus::Declined => 'Declined',
             RequestStatus::Cancelled => 'Cancelled',
+        };
+    }
+
+    /**
+     * whereabouts() for staff (Records, the record page, the Admin dashboard): it names the
+     * requester instead of addressing them (REQ-16-23).
+     */
+    public function staffWhereabouts(): string
+    {
+        return match ($this->status) {
+            RequestStatus::ReturnedForClarification => 'Waiting for the requester to correct the request',
+            RequestStatus::PendingCompliance => 'Waiting for the requester at the Office of the Registrar',
+            RequestStatus::ReturnedForCustomerAction => "Waiting for the requester's response",
+            RequestStatus::AwaitingPayment => "Waiting for the requester's payment",
+            default => $this->whereabouts(),
         };
     }
 }

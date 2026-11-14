@@ -2,8 +2,6 @@
 
 namespace App\Actions\Identity;
 
-use App\Enums\IdentityStatus;
-use App\Enums\ReviewStatus;
 use App\Models\IdentityDocument;
 use App\Models\User;
 use App\Services\RequestWorkflow;
@@ -17,16 +15,14 @@ use Throwable;
 class SubmitIdentityDocument
 {
     /**
-     * Store a requester's valid ID privately and mark their identity as pending (REQ-01-17).
+     * Store a requester's valid ID privately; it becomes their saved ID (REQ-01-17, REQ-15-04).
+     * Earlier uploads are kept. A caller whose own, outer transaction fails afterwards deletes the
+     * stored file itself.
      *
-     * @throws ValidationException when the identity is already verified
+     * @throws ValidationException when the file cannot be stored
      */
     public function handle(User $user, string $idType, UploadedFile $file): IdentityDocument
     {
-        if ($user->identity_status === IdentityStatus::Verified) {
-            throw ValidationException::withMessages(['idFile' => 'Your identity is already verified.']);
-        }
-
         $disk = RequestWorkflow::proofDisk();
         $path = $file->storeAs("identity-documents/{$user->id}", Str::uuid().'.'.$file->extension(), $disk);
 
@@ -35,21 +31,13 @@ class SubmitIdentityDocument
         }
 
         try {
-            return DB::transaction(function () use ($user, $idType, $file, $path): IdentityDocument {
-                $document = $user->identityDocuments()->make([
-                    'id_type' => $idType,
-                    'path' => $path,
-                    'original_name' => Str::limit($file->getClientOriginalName(), 250, ''),
-                    'mime_type' => (string) $file->getMimeType(),
-                    'size' => (int) $file->getSize(),
-                ]);
-                $document->status = ReviewStatus::Pending;
-                $document->save();
-
-                $user->forceFill(['identity_status' => IdentityStatus::Pending, 'identity_verified_at' => null])->save();
-
-                return $document;
-            });
+            return DB::transaction(fn (): IdentityDocument => $user->identityDocuments()->create([
+                'id_type' => $idType,
+                'path' => $path,
+                'original_name' => Str::limit($file->getClientOriginalName(), 250, ''),
+                'mime_type' => (string) $file->getMimeType(),
+                'size' => (int) $file->getSize(),
+            ]));
         } catch (Throwable $e) {
             Storage::disk($disk)->delete($path);
 

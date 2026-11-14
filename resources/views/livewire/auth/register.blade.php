@@ -17,7 +17,7 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
 
     /**
      * Create the account with just an email and password (REQ-01-01); the name, contact number,
-     * academic details, ID and privacy consent follow in My Profile (REQ-01-22).
+     * academic details, ID and privacy consent follow on the first request (REQ-15-03).
      */
     public function register(): void
     {
@@ -40,7 +40,7 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
 }; ?>
 
 <div class="flex flex-col gap-6">
-    <x-auth-header title="Create an account" description="Enter your email and choose a password. We'll send you a code to verify your email." />
+    <x-auth-header title="Create an account" description="Enter your email and choose a password." />
 
     <!-- Session Status -->
     <x-auth-session-status class="text-center" :status="session('status')" />
@@ -60,9 +60,9 @@ new #[Layout('components.layouts.auth')] #[Title('Create an account')] class ext
             name="password"
             required
             autocomplete="new-password"
-            :description="__('At least 8 characters.')"
             viewable
         />
+        <x-password-checklist model="password" class="-mt-4" />
 
         <flux:button type="submit" variant="primary" class="w-full">
             {{ __('Create account') }}

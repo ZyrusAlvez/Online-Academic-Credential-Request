@@ -27,17 +27,31 @@ test('every request page renders in every status for each role that can see it',
         }
     }
 
-    foreach (['registrar.dashboard', 'registrar.requests', 'registrar.identities'] as $page) {
+    foreach (['registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.final-check', 'registrar.release', 'records'] as $page) {
         $this->actingAs($registrar)->get(route($page))->assertOk();
+    }
+
+    // The demo admin (REQ-18-12): its pages, and every record (REQ-18-06).
+    $admin = User::where('email', 'admin@example.com')->firstOrFail();
+
+    foreach (CredentialRequest::all() as $request) {
+        $this->actingAs($registrar)->get(route('records.show', $request))->assertOk();
+        $this->actingAs($admin)->get(route('records.show', $request))->assertOk();
+    }
+
+    $this->actingAs($registrar)->get(route('registrar.evaluation', ['waiting' => 1]))->assertOk();
+
+    foreach (['admin.dashboard', 'records', 'admin.credential-types', 'admin.departments', 'admin.programs', 'admin.purposes', 'admin.users', 'admin.calendar', 'admin.logs'] as $page) {
+        $this->actingAs($admin)->get(route($page))->assertOk();
     }
 
     foreach (ReportKind::cases() as $kind) {
         $period = ['from' => now()->subDays(60)->format('Y-m-d'), 'to' => now()->format('Y-m-d')];
-        $this->actingAs($registrar)->get(route('registrar.reports', ['report' => $kind->value, ...$period]))->assertOk();
-        expect($this->actingAs($registrar)->get(route('registrar.reports.export', ['report' => $kind->value, ...$period]))->assertOk()->streamedContent())->toContain(',');
+        $this->actingAs($admin)->get(route('admin.reports', ['report' => $kind->value, ...$period]))->assertOk();
     }
 
     $this->actingAs(User::where('email', 'vpf@example.com')->firstOrFail())->get(route('department.dashboard'))->assertOk();
     $this->actingAs(User::where('email', 'student@example.com')->firstOrFail())->get(route('student.dashboard'))->assertOk();
     $this->actingAs(User::where('email', 'student@example.com')->firstOrFail())->get(route('student.requests.create'))->assertOk();
+    $this->actingAs(User::where('email', 'student@example.com')->firstOrFail())->get(route('settings.profile'))->assertOk();
 });

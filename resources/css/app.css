@@ -56,10 +56,23 @@
     ::file-selector-button {
         border-color: var(--color-gray-200, currentColor);
     }
+
+    /* Every clickable button shows the pointer (Tailwind 4 resets buttons to the default cursor). */
+    button:not(:disabled),
+    [role="button"]:not([aria-disabled="true"]),
+    input:is([type="button"], [type="submit"], [type="reset"]):not(:disabled) {
+        cursor: pointer;
+    }
+
+    /* Own rule: a browser drops a whole selector list if it doesn't know one pseudo-element. */
+    input:not(:disabled)::file-selector-button {
+        cursor: pointer;
+    }
 }
 
+/* content-start: a field stretched by a taller neighbour keeps its label and input at the top. */
 [data-flux-field] {
-    @apply grid gap-2;
+    @apply grid content-start gap-2;
 }
 
 [data-flux-label] {

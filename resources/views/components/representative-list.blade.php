@@ -1,4 +1,6 @@
-@props(['representatives', 'reviewable' => false])
+@props(['representatives', 'reviewable' => false, 'hidePending' => false])
+
+{{-- hide-pending: the requester's page shows no badge until a representative is checked (REQ-11-02). --}}
 
 <ul {{ $attributes->class('divide-y divide-secondary/40 rounded-lg border border-secondary/50') }}>
     @foreach ($representatives as $representative)
@@ -11,15 +13,17 @@
                         @if ($representative->contact_number) · {{ $representative->contact_number }} @endif
                     </p>
                 </div>
-                <flux:badge size="sm" :color="$representative->status->color()">{{ $representative->status->label() }}</flux:badge>
+                @unless ($hidePending && $representative->status === \App\Enums\ReviewStatus::Pending)
+                    <flux:badge size="sm" :color="$representative->status->color()">{{ $representative->status->label() }}</flux:badge>
+                @endunless
             </div>
             @if ($representative->documents->isNotEmpty())
                 <ul class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
                     @foreach ($representative->documents as $document)
                         <li>
-                            <a href="{{ route('request-documents.show', $document) }}" target="_blank" rel="noopener" class="text-highlight underline underline-offset-2 hover:no-underline">
-                                {{ $document->kind->label() }}<span class="sr-only"> ({{ __('opens in a new tab') }})</span>
-                            </a>
+                            <x-file-link :href="route('request-documents.show', $document)" :name="$document->kind->label().' – '.$representative->full_name" :type="$document->mime_type">
+                                {{ $document->kind->label() }}
+                            </x-file-link>
                         </li>
                     @endforeach
                 </ul>
@@ -30,9 +34,10 @@
                 <p class="text-xs text-zinc-700">{{ __('Remarks: :remarks', ['remarks' => $representative->remarks]) }}</p>
             @endif
             @if ($reviewable && $representative->status === \App\Enums\ReviewStatus::Pending)
+                {{-- The approving action on the right (REQ-17-02). --}}
                 <div class="flex flex-wrap gap-2">
-                    <flux:button size="sm" variant="primary" icon="check" wire:click="verifyRepresentative({{ $representative->id }})" :wire:confirm="__('Confirm that the SPA and the IDs of the owner and :name were checked.', ['name' => $representative->full_name])">{{ __('Verify') }}</flux:button>
                     <flux:button size="sm" variant="ghost" icon="x-mark" wire:click="confirmRejectRepresentative({{ $representative->id }})">{{ __('Reject') }}</flux:button>
+                    <flux:button size="sm" variant="primary" icon="check" wire:click="verifyRepresentative({{ $representative->id }})" data-confirm-title="{{ __('Verify representative') }}" data-confirm-label="{{ __('Verify') }}" :wire:confirm="__('Confirm that the SPA and the IDs of the owner and :name were checked.', ['name' => $representative->full_name])">{{ __('Verify') }}</flux:button>
                 </div>
             @endif
         </li>

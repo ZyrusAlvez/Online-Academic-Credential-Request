@@ -1,10 +1,12 @@
 <?php
 
+use App\Enums\HelpTopic;
+use App\Enums\RegistrarQueue;
+use App\Enums\Role;
 use App\Http\Controllers\IdentityDocumentController;
 use App\Http\Controllers\PaymentProofController;
-use App\Http\Controllers\ReportsCsvController;
 use App\Http\Controllers\RequestDocumentController;
-use App\Http\Controllers\RequestsCsvController;
+use App\Livewire\Admin;
 use App\Livewire\Department;
 use App\Livewire\Notifications;
 use App\Livewire\Registrar;
@@ -12,33 +14,60 @@ use App\Livewire\Student;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
-Route::view('/', 'welcome')->name('home');
+// Guests only: the guest middleware sends a logged-in user to /dashboard, their role's home (REQ-01-32).
+Route::view('/', 'welcome')->middleware('guest')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', fn () => redirect()->route(auth()->user()->role->homeRoute()))
         ->name('dashboard');
 
     Route::prefix('student')->name('student.')->middleware('role:student')->group(function () {
-        Route::get('/', Student\Dashboard::class)->name('dashboard');
-        Route::get('profile', Student\Profile::class)->name('profile');
+        // Request Tracker lives at requests; /student leads there (REQ-09-21).
+        Route::redirect('/', '/student/requests');
+        Route::get('requests', Student\Dashboard::class)->name('dashboard');
+        // My Profile became Settings → Profile; links in older notifications still land (REQ-15-02).
+        Route::redirect('profile', '/settings/profile');
+        // A requester's request pages live under requests/, plural like every collection (REQ-09-21).
         Route::get('requests/new', Student\Requests\Create::class)->name('requests.create');
         Route::get('requests/{credentialRequest}', Student\Requests\Show::class)->name('requests.show');
+        Route::get('requests/{credentialRequest}/edit', Student\Requests\Edit::class)->name('requests.edit');
+        // The singular request/… addresses, in emails sent while they were in use, move to requests/… (REQ-09-21).
+        Route::permanentRedirect('request/{path}', '/student/requests/{path}')
+            ->where('path', '[A-Za-z0-9-]+(/edit)?');
+        // Help: one page of questions per topic, the first by default (REQ-22-02).
+        Route::redirect('help', '/student/help/'.HelpTopic::first()->value)->name('help.index');
+        Route::get('help/{topic}', Student\Help::class)->name('help');
     });
 
+    // The Registrar works the requests, Initial Evaluation to Release (REQ-16-01..06, REQ-18-03, 05).
     Route::prefix('registrar')->name('registrar.')->middleware('role:registrar')->group(function () {
-        Route::get('/', Registrar\Dashboard::class)->name('dashboard');
-        Route::get('requests', Registrar\Requests\Index::class)->name('requests');
-        Route::get('requests/export', RequestsCsvController::class)->name('requests.export');
+        Route::redirect('/', '/registrar/evaluation');
+        Route::get('evaluation', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Evaluation->value)->name('evaluation');
+        Route::get('payments', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Payment->value)->name('payments');
+        Route::get('in-progress', Registrar\Queue::class)->defaults('queue', RegistrarQueue::InProgress->value)->name('in-progress');
+        Route::get('final-check', Registrar\Queue::class)->defaults('queue', RegistrarQueue::FinalCheck->value)->name('final-check');
+        Route::get('release', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Release->value)->name('release');
         Route::get('requests/{credentialRequest}', Registrar\Requests\Show::class)->name('requests.show');
-        Route::get('reports', Registrar\Reports\Index::class)->name('reports');
-        Route::get('reports/{report}/export', ReportsCsvController::class)->name('reports.export');
-        Route::get('departments', Registrar\Departments\Index::class)->name('departments');
-        Route::get('programs', Registrar\Programs\Index::class)->name('programs');
-        Route::get('users', Registrar\Users\Index::class)->name('users');
-        Route::get('calendar', Registrar\Calendar\Index::class)->name('calendar');
-        Route::get('identities', Registrar\Identities\Index::class)->name('identities');
-        Route::get('credential-types', Registrar\CredentialTypes\Index::class)->name('credential-types');
-        Route::get('credential-types/{credentialType}/workflow', Registrar\CredentialTypes\Workflow::class)->name('credential-types.workflow');
+    });
+
+    // Records, shared by the Registrar and the Admin (REQ-16-07, REQ-18-06).
+    Route::middleware('role:registrar,admin')->group(function () {
+        Route::get('records', Registrar\Records\Index::class)->name('records');
+        Route::get('records/{credentialRequest}', Registrar\Records\Show::class)->name('records.show');
+    });
+
+    // The Admin: dashboard, reports and administration (REQ-18-02, 04).
+    Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
+        Route::get('/', Admin\Dashboard::class)->name('dashboard');
+        Route::get('reports', Admin\Reports\Index::class)->name('reports');
+        Route::get('credential-types', Admin\CredentialTypes\Index::class)->name('credential-types');
+        Route::get('credential-types/{credentialType}/workflow', Admin\CredentialTypes\Workflow::class)->name('credential-types.workflow');
+        Route::get('departments', Admin\Departments\Index::class)->name('departments');
+        Route::get('programs', Admin\Programs\Index::class)->name('programs');
+        Route::get('purposes', Admin\Purposes\Index::class)->name('purposes');
+        Route::get('users', Admin\Users\Index::class)->name('users');
+        Route::get('calendar', Admin\Calendar\Index::class)->name('calendar');
+        Route::get('logs', Admin\Logs\Index::class)->name('logs');
     });
 
     Route::prefix('department')->name('department.')->middleware('role:department')->group(function () {
@@ -55,10 +84,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    Route::redirect('settings', 'settings/profile');
+    // Requesters land on their profile (REQ-15-07); staff on their password.
+    Route::get('settings', fn () => redirect()->route(
+        auth()->user()->hasRole(Role::Student) ? 'settings.profile' : 'settings.password'
+    ))->name('settings');
 
-    Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
+    Route::get('settings/profile', Student\Profile::class)
+        ->middleware(['verified', 'role:student'])->name('settings.profile');
     Volt::route('settings/password', 'settings.password')->name('settings.password');
+    Route::get('settings/notifications', Notifications\EmailSettings::class)
+        ->middleware('role:student,registrar,department')->name('settings.notifications');
 });
 
 require __DIR__.'/auth.php';

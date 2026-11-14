@@ -17,8 +17,11 @@
                         @class(['flex w-full gap-3 p-4 text-left hover:bg-primary-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-highlight', 'bg-primary-50/60' => ! $notification->read_at])>
                         <span @class(['mt-1.5 size-2.5 shrink-0 rounded-full', 'bg-highlight' => ! $notification->read_at, 'bg-zinc-300' => $notification->read_at]) aria-hidden="true"></span>
                         <span class="min-w-0">
+                            @if ($notification->data['action_required'] ?? false)
+                                <flux:badge size="sm" color="red" icon="exclamation-triangle" class="mb-1" data-action-required>{{ __('Action required') }}</flux:badge>
+                            @endif
                             <span @class(['block text-ink', 'font-semibold' => ! $notification->read_at])>{{ $notification->data['title'] ?? '' }}</span>
-                            <span class="block text-sm text-zinc-700">{{ $notification->data['message'] ?? '' }}</span>
+                            <span class="block text-sm text-zinc-700">{{ ($notification->data['event_type'] ?? null) === 'compliance_requested' ? \App\Models\RequestEvent::requiredWording((string) $notification->data['message']) : ($notification->data['message'] ?? '') }}</span>
                             <span class="mt-1 block text-xs text-zinc-500">{{ $notification->data['reference_no'] ?? '' }} · {{ $notification->created_at->format('M j, Y g:i A') }}</span>
                             @if (! $notification->read_at)<span class="sr-only">{{ __('(unread)') }}</span>@endif
                         </span>

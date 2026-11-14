@@ -26,9 +26,9 @@ final class PeriodicReport implements Report
     public function title(): string
     {
         return match ($this->unit) {
-            'day' => 'Daily monitoring report',
-            'week' => 'Weekly performance report',
-            'month' => 'Monthly performance report',
+            'day' => 'Daily Monitoring Report',
+            'week' => 'Weekly Performance Report',
+            'month' => 'Monthly Performance Report',
         };
     }
 

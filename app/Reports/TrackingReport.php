@@ -13,7 +13,7 @@ final class TrackingReport implements Report
 {
     public function title(): string
     {
-        return 'Credential tracking report';
+        return 'Credential Tracking Report';
     }
 
     public function description(): string

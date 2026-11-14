@@ -1,14 +1,22 @@
 <?php
 
+use App\Enums\CheckItem;
+use App\Enums\CheckResult;
+use App\Enums\CheckStage;
 use App\Enums\RouteTask;
+use App\Enums\VisitStatus;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\OfficeVisit;
+use App\Models\Program;
+use App\Models\RequestRepresentative;
 use App\Models\User;
 use App\Services\RequestWorkflow;
+use Database\Seeders\PurposeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)
@@ -22,17 +30,24 @@ pest()->extend(TestCase::class)
 /**
  * A small organisation: the Registrar, VP Finance, Chancellor and two colleges, plus a TOR-like
  * credential (Registrar prepare → Dean sign → VP Finance stamp → Chancellor sign) and a free
- * Registrar-only credential.
+ * Registrar-only credential. Also installs the starter purposes (spec 13).
  *
  * @return object{registrarOffice: Department, vpf: Department, chancellor: Department, ccs: Department, cba: Department, tor: CredentialType, free: CredentialType}
  */
 function organisation(): object
 {
+    (new PurposeSeeder)->run();
+
     $registrarOffice = Department::factory()->registrarOffice()->create();
     $vpf = Department::factory()->create(['name' => 'Office of the VP for Finance', 'code' => 'VPF']);
     $chancellor = Department::factory()->create(['name' => 'Office of the Chancellor', 'code' => 'CHAN']);
     $ccs = Department::factory()->college()->create(['name' => 'College of Computer Studies', 'code' => 'CCS']);
     $cba = Department::factory()->college()->create(['name' => 'College of Business and Accountancy', 'code' => 'CBA']);
+
+    // The program of User::factory()->withProfile(), so a saved profile passes New Request (REQ-15-03).
+    foreach ([$ccs, $cba] as $college) {
+        Program::factory()->for($college, 'college')->create(['name' => 'BS Computer Science']);
+    }
 
     $tor = CredentialType::factory()->paid('530.00')
         ->withSteps([[$registrarOffice, RouteTask::Prepare], 'college', [$vpf, RouteTask::DocumentaryStamp], $chancellor])
@@ -46,11 +61,51 @@ function organisation(): object
 }
 
 /**
- * A requester with a complete profile and a verified identity.
+ * A requester with a complete profile and a saved valid ID.
  */
 function requester(Department $college): User
 {
     return User::factory()->withProfile($college)->create();
+}
+
+/**
+ * New Request's details card of one credential, from its opening tag to the next card (REQ-15-15).
+ */
+function credentialCard(string $html, CredentialType $type): string
+{
+    preg_match('/<div[^>]*data-credential-card="'.$type->id.'".*?(?=<div[^>]*data-credential-card=|data-receiving-school)/s', $html, $card);
+
+    return $card[0] ?? '';
+}
+
+/**
+ * Whether that card starts visible (the browser then follows the dropdown, REQ-15-15).
+ */
+function credentialCardShown(string $html, CredentialType $type): bool
+{
+    $card = credentialCard($html, $type);
+
+    return $card !== '' && ! str_contains(Str::before($card, '>'), 'display: none');
+}
+
+/**
+ * New Request's section 2 for one credential: its documentary requirements (REQ-15-03).
+ */
+function requirementBlock(string $html, CredentialType $type): string
+{
+    preg_match('/<div[^>]*data-requirement-block="'.$type->id.'".*?(?=<div[^>]*data-requirement-block=|<\/section>)/s', $html, $block);
+
+    return $block[0] ?? '';
+}
+
+/**
+ * Whether that credential's requirements start visible.
+ */
+function requirementBlockShown(string $html, CredentialType $type): bool
+{
+    $block = requirementBlock($html, $type);
+
+    return $block !== '' && ! str_contains(Str::before($block, '>'), 'display: none');
 }
 
 function workflow(): RequestWorkflow
@@ -67,21 +122,43 @@ function submitRequest(User $owner, CredentialType $type, array $overrides = [])
 {
     return workflow()->submit($owner, array_merge([
         'credential_type_id' => $type->id,
-        'copies' => 1,
         'purpose' => 'Employment',
         'receiving_institution' => null,
     ], $overrides));
 }
 
 /**
- * Evaluate a submitted request as complete.
+ * Give every part of a stage's checklist the same result (REQ-16-10, 17, 19).
+ */
+function checkAll(CredentialRequest $request, User $registrar, CheckStage $stage, CheckResult $result = CheckResult::Confirmed): void
+{
+    foreach (CheckItem::for($stage, $request->fresh()) as $item) {
+        workflow()->recordCheck($request, $registrar, $item, $result);
+    }
+}
+
+/**
+ * Evaluate a submitted request: every part confirmed, then approved, which verifies its ID
+ * (REQ-16-12).
  */
 function evaluate(CredentialRequest $request, User $registrar): CredentialRequest
 {
     workflow()->startEvaluation($request, $registrar);
-    workflow()->completeEvaluation($request, $registrar);
+    checkAll($request, $registrar, CheckStage::Evaluation);
+    workflow()->approveEvaluation($request, $registrar);
 
     return $request;
+}
+
+/**
+ * Declare a representative through the real workflow, with the SPA and ID it requires (REQ-11-01).
+ *
+ * @param  array{full_name: string, relationship?: ?string, contact_number?: ?string}  $data
+ */
+function declareRepresentative(CredentialRequest $request, User $owner, array $data): RequestRepresentative
+{
+    return workflow()->declareRepresentative($request, $owner, $data,
+        UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'), UploadedFile::fake()->image('representative-id.jpg'));
 }
 
 function uploadPayment(CredentialRequest $request): void
@@ -99,6 +176,7 @@ function acceptRequest(CredentialRequest $request, User $registrar): CredentialR
 
     if ($request->fresh()->requires_payment) {
         uploadPayment($request);
+        checkAll($request, $registrar, CheckStage::Payment);
         workflow()->verifyPaymentAndAccept($request, $registrar, 'OR-0001');
     }
 
@@ -111,11 +189,20 @@ function openVisit(CredentialRequest $request): OfficeVisit
 }
 
 /**
- * Accept receipt of the open visit and complete it.
+ * Take the open visit through its office: accept receipt (unless the paper is already there),
+ * mark it done and forward it (REQ-17-05..07).
  */
 function passOffice(CredentialRequest $request, User $actor): void
 {
     $visit = openVisit($request);
-    workflow()->acceptReceipt($visit, $actor);
+
+    if ($visit->status === VisitStatus::InTransit) {
+        workflow()->acceptReceipt($visit, $actor);
+    }
+
     workflow()->completeVisit($visit, $actor);
+
+    if ($visit->status === VisitStatus::Done) {
+        workflow()->forwardDocument($visit, $actor);
+    }
 }

@@ -4,7 +4,7 @@
         <flux:breadcrumbs.item>{{ $request->reference_no }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 
-    <x-page-header :title="$request->reference_no" :description="$request->credentialType->name.' · '.$request->student->name">
+    <x-page-header :title="$request->reference_no" :description="$request->credentialType->name.' · '.$request->requester_name">
         <x-slot:afterTitle>
             <x-copy-button :value="$request->reference_no" :label="__('Copy tracking number')" :copied="__('Tracking number copied.')" />
         </x-slot:afterTitle>
@@ -16,20 +16,20 @@
         </x-slot:actions>
     </x-page-header>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div class="space-y-6">
             <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
-                <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request details') }}</h2>
+                <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
                 <x-request-details :request="$request" />
             </section>
 
             <section aria-labelledby="visits-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
-                <h2 id="visits-heading" class="text-lg font-semibold text-primary">{{ __('Office visits') }}</h2>
+                <h2 id="visits-heading" class="text-lg font-semibold text-primary">{{ __('Office Visits') }}</h2>
                 <x-office-visits :visits="$request->visits" />
             </section>
 
             <section aria-labelledby="history-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
-                <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('History') }}</h2>
+                <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Tracking History') }}</h2>
                 <x-request-timeline :events="$request->events" />
             </section>
         </div>
@@ -40,7 +40,7 @@
                 @can('act', $visit)
                     <section aria-labelledby="action-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5">
                         <div>
-                            <h2 id="action-heading" class="text-lg font-semibold text-primary">{{ __('Your office') }}</h2>
+                            <h2 id="action-heading" class="text-lg font-semibold text-primary">{{ __('Your Office') }}</h2>
                             <p class="text-xs text-zinc-600">{{ $visit->status->label() }}</p>
                         </div>
                         @include('partials.visit-actions', ['visit' => $visit, 'returnOffices' => $returnOffices])

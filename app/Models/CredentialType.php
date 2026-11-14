@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityCategory;
+use App\Models\Concerns\LogsActivity;
 use Database\Factories\CredentialTypeFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CredentialType extends Model
 {
     /** @use HasFactory<CredentialTypeFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $fillable = [
         'name',
@@ -103,5 +105,20 @@ class CredentialType extends Model
         $this->steps()->get()->each(function (WorkflowStep $step, int $index): void {
             $step->update(['position' => $index + 1]);
         });
+    }
+
+    public function activityCategory(): ActivityCategory
+    {
+        return ActivityCategory::Setup;
+    }
+
+    public function activityNoun(): string
+    {
+        return 'credential type';
+    }
+
+    public function activityLabel(): string
+    {
+        return $this->name;
     }
 }

@@ -17,7 +17,7 @@ final class ReleaseReport implements Report
 
     public function title(): string
     {
-        return 'Release report';
+        return 'Release Report';
     }
 
     public function description(): string
@@ -38,7 +38,7 @@ final class ReleaseReport implements Report
             ->where(fn (Builder $q) => $q
                 ->where('status', RequestStatus::ReadyForRelease)
                 ->orWhere(fn (Builder $q) => $q->where('status', RequestStatus::Released)->whereBetween('released_at', [$filter->start, $filter->end])))
-            ->with(['student', 'credentialType', 'release'])
+            ->with(['credentialType', 'release'])
             ->orderBy('ready_at')
             ->get()
             ->map(function (CredentialRequest $request) use ($calendar): array {
@@ -51,7 +51,7 @@ final class ReleaseReport implements Report
 
                 return [
                     $request->reference_no,
-                    $request->student->name,
+                    $request->requester_name,
                     $request->credentialType->name,
                     $status,
                     $request->ready_at?->format('Y-m-d'),

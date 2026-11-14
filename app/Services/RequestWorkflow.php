@@ -2,16 +2,18 @@
 
 namespace App\Services;
 
+use App\Actions\Audit\RecordRequestEvent;
+use App\Enums\CheckItem;
+use App\Enums\CheckResult;
+use App\Enums\CheckStage;
 use App\Enums\DelayCategory;
 use App\Enums\DocumentKind;
-use App\Enums\IdentityStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\RecipientType;
 use App\Enums\RequesterMode;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
-use App\Enums\Role;
 use App\Enums\RouteTask;
 use App\Enums\StepStatus;
 use App\Enums\VisitPurpose;
@@ -21,13 +23,18 @@ use App\Exceptions\InvalidTransition;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
+use App\Models\IdentityDocument;
 use App\Models\OfficeVisit;
 use App\Models\PaymentProof;
+use App\Models\RequestCheck;
 use App\Models\RequestDeficiency;
+use App\Models\RequestDocument;
+use App\Models\RequesterVerification;
 use App\Models\RequestEvent;
 use App\Models\RequestRepresentative;
 use App\Models\RequestStep;
 use App\Models\User;
+use App\Support\VerifiedDetails;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -55,15 +62,24 @@ class RequestWorkflow
     // ── Submission (spec 04) ───────────────────────────────────────────────────────────────
 
     /**
-     * @param  array{credential_type_id: int, copies: int, purpose: string, receiving_institution?: ?string}  $data
+     * Submit a request with a copy of the owner's details and the ID sent with it, by default their
+     * saved ID (REQ-04-03, REQ-15-06).
+     *
+     * @param  array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $data
      */
-    public function submit(User $owner, array $data): CredentialRequest
+    public function submit(User $owner, array $data, ?IdentityDocument $identity = null): CredentialRequest
     {
-        if (! $owner->canRequestCredentials()) {
-            throw new InvalidTransition('Complete your profile and upload a valid ID before requesting a credential.');
+        if (! $owner->hasRequesterDetails()) {
+            throw new InvalidTransition('Give your name, contact number and academic information before requesting a credential.');
         }
 
-        return DB::transaction(function () use ($owner, $data): CredentialRequest {
+        $identity ??= $owner->latestIdentityDocument()->first();
+
+        if ($identity === null || $identity->user_id !== $owner->id) {
+            throw new InvalidTransition('Upload a valid ID before requesting a credential.');
+        }
+
+        return DB::transaction(function () use ($owner, $data, $identity): CredentialRequest {
             $type = CredentialType::requestable()->findOrFail($data['credential_type_id']);
             $receivingInstitution = $data['receiving_institution'] ?? null;
 
@@ -73,13 +89,16 @@ class RequestWorkflow
 
             $request = new CredentialRequest([
                 'credential_type_id' => $type->id,
-                'copies' => $data['copies'],
                 'purpose' => $data['purpose'],
                 'receiving_institution' => $type->requires_receiving_institution ? $receivingInstitution : null,
             ]);
 
             $request->forceFill([
                 'user_id' => $owner->id,
+                'requester_name' => $owner->requesterName(),
+                'contact_number' => $owner->contact_number,
+                'identity_document_id' => $identity->id,
+                'identity_status' => ReviewStatus::Pending,
                 'college_id' => $owner->college_id,
                 'academic_status' => $owner->academic_status,
                 'program' => $owner->program,
@@ -89,196 +108,274 @@ class RequestWorkflow
                 'requester_mode' => RequesterMode::Personal,
                 'requires_payment' => $type->requires_payment,
                 'fee' => $type->requires_payment ? $type->fee : null,
-                'amount_due' => $type->requires_payment && $type->fee !== null
-                    ? number_format((float) $type->fee * $data['copies'], 2, '.', '')
-                    : null,
+                // One request is one document, so the amount due is the fee (REQ-04-03).
+                'amount_due' => $type->requires_payment ? $type->fee : null,
                 'status' => RequestStatus::Submitted,
                 'submitted_at' => now(),
             ])->save();
 
+            // The tracking number uses the id, so it is set once the row exists (REQ-04-03).
             $request->forceFill([
-                'reference_no' => sprintf('CR-%s-%06d', $request->created_at->format('Y'), $request->id),
+                'reference_no' => CredentialRequest::trackingNumber($request->id, $request->created_at),
             ])->save();
 
             $this->record($request, $owner, RequestEventType::Submitted, null, $request->status);
+
+            // Details verified on an earlier request are confirmed already (REQ-21-04).
+            $this->carryVerifiedParts($request, $owner);
+            $request->save();
 
             return $request;
         });
     }
 
-    // ── Evaluation and compliance (spec 04) ────────────────────────────────────────────────
+    // ── Initial Evaluation (specs 04, 16) ──────────────────────────────────────────────────
 
+    /**
+     * Take a submitted request up for evaluation; the registrar becomes its evaluator, who alone
+     * may act on it until the decision (REQ-04-05, REQ-16-09). The first start is kept for the
+     * initial evaluation time.
+     */
     public function startEvaluation(CredentialRequest $request, User $registrar): void
     {
         DB::transaction(function () use ($request, $registrar): void {
             $locked = $this->lock($request, [RequestStatus::Submitted], 'Only submitted requests can be taken up for evaluation.');
 
-            $locked->forceFill(['evaluation_started_at' => now(), 'evaluated_by' => $registrar->id]);
+            $locked->forceFill(['evaluation_started_at' => $locked->evaluation_started_at ?? now(), 'evaluated_by' => $registrar->id]);
             $this->transition($locked, $request, RequestStatus::UnderEvaluation, $registrar, RequestEventType::EvaluationStarted);
         });
     }
 
     /**
-     * Requirements incomplete: record what is missing (REQ-04-06, 09).
-     *
-     * @param  list<string>  $deficiencies
+     * Confirm or reject one part of a stage's checklist (REQ-16-10, 17, 19, 22).
      */
-    public function requestCompliance(CredentialRequest $request, User $registrar, array $deficiencies, ?string $remarks = null): void
+    public function recordCheck(CredentialRequest $request, User $registrar, CheckItem $item, CheckResult $result): void
     {
-        $deficiencies = array_values(array_filter(array_map(trim(...), $deficiencies), filled(...)));
+        DB::transaction(function () use ($request, $registrar, $item, $result): void {
+            $locked = $this->lock($request, [self::STAGE_STATUS[$item->stage()->value]], 'This part cannot be checked at the request\'s current stage.');
+            $this->assertEvaluator($locked, $registrar);
 
-        if ($deficiencies === []) {
-            throw new InvalidTransition('List at least one missing requirement.');
-        }
-
-        DB::transaction(function () use ($request, $registrar, $deficiencies, $remarks): void {
-            $locked = $this->lock(
-                $request,
-                [RequestStatus::UnderEvaluation, RequestStatus::PendingCompliance],
-                'Requirements can only be marked incomplete during evaluation.',
-            );
-
-            foreach ($deficiencies as $description) {
-                $deficiency = $locked->deficiencies()->make(['description' => Str::limit($description, 250, '')]);
-                $deficiency->forceFill(['recorded_by' => $registrar->id])->save();
+            if (! in_array($item, CheckItem::for($item->stage(), $locked), true)) {
+                throw new InvalidTransition('This part does not apply to this request.');
             }
 
-            $summary = 'Missing: '.implode('; ', $deficiencies).(filled($remarks) ? "\n{$remarks}" : '');
-
-            $locked->status === RequestStatus::PendingCompliance
-                ? $this->record($locked, $registrar, RequestEventType::ComplianceRequested, null, null, $summary)
-                : $this->transition($locked, $request, RequestStatus::PendingCompliance, $registrar, RequestEventType::ComplianceRequested, $summary);
+            // The evaluator's own result replaces one carried from an earlier verification (REQ-21-05).
+            RequestCheck::query()->updateOrInsert(
+                ['credential_request_id' => $locked->id, 'item' => $item->value],
+                ['result' => $result->value, 'checked_by' => $registrar->id, 'checked_at' => now(), 'carried_from_request_id' => null],
+            );
         });
     }
 
     /**
-     * Record the physical submission or clearance of one missing requirement (REQ-04-10).
+     * Every part confirmed: the ID and representatives are verified, then payment instructions for
+     * a paid request or acceptance for a free one (REQ-16-12, REQ-04-08).
      */
-    public function resolveDeficiency(RequestDeficiency $deficiency, User $registrar, string $resolution): void
+    public function approveEvaluation(CredentialRequest $request, User $registrar, ?string $remarks = null): void
     {
-        if (blank($resolution)) {
-            throw new InvalidTransition('Describe what was received or the clearance status.');
+        DB::transaction(function () use ($request, $registrar, $remarks): void {
+            $locked = $this->lock($request, [RequestStatus::UnderEvaluation], 'Only a request under evaluation can be approved.');
+            $this->assertEvaluator($locked, $registrar);
+            $this->assertAllConfirmed($locked, CheckStage::Evaluation);
+
+            $this->completeRequirements($locked, $request, $registrar, $remarks);
+        });
+    }
+
+    /**
+     * Back to the requester to correct the request online and resubmit it, with what was rejected
+     * (REQ-20-03). A rejected ID is replaced and a rejected representative replaced by another.
+     */
+    public function returnForClarification(CredentialRequest $request, User $registrar, string $remarks): void
+    {
+        if (blank($remarks)) {
+            throw new InvalidTransition('Tell the requester what to correct.');
         }
 
-        DB::transaction(function () use ($deficiency, $registrar, $resolution): void {
-            $locked = $this->lock($deficiency->credentialRequest()->firstOrFail(), [RequestStatus::PendingCompliance], 'This request is not waiting for compliance.');
+        DB::transaction(function () use ($request, $registrar, $remarks): void {
+            $locked = $this->lock($request, [RequestStatus::UnderEvaluation], 'Only a request under evaluation can be returned for clarification.');
+            $this->assertEvaluator($locked, $registrar);
+
+            $results = $this->results($locked, CheckStage::Evaluation);
+            $rejected = array_values(array_filter(
+                CheckItem::for(CheckStage::Evaluation, $locked),
+                fn (CheckItem $item): bool => ($results[$item->value] ?? null) === CheckResult::Rejected,
+            ));
+
+            if ($rejected === []) {
+                throw new InvalidTransition('Reject at least one part so the requester knows what to fix.');
+            }
+
+            if (in_array(CheckItem::Identity, $rejected, true)) {
+                $locked->forceFill([
+                    'identity_status' => ReviewStatus::Rejected,
+                    'identity_reviewed_by' => $registrar->id,
+                    'identity_reviewed_at' => now(),
+                    'identity_remarks' => $remarks,
+                ]);
+            }
+
+            if (in_array(CheckItem::Representative, $rejected, true)) {
+                $this->reviewPendingRepresentatives($locked, $registrar, ReviewStatus::Rejected, $remarks);
+            }
+
+            // A rejected part is no longer verified, so the next request has it checked (REQ-21-03).
+            $dropped = array_values(array_intersect(array_map(fn (CheckItem $item) => $item->value, $rejected), array_map(fn (CheckItem $item) => $item->value, VerifiedDetails::PARTS)));
+
+            if ($dropped !== []) {
+                RequesterVerification::query()->where('user_id', $locked->user_id)->whereIn('part', $dropped)->delete();
+            }
+
+            // The lock ends with the status (REQ-16-09); the evaluator stays recorded for the reports.
+            $this->transition($locked, $request, RequestStatus::ReturnedForClarification, $registrar, RequestEventType::CustomerActionRequested,
+                self::rejectedSummary($rejected, $remarks));
+        });
+    }
+
+    /**
+     * Originals or clearance are required at the office: the requester complies there, and the
+     * request waits for the registrar to record it (REQ-20-04, Proposed Workflow III-C).
+     *
+     * @param  list<string>  $items  each required item, as the requester will read it
+     */
+    public function requireOfficeVisit(CredentialRequest $request, User $registrar, array $items, string $remarks): void
+    {
+        $items = array_values(array_unique(array_filter(array_map(trim(...), $items), filled(...))));
+
+        if ($items === []) {
+            throw new InvalidTransition('Tick at least one requirement, so the requester knows what to bring.');
+        }
+
+        if (blank($remarks)) {
+            throw new InvalidTransition('Tell the requester what to bring.');
+        }
+
+        DB::transaction(function () use ($request, $registrar, $items, $remarks): void {
+            $locked = $this->lock($request, [RequestStatus::UnderEvaluation], 'Only a request under evaluation can require an office visit.');
+            $this->assertEvaluator($locked, $registrar);
+
+            foreach ($items as $item) {
+                $locked->deficiencies()->make(['description' => Str::limit($item, 250, '')])
+                    ->forceFill(['recorded_by' => $registrar->id])
+                    ->save();
+            }
+
+            $this->transition($locked, $request, RequestStatus::PendingCompliance, $registrar, RequestEventType::ComplianceRequested,
+                // "Required": a copy may already be uploaded; the office needs the original.
+                'Required: '.implode('; ', $items)."\n{$remarks}");
+        });
+    }
+
+    /**
+     * One required item was submitted at the office: when, and who verified it (REQ-20-09).
+     */
+    public function markReceived(RequestDeficiency $deficiency, User $registrar): void
+    {
+        DB::transaction(function () use ($deficiency, $registrar): void {
+            $locked = $this->lock($deficiency->credentialRequest()->firstOrFail(), [RequestStatus::PendingCompliance], 'Only a request pending compliance has items to receive.');
 
             /** @var RequestDeficiency $current */
             $current = RequestDeficiency::whereKey($deficiency->id)->lockForUpdate()->firstOrFail();
 
             if ($current->resolved_at !== null) {
-                throw new InvalidTransition('This requirement has already been complied with.');
+                throw new InvalidTransition('This was already received.');
             }
 
-            $current->forceFill(['resolved_at' => now(), 'resolved_by' => $registrar->id, 'resolution' => $resolution])->save();
+            $current->forceFill(['resolved_at' => now(), 'resolved_by' => $registrar->id])->save();
             $deficiency->setRawAttributes($current->getAttributes(), sync: true);
 
-            $this->record($locked, $registrar, RequestEventType::DeficiencyResolved, null, null, "{$current->description}: {$resolution}");
+            $this->record($locked, $registrar, RequestEventType::DeficiencyResolved, null, null, $current->description);
         });
     }
 
     /**
-     * Requirements complete: payment instructions for a paid request, acceptance for a free one
-     * (REQ-04-07, 08).
+     * Every required item was received: the evaluation is complete, so payment instructions follow,
+     * or a free request is accepted (REQ-20-09).
      */
-    public function completeEvaluation(CredentialRequest $request, User $registrar, ?string $remarks = null): void
+    public function confirmCompliance(CredentialRequest $request, User $registrar, ?string $remarks = null): void
     {
         DB::transaction(function () use ($request, $registrar, $remarks): void {
-            $locked = $this->lock(
-                $request,
-                [RequestStatus::UnderEvaluation, RequestStatus::PendingCompliance],
-                'Only requests under evaluation or pending compliance can be marked complete.',
-            );
-
-            if ($locked->student()->firstOrFail()->identity_status !== IdentityStatus::Verified) {
-                throw new InvalidTransition("Verify the requester's valid ID before marking the requirements complete.");
-            }
+            $locked = $this->lock($request, [RequestStatus::PendingCompliance], 'Only a request pending compliance can be confirmed.');
 
             if ($locked->deficiencies()->whereNull('resolved_at')->exists()) {
-                throw new InvalidTransition('Record the compliance of every missing requirement first.');
+                throw new InvalidTransition('Mark every requirement received first.');
             }
 
-            $locked->requirements_completed_at = now();
-
-            if ($locked->requires_payment) {
-                $this->transition($locked, $request, RequestStatus::AwaitingPayment, $registrar, RequestEventType::RequirementsCompleted, $remarks);
-
-                return;
+            foreach (CheckItem::for(CheckStage::Evaluation, $locked) as $item) {
+                RequestCheck::query()->updateOrInsert(
+                    ['credential_request_id' => $locked->id, 'item' => $item->value],
+                    ['result' => CheckResult::Confirmed->value, 'checked_by' => $registrar->id, 'checked_at' => now(), 'carried_from_request_id' => null],
+                );
             }
 
-            $locked->save();
-            $this->record($locked, $registrar, RequestEventType::RequirementsCompleted, null, null, $remarks);
-            $this->accept($locked, $request, $registrar);
+            $this->completeRequirements($locked, $request, $registrar, $remarks);
         });
     }
 
     /**
-     * Ask the requester to clarify or act (REQ-04-11). After acceptance this pauses the
-     * processing period (REQ-05-13).
+     * The requester corrected what was returned and sends it back to the Initial Evaluation queue
+     * (REQ-20-07). With changes, the request takes the new credential, purpose and receiving school,
+     * its fee, and a new copy of the owner's details; a new ID awaits verification. Rejected parts
+     * and the parts whose data changed are checked again.
+     *
+     * @param  ?array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $changes
      */
-    public function requestCustomerAction(CredentialRequest $request, User $registrar, string $message): void
+    public function resubmit(CredentialRequest $request, User $owner, ?string $note = null, ?array $changes = null, ?IdentityDocument $identity = null, bool $newRequirementCopies = false): void
     {
-        if (blank($message)) {
-            throw new InvalidTransition('Tell the requester what is needed.');
+        if ($request->user_id !== $owner->id) {
+            throw new InvalidTransition('Only the requester can resubmit this request.');
         }
 
-        DB::transaction(function () use ($request, $registrar, $message): void {
-            $locked = $this->lock(
-                $request,
-                [RequestStatus::UnderEvaluation, RequestStatus::PendingCompliance, RequestStatus::AcceptedForProcessing, RequestStatus::InProgress, RequestStatus::ForFinalApproval],
-                'The requester cannot be asked to act on this request now.',
-            );
-
-            if ($locked->accepted_at !== null) {
-                $pause = $locked->pauses()->make();
-                $pause->forceFill([
-                    'reason' => $message,
-                    'resume_status' => $locked->status,
-                    'started_at' => now(),
-                    'started_by' => $registrar->id,
-                ])->save();
-            }
-
-            $this->transition($locked, $request, RequestStatus::ReturnedForCustomerAction, $registrar, RequestEventType::CustomerActionRequested, $message);
-        });
-    }
-
-    /**
-     * The requester replied, or the registrar recorded that they complied: back to where the
-     * request was. Closing a pause sets the adjusted due date (REQ-04-11, REQ-05-13).
-     */
-    public function customerResponded(CredentialRequest $request, User $actor, ?string $remarks = null): void
-    {
-        if ($actor->hasRole(Role::Student) && blank($remarks)) {
-            throw new InvalidTransition('Write your reply to the Office of the Registrar.');
+        if ($identity !== null && $identity->user_id !== $owner->id) {
+            throw new InvalidTransition('Upload your own valid ID.');
         }
 
-        DB::transaction(function () use ($request, $actor, $remarks): void {
-            $locked = $this->lock($request, [RequestStatus::ReturnedForCustomerAction], 'This request is not waiting for the requester.');
+        DB::transaction(function () use ($request, $owner, $note, $changes, $identity, $newRequirementCopies): void {
+            $locked = $this->lock($request, [RequestStatus::ReturnedForClarification], 'Only a request returned to you for clarification can be resubmitted.');
 
-            $pause = $locked->pauses()->whereNull('ended_at')->latest('id')->first();
-
-            if ($pause !== null) {
-                $days = $this->calendar->workingDaysBetween($pause->started_at, now());
-                $pause->forceFill(['ended_at' => now(), 'ended_by' => $actor->id, 'working_days' => $days])->save();
-
-                if ($days > 0 && $locked->effective_due_at !== null) {
-                    $locked->adjusted_due_at = $this->calendar->addWorkingDays($locked->effective_due_at, $days);
-                }
-
-                $resumeTo = $pause->resume_status;
-            } else {
-                /** @var ?RequestEvent $asked */
-                $asked = $locked->events()->where('type', RequestEventType::CustomerActionRequested)->reorder('id', 'desc')->first();
-                $resumeTo = $asked->from_status ?? RequestStatus::UnderEvaluation;
+            if ($locked->identity_status === ReviewStatus::Rejected && $identity === null) {
+                throw new InvalidTransition('Upload another valid ID: the one sent with this request was not accepted.');
             }
 
-            $this->transition($locked, $request, $resumeTo, $actor, RequestEventType::CustomerResponded, $remarks);
+            $recheck = [];
+
+            if ($changes !== null) {
+                $recheck = $this->applyChanges($locked, $owner, $changes);
+            }
+
+            if ($newRequirementCopies) {
+                $recheck[] = CheckItem::CredentialRequest;
+            }
+
+            if ($identity !== null) {
+                $locked->forceFill([
+                    'identity_document_id' => $identity->id,
+                    'identity_status' => ReviewStatus::Pending,
+                    'identity_reviewed_by' => null,
+                    'identity_reviewed_at' => null,
+                    'identity_remarks' => null,
+                ]);
+                $recheck[] = CheckItem::Identity;
+            }
+
+            $this->clearRejected($locked, CheckStage::Evaluation);
+            $locked->checks()->whereIn('item', array_map(fn (CheckItem $item) => $item->value, $recheck))->delete();
+
+            if ($identity !== null) {
+                $locked->save();
+                $this->record($locked, $owner, RequestEventType::IdentityResubmitted, null, null, $identity->id_type);
+            }
+
+            // Parts checked again whose new copy was verified before are confirmed already (REQ-21-04).
+            $this->carryVerifiedParts($locked, $owner);
+
+            $this->transition($locked, $request, RequestStatus::Submitted, $owner, RequestEventType::Resubmitted, filled($note) ? $note : null);
         });
     }
 
     /**
-     * Not eligible (REQ-04-06).
+     * The stage's decision to end the request: at the evaluation, the payment validation or the
+     * final quality check (REQ-16-14, 17, 19). At the final check the document's visit is closed.
      */
     public function decline(CredentialRequest $request, User $registrar, string $reason): void
     {
@@ -289,44 +386,18 @@ class RequestWorkflow
         DB::transaction(function () use ($request, $registrar, $reason): void {
             $locked = $this->lock(
                 $request,
-                [...RequestStatus::beforeAcceptance(), RequestStatus::ReturnedForCustomerAction],
-                'Only requests that have not been accepted can be declined.',
+                [RequestStatus::UnderEvaluation, RequestStatus::PendingCompliance, RequestStatus::PaymentVerification, RequestStatus::ForFinalApproval],
+                'A request can only be declined at its evaluation, office compliance, payment validation or final quality check.',
             );
+            $this->assertEvaluator($locked, $registrar);
 
-            if ($locked->accepted_at !== null) {
-                throw new InvalidTransition('An accepted request cannot be declined; cancel it instead.');
+            if ($locked->status === RequestStatus::PaymentVerification) {
+                $this->reviewLatestProof($locked, $registrar, PaymentStatus::Rejected, remarks: $reason);
             }
 
+            $this->closeOpenVisit($locked, $registrar);
             $locked->forceFill(['declined_at' => now(), 'decline_reason' => $reason]);
             $this->transition($locked, $request, RequestStatus::Declined, $registrar, RequestEventType::Declined, $reason);
-        });
-    }
-
-    public function changeCollege(CredentialRequest $request, User $registrar, Department $college): void
-    {
-        DB::transaction(function () use ($request, $registrar, $college): void {
-            $locked = $this->lock(
-                $request,
-                [...RequestStatus::beforeAcceptance(), RequestStatus::ReturnedForCustomerAction],
-                'The college can only be changed before the request is accepted.',
-            );
-
-            if ($locked->accepted_at !== null) {
-                throw new InvalidTransition('The college can only be changed before the request is accepted.');
-            }
-
-            $previous = $locked->college()->firstOrFail();
-
-            if ($previous->is($college)) {
-                return;
-            }
-
-            $locked->college_id = $college->id;
-            $locked->save();
-            $request->college_id = $college->id;
-            $request->unsetRelation('college');
-
-            $this->record($locked, $registrar, RequestEventType::CollegeChanged, null, null, "From {$previous->name} to {$college->name}.");
         });
     }
 
@@ -339,11 +410,12 @@ class RequestWorkflow
         ?string $referenceNo = null,
         ?string $amount = null,
         ?string $paidOn = null,
+        ?string $note = null,
     ): PaymentProof {
         $path = $this->store($file, "payment-proofs/{$request->id}");
 
         try {
-            return DB::transaction(function () use ($request, $owner, $file, $path, $referenceNo, $amount, $paidOn): PaymentProof {
+            return DB::transaction(function () use ($request, $owner, $file, $path, $referenceNo, $amount, $paidOn, $note): PaymentProof {
                 $locked = $this->lock($request, [RequestStatus::AwaitingPayment], 'A proof of payment can only be uploaded while the request is awaiting payment.');
 
                 $proof = $locked->paymentProofs()->create([
@@ -358,7 +430,9 @@ class RequestWorkflow
                     'status' => PaymentStatus::Submitted,
                 ]);
 
-                $this->transition($locked, $request, RequestStatus::PaymentVerification, $owner, RequestEventType::PaymentSubmitted);
+                // The requester's note to the registrar, after a returned proof (REQ-04-20).
+                $this->transition($locked, $request, RequestStatus::PaymentVerification, $owner, RequestEventType::PaymentSubmitted,
+                    filled($note) ? $note : null);
 
                 return $proof;
             });
@@ -379,6 +453,7 @@ class RequestWorkflow
             $locked = $this->lock($request, [RequestStatus::PaymentVerification], 'Only payments awaiting verification can be rejected.');
 
             $this->reviewLatestProof($locked, $registrar, PaymentStatus::Rejected, remarks: $remarks);
+            $locked->checks()->whereIn('item', array_map(fn (CheckItem $item) => $item->value, CheckItem::for(CheckStage::Payment, $locked)))->delete();   // the next proof is checked anew
             $this->transition($locked, $request, RequestStatus::AwaitingPayment, $registrar, RequestEventType::PaymentRejected, $remarks);
         });
     }
@@ -394,6 +469,7 @@ class RequestWorkflow
 
         DB::transaction(function () use ($request, $registrar, $officialReceiptNo, $remarks): void {
             $locked = $this->lock($request, [RequestStatus::PaymentVerification], 'Only payments awaiting verification can be verified.');
+            $this->assertAllConfirmed($locked, CheckStage::Payment);
 
             $this->reviewLatestProof($locked, $registrar, PaymentStatus::Verified, $officialReceiptNo, $remarks);
             $this->record($locked, $registrar, RequestEventType::PaymentVerified, null, null, "Official receipt {$officialReceiptNo}");
@@ -402,20 +478,18 @@ class RequestWorkflow
     }
 
     /**
-     * Owners may cancel before acceptance; the registrar may cancel any open request (REQ-04-16).
+     * Only the owner cancels, and only before acceptance (REQ-04-16, REQ-16-21).
      */
     public function cancel(CredentialRequest $request, User $actor, ?string $reason = null): void
     {
-        $isRegistrar = $actor->hasRole(Role::Registrar);
-
-        if ($isRegistrar && blank($reason)) {
-            throw new InvalidTransition('A reason is required to cancel a request.');
+        if ($request->user_id !== $actor->id) {
+            throw new InvalidTransition('Only the requester can cancel a request.');
         }
 
-        DB::transaction(function () use ($request, $actor, $reason, $isRegistrar): void {
+        DB::transaction(function () use ($request, $actor, $reason): void {
             $locked = $this->lock($request, RequestStatus::open(), 'This request is already closed.');
 
-            if (! $isRegistrar && ($locked->accepted_at !== null || ! in_array($locked->status, [...RequestStatus::beforeAcceptance(), RequestStatus::ReturnedForCustomerAction], true))) {
+            if ($locked->accepted_at !== null || ! in_array($locked->status, [...RequestStatus::beforeAcceptance(), RequestStatus::ReturnedForCustomerAction], true)) {
                 throw new InvalidTransition('This request can no longer be cancelled because it is already being processed.');
             }
 
@@ -435,49 +509,67 @@ class RequestWorkflow
         DB::transaction(function () use ($visit, $actor): void {
             [$locked, $current] = $this->lockVisit($visit, [VisitStatus::InTransit]);
 
-            $current->forceFill(['status' => VisitStatus::Received, 'received_at' => now(), 'received_by' => $actor->id])->save();
+            $this->receive($locked, $current, $actor);
             $visit->setRawAttributes($current->getAttributes(), sync: true);
-
-            if ($current->purpose === VisitPurpose::Correction) {
-                $this->record($locked, $actor, RequestEventType::ReceiptAccepted, null, null, null, visit: $current);
-
-                return;
-            }
-
-            $to = $current->step()->firstOrFail()->task === RouteTask::FinalCheck ? RequestStatus::ForFinalApproval : RequestStatus::InProgress;
-
-            $locked->status === $to
-                ? $this->record($locked, $actor, RequestEventType::ReceiptAccepted, null, null, null, visit: $current)
-                : $this->transition($locked, $locked, $to, $actor, RequestEventType::ReceiptAccepted, visit: $current);
         });
     }
 
     /**
-     * Approve / release to the next office (REQ-05-04, 05, 07).
+     * The office finished its task: prepared, signed, stamped, checked or corrected (REQ-05-04,
+     * REQ-17-06). The paper stays in the office until it is forwarded (forwardDocument), except
+     * after the final quality check, which makes it ready for release (REQ-17-09), and when the
+     * next office is the same office, since the paper does not move.
      */
     public function completeVisit(OfficeVisit $visit, User $actor, ?string $remarks = null): void
     {
         DB::transaction(function () use ($visit, $actor, $remarks): void {
             [$locked, $current] = $this->lockVisit($visit, [VisitStatus::Received]);
 
-            $this->closeVisit($current, $actor, VisitStatus::Completed, ['remarks' => filled($remarks) ? $remarks : null]);
-            $visit->setRawAttributes($current->getAttributes(), sync: true);
-
-            $step = $current->step()->with('department')->firstOrFail();
-            $office = $current->department()->firstOrFail();
-
-            if ($current->purpose === VisitPurpose::Correction) {
-                // Corrected: back to the office that returned it, which must receive it again.
-                $this->record($locked, $actor, RequestEventType::DocumentResubmitted, null, null, $remarks, visit: $current);
-                $this->forward($locked, $step, $step->department, VisitPurpose::Resubmission, $office, $actor);
-
-                return;
+            if ($this->markDone($locked, $current, $actor, $remarks)) {
+                $this->leave($locked, $current, $actor);
             }
 
-            $step->forceFill(['status' => StepStatus::Completed, 'completed_at' => now()])->save();
-            $this->record($locked, $actor, RequestEventType::StepCompleted, null, null, $remarks, $step, $current);
-            $this->advance($locked, $step, $office, $actor);
+            $visit->setRawAttributes($current->getAttributes(), sync: true);
         });
+    }
+
+    /**
+     * The registrar sends the paper on from an office whose task is done: to the next office on
+     * the route, or a corrected document back to the office that returned it. That office still
+     * has to accept its receipt (REQ-17-07, 08). The Registrar's own received task is marked done
+     * in the same step (REQ-17-12). Only registrars forward, from In Progress (REQ-17-16).
+     */
+    public function forwardDocument(OfficeVisit $visit, User $actor): void
+    {
+        DB::transaction(function () use ($visit, $actor): void {
+            [$locked, $current] = $this->lockVisit($visit, [VisitStatus::Done, VisitStatus::Received]);
+
+            if (! $current->load(['department', 'step'])->isForwardable()) {
+                throw new InvalidTransition('The office has to finish its task before the document is forwarded.');
+            }
+
+            if ($current->status === VisitStatus::Received) {
+                $this->markDone($locked, $current, $actor);
+            }
+
+            $this->leave($locked, $current, $actor);
+            $visit->setRawAttributes($current->getAttributes(), sync: true);
+        });
+    }
+
+    /**
+     * The Registrar found the credential complete and accurate: complete the final-check visit,
+     * which makes the credential ready for release (REQ-16-19, REQ-05-05).
+     */
+    public function approveFinalCheck(CredentialRequest $request, User $registrar, ?string $remarks = null): void
+    {
+        if ($request->status !== RequestStatus::ForFinalApproval) {
+            throw new InvalidTransition('Only a document received for the final quality check can be approved.');
+        }
+
+        $visit = $request->openVisit()->firstOrFail();
+        $this->completeVisit($visit, $registrar, $remarks);
+        $request->setRawAttributes($request->fresh()?->getAttributes() ?? $request->getAttributes(), sync: true);
     }
 
     /**
@@ -546,41 +638,78 @@ class RequestWorkflow
     }
 
     /**
-     * Registrar override: pass over the current office (REQ-05-10).
+     * The owner's copies of the credential's documentary requirements, sent with a new request
+     * (REQ-04-18, 19): only for requirements the credential lists, at most
+     * RequestDocument::MAX_PER_REQUIREMENT each. No ledger entry of its own: the files arrive with
+     * the Submitted entry. Returns the rows so a caller whose own transaction fails can delete the
+     * stored files.
+     *
+     * @param  array<string, list<UploadedFile>>  $files  requirement => its files
+     * @return list<RequestDocument>
      */
-    public function bypassStep(CredentialRequest $request, User $registrar, string $reason): void
+    public function attachRequirementDocuments(CredentialRequest $request, User $owner, array $files): array
     {
-        if (blank($reason)) {
-            throw new InvalidTransition('A reason is required to bypass a step.');
+        if ($request->user_id !== $owner->id) {
+            throw new InvalidTransition('Only the requester can send copies of the requirements.');
         }
 
-        DB::transaction(function () use ($request, $registrar, $reason): void {
-            $locked = $this->lock($request, RequestStatus::processing(), 'This request is not being processed.');
-            /** @var ?OfficeVisit $visit */
-            $visit = $locked->openVisit()->lockForUpdate()->first();
-            $step = $visit?->step()->with('department')->first();
+        $listed = $request->credentialType->requirements ?? [];
 
-            if ($visit === null || $step === null || $visit->purpose !== VisitPurpose::Route || $step->task === RouteTask::FinalCheck) {
-                throw new InvalidTransition('Only an office step on the route (not a correction or the final check) can be bypassed.');
+        foreach ($files as $requirement => $list) {
+            if (! in_array($requirement, $listed, true)) {
+                throw new InvalidTransition('This credential does not list that requirement.');
             }
 
-            $this->closeVisit($visit, $registrar, VisitStatus::Bypassed, ['remarks' => $reason]);
-            $step->forceFill(['status' => StepStatus::Bypassed, 'completed_at' => now()])->save();
+            if (count($list) > RequestDocument::MAX_PER_REQUIREMENT) {
+                throw new InvalidTransition('Upload at most '.RequestDocument::MAX_PER_REQUIREMENT.' files for each requirement.');
+            }
+        }
 
-            $this->record($locked, $registrar, RequestEventType::StepBypassed, null, null, $reason, $step, $visit);
-            $this->advance($locked, $step, $step->department, $registrar);
-            $request->setRawAttributes($locked->getAttributes(), sync: true);
-        });
+        /** @var list<array{string, UploadedFile, string}> $stored requirement, file, path */
+        $stored = [];
+
+        try {
+            foreach ($files as $requirement => $list) {
+                foreach ($list as $file) {
+                    $stored[] = [$requirement, $file, $this->store($file, "request-documents/{$request->id}")];
+                }
+            }
+
+            return DB::transaction(function () use ($request, $owner, $stored): array {
+                $locked = $this->lock($request, [RequestStatus::Submitted], 'Copies of the requirements are sent with a new request only.');
+                $documents = [];
+
+                foreach ($stored as [$requirement, $file, $path]) {
+                    $documents[] = $locked->documents()->create([
+                        'kind' => DocumentKind::Requirement,
+                        'requirement' => $requirement,
+                        'path' => $path,
+                        'original_name' => Str::limit($file->getClientOriginalName(), 250, ''),
+                        'mime_type' => (string) $file->getMimeType(),
+                        'size' => (int) $file->getSize(),
+                        'uploaded_by' => $owner->id,
+                    ]);
+                }
+
+                return $documents;
+            });
+        } catch (Throwable $e) {
+            Storage::disk(self::proofDisk())->delete(array_column($stored, 2));
+
+            throw $e;
+        }
     }
 
     // ── Representatives and release (spec 11) ──────────────────────────────────────────────
 
     /**
+     * A representative always comes with their SPA and valid ID (REQ-11-01).
+     *
      * @param  array{full_name: string, relationship?: ?string, contact_number?: ?string}  $data
      */
-    public function declareRepresentative(CredentialRequest $request, User $actor, array $data, ?UploadedFile $spa = null, ?UploadedFile $idFile = null): RequestRepresentative
+    public function declareRepresentative(CredentialRequest $request, User $actor, array $data, UploadedFile $spa, UploadedFile $idFile): RequestRepresentative
     {
-        $files = array_filter([DocumentKind::Spa->value => $spa, DocumentKind::RepresentativeId->value => $idFile]);
+        $files = [DocumentKind::Spa->value => $spa, DocumentKind::RepresentativeId->value => $idFile];
         $stored = [];
 
         foreach ($files as $kind => $file) {
@@ -656,41 +785,33 @@ class RequestWorkflow
     }
 
     /**
-     * Hand the credential over and record who received it (REQ-11-06..08).
-     *
-     * @param  array{recipient_type: RecipientType, representative_id?: ?int, recipient_name: string, id_presented: string, identity_checked: bool, acknowledged: bool, remarks?: ?string}  $claim
+     * Mark the credential released to the owner or a verified representative; the name comes from
+     * them, the time and staff member are recorded (REQ-16-20, REQ-11-07, 08).
      */
-    public function release(CredentialRequest $request, User $registrar, array $claim): void
+    public function release(CredentialRequest $request, User $registrar, RecipientType $recipientType, ?int $representativeId = null, ?string $remarks = null): void
     {
-        if (blank($claim['recipient_name']) || blank($claim['id_presented'])) {
-            throw new InvalidTransition("Record the recipient's name and the ID they presented.");
-        }
-
-        if (! $claim['identity_checked'] || ! $claim['acknowledged']) {
-            throw new InvalidTransition("Confirm the recipient's identity and their acknowledgment of receipt before releasing.");
-        }
-
-        DB::transaction(function () use ($request, $registrar, $claim): void {
+        DB::transaction(function () use ($request, $registrar, $recipientType, $representativeId, $remarks): void {
             $locked = $this->lock($request, [RequestStatus::ReadyForRelease], 'Only credentials that are ready for release can be released.');
             $representative = null;
 
-            if ($claim['recipient_type'] === RecipientType::Representative) {
-                $representative = $locked->representatives()->whereKey($claim['representative_id'] ?? 0)->first();
+            if ($recipientType === RecipientType::Representative) {
+                $representative = $locked->representatives()->whereKey($representativeId ?? 0)->first();
 
                 if ($representative === null || $representative->status !== ReviewStatus::Verified) {
                     throw new InvalidTransition("The representative's SPA and IDs must be verified before the credential is released to them.");
                 }
             }
 
+            $recipientName = $representative !== null ? $representative->full_name : $locked->requester_name;
+
             $locked->release()->create([
-                'recipient_type' => $claim['recipient_type'],
+                'recipient_type' => $recipientType,
                 'request_representative_id' => $representative?->id,
-                'recipient_name' => $claim['recipient_name'],
-                'id_presented' => $claim['id_presented'],
+                'recipient_name' => $recipientName,
                 'acknowledged' => true,
                 'released_by' => $registrar->id,
                 'released_at' => now(),
-                'remarks' => filled($claim['remarks'] ?? null) ? $claim['remarks'] : null,
+                'remarks' => filled($remarks) ? $remarks : null,
             ]);
 
             $locked->released_at = now();
@@ -699,11 +820,229 @@ class RequestWorkflow
                 : null;
 
             $this->transition($locked, $request, RequestStatus::Released, $registrar, RequestEventType::Released,
-                "Received by {$claim['recipient_name']} ({$claim['recipient_type']->label()})");
+                "Received by {$recipientName} ({$recipientType->label()})");
         });
     }
 
     // ── Internals ──────────────────────────────────────────────────────────────────────────
+
+    /** The status in which each stage's checklist is filled in. */
+    private const STAGE_STATUS = [
+        'evaluation' => RequestStatus::UnderEvaluation,
+        'payment' => RequestStatus::PaymentVerification,
+    ];
+
+    /**
+     * While under evaluation, only its evaluator acts on the request (REQ-16-09).
+     */
+    private function assertEvaluator(CredentialRequest $locked, User $registrar): void
+    {
+        if ($locked->isEvaluatedBySomeoneElse($registrar)) {
+            throw new InvalidTransition('This request is under evaluation by another evaluator.');
+        }
+    }
+
+    /**
+     * @return array<string, CheckResult>
+     */
+    private function results(CredentialRequest $locked, CheckStage $stage): array
+    {
+        return $locked->load('checks')->checkResults($stage);
+    }
+
+    private function assertAllConfirmed(CredentialRequest $locked, CheckStage $stage): void
+    {
+        $results = $this->results($locked, $stage);
+
+        foreach (CheckItem::for($stage, $locked) as $item) {
+            if (($results[$item->value] ?? null) !== CheckResult::Confirmed) {
+                throw new InvalidTransition('Confirm every part of the checklist before approving.');
+            }
+        }
+    }
+
+    /** Rejected parts are checked again when the request comes back (REQ-20-07). */
+    private function clearRejected(CredentialRequest $locked, CheckStage $stage): void
+    {
+        $locked->checks()
+            ->whereIn('item', array_map(fn (CheckItem $item) => $item->value, CheckItem::for($stage, $locked)))
+            ->where('result', CheckResult::Rejected)
+            ->delete();
+    }
+
+    private function reviewPendingRepresentatives(CredentialRequest $locked, User $registrar, ReviewStatus $status, ?string $remarks = null): void
+    {
+        $locked->representatives()->where('status', ReviewStatus::Pending)->get()
+            ->each(function (RequestRepresentative $representative) use ($registrar, $status, $remarks): void {
+                $representative->forceFill([
+                    'status' => $status,
+                    'reviewed_by' => $registrar->id,
+                    'reviewed_at' => now(),
+                    'remarks' => $status === ReviewStatus::Rejected ? $remarks : null,
+                ])->save();
+            });
+    }
+
+    /**
+     * The evaluation is complete: the ID and representatives are verified, then payment
+     * instructions for a paid request or acceptance for a free one (REQ-16-12, REQ-20-09).
+     */
+    private function completeRequirements(CredentialRequest $locked, CredentialRequest $original, User $registrar, ?string $remarks): void
+    {
+        $locked->forceFill([
+            'identity_status' => ReviewStatus::Verified,
+            'identity_reviewed_by' => $registrar->id,
+            'identity_reviewed_at' => now(),
+            'identity_remarks' => null,
+            'requirements_completed_at' => now(),
+        ]);
+        $this->reviewPendingRepresentatives($locked, $registrar, ReviewStatus::Verified);
+        $this->recordVerifications($locked, $registrar);
+
+        if ($locked->requires_payment) {
+            $this->transition($locked, $original, RequestStatus::AwaitingPayment, $registrar, RequestEventType::RequirementsCompleted, $remarks);
+
+            return;
+        }
+
+        $locked->save();
+        $this->record($locked, $registrar, RequestEventType::RequirementsCompleted, null, null, $remarks);
+        $this->accept($locked, $original, $registrar);
+    }
+
+    /**
+     * The evaluation is complete: each part of the requester's details is verified on this request,
+     * when the request's copy is still their saved details. A part already verified with the same
+     * details keeps its first verification (REQ-21-01).
+     */
+    private function recordVerifications(CredentialRequest $locked, User $registrar): void
+    {
+        $owner = User::query()->findOrFail($locked->user_id);
+
+        foreach (VerifiedDetails::PARTS as $part) {
+            if (VerifiedDetails::current($owner, $part) !== null || ! VerifiedDetails::match($part, $owner, $locked)) {
+                continue;
+            }
+
+            RequesterVerification::query()->upsert(
+                [['user_id' => $owner->id, 'part' => $part->value, 'credential_request_id' => $locked->id, 'verified_by' => $registrar->id, 'verified_at' => now()]],
+                ['user_id', 'part'],
+                ['credential_request_id', 'verified_by', 'verified_at'],
+            );
+        }
+    }
+
+    /**
+     * Confirm each part not checked yet whose copy equals the copy the requester's details were
+     * verified on, as the registrar who verified them did then; a carried identity marks the
+     * request's ID verified (REQ-21-04). The caller saves the request.
+     */
+    private function carryVerifiedParts(CredentialRequest $locked, User $owner): void
+    {
+        $checked = $locked->checks()->get()->map(fn (RequestCheck $check): CheckItem => $check->item)->all();
+
+        foreach (VerifiedDetails::PARTS as $part) {
+            $verification = in_array($part, $checked, true) ? null : VerifiedDetails::verification($owner, $part);
+
+            if ($verification === null || ! VerifiedDetails::match($part, $locked, $verification->credentialRequest)) {
+                continue;
+            }
+
+            RequestCheck::query()->insert([
+                'credential_request_id' => $locked->id,
+                'item' => $part->value,
+                'result' => CheckResult::Confirmed->value,
+                'checked_by' => $verification->verified_by,
+                'checked_at' => $verification->verified_at,
+                'carried_from_request_id' => $verification->credential_request_id,
+            ]);
+
+            if ($part === CheckItem::Identity) {
+                $locked->forceFill([
+                    'identity_status' => ReviewStatus::Verified,
+                    'identity_reviewed_by' => $verification->verified_by,
+                    'identity_reviewed_at' => $verification->verified_at,
+                    'identity_remarks' => null,
+                ]);
+            }
+        }
+
+        $locked->unsetRelation('checks');
+    }
+
+    /**
+     * The requester's corrections (REQ-20-07): the credential, purpose and receiving school, the fee
+     * that follows, and a new copy of their details. Returns the checklist parts whose data changed.
+     *
+     * @param  array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $changes
+     * @return list<CheckItem>
+     */
+    private function applyChanges(CredentialRequest $locked, User $owner, array $changes): array
+    {
+        if (! $owner->hasRequesterDetails()) {
+            throw new InvalidTransition('Give your name, contact number and academic information before resubmitting.');
+        }
+
+        $type = CredentialType::requestable()->findOrFail($changes['credential_type_id']);
+        $receivingInstitution = $changes['receiving_institution'] ?? null;
+
+        if ($type->requires_receiving_institution && blank($receivingInstitution)) {
+            throw new InvalidTransition('Give the complete name of the receiving school.');
+        }
+
+        $locked->fill([
+            'credential_type_id' => $type->id,
+            'purpose' => $changes['purpose'],
+            // As on submission (REQ-04-03).
+            'receiving_institution' => $type->requires_receiving_institution ? $receivingInstitution : null,
+        ]);
+        $locked->forceFill([
+            'requester_name' => $owner->requesterName(),
+            'contact_number' => $owner->contact_number,
+            'college_id' => $owner->college_id,
+            'academic_status' => $owner->academic_status,
+            'program' => $owner->program,
+            'student_number' => $owner->student_number,
+            'attended_from' => $owner->attended_from,
+            'attended_to' => $owner->attended_to,
+            'requires_payment' => $type->requires_payment,
+            'fee' => $type->requires_payment ? $type->fee : null,
+            'amount_due' => $type->requires_payment ? $type->fee : null,
+        ]);
+
+        $changed = [];
+
+        if ($locked->isDirty(['credential_type_id', 'purpose', 'receiving_institution'])) {
+            $changed[] = CheckItem::CredentialRequest;
+        }
+
+        if ($locked->isDirty(['requester_name', 'contact_number'])) {
+            $changed[] = CheckItem::Identity;
+        }
+
+        if ($locked->isDirty(['college_id', 'academic_status', 'program', 'student_number', 'attended_from', 'attended_to'])) {
+            $changed[] = CheckItem::AcademicRecord;
+        }
+
+        if ($locked->isDirty('credential_type_id')) {
+            $this->record($locked, $owner, RequestEventType::CredentialChanged, null, null,
+                CredentialType::whereKey($locked->getOriginal('credential_type_id'))->value('name').' → '.$type->name);
+        }
+
+        $locked->save();
+
+        return $changed;
+    }
+
+    /**
+     * The ledger line of a return: what was rejected and the remarks (REQ-16-22).
+     *
+     * @param  list<CheckItem>  $rejected
+     */
+    private static function rejectedSummary(array $rejected, string $remarks): string
+    {
+        return 'Rejected: '.implode('; ', array_map(fn (CheckItem $item) => $item->label(), $rejected))."\n{$remarks}";
+    }
 
     /**
      * Start the processing clock: due date, route snapshot with the final check, first hand-off
@@ -774,7 +1113,82 @@ class RequestWorkflow
     }
 
     /**
-     * Dispatch the document to an office; it still has to be received there (REQ-05-03).
+     * The document is physically in the office: the receiving office, staff member and time are
+     * recorded (REQ-05-03, REQ-17-08).
+     */
+    private function receive(CredentialRequest $locked, OfficeVisit $current, User $actor): void
+    {
+        $current->forceFill(['status' => VisitStatus::Received, 'received_at' => now(), 'received_by' => $actor->id])->save();
+
+        if ($current->purpose === VisitPurpose::Correction) {
+            $this->record($locked, $actor, RequestEventType::ReceiptAccepted, null, null, null, visit: $current);
+
+            return;
+        }
+
+        // The first office's receipt keeps the request accepted for processing; it is in
+        // progress once sent on (REQ-16-18). A corrected document received back resumes it.
+        $to = match (true) {
+            $current->step()->firstOrFail()->task === RouteTask::FinalCheck => RequestStatus::ForFinalApproval,
+            $locked->status === RequestStatus::ReturnedForCorrection => RequestStatus::InProgress,
+            default => $locked->status,
+        };
+
+        $locked->status === $to
+            ? $this->record($locked, $actor, RequestEventType::ReceiptAccepted, null, null, null, visit: $current)
+            : $this->transition($locked, $locked, $to, $actor, RequestEventType::ReceiptAccepted, visit: $current);
+    }
+
+    /**
+     * Record the office's task done and keep the paper there (REQ-17-06). Returns whether the
+     * paper moves on at once: after the final quality check, or when the next office is the same
+     * office.
+     */
+    private function markDone(CredentialRequest $locked, OfficeVisit $current, User $actor, ?string $remarks = null): bool
+    {
+        $step = $current->step()->with('department')->firstOrFail();
+        $correction = $current->purpose === VisitPurpose::Correction;
+
+        $current->forceFill(['status' => VisitStatus::Done, 'done_at' => now(), 'done_by' => $actor->id, 'remarks' => filled($remarks) ? $remarks : null])->save();
+
+        if ($correction) {
+            $this->record($locked, $actor, RequestEventType::Corrected, null, null, $remarks, visit: $current);
+        } else {
+            $step->forceFill(['status' => StepStatus::Completed, 'completed_at' => now()])->save();
+            $this->record($locked, $actor, RequestEventType::StepCompleted, null, null, $remarks, $step, $current);
+        }
+
+        $next = $current->setRelation('step', $step)->load('credentialRequest.steps')->nextStep();
+
+        return $next === null || $next->department_id === $current->department_id;
+    }
+
+    /**
+     * The paper leaves the office: the visit closes with the time it left and the working days
+     * the office held it, and the document goes on (REQ-17-07, 09).
+     */
+    private function leave(CredentialRequest $locked, OfficeVisit $current, User $actor): void
+    {
+        $this->closeVisit($current, $actor, VisitStatus::Completed);
+
+        $step = $current->step()->with('department')->firstOrFail();
+        $office = $current->department()->firstOrFail();
+
+        if ($current->purpose === VisitPurpose::Correction) {
+            // Corrected: back to the office that returned it, which must receive it again.
+            $this->record($locked, $actor, RequestEventType::DocumentResubmitted, null, null, null, visit: $current);
+            $this->forward($locked, $step, $step->department, VisitPurpose::Resubmission, $office, $actor);
+
+            return;
+        }
+
+        $this->advance($locked, $step, $office, $actor);
+    }
+
+    /**
+     * Dispatch the document to an office; it still has to be received there (REQ-05-03). A paper
+     * that does not move (accepted at the Registrar, or sent on within the same office) is
+     * received at once (REQ-17-05).
      */
     private function forward(CredentialRequest $locked, RequestStep $step, Department $to, VisitPurpose $purpose, ?Department $from, User $actor): OfficeVisit
     {
@@ -791,7 +1205,16 @@ class RequestWorkflow
             'forwarded_by' => $actor->id,
         ])->save();
 
-        $this->record($locked, $actor, RequestEventType::DocumentForwarded, null, null, null, $step, $visit);
+        // Sent on from the first office: the paper is now moving between offices (REQ-16-18).
+        $from !== null && $locked->status === RequestStatus::AcceptedForProcessing
+            ? $this->transition($locked, $locked, RequestStatus::InProgress, $actor, RequestEventType::DocumentForwarded, null, $step, $visit)
+            : $this->record($locked, $actor, RequestEventType::DocumentForwarded, null, null, null, $step, $visit);
+
+        $stays = $from !== null ? $from->is($to) : $to->code === Department::REGISTRAR_CODE;
+
+        if ($stays) {
+            $this->receive($locked, $visit, $actor);
+        }
 
         return $visit;
     }
@@ -904,6 +1327,8 @@ class RequestWorkflow
             'department_id' => $visit->department_id ?? $step?->department_id,
             'remarks' => filled($remarks) ? $remarks : null,
         ]);
+
+        app(RecordRequestEvent::class)->handle($event, $request, $actor);   // REQ-14-01
 
         DB::afterCommit(fn () => RequestEventRecorded::dispatch($event));
 

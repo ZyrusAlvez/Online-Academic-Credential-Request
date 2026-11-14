@@ -29,8 +29,8 @@ test('password can be reset with a valid token', function () {
 
         Volt::test('auth.reset-password', ['token' => $notification->token])
             ->set('email', $user->email)
-            ->set('password', 'new-password')
-            ->set('password_confirmation', 'new-password')
+            ->set('password', 'New-password1')
+            ->set('password_confirmation', 'New-password1')
             ->call('resetPassword')
             ->assertHasNoErrors()
             ->assertRedirect(route('login', absolute: false));

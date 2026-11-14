@@ -10,10 +10,13 @@ use Illuminate\Auth\Access\Response;
 
 class CredentialRequestPolicy
 {
-    /** The registrar's list of all requests. */
+    /**
+     * Every request: Records for the Registrar and the Admin, the Admin's dashboard and reports
+     * (REQ-18-06, 08). The stage queues are the Registrar's by their route (REQ-18-05).
+     */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(Role::Registrar);
+        return $user->hasRole(Role::Registrar, Role::Admin);
     }
 
     public function create(User $user): bool
@@ -28,7 +31,7 @@ class CredentialRequestPolicy
     public function view(User $user, CredentialRequest $request): Response
     {
         $allowed = match ($user->role) {
-            Role::Registrar => true,
+            Role::Registrar, Role::Admin => true,
             Role::Student => $request->user_id === $user->id,
             Role::Department => $user->department_id !== null
                 && $request->visits()->where('department_id', $user->department_id)->exists(),
@@ -42,27 +45,33 @@ class CredentialRequestPolicy
         return $request->user_id === $user->id && $request->status === RequestStatus::AwaitingPayment;
     }
 
-    /** Reply to the registrar's request for action. */
-    public function respond(User $user, CredentialRequest $request): bool
+    /**
+     * Edit and resubmit a request returned for clarification; nothing else is editable
+     * (REQ-20-05, 13).
+     */
+    public function edit(User $user, CredentialRequest $request): Response
     {
-        return $request->user_id === $user->id && $request->status === RequestStatus::ReturnedForCustomerAction;
+        if ($request->user_id !== $user->id) {
+            return Response::denyAsNotFound();
+        }
+
+        return $request->status === RequestStatus::ReturnedForClarification
+            ? Response::allow()
+            : Response::deny('Only a request returned to you for clarification can be edited.');
     }
 
+    /**
+     * The owner declares a representative on New Request only, through the workflow itself
+     * (Proposed Workflow IV-B, "Declaration of requester"); never afterwards (REQ-11-01).
+     */
     public function declareRepresentative(User $user, CredentialRequest $request): bool
     {
-        if ($request->status->isFinal()) {
-            return false;
-        }
-
-        return $user->hasRole(Role::Registrar) || $request->user_id === $user->id;
+        return ! $request->status->isFinal() && $user->hasRole(Role::Registrar);
     }
 
+    /** Only the owner, before acceptance (REQ-04-16, REQ-16-21). */
     public function cancel(User $user, CredentialRequest $request): bool
     {
-        if ($user->hasRole(Role::Registrar)) {
-            return ! $request->status->isFinal();
-        }
-
         return $request->user_id === $user->id
             && $request->accepted_at === null
             && ($request->status->isBeforeAcceptance() || $request->status === RequestStatus::ReturnedForCustomerAction);
@@ -73,9 +82,24 @@ class CredentialRequestPolicy
         return $user->hasRole(Role::Registrar) && $request->status === RequestStatus::ReadyForRelease;
     }
 
-    /** Evaluate, verify payment, accept, correct the college, pause, record delays. */
+    /** Act on the Registrar's stages: evaluate, validate payment, final check, release. */
     public function review(User $user, CredentialRequest $request): bool
     {
         return $user->hasRole(Role::Registrar);
+    }
+
+    /**
+     * Open the working page and act on it: not while another registrar is evaluating it
+     * (REQ-16-09).
+     */
+    public function evaluate(User $user, CredentialRequest $request): Response
+    {
+        if (! $user->hasRole(Role::Registrar)) {
+            return Response::deny();
+        }
+
+        return $request->isEvaluatedBySomeoneElse($user)
+            ? Response::deny("{$request->reference_no} is under evaluation by {$request->evaluator()->first()?->name}.")
+            : Response::allow();
     }
 }

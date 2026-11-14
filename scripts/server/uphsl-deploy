@@ -39,7 +39,6 @@ main() {
   run "npm ci && npm run build"
   run "php artisan migrate --force"
   run "php artisan optimize"
-  run "php artisan queue:restart"
 
   if [ "$env" = staging ]; then
     sudo install -m 755 "$DIR/scripts/server/uphsl-deploy" /usr/local/bin/uphsl-deploy

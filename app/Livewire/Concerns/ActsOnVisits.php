@@ -3,6 +3,7 @@
 namespace App\Livewire\Concerns;
 
 use App\Enums\DelayCategory;
+use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\Department;
 use App\Models\OfficeVisit;
@@ -11,8 +12,8 @@ use Flux\Flux;
 use Illuminate\Validation\Rule;
 
 /**
- * Office actions on a request's open visit: accept receipt, approve and forward, return for
- * correction, record a delay (spec 05). The using component must expose a
+ * Office actions on a request's open visit: accept receipt, mark done, forward, return for
+ * correction, record a delay (specs 05, 17). Registrars forward from In Progress (REQ-17-16). The using component must expose a
  * `CredentialRequest $credentialRequest` property.
  *
  * @property CredentialRequest $credentialRequest
@@ -47,8 +48,25 @@ trait ActsOnVisits
         $visit = $this->actionableVisit();
         $this->validate(['completeRemarks' => ['nullable', 'string', 'max:500']]);
 
-        $this->attempt(fn () => $workflow->completeVisit($visit, $this->actor(), $this->completeRemarks), 'Done. The document was forwarded.');
-        $this->reset('completeRemarks');
+        // A failed attempt keeps the remarks the staff member typed.
+        // A failed attempt keeps the remarks the staff member typed.
+        if ($this->attempt(fn () => $workflow->completeVisit($visit, $this->actor(), $this->completeRemarks), 'Marked done. Forward the document when it leaves your office.')) {
+            $this->reset('completeRemarks');
+        }
+    }
+
+    /**
+     * A department office sends its done paper on (REQ-17-07). Registrars forward the Office of
+     * the Registrar's papers from In Progress only (REQ-17-16).
+     */
+    public function forwardDocument(RequestWorkflow $workflow): void
+    {
+        abort_if($this->actor()->hasRole(Role::Registrar), 403);
+
+        $visit = $this->actionableVisit();
+        $this->authorize('forward', $visit);
+
+        $this->attempt(fn () => $workflow->forwardDocument($visit, $this->actor()), 'Forwarded. The next office confirms when it arrives.');
     }
 
     public function returnVisit(RequestWorkflow $workflow): void
@@ -75,10 +93,9 @@ trait ActsOnVisits
     {
         $visit = $this->credentialRequest->openVisit()->with(['department', 'step', 'credentialRequest'])->first();
 
-        if (! $this->actor()->can('review', $this->credentialRequest)) {
-            abort_if($visit === null, 403);
-            $this->authorize('act', $visit);
-        }
+        // Department offices only; the registrar does not record delay reasons (REQ-16-21).
+        abort_if($visit === null || $this->actor()->hasRole(Role::Registrar), 403);
+        $this->authorize('act', $visit);
 
         $this->validate([
             'delayCategory' => ['required', Rule::enum(DelayCategory::class)],

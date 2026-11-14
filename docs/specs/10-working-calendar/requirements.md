@@ -14,6 +14,9 @@ periods in working days) and X (automatic due-date computation, working calendar
 
 ## Acceptance criteria
 
+*Since spec 18 (2026-11-07), the working calendar page is the Admin's, at `/admin/calendar`.
+Read "the registrar" as "the Admin" in REQ-10-06 and REQ-10-08 (REQ-18-04).*
+
 ### Working days
 - **REQ-10-01** THE SYSTEM SHALL count as working days the days of the configured work week
   (default Monday to Saturday) that are not in the working calendar.
