@@ -111,9 +111,6 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   return to the form with the error.
 
 ### Seed
-- **REQ-01-15** THE SYSTEM SHALL provide a database seeder that creates an initial registrar
-  account from `INITIAL_REGISTRAR_EMAIL` and `INITIAL_REGISTRAR_PASSWORD` so the system can be
-  administered on first install. WHEN an account with that email already exists THE SYSTEM SHALL
-  leave it unchanged. IF no password is configured and the account doesn't exist THEN THE SYSTEM
-  SHALL refuse to seed. *(Since spec 18 the system is administered by the Admin, whose first
-  account comes from `INITIAL_ADMIN_*`, REQ-18-11. The first registrar is still created.)*
+- ~~REQ-01-15~~ *Superseded by REQ-18-11 (2026-11-15):* there is no seeded registrar and no
+  `INITIAL_REGISTRAR_*` setting. The first Admin is the only seeded account and creates the
+  Registrar and Department Staff accounts (REQ-18-09).

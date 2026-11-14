@@ -24,9 +24,9 @@ class ResetDemo extends Command
             return self::FAILURE;
         }
 
-        // The registrar is recreated after the wipe, so check its settings before deleting anything.
-        if (blank(config('uphsl.initial_registrar.email')) || blank(config('uphsl.initial_registrar.password'))) {
-            $this->error('Set INITIAL_REGISTRAR_EMAIL and INITIAL_REGISTRAR_PASSWORD in .env first. Nothing was changed.');
+        // The first admin is recreated after the wipe, so check its settings before deleting anything.
+        if (blank(config('uphsl.initial_admin.email')) || blank(config('uphsl.initial_admin.password'))) {
+            $this->error('Set INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD in .env first. Nothing was changed.');
 
             return self::FAILURE;
         }

@@ -192,23 +192,37 @@ test('REQ-18-11 the seeder creates the first admin once and never changes it', f
     $this->actingAs($admin)->get('/dashboard')->assertRedirect(route('admin.dashboard'));
 });
 
-test('REQ-18-11 without the settings the seeder skips the admin and seeding goes on', function (string $missing) {
+test('REQ-18-11 without the settings the seeder refuses to seed', function (string $missing, string $setting) {
     config(["uphsl.initial_admin.{$missing}" => null]);
     $before = User::count();
 
+    expect(fn () => $this->seed(AdminSeeder::class))->toThrow(RuntimeException::class, $setting)
+        ->and(User::count())->toBe($before);
+})->with([['email', 'INITIAL_ADMIN_EMAIL'], ['password', 'INITIAL_ADMIN_PASSWORD']]);
+
+test('REQ-18-11 once the admin exists the seeder no longer needs the password', function () {
+    $this->seed(AdminSeeder::class);
+    config(['uphsl.initial_admin.password' => null]);
+
     $this->seed(AdminSeeder::class);
 
-    expect(User::count())->toBe($before)
-        ->and(User::where('role', Role::Admin)->whereKeyNot($this->admin->id)->exists())->toBeFalse();
-})->with(['email', 'password']);
+    expect(User::where('email', config('uphsl.initial_admin.email'))->count())->toBe(1);
+});
 
-test('REQ-18-12 the demo data includes the admin@example.com admin', function () {
+test('REQ-18-12 the demo data includes the admin@example.com admin and registrar@example.com registrar', function () {
     DemoSeeder::adminAccount();
     DemoSeeder::adminAccount();   // the demo reset runs it again
+    DemoSeeder::registrarAccount();
+    DemoSeeder::registrarAccount();
 
     $demo = User::where('email', 'admin@example.com')->sole();
     expect($demo)->role->toBe(Role::Admin)->is_active->toBeTrue()
         ->and(Hash::check('@Test123', $demo->password))->toBeTrue();
+
+    $registrar = User::where('email', 'registrar@example.com')->sole();
+    expect($registrar)->role->toBe(Role::Registrar)->is_active->toBeTrue()
+        ->and($registrar->hasVerifiedEmail())->toBeTrue()
+        ->and(Hash::check('@Test123', $registrar->password))->toBeTrue();
 });
 
 test('REQ-07-09 every demo account uses @Test123, which meets the password rules', function () {

@@ -4,35 +4,17 @@ use App\Enums\Role;
 use App\Models\Department;
 use App\Models\User;
 use Database\Seeders\BasicEducationAccountSeeder;
-use Database\Seeders\RegistrarSeeder;
-use Illuminate\Support\Facades\Hash;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\Password;
 
-test('REQ-01-15 the seeder creates an active, verified registrar', function () {
-    $this->seed(RegistrarSeeder::class);
-    $this->seed(RegistrarSeeder::class); // idempotent
+test('REQ-18-11 normal seeding creates the first admin and no other account', function () {
+    $this->seed(DatabaseSeeder::class);
 
-    $registrar = User::sole();
-    expect($registrar->role)->toBe(Role::Registrar)
-        ->and($registrar->is_active)->toBeTrue()
-        ->and($registrar->hasVerifiedEmail())->toBeTrue()
-        ->and($registrar->email)->toBe(config('uphsl.initial_registrar.email'));
+    $admin = User::sole();
+    expect($admin->role)->toBe(Role::Admin)
+        ->and($admin->email)->toBe(config('uphsl.initial_admin.email'))
+        ->and(Department::count())->toBeGreaterThan(0);
 });
-
-test('REQ-01-15 seeding again never changes the existing registrar', function () {
-    $this->seed(RegistrarSeeder::class);
-
-    config(['uphsl.initial_registrar.password' => 'a-different-password']);
-    $this->seed(RegistrarSeeder::class);
-
-    expect(Hash::check('password', User::sole()->password))->toBeTrue();
-});
-
-test('REQ-01-15 the seeder refuses to create the registrar without a password', function () {
-    config(['uphsl.initial_registrar.password' => null]);
-
-    $this->seed(RegistrarSeeder::class);
-})->throws(RuntimeException::class, 'INITIAL_REGISTRAR_PASSWORD');
 
 test('REQ-12-11 the Basic Education Department gets a working staff account on the registrar inbox', function () {
     $office = Department::factory()->create(['code' => 'BED']);

@@ -454,10 +454,8 @@ move, **Ctrl+W** searches, **Ctrl+O** then Enter saves, and **Ctrl+X** exits. Se
 
 ```dotenv
 APP_ENV=production
-INITIAL_REGISTRAR_EMAIL=<the registrar's email>
-INITIAL_REGISTRAR_PASSWORD=<a strong password you choose and remember>
 INITIAL_ADMIN_EMAIL=<the admin's email>
-INITIAL_ADMIN_PASSWORD=<another strong password>
+INITIAL_ADMIN_PASSWORD=<a strong password you choose and remember>
 ```
 
 Staging:
@@ -471,10 +469,8 @@ nano .env
 
 ```dotenv
 APP_ENV=staging
-INITIAL_REGISTRAR_EMAIL=<the registrar's email>
-INITIAL_REGISTRAR_PASSWORD=<a strong password>
 INITIAL_ADMIN_EMAIL=<the admin's email>
-INITIAL_ADMIN_PASSWORD=<another strong password>
+INITIAL_ADMIN_PASSWORD=<a strong password>
 ```
 
 Use a different password from production's. **Check `APP_ENV` in both files.** One left at the template's `local` would use the laptop
@@ -485,14 +481,16 @@ address `http://localhost:8000` in every email link and turn off the secure logi
 | `APP_ENV` | `staging` | `production` |
 | `APP_KEY` | Leave empty; generated in step 9 | Leave empty; generated in step 9 |
 | `DB_USERNAME` / `DB_PASSWORD` | Written automatically in 8.3 | Written automatically in 8.3 |
-| `INITIAL_REGISTRAR_EMAIL` / `_PASSWORD` | Required (its own password) | Required |
-| `INITIAL_ADMIN_EMAIL` / `_PASSWORD` | Needed for the first admin (its own password) | Needed for the first admin |
+| `INITIAL_ADMIN_EMAIL` / `_PASSWORD` | Required (its own password) | Required |
 | `MAIL_USERNAME` / `MAIL_PASSWORD` | Step 13 | Step 13 |
 | `RECEIPTS_DISK`, `R2_*` | Step 13 | Step 13 |
 
-**Keep production's secrets off staging.** Give staging its own registrar password and, ideally,
+**Keep production's secrets off staging.** Give staging its own admin password and, ideally,
 its own Gmail account (step 13). Then a leak of staging's `.env` reveals nothing that opens
 production.
+
+The admin is the only account the setup creates. After the first login, the admin creates the
+registrar and department staff accounts under **Administration → Accounts**.
 
 `APP_KEY` encrypts and signs the login cookies. If it leaks, someone can forge logins. If it
 changes, everyone is logged out. Each environment gets its own.
@@ -561,7 +559,7 @@ Don't save that empty screen.
 | `php artisan key:generate` | Creates `APP_KEY` and writes it into `.env` |
 | `npm ci && npm run build` | Installs the exact build tools from the lock file, then Vite compiles Tailwind and JS into `public/build/` with hashed file names (so browsers fetch new versions after each change) |
 | `php artisan migrate --seed --force` | **Migrations** create the tables from `database/migrations/`. **Seeders** fill in the starter rows. `--force` confirms, since production asks "are you sure?" |
-| `php artisan app:reset-demo` | Staging (and local) only: rebuilds all tables and loads base + demo data. It refuses to run in production, and refuses to start without the `INITIAL_REGISTRAR_*` settings |
+| `php artisan app:reset-demo` | Staging (and local) only: rebuilds all tables and loads base + demo data. It refuses to run in production, and refuses to start without the `INITIAL_ADMIN_*` settings |
 | `php artisan optimize` | Caches config, routes and views |
 
 Both environments install with `--no-dev`, so staging runs exactly the packages production runs.
@@ -591,32 +589,35 @@ their own JavaScript.
 | Seeder | Creates |
 |---|---|
 | `DepartmentSeeder` | The 15 colleges and offices |
+| `ProgramSeeder`, `PurposeSeeder` | The program and purpose lists the request form offers |
 | `CredentialTypeSeeder` | The 7 credential types and their signing order (`workflow_steps`) |
-| `RegistrarSeeder` | The first registrar account, from `INITIAL_REGISTRAR_EMAIL` / `INITIAL_REGISTRAR_PASSWORD` |
-| `AdminSeeder` | The first admin account, from `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`; skipped with a warning when they are not set |
-| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff, a demo admin (`admin@example.com`) and requests in every status, all at `@example.com` with the password `@Test123`. The demo requests are approved by your registrar |
+| `NonWorkingDaySeeder` | Philippine holidays, for the working-day due dates |
+| `AdminSeeder` | The first admin account, from `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`. It is the only account seeding creates |
+| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff, a demo admin (`admin@example.com`), a demo registrar (`registrar@example.com`) and requests in every status, all at `@example.com` with the password `@Test123`. The demo requests are worked by the demo registrar |
+
+The lists (everything above except the accounts) also arrive through migrations, so a deploy
+brings any new list to a running server without seeding.
 
 The first admin is needed because someone has to be able to log in and create every other
-account: only an admin manages accounts and setup (spec 18). `AdminSeeder` works like
-`RegistrarSeeder`. Deploys never run the seeders, so on a server that is already running, add
-the two `INITIAL_ADMIN_*` lines to `.env` and run this once:
+account: only an admin manages accounts and setup (spec 18). Sign in with it and create the
+registrar and department staff accounts under **Administration → Accounts**.
+
+`AdminSeeder` works the same in every environment: it creates the account **only if no account
+with that email exists**, and never changes it afterwards. Re-seeding can't reset a password you
+changed in the app. Without the settings it refuses to run, so no environment ends up with no way
+in or a guessable admin password. Deploys never run the seeders, so on a server that is already
+running, add the two `INITIAL_ADMIN_*` lines to `.env` and run this once:
 
 ```bash
 php artisan db:seed --class=AdminSeeder --force && php artisan optimize
 ```
 
-`RegistrarSeeder` works the same in every environment: it creates the account from
-`INITIAL_REGISTRAR_EMAIL` / `INITIAL_REGISTRAR_PASSWORD` **only if no account with that email
-exists**, and never changes it afterwards. Re-seeding can't reset a password you changed in the
-app. Without a password it refuses to run, so no environment gets a guessable admin password.
-
 Demo accounts use `example.com`, a domain reserved for examples. The app never sends email to it,
 so demo data on staging can't bounce or use up Gmail's daily limit.
 
-After your first production login, change the registrar and admin passwords in the app. Then
-remove the `INITIAL_REGISTRAR_PASSWORD` and `INITIAL_ADMIN_PASSWORD` values from production's
-`.env` and run `php artisan optimize`. Keep the email lines: the seeders use them to see that the
-accounts already exist.
+After your first production login, change the admin password in the app. Then remove the
+`INITIAL_ADMIN_PASSWORD` value from production's `.env` and run `php artisan optimize`. Keep the
+email line: the seeder uses it to see that the account already exists.
 
 ### Check
 
@@ -1095,12 +1096,12 @@ have never restored is a hope, not a backup, so try a restore into a scratch dat
 | Lines after `sudo -u www-data bash` or `nano` never ran | Pasting several lines that start an interactive program loses the rest | Paste interactive commands (`bash`, `nano`, `mysql`, `less`, `certbot`) on their own |
 | `Access denied for user 'uphsl_prod'@'localhost' (using password: YES)` | The password in `.env` doesn't match MySQL's. Common causes: placeholder text left in, or a typo | Test directly with `mysql -u uphsl_prod -p -h 127.0.0.1`. Reset both sides with the step 8.3 block, using `ALTER USER`, then `php artisan config:clear` |
 | The same error again after fixing `.env` | `optimize` cached the old password | `php artisan config:clear`, then re-run the command, then `php artisan optimize` |
-| `Set INITIAL_REGISTRAR_PASSWORD in .env to create the first registrar.` (or `..._EMAIL ...`) | The registrar seeder needs both settings to create the account | Set them in `.env`, then run only that seeder: `php artisan db:seed --class=RegistrarSeeder --force && php artisan optimize` |
-| `app:reset-demo`: `Set INITIAL_REGISTRAR_EMAIL and INITIAL_REGISTRAR_PASSWORD in .env first. Nothing was changed.` | The demo reset recreates the registrar, so it checks first | Set both in staging's `.env`, run `php artisan optimize`, and run it again |
+| `Set INITIAL_ADMIN_PASSWORD in .env to create the first admin.` (or `Set INITIAL_ADMIN_EMAIL ...`) | The admin seeder needs both settings to create the account | Set them in `.env`, then run only that seeder: `php artisan db:seed --class=AdminSeeder --force && php artisan optimize` |
+| `app:reset-demo`: `Set INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD in .env first. Nothing was changed.` | The demo reset recreates the first admin, so it checks first | Set both in staging's `.env`, run `php artisan optimize`, and run it again |
 | `Failed opening required '.../vendor/autoload.php'` | `composer install` was never run in that folder | Run the step 9 chain in that folder. Each folder needs its own install |
 | `certbot: command not found` | certbot isn't installed | `sudo apt install -y certbot python3-certbot-nginx` |
 | nano shows an empty `.env` | As `ubuntu`, you can't read a file owned by `www-data` with mode 600 | **Ctrl+X** without saving, then `sudo -u www-data nano .env` |
-| Registrar login fails after changing `INITIAL_REGISTRAR_PASSWORD` | The seeder only creates the account; it never changes an existing one | Use the old password, or reset it through **Forgot password** |
+| Admin login fails after changing `INITIAL_ADMIN_PASSWORD` | The seeder only creates the account; it never changes an existing one | Use the old password, or reset it through **Forgot password** |
 | "419 Page Expired" on login | The address is `https://…` (secure cookie) but the site is still on plain HTTP | Finish step 11 (HTTPS) |
 | No emails arrive | `MAIL_USERNAME`/`MAIL_PASSWORD` missing, a `MAIL_MAILER=log` line, `optimize` wasn't run, or the address is on `example.com` (never emailed). A failed send is logged | Step 13.1 (`app:test-mail`), then search `storage/logs/laravel.log` for the error |
 | DBeaver: "Public Key Retrieval is not allowed" | MySQL 8 password exchange without SSL | Driver properties → `allowPublicKeyRetrieval` = `true` |

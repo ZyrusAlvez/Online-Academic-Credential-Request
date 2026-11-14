@@ -21,19 +21,10 @@ return [
     'work_week' => [1, 2, 3, 4, 5, 6],
 
     /*
-    | The first registrar account, created by `db:seed` when no account with this email exists,
-    | so that someone can log in and create every other account. The seeder never changes an
-    | existing account, so editing these later does not change its password.
-    */
-    'initial_registrar' => [
-        'email' => env('INITIAL_REGISTRAR_EMAIL'),
-        'password' => env('INITIAL_REGISTRAR_PASSWORD'),
-    ],
-
-    /*
-    | The first admin account (spec 18), created the same way. Only an admin manages accounts and
-    | setup, so this is how a new install gets administered. Without it the seeder skips the
-    | admin with a warning.
+    | The first admin account (REQ-18-11), the only account `db:seed` creates, and only when no
+    | account with this email exists. The admin then creates the registrar and department staff
+    | accounts. The seeder never changes an existing account, so editing these later does not
+    | change its password. Seeding refuses to run without them.
     */
     'initial_admin' => [
         'email' => env('INITIAL_ADMIN_EMAIL'),

@@ -5,11 +5,12 @@ namespace Database\Seeders;
 use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
 /**
- * Creates the first admin account so the system can be administered after install (REQ-18-11).
- * Runs on every seed but only creates the account when it is missing. Without the settings it
- * skips with a warning, so an install that has not added them yet still seeds.
+ * Creates the first admin account, the only account the normal seeding creates; the admin then
+ * creates the registrar and department staff accounts (REQ-18-11). Runs on every seed but only
+ * creates the account when it is missing.
  */
 class AdminSeeder extends Seeder
 {
@@ -19,9 +20,7 @@ class AdminSeeder extends Seeder
         $password = config('uphsl.initial_admin.password');
 
         if (blank($email)) {
-            $this->command->warn('INITIAL_ADMIN_EMAIL is not set: no admin account was created.');
-
-            return;
+            throw new RuntimeException('Set INITIAL_ADMIN_EMAIL in .env before seeding.');
         }
 
         if (User::where('email', $email)->exists()) {
@@ -29,9 +28,7 @@ class AdminSeeder extends Seeder
         }
 
         if (blank($password)) {
-            $this->command->warn('INITIAL_ADMIN_PASSWORD is not set: no admin account was created.');
-
-            return;
+            throw new RuntimeException('Set INITIAL_ADMIN_PASSWORD in .env to create the first admin.');
         }
 
         (new User)->fill([

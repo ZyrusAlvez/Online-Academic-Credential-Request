@@ -31,8 +31,8 @@ never touches your local, staging or production data.
 Staging exists to catch problems before real users do, so it works **exactly like production**:
 
 - it sends real email the same way;
-- it gets its first registrar and admin accounts the same way (`INITIAL_REGISTRAR_*`,
-  `INITIAL_ADMIN_*`);
+- it gets its first admin account the same way (`INITIAL_ADMIN_*`), and that admin creates
+  every other staff account;
 - it installs the same packages, runs the same scheduler, and uses HTTPS.
 
 It differs only where it has to:
@@ -63,7 +63,7 @@ Everything that follows from the environment is a default in `config/`, chosen b
 | `APP_KEY`: the encryption key, unique per deployment | Database name (`config/database.php`) |
 | `DB_USERNAME`, `DB_PASSWORD` | Debug mode and log level |
 | `MAIL_USERNAME`, `MAIL_PASSWORD`: Gmail. Without them, email goes to the log file | Mailer, and the local inbox redirect (`config/mail.php`) |
-| `INITIAL_REGISTRAR_EMAIL`, `INITIAL_REGISTRAR_PASSWORD`, `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD` | Secure (HTTPS-only) login cookie (`config/session.php`) |
+| `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD`: the first admin | Secure (HTTPS-only) login cookie (`config/session.php`) |
 | `RECEIPTS_DISK`, `R2_*`: receipt storage | Receipt folder and R2 endpoint (`config/filesystems.php`) |
 
 Any derived value can still be overridden by adding it to `.env` (for example `APP_URL`,
