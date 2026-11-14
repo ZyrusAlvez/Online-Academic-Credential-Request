@@ -65,7 +65,5 @@ details (REQ-15-08).
   2026-11-13.)*
 
 ### Existing data
-- **REQ-21-07** WHEN the change is deployed THE SYSTEM SHALL record, for each requester, their
-  latest request whose evaluation was completed as the request both parts were verified on, by the
-  registrar who reviewed its ID, at that time; it counts only while their details still equal it
-  (REQ-21-02).
+- ~~REQ-21-07~~ *Superseded by REQ-23-01 (2026-11-15):* the one-time backfill of verified details
+  from existing requests is gone; both servers are reset, so there are no earlier requests.

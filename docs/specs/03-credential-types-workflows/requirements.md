@@ -34,9 +34,9 @@ periods, routing) and section III-A (requirements shown before submitting).
   credential types SHALL NOT be deletable.
 - **REQ-03-05** WHILE a credential type has no route steps THE SYSTEM SHALL flag it as
   "No route" in the list (spec 04 does not offer it to requesters).
-- **REQ-03-12** WHEN the master list is installed on an existing system THE SYSTEM SHALL create
-  or replace the 17 master-list types and their routes, and deactivate the credential types that
-  are not on the master list, keeping them for the history of earlier requests.
+- ~~REQ-03-12~~ *Superseded by REQ-23-01 and 02 (2026-11-15):* the one-time install of the master
+  list over an existing system's placeholder types is gone; the 17 master-list types and their
+  routes are the seeded list.
 
 ### Route builder
 - **REQ-03-06** THE SYSTEM SHALL let the registrar add a step to a credential type's route by

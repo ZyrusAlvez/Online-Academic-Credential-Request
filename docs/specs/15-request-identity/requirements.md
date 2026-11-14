@@ -118,6 +118,6 @@ identity, and My Profile in REQ-09-09/12.
 ### Access and existing data
 - **REQ-15-13** THE SYSTEM SHALL let only the ID's owner and registrars open an uploaded ID (others
   get 404), and SHALL NOT let a requester act on another requester's request (404).
-- **REQ-15-14** WHEN the change is deployed THE SYSTEM SHALL give every existing request its owner's
-  current name, contact number and latest ID, with that ID's review status, and SHALL drop the
-  per-account identity status.
+- ~~REQ-15-14~~ *Superseded by REQ-23-01 (2026-11-15):* the one-time copy of each owner's details
+  onto existing requests is gone; the tables are created in their final shape and both servers are
+  reset.
