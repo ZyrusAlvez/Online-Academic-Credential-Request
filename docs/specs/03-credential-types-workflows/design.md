@@ -9,7 +9,7 @@
 | name | string(150) unique | |
 | description | text null | shown to requesters |
 | requires_payment | boolean default false | |
-| fee | decimal(10,2) null | per copy; payment happens on the UPHSL portal |
+| fee | decimal(10,2) null | per request (one document); payment happens on the UPHSL portal |
 | processing_days | unsigned tinyint default 5 | processing period in **working days** (spec 10) |
 | requirements | json null | list of documentary requirements shown before submitting and used by the evaluator (spec 04) |
 | special_conditions | text null | shown before submitting |
@@ -43,10 +43,9 @@ request's route, so no route can miss it. Until spec 05 lands, routes end at the
 
 ## Seed: the master list (editable)
 
-`Database\Seeders\CredentialTypeSeeder::run()` uses `firstOrCreate` (never overwrites);
-`install()` replaces the 17 types and their routes and deactivates every other type. The data
-migration `install_credential_master_list` runs `DepartmentSeeder` then `install()` on deploy
-(skipped under the test runner).
+`Database\Seeders\CredentialTypeSeeder::run()` uses `firstOrCreate` (never overwrites). It runs
+with the base data, on a new or reset database (spec 23). The one-time `install()` and its
+`install_credential_master_list` migration were removed on 2026-11-15.
 
 | Credential | Fee | Days | Route (task) |
 |---|---|---|---|

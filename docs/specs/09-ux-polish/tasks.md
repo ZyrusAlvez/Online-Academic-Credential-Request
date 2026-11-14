@@ -5,7 +5,41 @@
 - [x] Forward `$title` through the app and auth layouts; `#[Title]` on Volt pages (REQ-09-04)
 - [x] `<x-copy-button>` on the three request pages (REQ-09-05)
 - [x] `wire:confirm` on deactivate actions (REQ-09-06)
+- [x] `<x-confirm-dialog>` + `directive.init` hook replace the browser dialog; titles, labels and
+      danger variants on every `wire:confirm` (REQ-09-13)
 - [x] Verify-email page: auth header, brand colors, address shown (REQ-09-07)
 - [x] Requester sidebar: no "Student" heading, New Request first (REQ-09-09)
+- [x] New Request: incomplete-requirements notice collapsed, above Submit (REQ-09-10)
+- [x] New Request: credential details card with a numbered office route (REQ-09-11)
+- [x] Same column and section style on New Request, My Requests and My Profile (REQ-09-12)
 - [x] Pest tests for every REQ-09 criterion
 - [x] `composer qa` green (CI, deploy run on staging)
+- [x] `<x-password-checklist>` under every new-password field, ticking rules as the user types (REQ-09-02)
+- [x] Pest tests for the changed REQ-09-02
+- [x] `<x-file-link>` and `<x-file-viewer>` for every uploaded file (REQ-09-14)
+- [x] Download through `?download=1` on the three file routes (REQ-09-15)
+- [x] Pest tests for REQ-09-14, 15
+- [x] Viewer: drop the zoom; loading indicator and load-error message (REQ-09-14)
+- [x] `<x-loading-image>` placeholder for the proof thumbnail (REQ-09-16)
+- [x] Pest tests for the changed REQ-09-14 and REQ-09-16
+- [x] `TrimsInput` leaves `search` as typed; each search query trims it (REQ-09-17)
+- [x] Pest tests for REQ-09-17
+- [x] App layout: centred 96rem cap (`max-w-screen-2xl`) around every signed-in page (REQ-09-18)
+- [x] Long emails and payment references wrap; the office-visits table hides its less-needed columns on phones; detail grids use `grid-cols-1` so tables scroll inside their box (REQ-09-18)
+- [x] Pest tests for REQ-09-18
+- [x] Title Case section headings and report names; "Tracking History" replaces "Ledger" and
+      "History" (REQ-09-19)
+- [x] Pest tests for REQ-09-19
+- [x] My Requests: drop the "Your Requests" heading; `search` (`#[Url]`) on credential name or
+      tracking number, trimmed, back to page 1, "No matching requests" with Clear search (REQ-09-12, 20)
+- [x] Pest tests for REQ-09-20
+- [x] "Request Tracker" replaces "My Requests"; student routes under `requests/` (plural again,
+      user's request 2026-11-11) with a redirect from the singular `request/…`; no breadcrumb on
+      New Request (REQ-09-21)
+- [x] Requester request page: Tracking History last; `<x-request-details>` as summary rows with a
+      slot for more rows; `<x-requirement-document-list>` as rows, used on Initial Evaluation and
+      Records too (REQ-09-22)
+- [x] Pest tests for REQ-09-21, 22
+- [x] Viewer shows a PDF from the browser's copy (fetched), so Livewire's download-only preview
+      shows inline; chosen requirement files download through their preview address (REQ-09-14)
+- [x] Pest tests for the changed REQ-09-14

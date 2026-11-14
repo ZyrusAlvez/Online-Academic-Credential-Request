@@ -14,18 +14,19 @@ use Illuminate\Database\Eloquent\Builder;
 class VisitQueue
 {
     /**
-     * Documents forwarded to the office (in transit) or in the office (received), oldest first.
+     * Documents forwarded to the office (in transit) or in the office (received, or done and not
+     * yet forwarded), oldest first.
      *
      * @return Builder<OfficeVisit>
      */
-    public static function open(int $departmentId, VisitStatus $status): Builder
+    public static function open(int $departmentId, VisitStatus ...$statuses): Builder
     {
         return OfficeVisit::query()
             ->where('department_id', $departmentId)
-            ->where('status', $status)
+            ->whereIn('status', $statuses)
             ->whereHas('credentialRequest', fn (Builder $q) => $q->whereIn('status', RequestStatus::processing()))
             ->with(self::relations())
-            ->oldest($status === VisitStatus::InTransit ? 'forwarded_at' : 'received_at')
+            ->oldest($statuses === [VisitStatus::InTransit] ? 'forwarded_at' : 'received_at')
             ->oldest('id');
     }
 
@@ -52,8 +53,7 @@ class VisitQueue
         return [
             'step:id,task',
             'fromDepartment:id,name,code',
-            'credentialRequest:id,reference_no,user_id,credential_type_id,college_id,status,effective_due_at',
-            'credentialRequest.student:id,first_name,middle_name,last_name',
+            'credentialRequest:id,reference_no,user_id,requester_name,credential_type_id,college_id,status,effective_due_at',
             'credentialRequest.credentialType:id,name',
         ];
     }

@@ -31,20 +31,19 @@ new #[Layout('components.layouts.auth')] #[Title('Log in')] class extends Compon
 
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+        $credentials = ['email' => $this->email, 'password' => $this->password];
+
+        // A deactivated account is refused before it is signed in, so the activity log never shows
+        // it signing in (REQ-01-07, REQ-14-05).
+        if (! Auth::attemptWhen($credentials, fn ($user) => $user->is_active, $this->remember)) {
             RateLimiter::hit($this->throttleKey());
 
-            throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
-            ]);
-        }
-
-        if (! Auth::user()->is_active) {
-            Auth::guard('web')->logout();
-            RateLimiter::hit($this->throttleKey());
+            $user = Auth::getLastAttempted();
+            $deactivated = $user !== null && ! $user->is_active
+                && Auth::getProvider()->validateCredentials($user, $credentials);
 
             throw ValidationException::withMessages([
-                'email' => __('auth.deactivated'),
+                'email' => $deactivated ? __('auth.deactivated') : __('auth.failed'),
             ]);
         }
 

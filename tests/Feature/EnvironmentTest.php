@@ -118,10 +118,10 @@ test('demo data cannot be reset in production', function () {
     expect($department->fresh())->not->toBeNull();
 });
 
-test('demo data is not reset without the registrar settings, so nothing is wiped', function () {
+test('REQ-18-13 demo data is not reset without the first admin settings, so nothing is wiped', function () {
     $department = Department::factory()->create();
     app()->detectEnvironment(fn () => 'staging');
-    config(['uphsl.initial_registrar.password' => null]);
+    config(['uphsl.initial_admin.password' => null]);
 
     $this->artisan('app:reset-demo')
         ->expectsOutputToContain('Nothing was changed')

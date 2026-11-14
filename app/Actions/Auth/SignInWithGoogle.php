@@ -13,7 +13,7 @@ class SignInWithGoogle
     /**
      * Find, link or create the account for a Google sign-in (REQ-01-24). Google has verified the
      * address, so the email counts as verified; a new account is a requester with the name
-     * pre-filled for My Profile.
+     * pre-filled for New Request.
      *
      * @throws ValidationException when Google has not verified the email or the account is inactive
      */

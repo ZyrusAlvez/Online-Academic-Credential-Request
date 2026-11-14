@@ -21,6 +21,9 @@
                     <div class="flex gap-2">
                         <span @class(['mt-1.5 size-2 shrink-0 rounded-full', 'bg-highlight' => ! $notification->read_at, 'bg-transparent' => $notification->read_at]) aria-hidden="true"></span>
                         <div class="min-w-0">
+                            @if ($notification->data['action_required'] ?? false)
+                                <flux:badge size="sm" color="red" icon="exclamation-triangle" class="mb-0.5" data-action-required>{{ __('Action required') }}</flux:badge>
+                            @endif
                             <p @class(['text-sm text-ink', 'font-semibold' => ! $notification->read_at])>{{ $notification->data['title'] ?? '' }}</p>
                             <p class="text-xs text-zinc-600">{{ $notification->data['reference_no'] ?? '' }} · {{ $notification->created_at->diffForHumans() }}</p>
                             @if (! $notification->read_at)<span class="sr-only">{{ __('(unread)') }}</span>@endif

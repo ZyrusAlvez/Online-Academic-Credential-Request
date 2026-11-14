@@ -179,8 +179,12 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        // Livewire's temporary upload check, which runs before a component's own rules. Its
+        // field name ("files.0") is replaced by the property name, so these say "the file".
+        // Every upload in the app is capped at 5 MB (REQ-11-09).
+        'files.*' => [
+            'uploaded' => 'The file could not be uploaded. Use a JPG, PNG, WebP or PDF file of 5 MB or smaller.',
+            'max' => 'The file must be 5 MB or smaller.',
         ],
     ],
 
@@ -195,6 +199,10 @@ return [
     |
     */
 
-    'attributes' => [],
+    // Livewire names a failed upload by its property ("The SPA failed to upload.").
+    'attributes' => [
+        'spa' => 'SPA',
+        'representativeId' => "representative's valid ID",
+    ],
 
 ];

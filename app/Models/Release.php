@@ -13,7 +13,7 @@ use Illuminate\Support\Carbon;
  *
  * @property RecipientType $recipient_type
  * @property string $recipient_name
- * @property string $id_presented
+ * @property ?string $id_presented recorded before spec 16 only
  * @property bool $acknowledged
  * @property Carbon $released_at
  */

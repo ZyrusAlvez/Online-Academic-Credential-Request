@@ -46,11 +46,11 @@
             </section>
 
             <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6" aria-labelledby="how-it-works">
-                <h2 id="how-it-works" class="text-2xl font-bold text-primary">How it works</h2>
+                <h2 id="how-it-works" class="text-2xl font-bold text-primary">How It Works</h2>
                 <ol class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     @foreach ([
                         ['Request', 'Choose the credential you need and tell us your college and purpose.'],
-                        ['Pay if required', 'For paid credentials such as the TOR, pay online and upload your receipt.'],
+                        ['Pay If Required', 'For paid credentials such as the TOR, pay online and upload your receipt.'],
                         ['Track', 'See which office has your document and when each one signs it.'],
                         ['Claim', 'Get notified when it is ready for release at the Registrar.'],
                     ] as $i => [$step, $text])

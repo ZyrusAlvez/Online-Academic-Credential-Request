@@ -49,7 +49,8 @@ class StaffForm extends Form
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->account)],
-            'role' => ['required', Rule::in([Role::Department->value, Role::Registrar->value])],
+            // Staff accounts: department staff, registrars and admins (REQ-18-09).
+            'role' => ['required', Rule::in([Role::Department->value, Role::Registrar->value, Role::Admin->value])],
             'department_id' => [
                 Rule::requiredIf($this->role === Role::Department->value),
                 'nullable',

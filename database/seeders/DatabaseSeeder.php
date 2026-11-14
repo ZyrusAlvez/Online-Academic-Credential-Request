@@ -11,8 +11,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             DepartmentSeeder::class,
             ProgramSeeder::class,
+            PurposeSeeder::class,
             CredentialTypeSeeder::class,
-            RegistrarSeeder::class,
+            AdminSeeder::class,
             NonWorkingDaySeeder::class,
         ]);
     }

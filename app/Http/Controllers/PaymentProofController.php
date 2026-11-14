@@ -2,25 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ServesPrivateFile;
 use App\Models\PaymentProof;
-use App\Services\RequestWorkflow;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PaymentProofController extends Controller
 {
+    use ServesPrivateFile;
+
     public function show(PaymentProof $paymentProof): StreamedResponse
     {
         Gate::authorize('view', $paymentProof);
 
-        $disk = Storage::disk(RequestWorkflow::proofDisk());
-        abort_unless($disk->exists($paymentProof->path), 404);
-
-        return $disk->response($paymentProof->path, $paymentProof->original_name, [
-            'Content-Type' => $paymentProof->mime_type,
-            'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control' => 'private, no-store',
-        ]);
+        return $this->serveFile($paymentProof->path, $paymentProof->original_name, $paymentProof->mime_type);
     }
 }

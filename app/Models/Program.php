@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityCategory;
+use App\Models\Concerns\LogsActivity;
 use Database\Factories\ProgramFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A program or strand of a college, offered to requesters on My Profile (spec 12). Never deleted,
+ * A program or strand of a college, offered to requesters on New Request and Settings → Profile (spec 12). Never deleted,
  * only deactivated.
  *
  * @property string $name
@@ -18,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Program extends Model
 {
     /** @use HasFactory<ProgramFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $fillable = [
         'department_id',
@@ -58,5 +60,25 @@ class Program extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    public function activityCategory(): ActivityCategory
+    {
+        return ActivityCategory::Setup;
+    }
+
+    public function activityNoun(): string
+    {
+        return 'program';
+    }
+
+    public function activityLabel(): string
+    {
+        return $this->name;
+    }
+
+    protected function activityDepartmentId(): ?int
+    {
+        return $this->department_id;
     }
 }

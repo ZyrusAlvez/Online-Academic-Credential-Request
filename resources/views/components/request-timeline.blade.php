@@ -31,7 +31,7 @@
                 @endif
             </p>
             @if ($event->remarks)
-                <p class="mt-1 rounded-md bg-primary-50 px-3 py-2 text-sm text-zinc-800">{{ $event->remarks }}</p>
+                <p class="mt-1 rounded-md bg-primary-50 px-3 py-2 text-sm text-zinc-800">{{ $event->displayRemarks() }}</p>
             @endif
         </li>
     @endforeach

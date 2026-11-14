@@ -13,7 +13,10 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'database'),
+    // Queued notifications run in the same process right after the response is sent, so the
+    // server needs no queue worker (REQ-06-10). Not read from .env, so a stray QUEUE_CONNECTION
+    // line can't bring the worker back. Tests switch to "sync" in tests/TestCase.php.
+    'default' => 'deferred',
 
     /*
     |--------------------------------------------------------------------------
@@ -32,6 +35,10 @@ return [
 
         'sync' => [
             'driver' => 'sync',
+        ],
+
+        'deferred' => [
+            'driver' => 'deferred',
         ],
 
         'database' => [

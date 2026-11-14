@@ -1,11 +1,13 @@
 <?php
 
+use App\Enums\CheckItem;
+use App\Enums\CheckResult;
+use App\Enums\CheckStage;
 use App\Enums\RecipientType;
 use App\Enums\RequestStatus;
 use App\Enums\VisitStatus;
 use App\Exceptions\InvalidTransition;
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 /*
@@ -21,17 +23,25 @@ test('a TOR request follows the client\'s flowchart from portal to release', fun
     $vpf = User::factory()->departmentStaff($org->vpf)->create();
     $chancellor = User::factory()->departmentStaff($org->chancellor)->create();
 
-    // Submit → evaluate: requirements incomplete → comply in person → complete.
+    // Submit → evaluate: the purpose needs clarifying → returned → corrected and resubmitted →
+    // originals required → office visit → received → compliance confirmed (spec 20).
     $request = submitRequest($owner, $org->tor);
     workflow()->startEvaluation($request, $registrar);
-    workflow()->requestCompliance($request, $registrar, ['PSA-authenticated birth certificate']);
-    workflow()->resolveDeficiency($request->deficiencies()->sole(), $registrar, 'Original PSA birth certificate received');
-    workflow()->completeEvaluation($request, $registrar);
+    workflow()->recordCheck($request, $registrar, CheckItem::CredentialRequest, CheckResult::Rejected);
+    workflow()->returnForClarification($request, $registrar, 'Name the board examination.');
+    workflow()->resubmit($request, $owner, null, ['credential_type_id' => $org->tor->id, 'purpose' => 'Nursing board examination']);
+    workflow()->startEvaluation($request, $registrar);
+    workflow()->recordCheck($request, $registrar, CheckItem::AcademicRecord, CheckResult::Rejected);
+    workflow()->requireOfficeVisit($request, $registrar, ['PSA-authenticated birth certificate'], 'Submit the original.');
+    workflow()->markReceived($request->deficiencies()->firstOrFail(), $registrar);
+    workflow()->confirmCompliance($request, $registrar);
+    expect($request->fresh())->status->toBe(RequestStatus::AwaitingPayment)->purpose->toBe('Nursing board examination');
 
-    // Payment not verified → valid proof → verified and accepted (clock starts).
+    // Payment returned → valid proof → validated and accepted (clock starts).
     uploadPayment($request);
     workflow()->rejectPayment($request, $registrar, 'Screenshot is unreadable');
     uploadPayment($request);
+    checkAll($request, $registrar, CheckStage::Payment);
     workflow()->verifyPaymentAndAccept($request, $registrar, 'OR-2026-001');
     expect($request->fresh())->status->toBe(RequestStatus::AcceptedForProcessing)->due_at->not->toBeNull();
 
@@ -48,19 +58,11 @@ test('a TOR request follows the client\'s flowchart from portal to release', fun
     passOffice($request, $registrar);
     expect($request->fresh()->status)->toBe(RequestStatus::ReadyForRelease);
 
-    $representative = workflow()->declareRepresentative($request, $owner, ['full_name' => 'Rosa Dela Cruz'], UploadedFile::fake()->image('spa.jpg'));
-    $claim = [
-        'recipient_type' => RecipientType::Representative,
-        'representative_id' => $representative->id,
-        'recipient_name' => 'Rosa Dela Cruz',
-        'id_presented' => 'UMID 0001',
-        'identity_checked' => true,
-        'acknowledged' => true,
-    ];
-    expect(fn () => workflow()->release($request, $registrar, $claim))->toThrow(InvalidTransition::class);
+    $representative = declareRepresentative($request, $owner, ['full_name' => 'Rosa Dela Cruz']);
+    expect(fn () => workflow()->release($request, $registrar, RecipientType::Representative, $representative->id))->toThrow(InvalidTransition::class);
 
     workflow()->reviewRepresentative($representative, $registrar, true);
-    workflow()->release($request, $registrar, $claim);
+    workflow()->release($request, $registrar, RecipientType::Representative, $representative->id);
 
     $request = $request->fresh();
     $visits = $request->visits()->with('department')->get();

@@ -20,7 +20,7 @@ final class DelayReport implements Report
 {
     public function title(): string
     {
-        return 'Delay analysis report';
+        return 'Delay Analysis Report';
     }
 
     public function description(): string
@@ -39,7 +39,7 @@ final class DelayReport implements Report
 
         return PerformanceMetrics::eligible($filter)
             ->where(fn ($q) => $q->whereNull('released_at')->orWhereColumn('released_at', '>', 'effective_due_at'))
-            ->with(['credentialType', 'openVisit.department', 'visits.department', 'delayNotes'])
+            ->with(['credentialType', 'openVisit.department', 'openVisit.fromDepartment', 'visits.department', 'delayNotes'])
             ->orderBy('effective_due_at')
             ->get()
             ->map(function (CredentialRequest $request) use ($calendar): array {

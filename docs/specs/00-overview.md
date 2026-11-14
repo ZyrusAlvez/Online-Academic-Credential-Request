@@ -1,7 +1,8 @@
 # 00 — Product Overview
 
 Source of truth: the client's **Proposed Workflow and Process Flow for the Capstone System**
-(`docs/Proposed-Workflow-and-Process-Flow-for-the-Capstone-System.docx`, October 2026). This
+(`docs/Proposed-Workflow-and-Process-Flow-for-the-Capstone-System.docx`, October 2026; Markdown copy
+in [`docs/proposed-workflow.md`](../proposed-workflow.md)). This
 overview restates it as the system's target model; the feature specs below implement it in
 phases. Where the document leaves a rule open, the assumption taken is listed under
 [Assumptions](#assumptions).
@@ -61,8 +62,9 @@ at acceptance.
 | Role | Who | Can |
 |---|---|---|
 | `student` (shown as *Requester*) | Current students, graduates and former students (self-registered) | Register and upload an ID, request credentials, declare a representative, upload proof of payment, track requests, cancel before acceptance |
-| `registrar` | Office of the Registrar staff | Everything on the Registrar's side: verify identities, evaluate requests, record compliance, verify payments, accept, act on the Registrar's routing steps (preparation, final quality check), release, manage offices, credential types, the working calendar and staff accounts, view reports. One role for all Registrar staff; every action records the staff member. |
-| `department` | Staff of a signing office: a college (the Dean), VP Finance, Chancellor, President | Accept receipt of documents sent to their office, approve and release them to the next office, return them for correction, record delay reasons |
+| `registrar` | Office of the Registrar staff | Work the requests, one queue per stage from Initial Evaluation to Release: evaluate requests (identity, academic record, representative), validate payments and accept, act on the Registrar's preparation step and forward its papers, do the final quality check, release. Look any request up in Records. One role for all Registrar staff; every action records the staff member. |
+| `department` (shown as *Department Staff*) | Staff of a signing office: a college (the Dean), VP Finance, Chancellor, President | Accept receipt of documents sent to their office, approve and release them to the next office, return them for correction, record delay reasons |
+| `admin` (shown as *Admin*) | The system's authorized administrators (BRD module 12, sections IX–X) | Manage credential types (fees, routes, processing periods), offices, programs, purposes, accounts and roles, and the working calendar; read the activity logs; view the performance dashboard and reports; look any request up in Records. Does not act on requests (spec 18). |
 
 ## Glossary
 
@@ -74,20 +76,20 @@ at acceptance.
 | Dean step | A route placeholder that resolves to the college the requester belongs to |
 | Route step | One entry of a request's route, copied from the credential type at acceptance |
 | Office visit | One physical stay of the document at an office: forwarded → received → completed or returned. A return and re-send create a new visit; earlier visits are never overwritten. |
-| Deficiency | A missing requirement found during evaluation (a document, clearance or other), resolved when the Registrar records its physical submission |
+| Deficiency | A requirement the evaluator requires at the office (an original document, clearance or other), resolved when the Registrar records its physical submission. Shown as "Required", never "missing" (REQ-20-04) |
 | Representative | A person acting for the document owner, backed by an SPA and the IDs of both |
 | Accepted date | When the Registrar formally accepted the request; the processing period starts here |
 | Due date | Accepted date plus the processing period in working days. Never changed; approved pauses produce a separate *adjusted* due date. |
 | Working day | Monday to Saturday, except days in the working calendar (holidays, closures) |
 | Ledger / request event | An append-only record of every action on a request |
-| Tracking number | Human-friendly request ID shown to requesters, e.g. `CR-2026-000042` |
+| Tracking number | Human-friendly request ID shown to requesters, e.g. `cr26-00042` |
 
 ## Offices and credential master list
 
-Offices: the 12 colleges (each acting as the **Dean**: Arts and Sciences; Business and
-Accountancy; Computer Studies; Criminology; Education; Engineering; International Hospitality
-Management; Maritime Education; Law; Graduate School; Architecture and Aviation; Basic Education
-Department), the **Office of
+Offices: the 11 colleges (each acting as the **Dean**: Arts and Sciences; Aviation; Basic
+Education Department; Business Administration and Accountancy; Computer Studies; Criminal Justice
+Education; Teacher Education; Engineering and Architecture; Graduate School; Nutrition,
+Hospitality and Tourism Management; Maritime Education), the **Office of
 the Registrar**, the **VP Finance** (documentary stamp, no signature), the **Chancellor** and the
 **President**. Library, Cashier and Student Affairs clearance is checked by the evaluator as a
 requirement, not as a routing step.
@@ -112,38 +114,50 @@ Chancellor *sign* → Registrar *final check*.
 ## Request lifecycle
 
 ```
-submitted ──► under_evaluation ──┬─(complete)──────────────► awaiting_payment ──► payment_verification
-                 ▲    │          ├─(incomplete)──► pending_compliance ─(resolved)─┘        │    │
-                 │    │          ├─(clarify)───► returned_for_customer_action ─(responded)─┘    │
-                 │    │          └─(not eligible)─► declined                     (rejected)◄────┘
-                 │    │                                                                  │ (verified)
-                 └────┘ (customer responds)                                              ▼
-                                                                          accepted_for_processing
-                                                                           (clock starts, due date)
-                                                                                         │ first receipt
-                                                                                         ▼
-                 returned_for_correction ◄──(office returns)──── in_progress ◄──(re-received)
-                                                                                         │ Registrar receives
-                                                                                         ▼ for final check
-                                                                                for_final_approval
-                                                                                         │ final QC done
-                                                                                         ▼
-                                                                                 ready_for_release
-                                                                                         │ claimant verified
-                                                                                         ▼
-                                                                                      released
+     ┌──(requester edits and resubmits)── returned_for_clarification
+     ▼                                              ▲ (Return for Clarification)
+submitted ──► under_evaluation ──┬──────────────────┘
+                                 ├─(Approve)──────────────────► awaiting_payment ──► payment_verification
+                                 ├─(Require Office Visit)─► pending_compliance ──┘     │    │
+                                 │        (Confirm Compliance at the office) ──────┘   │    │
+                                 │                                             (return)◄┘    │ (approve)
+                                 └─(Decline)──► declined ◄─(decline)─────────────────────────┤
+                                                                                  ▼
+                                                                    accepted_for_processing
+                                                                     (clock starts, due date)
+                                                                                  │ sent on from the
+                                                                                  ▼ first office
+            returned_for_correction ◄──(office returns)──── in_progress ◄──(re-received)
+                                                                                  │ Registrar receives
+                                                                                  ▼ for final check
+                                                  declined ◄─(decline)── for_final_approval
+                                                                                  │ approve
+                                                                                  ▼
+                                                                          ready_for_release
+                                                                                  │ claimant verified
+                                                                                  ▼
+                                                                               released
 
-Any open status ──► cancelled  (requester: before acceptance; registrar: any time, reason required)
+Open, not accepted ──► cancelled  (by the requester)
 ```
 
+Each Registrar stage is a checklist of parts, each confirmed or rejected, then one decision with
+remarks (spec 16): Initial Evaluation (Approve, Return for Clarification, Require Office Visit,
+Decline; spec 20), Payment Validation (approve, return, decline), Final Quality Check (approve, decline), Release (mark released). An evaluator
+owns a request while it is under evaluation.
+
 ### Request statuses
+
+The database lists these in the `request_statuses` table, and refuses any other status
+(spec 19).
 
 | Status | Meaning |
 |---|---|
 | `submitted` | Online request received |
 | `under_evaluation` | Academic records and requirements are being reviewed |
-| `pending_compliance` | The requester must submit missing documents or complete clearance in person |
-| `returned_for_customer_action` | The requester must clarify or act before processing continues |
+| `returned_for_clarification` | Returned to the requester to correct the request online and resubmit it (spec 20) |
+| `pending_compliance` | The requester must bring originals or complete clearance at the Office of the Registrar |
+| `returned_for_customer_action` | No longer used (spec 16); kept for older requests |
 | `awaiting_payment` | Requirements complete; payment instructions provided |
 | `payment_verification` | Proof of payment is awaiting verification |
 | `accepted_for_processing` | All conditions satisfied; the processing period has started |
@@ -152,11 +166,12 @@ Any open status ──► cancelled  (requester: before acceptance; registrar: a
 | `for_final_approval` | Back at the Registrar for the final quality check |
 | `ready_for_release` | Processing complete; available for claiming |
 | `released` | Released to the owner or an authorized representative |
-| `declined` | Not eligible; reason recorded |
-| `cancelled` | Cancelled, reason recorded |
+| `declined` | Declined at evaluation, payment validation or the final quality check; reason recorded |
+| `cancelled` | Cancelled by the requester before acceptance |
 
-A requester's return (`pending_compliance`, `returned_for_customer_action`) and an internal
-return between offices (`returned_for_correction`) are different events, statuses and report rows.
+A request returned to the requester (`returned_for_clarification`, `pending_compliance`) and a
+document returned between offices (`returned_for_correction`) are different events, statuses and
+report rows.
 
 ### Office actions
 
@@ -193,8 +208,8 @@ Every office has the same buttons:
   *(Confirmed by the client.)*
 - A representative never uses the owner's account as the owner: their identity and authority are
   recorded separately, and a credential is not released until the claimant is verified.
-- Uploaded IDs, SPAs and payment proofs are private: only registrar staff (and the uploader for
-  their own files) can open them.
+- Uploaded IDs, SPAs, documentary-requirement copies and payment proofs are private: only
+  registrar staff (and the uploader for their own files) can open them.
 - Routes, fees, processing periods, requirements and the working calendar are configuration,
   edited by the registrar in the app.
 
@@ -202,14 +217,17 @@ Every office has the same buttons:
 
 Rules the document leaves open, taken as follows until the client says otherwise:
 
-1. The fee is per copy (amount due = fee × copies).
+1. A request is for one document, at the credential's listed fee (amount due = the fee). The
+   document asks for no number of copies, so the app asks for none; a requester who needs more
+   submits another request. (Copies, priced fee × copies, were dropped on 2026-11-05.)
 2. On-time release is measured against the adjusted due date; the original due date is always
    shown alongside.
 3. Requesters see an internal *returned for correction* as "In progress".
 4. The Registrar's final quality check is inside the processing period.
 5. A credential is *unclaimed* once it has been ready for release for more than 10 working days.
 6. Payment verification records the official receipt (OR) number.
-7. A registrar's action approves a due-date pause.
+7. A registrar's action approved a due-date pause. Since spec 16 nothing pauses the processing
+   period; pauses recorded earlier keep their adjusted due dates.
 8. Working days are Monday to Saturday (the document's own example counts Monday to Friday; the
    work week is a one-line setting).
 
@@ -238,8 +256,8 @@ Every environment works the same way in everything else:
 - **Email** is sent through Gmail whenever its credentials are configured, and written to the log
   file otherwise. On local, every email is redirected to the developer's own inbox. Mail to
   reserved example domains (`example.com`, `.test`, …), which demo accounts use, is never sent.
-- **The first registrar** comes from `INITIAL_REGISTRAR_EMAIL` and `INITIAL_REGISTRAR_PASSWORD`
-  (REQ-01-15).
+- **The first admin** comes from `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` (REQ-18-11).
+  It is the only seeded account: the admin creates the registrar and department staff accounts.
 - **Installed packages** are the same: no development tools on the server.
 
 Automated tests run in Laravel's internal `testing` mode on their own database,
@@ -263,3 +281,13 @@ All feature specs describe this model.
 | 10 | Working calendar & due dates | done |
 | 11 | Representatives & release | done |
 | 12 | Programs & strands | done |
+| 13 | Request purposes | done |
+| 14 | Activity logs (audit trail) | in progress |
+| 15 | Identity checked on the request; Settings → Profile | done |
+| 16 | Registrar stages: checklists, evaluation lock, stage queues | done |
+| 17 | Physical hand-offs and the stage page | done |
+| 18 | The Admin account: administration, dashboard and reports | in progress |
+| 19 | Request status table | done |
+| 20 | Initial Evaluation decisions: clarification and office visit | done |
+| 21 | Details verified once: identity and academic information carry over | done |
+| 22 | Help for requesters (FAQ) | done |

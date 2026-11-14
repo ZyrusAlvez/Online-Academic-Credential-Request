@@ -1,7 +1,7 @@
 <?php
 
 use App\Enums\NonWorkingDayKind;
-use App\Livewire\Registrar\Calendar\Index;
+use App\Livewire\Admin\Calendar\Index;
 use App\Models\NonWorkingDay;
 use App\Models\User;
 use App\Services\WorkingCalendar;
@@ -85,14 +85,14 @@ test('REQ-10-05 calendar changes apply to new due dates only', function () {
         ->and($second->fresh()->due_at->toDateTimeString())->toBe('2026-10-14 23:59:59');
 });
 
-test('REQ-10-06 the registrar can add, edit and remove non-working days by year', function () {
-    $registrar = User::factory()->registrar()->create();
+test('REQ-10-06 the admin can add, edit and remove non-working days by year', function () {
+    $admin = User::factory()->admin()->create();   // the calendar is the Admin's (REQ-18-04)
     NonWorkingDay::factory()->create(['date' => '2027-01-01', 'name' => 'Holiday in 2027']);
 
-    $this->actingAs($registrar)->get(route('registrar.calendar', ['year' => 2026]))
+    $this->actingAs($admin)->get(route('admin.calendar', ['year' => 2026]))
         ->assertOk()->assertSee('Working days are Monday to Saturday')->assertDontSee('Holiday in 2027');
 
-    $component = Livewire::actingAs($registrar)->test(Index::class, ['year' => 2026])
+    $component = Livewire::actingAs($admin)->test(Index::class, ['year' => 2026])
         ->call('create')
         ->set('form.date', '2026-11-20')
         ->set('form.name', 'Typhoon closure')
@@ -103,7 +103,7 @@ test('REQ-10-06 the registrar can add, edit and remove non-working days by year'
 
     $day = NonWorkingDay::whereDate('date', '2026-11-20')->sole();
     expect($day->kind)->toBe(NonWorkingDayKind::Closure)
-        ->and($day->created_by)->toBe($registrar->id);
+        ->and($day->created_by)->toBe($admin->id);
 
     $component->call('edit', $day->id)
         ->set('form.name', 'Typhoon Ada closure')
@@ -119,7 +119,7 @@ test('REQ-10-06 the registrar can add, edit and remove non-working days by year'
 test('REQ-10-06 a date can appear only once', function () {
     NonWorkingDay::factory()->create(['date' => '2026-12-25', 'name' => 'Christmas Day']);
 
-    Livewire::actingAs(User::factory()->registrar()->create())->test(Index::class)
+    Livewire::actingAs(User::factory()->admin()->create())->test(Index::class)
         ->call('create')
         ->set('form.date', '2026-12-25')
         ->set('form.name', 'Duplicate')
@@ -140,9 +140,10 @@ test('REQ-10-07 the seeder adds the Philippine holidays for 2026 and 2027 once',
         ->and($names['2027-12-30'])->toBe('Rizal Day');
 });
 
-test('REQ-10-08 only the registrar can open the working calendar', function () {
+test('REQ-10-08 only the admin can open the working calendar', function () {
     $office = organisation()->vpf;
 
-    $this->actingAs(User::factory()->student()->create())->get(route('registrar.calendar'))->assertForbidden();
-    $this->actingAs(User::factory()->departmentStaff($office)->create())->get(route('registrar.calendar'))->assertForbidden();
+    $this->actingAs(User::factory()->student()->create())->get(route('admin.calendar'))->assertForbidden();
+    $this->actingAs(User::factory()->departmentStaff($office)->create())->get(route('admin.calendar'))->assertForbidden();
+    $this->actingAs(User::factory()->registrar()->create())->get(route('admin.calendar'))->assertForbidden();
 });

@@ -33,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
         // Catch N+1 queries and silently discarded attributes during development.
         Model::shouldBeStrict(! $this->app->isProduction());
 
-        Password::defaults(fn () => Password::min(8));
+        Password::defaults(fn () => Password::min(8)->mixedCase()->numbers()->symbols());
 
         if (filled($redirectTo = config('mail.redirect_to'))) {
             Mail::alwaysTo($redirectTo);

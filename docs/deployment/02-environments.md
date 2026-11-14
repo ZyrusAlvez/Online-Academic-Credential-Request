@@ -31,8 +31,9 @@ never touches your local, staging or production data.
 Staging exists to catch problems before real users do, so it works **exactly like production**:
 
 - it sends real email the same way;
-- it gets its first registrar account the same way (`INITIAL_REGISTRAR_EMAIL` / `_PASSWORD`);
-- it installs the same packages, runs the same queue worker and scheduler, and uses HTTPS.
+- it gets its first admin account the same way (`INITIAL_ADMIN_*`), and that admin creates
+  every other staff account;
+- it installs the same packages, runs the same scheduler, and uses HTTPS.
 
 It differs only where it has to:
 
@@ -62,7 +63,7 @@ Everything that follows from the environment is a default in `config/`, chosen b
 | `APP_KEY`: the encryption key, unique per deployment | Database name (`config/database.php`) |
 | `DB_USERNAME`, `DB_PASSWORD` | Debug mode and log level |
 | `MAIL_USERNAME`, `MAIL_PASSWORD`: Gmail. Without them, email goes to the log file | Mailer, and the local inbox redirect (`config/mail.php`) |
-| `INITIAL_REGISTRAR_EMAIL`, `INITIAL_REGISTRAR_PASSWORD` | Secure (HTTPS-only) login cookie (`config/session.php`) |
+| `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD`: the first admin | Secure (HTTPS-only) login cookie (`config/session.php`) |
 | `RECEIPTS_DISK`, `R2_*`: receipt storage | Receipt folder and R2 endpoint (`config/filesystems.php`) |
 
 Any derived value can still be overridden by adding it to `.env` (for example `APP_URL`,
@@ -227,8 +228,7 @@ server at `/usr/local/bin/uphsl-deploy`. For the chosen environment it:
 3. switches the folder to its branch and fast-forwards it;
 4. installs packages (`composer install --no-dev`), builds the CSS/JS, runs the migrations and
    caches the settings;
-5. restarts the queue workers so they load the new code;
-6. for staging, installs the newest version of `uphsl-deploy` itself, so changes to the script
+5. for staging, installs the newest version of `uphsl-deploy` itself, so changes to the script
    reach the server with the next staging deploy and are used for the next production release.
 
 It stops at the first error, so a failed step never leaves half-cached settings behind.
@@ -239,6 +239,7 @@ It stops at the first error, so a failed step never leaves half-cached settings 
 |---|---|
 | Work on a feature | Branch from `staging`; `composer dev` (`composer qa` is optional, CI runs it) |
 | Reload demo data | `php artisan app:reset-demo` (local or staging folder) |
+| Empty production before going live | `php artisan app:reset` in the production folder (asks you to type `reset production`); see the Lightsail guide, "Resetting an environment" |
 | Test a change on the server | Merge your branch into `staging` and push; it deploys once `qa` passes |
 | Release to users | Merge the PR `staging` → `production`; it deploys once `qa` passes |
 | Redeploy without a code change | Actions → *deploy* → **Run workflow** on that branch |

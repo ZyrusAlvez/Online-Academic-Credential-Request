@@ -2,6 +2,7 @@
 
 namespace App\Reports;
 
+use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,7 @@ final class EvaluatorReport implements Report
 {
     public function title(): string
     {
-        return 'Evaluator performance report';
+        return 'Evaluator Performance Report';
     }
 
     public function description(): string
@@ -24,7 +25,7 @@ final class EvaluatorReport implements Report
 
     public function columns(): array
     {
-        return ['Evaluator', 'Taken up', 'Requirements complete', 'Sent for compliance', 'Declined', 'Avg initial evaluation (hours)', 'Open workload now'];
+        return ['Evaluator', 'Taken up', 'Requirements complete', 'Returned for clarification', 'Sent for compliance', 'Declined', 'Avg initial evaluation (hours)', 'Open workload now'];
     }
 
     public function rows(ReportFilter $filter): iterable
@@ -37,6 +38,9 @@ final class EvaluatorReport implements Report
                 'evaluated_by',
                 DB::raw('COUNT(*) as taken'),
                 DB::raw('SUM(requirements_completed_at IS NOT NULL) as completed'),
+                // Each kind of return apart (REQ-20-12).
+                DB::raw("SUM(EXISTS (SELECT 1 FROM request_events e WHERE e.credential_request_id = credential_requests.id AND e.type = '"
+                    .RequestEventType::CustomerActionRequested->value."')) as clarification"),
                 DB::raw('SUM(EXISTS (SELECT 1 FROM request_deficiencies d WHERE d.credential_request_id = credential_requests.id)) as compliance'),
                 DB::raw("SUM(status = '".RequestStatus::Declined->value."') as declined"),
                 DB::raw('AVG(TIMESTAMPDIFF(MINUTE, submitted_at, evaluation_started_at)) as initial'),
@@ -46,7 +50,7 @@ final class EvaluatorReport implements Report
         $workload = $filter->requests()
             ->whereNotNull('evaluated_by')
             ->whereNull('accepted_at')
-            ->whereIn('status', [RequestStatus::UnderEvaluation, RequestStatus::PendingCompliance, RequestStatus::ReturnedForCustomerAction])
+            ->whereIn('status', [RequestStatus::UnderEvaluation, ...RequestStatus::waitingForRequester(), RequestStatus::ReturnedForCustomerAction])
             ->groupBy('evaluated_by')
             ->pluck(DB::raw('COUNT(*)'), 'evaluated_by');
 
@@ -60,6 +64,7 @@ final class EvaluatorReport implements Report
                 $names[$id] ?? "#{$id}",
                 (int) ($row?->getAttribute('taken') ?? 0),
                 (int) ($row?->getAttribute('completed') ?? 0),
+                (int) ($row?->getAttribute('clarification') ?? 0),
                 (int) ($row?->getAttribute('compliance') ?? 0),
                 (int) ($row?->getAttribute('declined') ?? 0),
                 $row?->getAttribute('initial') === null ? null : round((float) $row->getAttribute('initial') / 60, 1),

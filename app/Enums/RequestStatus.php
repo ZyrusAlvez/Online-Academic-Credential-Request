@@ -9,6 +9,7 @@ enum RequestStatus: string
 {
     case Submitted = 'submitted';
     case UnderEvaluation = 'under_evaluation';
+    case ReturnedForClarification = 'returned_for_clarification';
     case PendingCompliance = 'pending_compliance';
     case ReturnedForCustomerAction = 'returned_for_customer_action';
     case AwaitingPayment = 'awaiting_payment';
@@ -27,6 +28,7 @@ enum RequestStatus: string
         return match ($this) {
             self::Submitted => 'Submitted',
             self::UnderEvaluation => 'Under evaluation',
+            self::ReturnedForClarification => 'Returned for clarification',
             self::PendingCompliance => 'Pending compliance',
             self::ReturnedForCustomerAction => 'Returned for customer action',
             self::AwaitingPayment => 'Awaiting payment',
@@ -54,7 +56,7 @@ enum RequestStatus: string
     {
         return match ($this) {
             self::Submitted, self::UnderEvaluation, self::PaymentVerification => 'sky',
-            self::PendingCompliance, self::ReturnedForCustomerAction, self::AwaitingPayment => 'amber',
+            self::ReturnedForClarification, self::PendingCompliance, self::ReturnedForCustomerAction, self::AwaitingPayment => 'amber',
             self::AcceptedForProcessing, self::InProgress, self::ForFinalApproval => 'blue',
             self::ReturnedForCorrection => 'orange',
             self::ReadyForRelease => 'green',
@@ -83,9 +85,20 @@ enum RequestStatus: string
     public static function beforeAcceptance(): array
     {
         return [
-            self::Submitted, self::UnderEvaluation, self::PendingCompliance,
+            self::Submitted, self::UnderEvaluation, self::ReturnedForClarification, self::PendingCompliance,
             self::AwaitingPayment, self::PaymentVerification,
         ];
+    }
+
+    /**
+     * Returned by the evaluator and waiting for the requester: to correct it online, or to comply
+     * at the office (REQ-20-10).
+     *
+     * @return list<self>
+     */
+    public static function waitingForRequester(): array
+    {
+        return [self::ReturnedForClarification, self::PendingCompliance];
     }
 
     /**

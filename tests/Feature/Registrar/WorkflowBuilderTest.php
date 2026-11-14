@@ -1,7 +1,7 @@
 <?php
 
 use App\Enums\RouteTask;
-use App\Livewire\Registrar\CredentialTypes\Workflow;
+use App\Livewire\Admin\CredentialTypes\Workflow;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\User;
@@ -9,7 +9,7 @@ use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    $this->registrar = User::factory()->registrar()->create();
+    $this->admin = User::factory()->admin()->create();   // routes are the Admin's (REQ-18-04)
     $this->library = Department::factory()->create(['name' => 'Library', 'code' => 'LIB']);
     $this->cashier = Department::factory()->create(['name' => 'Cashier', 'code' => 'FIN']);
     $this->registrarOffice = Department::factory()->registrarOffice()->create();
@@ -23,7 +23,7 @@ function stepLabels(CredentialType $type): array
 
 function builder(): Testable
 {
-    return Livewire::actingAs(test()->registrar)->test(Workflow::class, ['credentialType' => test()->type]);
+    return Livewire::actingAs(test()->admin)->test(Workflow::class, ['credentialType' => test()->type]);
 }
 
 test('REQ-03-06 the registrar can append offices and the Dean step, each with a task', function () {
@@ -102,8 +102,8 @@ test('REQ-03-09 the registrar can edit a step\'s task and instructions', functio
         ->instructions->toBe('Verify clearance card');
 });
 
-test('REQ-03-11 non-registrars cannot use the route builder', function () {
-    Livewire::actingAs(User::factory()->departmentStaff()->create())
+test('REQ-03-11 only the admin can use the route builder', function (string $state) {
+    Livewire::actingAs(User::factory()->{$state}()->create())
         ->test(Workflow::class, ['credentialType' => $this->type])
         ->assertForbidden();
-});
+})->with(['departmentStaff', 'registrar']);

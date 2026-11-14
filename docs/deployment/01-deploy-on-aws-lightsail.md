@@ -41,7 +41,7 @@ writing this guide and how to fix it.
 9. [Install, build and fill the databases](#9-install-build-and-fill-the-databases)
 10. [Configure Nginx](#10-configure-nginx)
 11. [Turn on HTTPS](#11-turn-on-https)
-12. [Start the queue workers](#12-start-the-queue-workers) and [the scheduler](#121-start-the-scheduler)
+12. [Start the scheduler](#12-start-the-scheduler)
 13. [Set up email and receipt storage](#13-set-up-email-and-receipt-storage)
 14. [Access the databases with DBeaver](#14-access-the-databases-with-dbeaver)
 15. [Deploy updates](#15-deploy-updates)
@@ -54,7 +54,8 @@ writing this guide and how to fix it.
 ```
 Browser ──HTTPS──> Nginx ──> PHP-FPM ──> Laravel (one folder per environment) ──> MySQL
                                                                               └──> Cloudflare R2 (receipts)
-Supervisor keeps one queue worker per environment running; the workers send the email notifications.
+Notifications are sent by PHP-FPM right after each page's response (no queue worker).
+Cron runs the scheduler every minute for the daily due-date reminders.
 ```
 
 | Software | Job |
@@ -62,7 +63,6 @@ Supervisor keeps one queue worker per environment running; the workers send the 
 | **Nginx** | Web server. Receives every request on ports 80/443 and picks the site by the name the browser asked for |
 | **PHP-FPM** | Runs the PHP code. Nginx hands it every page request |
 | **MySQL** | Holds both databases |
-| **Supervisor** | Keeps the queue workers running and restarts them if they crash |
 | **Composer / Node** | Install the PHP libraries and build the CSS/JS. Node is used only at deploy time |
 
 This is a **LEMP** stack (Linux, Nginx, MySQL, PHP).
@@ -237,7 +237,7 @@ sudo add-apt-repository -y ppa:ondrej/php
 ```
 
 ```bash
-sudo apt install -y nginx mysql-server supervisor git unzip certbot python3-certbot-nginx \
+sudo apt install -y nginx mysql-server git unzip certbot python3-certbot-nginx \
   php8.5-fpm php8.5-cli php8.5-mysql php8.5-mbstring php8.5-xml php8.5-curl php8.5-zip php8.5-intl php8.5-bcmath
 ```
 
@@ -258,7 +258,7 @@ sudo systemctl restart php8.5-fpm
 php -v              # PHP 8.5.x
 nginx -v
 mysql --version     # MySQL 8.0.x (Ubuntu 24.04's version works fine)
-systemctl status nginx php8.5-fpm mysql supervisor    # each "active (running)"; press q to exit
+systemctl status nginx php8.5-fpm mysql    # each "active (running)"; press q to exit
 ```
 
 Open `http://<SERVER_IP>` in a browser. You should see **"Welcome to nginx!"**.
@@ -454,8 +454,8 @@ move, **Ctrl+W** searches, **Ctrl+O** then Enter saves, and **Ctrl+X** exits. Se
 
 ```dotenv
 APP_ENV=production
-INITIAL_REGISTRAR_EMAIL=<the registrar's email>
-INITIAL_REGISTRAR_PASSWORD=<a strong password you choose and remember>
+INITIAL_ADMIN_EMAIL=<the admin's email>
+INITIAL_ADMIN_PASSWORD=<a strong password you choose and remember>
 ```
 
 Staging:
@@ -469,8 +469,8 @@ nano .env
 
 ```dotenv
 APP_ENV=staging
-INITIAL_REGISTRAR_EMAIL=<the registrar's email>
-INITIAL_REGISTRAR_PASSWORD=<a strong password>
+INITIAL_ADMIN_EMAIL=<the admin's email>
+INITIAL_ADMIN_PASSWORD=<a strong password>
 ```
 
 Use a different password from production's. **Check `APP_ENV` in both files.** One left at the template's `local` would use the laptop
@@ -481,13 +481,16 @@ address `http://localhost:8000` in every email link and turn off the secure logi
 | `APP_ENV` | `staging` | `production` |
 | `APP_KEY` | Leave empty; generated in step 9 | Leave empty; generated in step 9 |
 | `DB_USERNAME` / `DB_PASSWORD` | Written automatically in 8.3 | Written automatically in 8.3 |
-| `INITIAL_REGISTRAR_EMAIL` / `_PASSWORD` | Required (its own password) | Required |
+| `INITIAL_ADMIN_EMAIL` / `_PASSWORD` | Required (its own password) | Required |
 | `MAIL_USERNAME` / `MAIL_PASSWORD` | Step 13 | Step 13 |
 | `RECEIPTS_DISK`, `R2_*` | Step 13 | Step 13 |
 
-**Keep production's secrets off staging.** Give staging its own registrar password and, ideally,
+**Keep production's secrets off staging.** Give staging its own admin password and, ideally,
 its own Gmail account (step 13). Then a leak of staging's `.env` reveals nothing that opens
 production.
+
+The admin is the only account the setup creates. After the first login, the admin creates the
+registrar and department staff accounts under **Administration → Accounts**.
 
 `APP_KEY` encrypts and signs the login cookies. If it leaks, someone can forge logins. If it
 changes, everyone is logged out. Each environment gets its own.
@@ -495,7 +498,7 @@ changes, everyone is logged out. Each environment gets its own.
 ### 8.3 Create the app database users
 
 Each environment gets its **own** MySQL user, which can access only its own database. Staging has
-demo accounts with the password `password`, so it's the weaker side. If its database password leaked, it still
+demo accounts with a shared, published password (`@Test123`), so it's the weaker side. If its database password leaked, it still
 couldn't open production. This is the **principle of least privilege**.
 
 These blocks generate a random password, create the user with it, and write the same password
@@ -556,7 +559,8 @@ Don't save that empty screen.
 | `php artisan key:generate` | Creates `APP_KEY` and writes it into `.env` |
 | `npm ci && npm run build` | Installs the exact build tools from the lock file, then Vite compiles Tailwind and JS into `public/build/` with hashed file names (so browsers fetch new versions after each change) |
 | `php artisan migrate --seed --force` | **Migrations** create the tables from `database/migrations/`. **Seeders** fill in the starter rows. `--force` confirms, since production asks "are you sure?" |
-| `php artisan app:reset-demo` | Staging (and local) only: rebuilds all tables and loads base + demo data. It refuses to run in production, and refuses to start without the `INITIAL_REGISTRAR_*` settings |
+| `php artisan app:reset` | Empties the environment and starts it clean: deletes every row and uploaded file, rebuilds all tables and loads the base data and the first admin (no demo data). In production it asks you to type `reset production`. Refuses to start without the `INITIAL_ADMIN_*` settings |
+| `php artisan app:reset-demo` | Staging (and local) only: the same reset, then the demo data. It refuses to run in production |
 | `php artisan optimize` | Caches config, routes and views |
 
 Both environments install with `--no-dev`, so staging runs exactly the packages production runs.
@@ -586,22 +590,66 @@ their own JavaScript.
 | Seeder | Creates |
 |---|---|
 | `DepartmentSeeder` | The 15 colleges and offices |
-| `CredentialTypeSeeder` | The 7 credential types and their signing order (`workflow_steps`) |
-| `RegistrarSeeder` | The first registrar account, from `INITIAL_REGISTRAR_EMAIL` / `INITIAL_REGISTRAR_PASSWORD` |
-| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff and requests in every status, all at `@example.com` with the password `password`. The demo requests are approved by your registrar |
+| `ProgramSeeder`, `PurposeSeeder` | The program and purpose lists the request form offers |
+| `CredentialTypeSeeder` | The 17 credential types and their signing order (`workflow_steps`) |
+| `NonWorkingDaySeeder` | Philippine holidays, for the working-day due dates |
+| `AdminSeeder` | The first admin account, from `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`. It is the only account seeding creates |
+| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff, a demo admin (`admin@example.com`), a demo registrar (`registrar@example.com`) and requests in every status, all at `@example.com` with the password `@Test123`. The demo requests are worked by the demo registrar |
 
-The first registrar is needed because someone has to be able to log in and create every other
-account. `RegistrarSeeder` works the same in every environment: it creates the account from
-`INITIAL_REGISTRAR_EMAIL` / `INITIAL_REGISTRAR_PASSWORD` **only if no account with that email
-exists**, and never changes it afterwards. Re-seeding can't reset a password you changed in the
-app. Without a password it refuses to run, so no environment gets a guessable admin password.
+### Migrations and seeders: who does what
+
+| Folder | Holds | Runs | Same in every environment? |
+|---|---|---|---|
+| `database/migrations` | The **structure**: tables, columns and keys, plus the fixed request statuses the code depends on | Every deploy (`php artisan migrate`), each file once per database | Yes. This is what keeps local, staging and production identical in structure |
+| `database/seeders` | The **starting content**: the lists above and the first admin; `DemoSeeder` adds demo data | Only when a database is created or reset, never on a deploy | Base data yes; demo data local and staging only |
+| `database/factories` | Fake rows for the automated tests | Tests only | Not used on a server |
+
+A deploy never changes content. After the first seeding, the admin changes the lists in the app
+(Administration). Seeding again is safe: every base seeder only adds what is missing and never
+overwrites what the admin changed.
+
+### Resetting an environment
+
+A reset deletes **every account, request and uploaded file** of that environment and starts it
+clean. Use it to clear test data before going live. The first admin is recreated from `.env`, so
+check that `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` are set there first (after editing
+`.env`, run `php artisan optimize`). Without them the command stops and changes nothing.
+
+Staging, with demo data (as `ubuntu`):
+
+```bash
+cd /var/www/uphsl-staging && sudo -u www-data php artisan app:reset-demo
+```
+
+Production, base data only (as `ubuntu`). It asks you to type `reset production`:
+
+```bash
+cd /var/www/uphsl-production && sudo -u www-data php artisan app:reset
+```
+
+After a production reset, sign in as the admin and create the registrar and department staff
+accounts again under **Administration → Accounts**.
+
+The first admin is needed because someone has to be able to log in and create every other
+account: only an admin manages accounts and setup (spec 18). Sign in with it and create the
+registrar and department staff accounts under **Administration → Accounts**.
+
+`AdminSeeder` works the same in every environment: it creates the account **only if no account
+with that email exists**, and never changes it afterwards. Re-seeding can't reset a password you
+changed in the app. Without the settings it refuses to run, so no environment ends up with no way
+in or a guessable admin password. Deploys never run the seeders, so on a server that is already
+running, add the two `INITIAL_ADMIN_*` lines to `.env` and run this once:
+
+```bash
+php artisan db:seed --class=AdminSeeder --force && php artisan optimize
+```
 
 Demo accounts use `example.com`, a domain reserved for examples. The app never sends email to it,
 so demo data on staging can't bounce or use up Gmail's daily limit.
 
-After your first production login, change the registrar password in the app. Then remove the
-`INITIAL_REGISTRAR_PASSWORD` value from production's `.env` and run `php artisan optimize`. Keep
-the email line: the seeder uses it to see that the account already exists.
+After your first production login, change the admin password in the app. Then remove the
+`INITIAL_ADMIN_PASSWORD` value from production's `.env` and run `php artisan optimize`. Keep the
+email line: the seeder uses it to see that the account already exists.
 
 ### Check
 
@@ -791,44 +839,11 @@ because the browser refuses to send a secure cookie over HTTP. Finishing HTTPS f
 
 ---
 
-## 12. Start the queue workers
+## 12. Start the scheduler
 
-Sign-up verification and password-reset emails are sent immediately. **Request notifications are
-queued**: they are saved in the `jobs` table and sent by a worker process running in the
-background. Supervisor keeps one worker per environment running and restarts it if it stops.
-
-As `ubuntu` (safe to paste whole):
-
-```bash
-sudo tee /etc/supervisor/conf.d/uphsl.conf > /dev/null <<'EOF'
-[program:uphsl-production-queue]
-command=php /var/www/uphsl-production/artisan queue:work --tries=3 --max-time=3600
-user=www-data
-autostart=true
-autorestart=true
-
-[program:uphsl-staging-queue]
-command=php /var/www/uphsl-staging/artisan queue:work --tries=3 --max-time=3600
-user=www-data
-autostart=true
-autorestart=true
-EOF
-```
-
-```bash
-sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl status
-```
-
-Both programs should show **RUNNING**. `--max-time=3600` makes each worker restart every hour,
-which keeps memory use in check.
-
-### Check
-
-```bash
-sudo mysql -e "SELECT COUNT(*) FROM uphsl_credential_tracker.jobs;"    # drops to 0 as jobs are sent
-```
-
-### 12.1 Start the scheduler
+Notifications need nothing here. Sign-up codes and password resets are sent immediately; request
+notifications (in-app and email) are sent by PHP-FPM right after the page has been returned to the
+user, so nobody waits for Gmail and no queue worker has to run.
 
 The app has **scheduled tasks**, listed in `routes/console.php`; for example, the due-date
 reminders (`app:send-due-reminders`) go out every working day at 07:00. Laravel needs **one** cron entry per environment, which
@@ -1025,15 +1040,13 @@ sudo install -m 755 /var/www/uphsl-staging/scripts/server/uphsl-deploy /usr/loca
 staging deploy installs the newest version from the repository by itself.
 
 For the chosen environment, `uphsl-deploy` fetches GitHub, switches the folder to its branch,
-installs packages, builds the assets, runs the migrations, caches the settings and restarts the
-queue workers. It stops at the first error.
+installs packages, builds the assets, runs the migrations and caches the settings. It stops at
+the first error.
 
 - **No deploy without an app key.** If the folder's `.env` has no `APP_KEY`, it stops before
   changing anything and prints the `key:generate` command to run.
 - **Production only takes what staging is running.** If the code on the `production` branch
   differs from the code deployed on staging, it stops with *"Deploy staging first"*.
-- `queue:restart` makes the workers load the new code. Without it, they keep running the old
-  code from memory.
 
 ### 15.2 Use it
 
@@ -1065,7 +1078,7 @@ These steps go beyond the base setup, but are worth doing before real users arri
 ### 16.1 Put staging behind a password
 
 Both apps run as `www-data`, so a break-in through staging could read production's `.env`. Staging
-is also the weaker side: public, showing error details (debug mode), with demo logins using `password`. Nginx basic
+is also the weaker side: public, showing error details (debug mode), with demo logins sharing the published password `@Test123`. Nginx basic
 auth makes the browser ask for a username and password before showing anything on staging:
 
 ```bash
@@ -1115,14 +1128,14 @@ have never restored is a hope, not a backup, so try a restore into a scratch dat
 | Lines after `sudo -u www-data bash` or `nano` never ran | Pasting several lines that start an interactive program loses the rest | Paste interactive commands (`bash`, `nano`, `mysql`, `less`, `certbot`) on their own |
 | `Access denied for user 'uphsl_prod'@'localhost' (using password: YES)` | The password in `.env` doesn't match MySQL's. Common causes: placeholder text left in, or a typo | Test directly with `mysql -u uphsl_prod -p -h 127.0.0.1`. Reset both sides with the step 8.3 block, using `ALTER USER`, then `php artisan config:clear` |
 | The same error again after fixing `.env` | `optimize` cached the old password | `php artisan config:clear`, then re-run the command, then `php artisan optimize` |
-| `Set INITIAL_REGISTRAR_PASSWORD in .env to create the first registrar.` (or `..._EMAIL ...`) | The registrar seeder needs both settings to create the account | Set them in `.env`, then run only that seeder: `php artisan db:seed --class=RegistrarSeeder --force && php artisan optimize` |
-| `app:reset-demo`: `Set INITIAL_REGISTRAR_EMAIL and INITIAL_REGISTRAR_PASSWORD in .env first. Nothing was changed.` | The demo reset recreates the registrar, so it checks first | Set both in staging's `.env`, run `php artisan optimize`, and run it again |
+| `Set INITIAL_ADMIN_PASSWORD in .env to create the first admin.` (or `Set INITIAL_ADMIN_EMAIL ...`) | The admin seeder needs both settings to create the account | Set them in `.env`, then run only that seeder: `php artisan db:seed --class=AdminSeeder --force && php artisan optimize` |
+| `app:reset` or `app:reset-demo`: `Set INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD in .env first. Nothing was changed.` | The reset recreates the first admin, so it checks first | Set both in that folder's `.env`, run `php artisan optimize`, and run it again |
 | `Failed opening required '.../vendor/autoload.php'` | `composer install` was never run in that folder | Run the step 9 chain in that folder. Each folder needs its own install |
 | `certbot: command not found` | certbot isn't installed | `sudo apt install -y certbot python3-certbot-nginx` |
 | nano shows an empty `.env` | As `ubuntu`, you can't read a file owned by `www-data` with mode 600 | **Ctrl+X** without saving, then `sudo -u www-data nano .env` |
-| Registrar login fails after changing `INITIAL_REGISTRAR_PASSWORD` | The seeder only creates the account; it never changes an existing one | Use the old password, or reset it through **Forgot password** |
+| Admin login fails after changing `INITIAL_ADMIN_PASSWORD` | The seeder only creates the account; it never changes an existing one | Use the old password, or reset it through **Forgot password** |
 | "419 Page Expired" on login | The address is `https://…` (secure cookie) but the site is still on plain HTTP | Finish step 11 (HTTPS) |
-| No emails arrive | `MAIL_USERNAME`/`MAIL_PASSWORD` missing, a `MAIL_MAILER=log` line, `optimize` wasn't run, no queue worker is running, or the address is on `example.com` (never emailed) | Step 13.1 (`app:test-mail`) and step 12 (`supervisorctl status`) |
+| No emails arrive | `MAIL_USERNAME`/`MAIL_PASSWORD` missing, a `MAIL_MAILER=log` line, `optimize` wasn't run, or the address is on `example.com` (never emailed). A failed send is logged | Step 13.1 (`app:test-mail`), then search `storage/logs/laravel.log` for the error |
 | DBeaver: "Public Key Retrieval is not allowed" | MySQL 8 password exchange without SSL | Driver properties → `allowPublicKeyRetrieval` = `true` |
 | DBeaver: `Access denied for user '<name>'` | Wrong username or password, or the user doesn't exist | `sudo mysql -e "SELECT user, host FROM mysql.user;"`, then test with `mysql -u <name> -p -h 127.0.0.1` |
 | DBeaver can't read the key file | A Snap or Flatpak DBeaver can't read hidden folders like `~/.ssh` | Keep the key in a normal folder such as `~/key/` |
@@ -1149,7 +1162,7 @@ have never restored is a hope, not a backup, so try a restore into a scratch dat
 | your personal user | MySQL person account | read-only | full | You, in DBeaver |
 | MySQL `root` | Admin | full | full | `sudo mysql` on the server only |
 | `ubuntu` | Linux admin | | | You, over SSH, with `sudo` |
-| `www-data` | Linux service user | | | Nginx, PHP-FPM, queue workers, app commands |
+| `www-data` | Linux service user | | | Nginx, PHP-FPM, the scheduler, app commands |
 
 Passwords for programs live in config files. Passwords for people live in a password manager.
 Never paste either into chats, documents or Git.
@@ -1164,7 +1177,6 @@ Never paste either into chats, documents or Git.
 | Nginx sites | `/etc/nginx/sites-available/uphsl-*` |
 | Nginx errors | `/var/log/nginx/error.log` |
 | PHP settings | `/etc/php/8.5/fpm/php.ini` |
-| Queue workers | `/etc/supervisor/conf.d/uphsl.conf` |
 | Scheduler | `/etc/cron.d/uphsl-scheduler` |
 | Deploy command | `/usr/local/bin/uphsl-deploy` |
 | Certificates | `/etc/letsencrypt/live/` (managed by certbot) |
@@ -1173,7 +1185,6 @@ Never paste either into chats, documents or Git.
 
 ```bash
 uphsl-deploy staging | production                       # deploy (as ubuntu)
-sudo supervisorctl status                               # are the workers running?
 sudo systemctl reload nginx                             # after editing Nginx (run nginx -t first)
 sudo -u www-data php /var/www/uphsl-<env>/artisan optimize    # after editing a .env
 sudo -u www-data php /var/www/uphsl-<env>/artisan about       # environment summary

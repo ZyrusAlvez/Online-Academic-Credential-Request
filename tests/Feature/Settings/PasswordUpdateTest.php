@@ -10,12 +10,12 @@ test('password can be updated', function () {
 
     Volt::test('settings.password')
         ->set('current_password', 'password')
-        ->set('password', 'new-password')
-        ->set('password_confirmation', 'new-password')
+        ->set('password', 'New-password1')
+        ->set('password_confirmation', 'New-password1')
         ->call('updatePassword')
         ->assertHasNoErrors();
 
-    expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();
+    expect(Hash::check('New-password1', $user->refresh()->password))->toBeTrue();
 });
 
 test('the current password must be correct to update it', function () {
@@ -23,8 +23,8 @@ test('the current password must be correct to update it', function () {
 
     Volt::test('settings.password')
         ->set('current_password', 'wrong-password')
-        ->set('password', 'new-password')
-        ->set('password_confirmation', 'new-password')
+        ->set('password', 'New-password1')
+        ->set('password_confirmation', 'New-password1')
         ->call('updatePassword')
         ->assertHasErrors(['current_password']);
 });

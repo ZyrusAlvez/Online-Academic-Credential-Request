@@ -43,7 +43,7 @@ class Dashboard extends Component
 
         $visits = match ($this->tab) {
             'history' => VisitQueue::history($departmentId)->paginate(20),
-            'in_office' => VisitQueue::open($departmentId, VisitStatus::Received)->paginate(20),
+            'in_office' => VisitQueue::open($departmentId, ...VisitStatus::inOffice())->paginate(20),
             default => VisitQueue::open($departmentId, VisitStatus::InTransit)->paginate(20),
         };
 
@@ -51,7 +51,7 @@ class Dashboard extends Component
             'department' => $user->department,
             'visits' => $visits,
             'incomingCount' => VisitQueue::open($departmentId, VisitStatus::InTransit)->count(),
-            'inOfficeCount' => VisitQueue::open($departmentId, VisitStatus::Received)->count(),
+            'inOfficeCount' => VisitQueue::open($departmentId, ...VisitStatus::inOffice())->count(),
         ]);
     }
 }

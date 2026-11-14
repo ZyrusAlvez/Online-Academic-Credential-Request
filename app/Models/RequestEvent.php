@@ -7,6 +7,7 @@ use App\Enums\RequestStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use LogicException;
 
 /**
@@ -63,13 +64,19 @@ class RequestEvent extends Model
         return match ($this->type) {
             RequestEventType::Submitted => 'Request received for evaluation',
             RequestEventType::EvaluationStarted => 'Evaluation started by the Office of the Registrar',
-            RequestEventType::ComplianceRequested => 'Requirements incomplete – please comply in person',
+            RequestEventType::ComplianceRequested => 'Returned to you – please complete the requirements',
+            RequestEventType::Resubmitted => 'Resubmitted for evaluation',
+            RequestEventType::EvaluationReopened => 'Evaluation reopened by the Office of the Registrar',
             RequestEventType::DeficiencyResolved => 'Requirement complied with',
-            RequestEventType::CustomerActionRequested => 'Your action is needed',
+            RequestEventType::CustomerActionRequested => 'Returned to you for clarification – please correct your request',
+            RequestEventType::CredentialChanged => 'Credential changed by the requester',
             RequestEventType::CustomerResponded => 'Customer action completed',
             RequestEventType::RequirementsCompleted => 'Requirements complete',
             RequestEventType::Declined => 'Request declined',
             RequestEventType::CollegeChanged => 'College corrected by the Registrar',
+            RequestEventType::IdentityVerified => 'Valid ID verified',
+            RequestEventType::IdentityRejected => 'Valid ID not accepted – please upload another',
+            RequestEventType::IdentityResubmitted => 'Another valid ID uploaded',
             RequestEventType::PaymentSubmitted => 'Proof of payment uploaded',
             RequestEventType::PaymentRejected => 'Payment not accepted – please upload a valid proof',
             RequestEventType::PaymentVerified => 'Payment verified',
@@ -81,6 +88,7 @@ class RequestEvent extends Model
                 : "Completed by {$office}",
             RequestEventType::DocumentReturned => "Returned for correction by {$office}",
             RequestEventType::DocumentResubmitted => "Corrected and sent back by {$office}",
+            RequestEventType::Corrected => "Corrected by {$office}",
             RequestEventType::DelayRecorded => "Delay recorded at {$office}",
             RequestEventType::StepBypassed => "{$office} step bypassed by the Registrar",
             RequestEventType::ReadyForRelease => 'Ready for release at the Office of the Registrar',
@@ -90,6 +98,26 @@ class RequestEvent extends Model
             RequestEventType::Released => 'Released',
             RequestEventType::Cancelled => 'Request cancelled',
         };
+    }
+
+    /**
+     * The remarks as shown anywhere: an office visit's items are "Required", never "missing"
+     * (REQ-20-04). Entries written before 2026-11-13 say "Missing: …"; they stay as stored.
+     */
+    public function displayRemarks(): ?string
+    {
+        return $this->type === RequestEventType::ComplianceRequested && $this->remarks !== null
+            ? self::requiredWording($this->remarks)
+            : $this->remarks;
+    }
+
+    /**
+     * An office visit's older wording made current, for text copied from its ledger entry (the
+     * notification message, the activity log).
+     */
+    public static function requiredWording(string $text): string
+    {
+        return Str::replaceFirst('Missing: ', 'Required: ', $text);
     }
 
     /**

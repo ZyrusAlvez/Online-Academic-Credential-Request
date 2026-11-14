@@ -2,7 +2,6 @@
 
 namespace App\Reports;
 
-use App\Enums\RequestStatus;
 use App\Enums\VisitStatus;
 use App\Models\OfficeVisit;
 use App\Services\WorkingCalendar;
@@ -15,7 +14,7 @@ final class SignatoryReport implements Report
 {
     public function title(): string
     {
-        return 'Signatory monitoring report';
+        return 'Signatory Monitoring Report';
     }
 
     public function description(): string
@@ -32,22 +31,23 @@ final class SignatoryReport implements Report
     {
         $calendar = app(WorkingCalendar::class);
 
-        return $filter->visits()
-            ->whereIn('office_visits.status', [VisitStatus::InTransit, VisitStatus::Received])
-            ->whereHas('credentialRequest', fn ($q) => $q->whereIn('status', RequestStatus::processing()))
-            ->with(['department', 'step', 'credentialRequest.credentialType'])
+        // Listed under the office holding the paper: its sender until it is received (REQ-17-18).
+        return $filter->heldVisits()
+            ->with(['department', 'fromDepartment', 'step', 'credentialRequest.credentialType'])
             ->get()
-            ->sortBy(fn (OfficeVisit $visit) => [$visit->department->name, ($visit->received_at ?? $visit->forwarded_at)->timestamp])
+            ->sortBy(fn (OfficeVisit $visit) => [$visit->holder()->name, ($visit->received_at ?? $visit->forwarded_at)->timestamp])
             ->map(function (OfficeVisit $visit) use ($calendar): array {
                 $since = $visit->received_at ?? $visit->forwarded_at;
                 $request = $visit->credentialRequest;
 
                 return [
-                    $visit->department->name,
+                    $visit->holder()->name,
                     $request->reference_no,
                     $request->credentialType->name,
                     $visit->purpose->value === 'route' ? $visit->step->task->label() : $visit->purpose->label(),
-                    $visit->status->label(),
+                    $visit->status === VisitStatus::InTransit
+                        ? 'Forwarded to '.$visit->department->name.', not yet received'
+                        : $visit->status->label(),
                     $since->format('Y-m-d H:i'),
                     $calendar->workingDaysBetween($since, now()),
                     $request->effective_due_at?->format('Y-m-d'),

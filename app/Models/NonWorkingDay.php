@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityCategory;
 use App\Enums\NonWorkingDayKind;
+use App\Models\Concerns\LogsActivity;
 use App\Services\WorkingCalendar;
 use Database\Factories\NonWorkingDayFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,7 +21,7 @@ use Illuminate\Support\Carbon;
 class NonWorkingDay extends Model
 {
     /** @use HasFactory<NonWorkingDayFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $fillable = [
         'date',
@@ -42,5 +44,20 @@ class NonWorkingDay extends Model
     {
         static::saved(fn () => app(WorkingCalendar::class)->forget());
         static::deleted(fn () => app(WorkingCalendar::class)->forget());
+    }
+
+    public function activityCategory(): ActivityCategory
+    {
+        return ActivityCategory::Setup;
+    }
+
+    public function activityNoun(): string
+    {
+        return 'non-working day';
+    }
+
+    public function activityLabel(): string
+    {
+        return "{$this->name} ({$this->date->format('M j, Y')})";
     }
 }
