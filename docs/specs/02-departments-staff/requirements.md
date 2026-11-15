@@ -16,7 +16,7 @@ Source: *Proposed Workflow*, sections VI–VII (offices and signatories).
 ## Acceptance criteria
 
 *Since spec 18 (2026-11-07), office and account management is the Admin's, at
-`/admin/departments` and `/admin/users`. Below, read "the registrar" as "the Admin" and "a
+`/admin/departments` and `/admin/accounts` (was `/admin/users` until 2026-11-15). Below, read "the registrar" as "the Admin" and "a
 non-registrar" as "anyone but the Admin" (REQ-18-04). The Admin can also create Admin accounts
 and switch accounts to Admin (REQ-18-09).*
 
@@ -50,7 +50,8 @@ and switch accounts to Admin (REQ-18-09).*
 - **REQ-02-07** THE SYSTEM SHALL let the registrar list all accounts with search by name/email
   and filters by role and status, showing each staff member's department. The name search
   matches the first name, the last name or "first last" together (e.g. "juan dela"), as the
-  request and ID searches do.
+  request and ID searches do. The status filter starts on Active (2026-11-15); choose All
+  statuses or Inactive to see the rest. An account with no name yet shows its email alone.
 - **REQ-02-08** THE SYSTEM SHALL let the registrar create a staff account with first, middle
   (optional), last name, email, role (`department` or `registrar`), department (required for
   `department`, must be active) and an initial password; the account SHALL be pre-verified.
