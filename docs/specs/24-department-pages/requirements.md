@@ -65,10 +65,14 @@ This replaces:
   SHALL follow it there. A request that has never been sent to the office SHALL respond 404.
 - **REQ-24-07** THE request page SHALL show, in order: Request Details, Proof of Payment (only
   the verified proof; the section is left out when there is none) and Route, and below them the
-  office's action: "Acknowledge receipt" under Incoming; under To Validate the step's
-  instructions, the done button (e.g. "Signed"), Return for correction and, once done, Forward to
-  <next office>; nothing under History. It SHALL NOT show the office visits table or the
-  tracking history.
+  office's action: "Acknowledge receipt" under Incoming; under To Validate a "Decision" panel laid
+  out like the registrar's (REQ-17-02, 03): the step's instructions, when it was received, Remarks
+  with no hint, and one centred row with "Return" on the left (it opens the return dialog, REQ-05-06)
+  and "Approve" on the right (it marks the office's task done, REQ-17-06), then, once done,
+  "Forward to <next office>"; nothing under History. It SHALL NOT show the office visits table or
+  the tracking history. *(Approve and Return replace the task's done label, e.g. "Stamped", and
+  "Return for correction" on the buttons; user's request, 2026-11-15. History still says what was
+  done, e.g. "Stamped".)*
 - **REQ-24-08** Department staff SHALL be able to open the verified proof of payment of a request
   sent to their office. A proof still under review or rejected, or one of a request never sent
   to their office, SHALL respond 404.
