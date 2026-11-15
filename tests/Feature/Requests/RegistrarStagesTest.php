@@ -104,6 +104,16 @@ test('REQ-16-02 Initial Evaluation lists submitted and evaluated requests with t
         ->assertDontSee($this->request->reference_no);
 });
 
+test('REQ-16-02 an evaluator with no name yet shows by email in the queue', function () {
+    // The queue loads the evaluator with only the columns it needs; the email is one of them.
+    $unnamed = User::factory()->registrar()->create(['first_name' => null, 'middle_name' => null, 'last_name' => null, 'email' => 'new.registrar@example.com']);
+    workflow()->startEvaluation($this->request, $unnamed);
+
+    queuePage('evaluation')
+        ->assertOk()
+        ->assertSee('Evaluating: new.registrar@example.com');
+});
+
 test('REQ-16-03 Payment Validation lists the proofs to verify; the requests awaiting payment wait in their own tab', function () {
     $unpaid = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar)->fresh();
     $paying = awaitingValidation(submitRequest($this->owner, $this->org->tor));

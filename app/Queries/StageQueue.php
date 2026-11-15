@@ -25,7 +25,7 @@ final class StageQueue
     public static function for(RegistrarQueue $queue, bool $waiting = false, string $office = '', string $search = ''): Builder
     {
         $query = RegistrarRequestFilter::matching(CredentialRequest::query(), $search)->with([
-            'credentialType:id,name', 'evaluator:id,first_name,middle_name,last_name',
+            'credentialType:id,name', 'evaluator:id,first_name,middle_name,last_name,email',
             'openVisit.department:id,name,code', 'openVisit.fromDepartment:id,name', 'openVisit.step:id,task,position,department_id',
         ]);
 
