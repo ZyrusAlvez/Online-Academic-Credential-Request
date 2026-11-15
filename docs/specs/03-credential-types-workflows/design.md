@@ -11,7 +11,7 @@
 | requires_payment | boolean default false | |
 | fee | decimal(10,2) null | per request (one document); payment happens on the UPHSL portal |
 | processing_days | unsigned tinyint default 5 | processing period in **working days** (spec 10) |
-| requirements | json null | list of documentary requirements shown before submitting and used by the evaluator (spec 04) |
+| requirements | json null | list of documentary requirements: the checkboxes of Require Office Visit (REQ-20-04); not shown to requesters since 2026-11-15 (REQ-04-23) |
 | special_conditions | text null | shown before submitting |
 | requires_receiving_institution | boolean default false | transfer credentials: the receiving school's complete name is required (spec 04) |
 | is_active | boolean default true, index | |

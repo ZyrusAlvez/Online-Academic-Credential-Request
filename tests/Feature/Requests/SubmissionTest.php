@@ -78,7 +78,7 @@ test('REQ-04-01 the workflow refuses requesters without a complete profile', fun
     expect(fn () => submitRequest($incomplete, $this->org->tor))->toThrow(InvalidTransition::class);
 });
 
-test('REQ-04-02 the form shows requirements, fee, period, offices, conditions and the notice', function () {
+test('REQ-04-02 the form shows fee, period, offices, conditions and the notice, without the requirements', function () {
     $this->org->tor->update(['special_conditions' => 'Bring the original diploma.']);
 
     $page = Livewire::actingAs($this->owner)->test(Create::class)
@@ -92,7 +92,8 @@ test('REQ-04-02 the form shows requirements, fee, period, offices, conditions an
     expect(credentialCardShown($page->html(), $this->org->tor))->toBeFalse()
         ->and(credentialCardShown($page->html(), $this->org->free))->toBeFalse();
 
-    expect(requirementBlock($page->html(), $this->org->tor))->toContain('PSA-authenticated birth certificate');
+    // The documentary requirements are not listed (REQ-04-23).
+    expect($page->html())->not->toContain('Completed clearance')->not->toContain('Documentary Requirements');
 
     $card = credentialCard($page->html(), $this->org->tor);
     expect($card)->toContain('₱530.00')
@@ -111,16 +112,12 @@ test('REQ-15-15 the chosen credential\'s details show in the browser at once, wi
     // Alpine shows the card of the value chosen in the browser; the server only hears of it after
     // (to clear a fixed error, REQ-01-31).
     expect(credentialCard($html, $this->org->tor))->toContain("x-show=\"String(\$wire.form.credential_type_id ?? '') === '{$this->org->tor->id}'\"")
-        ->and(credentialCard($html, $this->org->free))->toContain("=== '{$this->org->free->id}'")
-        ->and(requirementBlock($html, $this->org->tor))->toContain("x-show=\"String(\$wire.form.credential_type_id ?? '') === '{$this->org->tor->id}'\"")
-        ->and(requirementBlockShown($html, $this->org->tor))->toBeFalse()
-        ->and($html)->toContain('Choose a credential first.');
+        ->and(credentialCardShown($html, $this->org->tor))->toBeFalse();
 
-    // A credential chosen on the server (Edit Request) starts with its requirements shown.
+    // A credential chosen on the server (Edit Request) starts with its card shown.
     $html = Livewire::actingAs($this->owner)->test(Create::class)->set('form.credential_type_id', $this->org->tor->id)->html();
-    expect(requirementBlockShown($html, $this->org->tor))->toBeTrue()
-        ->and(requirementBlockShown($html, $this->org->free))->toBeFalse()
-        ->and($html)->toMatch('/<p[^>]*style="display: none"[^>]*data-requirements-placeholder/');
+    expect(credentialCardShown($html, $this->org->tor))->toBeTrue()
+        ->and(credentialCardShown($html, $this->org->free))->toBeFalse();
 
     // The receiving-school field follows the chosen credential the same way.
     $transfer = CredentialType::factory()->withSteps([$this->org->registrarOffice])->create(['requires_receiving_institution' => true]);

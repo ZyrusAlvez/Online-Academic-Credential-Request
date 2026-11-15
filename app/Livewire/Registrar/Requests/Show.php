@@ -59,6 +59,9 @@ class Show extends Component
 
     public const PANEL_VIEW = 'view';
 
+    /** Require Office Visit: the "Other" checkbox's value among the ticked items (REQ-20-04). */
+    public const OTHER_ITEM = '__other__';
+
     /** Listed as a blocking part of Approve, not as a sentence (REQ-17-17). */
     private const RECEIPT_REQUIRED = 'Enter the official receipt number.';
 
@@ -70,13 +73,14 @@ class Show extends Component
     public string $officialReceiptNo = '';
 
     /**
-     * Require Office Visit: the credential's requirements ticked as required at the office (REQ-20-04).
+     * Require Office Visit: the credential's requirements ticked as required at the office, and
+     * OTHER_ITEM when "Other" is ticked (REQ-20-04).
      *
      * @var list<string>
      */
     public array $requiredItems = [];
 
-    /** Require Office Visit: anything else required, in the evaluator's words. */
+    /** Require Office Visit: what "Other" is, in the evaluator's words; required once it is ticked. */
     public string $otherRequirement = '';
 
     #[Locked]
@@ -215,7 +219,8 @@ class Show extends Component
     }
 
     /**
-     * Require Office Visit, from its dialog: what is required at the office and the remarks (REQ-20-04).
+     * Require Office Visit, from its dialog: what is required at the office, and optional remarks
+     * (REQ-20-04).
      */
     public function requireOfficeVisit(RequestWorkflow $workflow): void
     {
@@ -223,18 +228,20 @@ class Show extends Component
         abort_unless($this->credentialRequest->status === RequestStatus::UnderEvaluation, 404);
 
         $listed = $this->credentialRequest->credentialType->requirements ?? [];
+        $other = in_array(self::OTHER_ITEM, $this->requiredItems, true);
 
         $this->validate([
-            'requiredItems' => ['array'],
-            'requiredItems.*' => ['string', Rule::in($listed)],
-            'otherRequirement' => [Rule::requiredIf($this->requiredItems === []), 'nullable', 'string', 'max:250'],
-            'remarks' => ['required', 'string', 'max:500'],
+            'requiredItems' => ['required', 'array'],
+            'requiredItems.*' => ['string', Rule::in([...$listed, self::OTHER_ITEM])],
+            'otherRequirement' => [Rule::requiredIf($other), 'nullable', 'string', 'max:250'],
+            'remarks' => ['nullable', 'string', 'max:500'],
         ], [
-            'otherRequirement.required' => 'Tick at least one requirement, or describe it under Other.',
-            'remarks.required' => 'Write your remarks; the requester sees them.',
+            'requiredItems.required' => 'Tick at least one requirement, or Other.',
+            'otherRequirement.required' => 'Write what else is required under Other.',
         ], ['otherRequirement' => 'other requirement']);
 
-        $items = [...array_values(array_intersect($listed, $this->requiredItems)), ...(filled($this->otherRequirement) ? [$this->otherRequirement] : [])];
+        // Text typed under Other counts only while Other is ticked.
+        $items = [...array_values(array_intersect($listed, $this->requiredItems)), ...($other ? [$this->otherRequirement] : [])];
 
         if ($this->attempt(fn () => $workflow->requireOfficeVisit($this->credentialRequest, $this->actor(), $items, $this->remarks),
             'The requester was asked to visit the Office of the Registrar.')) {
@@ -349,6 +356,10 @@ class Show extends Component
             // What the requester wrote with the proof under review (REQ-04-20).
             'paymentNote' => $panel === self::PANEL_PAYMENT
                 ? (string) $request->events->last(fn ($event) => $event->type === RequestEventType::PaymentSubmitted)?->remarks
+                : '',
+            // What the requester wrote when resubmitting, for the evaluation that follows (REQ-20-14).
+            'resubmitNote' => $panel === self::PANEL_EVALUATION
+                ? (string) $request->events->last(fn ($event) => $event->type === RequestEventType::Resubmitted)?->remarks
                 : '',
         ])->title($request->reference_no);
     }

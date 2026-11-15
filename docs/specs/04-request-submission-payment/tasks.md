@@ -34,3 +34,6 @@
 - [x] Section 2 lists the requirements with the in-person note; `<x-requirement-list>` on the
       evaluation checklist, Records and the owner's page (REQ-04-22)
 - [x] Pest tests for REQ-04-22
+- [x] Remove section 2 and its summary rows; renumber the sections; delete `<x-requirement-list>`
+      and its rows on the evaluation checklist, Records and the owner's page (REQ-04-23)
+- [x] Pest tests for REQ-04-23

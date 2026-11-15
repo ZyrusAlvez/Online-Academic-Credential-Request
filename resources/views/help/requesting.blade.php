@@ -3,15 +3,14 @@
     <p>Open <a href="{{ route('student.requests.create') }}" wire:navigate>New Request</a> and fill in its sections:</p>
     <ol>
         <li><strong>What Do You Need?</strong> The credential, its purpose, and the receiving school when the credential needs one.</li>
-        <li><strong>Documentary Requirements</strong>: the list for the credential you chose. Nothing is uploaded here.</li>
         <li><strong>Personal Information</strong>, <strong>Academic Information</strong> and your <strong>Valid ID</strong>, filled in from your profile after your first request.</li>
         <li><strong>Who Will Transact?</strong> You, or an authorized representative.</li>
     </ol>
     <p>Choose <strong>Review request</strong> to see a summary, tick the data privacy box, then choose <strong>Submit request</strong>. Your request gets a tracking number such as <strong>cr26-00042</strong>; use it whenever you contact the Office of the Registrar.</p>
 </x-faq-item>
 
-<x-faq-item question="Where do I see a credential's fee, processing time and requirements?">
-    <p>Choose the credential on New Request: its card shows the fee, the processing period in working days, its documentary requirements and the offices it passes through.</p>
+<x-faq-item question="Where do I see a credential's fee and processing time?">
+    <p>Choose the credential on New Request: its card shows the fee, the processing period in working days and the offices it passes through.</p>
 </x-faq-item>
 
 <x-faq-item question="My purpose isn't in the list.">
@@ -22,9 +21,9 @@
     <p>Transfer credentials, such as a TOR for Transfer Credentials, are issued for a specific school. Give its complete name.</p>
 </x-faq-item>
 
-<x-faq-item question="How do I submit the documentary requirements?">
-    <p>You don't upload them. The Office of the Registrar checks them against your records when it evaluates your request.</p>
-    <p>If something is missing, your request page says what to bring. Submit the originals in person at the Office of the Registrar, or send the representative you named on New Request with a Special Power of Attorney (SPA) and the valid IDs of you both.</p>
+<x-faq-item question="Do I need to submit documents?">
+    <p>Not online. The Office of the Registrar checks your records when it evaluates your request.</p>
+    <p>If it needs a document from you, your request page says what to bring. Submit the originals in person at the Office of the Registrar, or send the representative you named on New Request with a Special Power of Attorney (SPA) and the valid IDs of you both.</p>
 </x-faq-item>
 
 <x-faq-item question="How do I request more than one copy?">
@@ -32,7 +31,7 @@
 </x-faq-item>
 
 <x-faq-item question="What happens after I submit?">
-    <p>The Office of the Registrar evaluates your request: your identity, your academic record, the requirements and, if you named one, your representative. It then decides one of four things, and you are notified:</p>
+    <p>The Office of the Registrar evaluates your request: your identity, your academic record and, if you named one, your representative. It then decides one of four things, and you are notified:</p>
     <ul>
         <li><strong>Approved</strong>: you get payment instructions, or, for a free credential, your request is accepted for processing right away.</li>
         <li><strong>Returned for clarification</strong>: something needs correcting. The request page says what; choose <strong>Edit Request</strong>, fix it and resubmit.</li>

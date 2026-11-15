@@ -128,43 +128,13 @@
             </div>
         </section>
 
-        {{-- The chosen credential's requirements, shown in the browser like its card (REQ-15-03, 15). --}}
-        @php($chosenId = (string) ($form->credential_type_id ?? ''))
-        <section aria-labelledby="requirements-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6" data-requirements-section>
-            <h2 id="requirements-heading" class="text-lg font-semibold text-primary">{{ __('2. Documentary Requirements') }}</h2>
-
-            <div aria-live="polite" class="text-sm">
-                <p x-show="String($wire.form.credential_type_id ?? '') === ''" @if ($chosenId !== '') style="display: none" @endif class="text-zinc-600" data-requirements-placeholder>
-                    {{ __('Choose a credential first.') }}
-                </p>
-
-                @foreach ($types as $type)
-                    <div wire:key="requirements-{{ $type->id }}" data-requirement-block="{{ $type->id }}"
-                        x-show="String($wire.form.credential_type_id ?? '') === '{{ $type->id }}'" @if ($chosenId !== (string) $type->id) x-cloak style="display: none" @endif>
-                        @if ($type->requirements)
-                            {{-- A list only: the originals are submitted in person, nothing is uploaded (REQ-04-22). --}}
-                            <div data-requirement-list>
-                                <p class="text-zinc-600">{{ __('Submit the originals in person at the Office of the Registrar.') }}</p>
-                                <ul role="list" class="mt-4 list-disc space-y-1.5 ps-5 text-ink marker:text-secondary">
-                                    @foreach ($type->requirements as $requirement)
-                                        <li>{{ $requirement }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @else
-                            <p class="text-zinc-600">{{ __('No documentary requirements.') }}</p>
-                        @endif
-                    </div>
-                @endforeach
-            </div>
-        </section>
-
-        {{-- Sections 3 to 5, filled in from the saved profile (REQ-15-03, 04). --}}
-        @include('partials.requester-profile-fields', ['prefix' => 'profile', 'fields' => $profile, 'number' => 3])
+        {{-- Sections 2 to 4, filled in from the saved profile (REQ-15-03, 04). No documentary
+             requirements are listed (REQ-04-23). --}}
+        @include('partials.requester-profile-fields', ['prefix' => 'profile', 'fields' => $profile, 'number' => 2])
 
         @unless ($editing)
         <section aria-labelledby="rep-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
-            <h2 id="rep-heading" class="text-lg font-semibold text-primary">{{ __('6. Who Will Transact?') }}</h2>
+            <h2 id="rep-heading" class="text-lg font-semibold text-primary">{{ __('5. Who Will Transact?') }}</h2>
 
             {{-- Deferred: the choice shows or hides the representative's fields in the browser at once,
                  without a trip to the server (REQ-11-11). --}}
@@ -222,10 +192,10 @@
                 <x-summary-section :heading="$heading" :rows="$rows" :level="2" />
             @endforeach
 
-            @include('partials.requester-profile-summary', ['fields' => $profile, 'number' => 3, 'level' => 2])
+            @include('partials.requester-profile-summary', ['fields' => $profile, 'number' => 2, 'level' => 2])
 
             @if ($transactSummary !== [])
-                <x-summary-section :heading="__('6. Who Will Transact?')" :rows="$transactSummary" :level="2" />
+                <x-summary-section :heading="__('5. Who Will Transact?')" :rows="$transactSummary" :level="2" />
             @endif
 
             @include('partials.privacy-consent', ['prefix' => 'profile', 'level' => 2])

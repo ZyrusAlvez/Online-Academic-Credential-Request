@@ -107,8 +107,8 @@ test('REQ-22-03 each topic answers its questions', function (HelpTopic $topic, a
         'Who can see my ID and the files I upload?', 'Why do I tick the data privacy box every time?',
     ]],
     'requesting' => [HelpTopic::Requesting, [
-        'How do I request a credential?', "Where do I see a credential's fee, processing time and requirements?", "My purpose isn't in the list.",
-        'Why does it ask for a receiving school?', 'How do I submit the documentary requirements?', 'How do I request more than one copy?',
+        'How do I request a credential?', "Where do I see a credential's fee and processing time?", "My purpose isn't in the list.",
+        'Why does it ask for a receiving school?', 'Do I need to submit documents?', 'How do I request more than one copy?',
         'What happens after I submit?', 'It says “Visit the Office of the Registrar”. What do I do?', 'Can I change a request after submitting it?', 'Can I cancel a request?',
     ]],
     'payment' => [HelpTopic::Payment, [
@@ -152,8 +152,9 @@ test('REQ-22-04 answers link to the pages they name and read the same settings a
     expect($tracking)->toContain('href="'.route('student.dashboard').'"')
         ->toContain('href="'.route('settings.notifications').'"');
 
-    // Documentary requirements are submitted in person, never uploaded (REQ-04-22).
+    // Documents are submitted in person when an office visit asks for them; no list, no upload (REQ-04-23).
     expect($get(HelpTopic::Requesting))->toContain('Submit the originals in person at the Office of the Registrar')
+        ->not->toContain('Documentary Requirements')
         ->not->toContain('files per requirement');
 });
 

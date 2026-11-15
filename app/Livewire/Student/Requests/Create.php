@@ -272,9 +272,9 @@ class Create extends Component
     }
 
     /**
-     * Sections 1 and 2 of the summary, numbered and labelled like the form (REQ-15-05, 17).
+     * Section 1 of the summary, numbered and labelled like the form (REQ-15-05, 17).
      *
-     * @return array<string, array<string, string|EmptyValue|list<string|array{name: string, size: string, href: string, download: string, type: string}>>>
+     * @return array<string, array<string, string|EmptyValue>>
      */
     protected function requestSummary(?CredentialType $type): array
     {
@@ -288,22 +288,6 @@ class Create extends Component
                 // Left blank: shown as a grey "Not provided", not as an entry (REQ-15-19).
                 $receivingLabel => filled($this->form->receiving_institution) ? $this->form->receiving_institution : EmptyValue::notProvided(),
             ],
-            __('2. Documentary Requirements') => $this->requirementSummary($type),
-        ];
-    }
-
-    /**
-     * The credential's requirements by name; they are submitted in person, so there is no file
-     * (REQ-04-22).
-     *
-     * @return array<string, EmptyValue|list<string>>
-     */
-    private function requirementSummary(?CredentialType $type): array
-    {
-        return [
-            __('Requirements') => $type !== null && $type->requirements
-                ? $type->requirements
-                : new EmptyValue(__('None for this credential')),
         ];
     }
 
@@ -330,7 +314,7 @@ class Create extends Component
     }
 
     /**
-     * Section 6 of the summary: who submits the documents and claims the credential, the SPA and
+     * Section 5 of the summary: who submits the documents and claims the credential, the SPA and
      * the representative's ID linked to the file viewer (REQ-15-17).
      *
      * @return array<string, string|EmptyValue|list<string|array{name: string, size: string, href: string, download: string, type: string}>>

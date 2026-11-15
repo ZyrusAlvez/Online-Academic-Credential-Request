@@ -34,15 +34,14 @@ identity, and My Profile in REQ-09-09/12.
 
 ### New Request
 - **REQ-15-03** THE SYSTEM SHALL show New Request as numbered sections: what you need (credential,
-  purpose, receiving school), documentary requirements (the chosen credential's list,
-  REQ-04-22), personal information (first, middle (optional) and last name, contact number),
-  academic information (the fields of REQ-01-16), valid ID, and who will transact, followed by the
-  *Incomplete requirements* notice; the personal and academic sections SHALL start filled in from
-  the requester's saved profile. *(User's decision, 2026-11-10: documentary requirements are
-  section 2, no longer inside the credential's card.)*
+  purpose, receiving school), personal information (first, middle (optional) and last name,
+  contact number), academic information (the fields of REQ-01-16), valid ID, and who will
+  transact, numbered 1 to 5, followed by the *Incomplete requirements* notice; the personal and
+  academic sections SHALL start filled in from the requester's saved profile. *(User's decision,
+  2026-11-15: the "2. Documentary Requirements" section, added 2026-11-10, is removed, REQ-04-23.)*
 - **REQ-15-15** WHEN a credential is chosen on New Request THE SYSTEM SHALL show its details card
-  (REQ-09-11), its documentary requirements and the matching receiving-school field at once, in the
-  browser, without waiting for the server.
+  (REQ-09-11) and the matching receiving-school field at once, in the browser, without waiting for
+  the server.
 - **REQ-15-16** THE credential dropdown on New Request SHALL open just below the field as a list of
   limited height that scrolls, with a search box that filters it by name, so that every credential
   can be seen and chosen on any screen; it SHALL work with the keyboard (arrows, Enter, Escape) and
@@ -73,15 +72,14 @@ identity, and My Profile in REQ-09-09/12.
   unticked checkbox on every summary and SHALL NOT submit (the button stays disabled, and the server
   refuses) until it is ticked; the first consent's time is recorded on the account.
 - **REQ-15-17** THE request summary SHALL repeat the form's numbered sections (1. What Do You
-  Need? to 6. Who Will Transact?, or 1 to 5 on Edit Request), each entry as a row with its label
-  on the left and its value on the right (stacked on narrow screens), section 2 listing the
-  credential's requirements by name (REQ-04-22: nothing is uploaded for them, *2026-11-15*), and
-  section 6 the representative's name, relationship, contact number, and the SPA and their ID as
+  Need? to 5. Who Will Transact?, or 1 to 4 on Edit Request; no documentary requirements,
+  REQ-04-23, *2026-11-15*), each entry as a row with its label on the left and its value on the
+  right (stacked on narrow screens), and
+  section 5 the representative's name, relationship, contact number, and the SPA and their ID as
   file names with sizes, each name a link that opens the file in the file viewer (*user's
   request, 2026-11-11*). "Summary" SHALL be the page's title, in place of
   the form's title and description. *(User's request, 2026-11-10.)*
-- **REQ-15-19** WHERE a summary row has nothing to show ("Not provided", "None for this
-  credential") THE SYSTEM SHALL write that text in italics and grey
+- **REQ-15-19** WHERE a summary row has nothing to show ("Not provided") THE SYSTEM SHALL write that text in italics and grey
   (`text-zinc-600`), unlike an entered value, so that it is never mistaken for one (a receiving
   school typed as "Not provided" stays plain). This applies to the summaries of New Request, Edit
   Request and Settings → Profile. *(User's request, 2026-11-11.)*

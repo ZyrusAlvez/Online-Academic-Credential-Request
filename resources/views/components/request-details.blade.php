@@ -1,7 +1,7 @@
 @props(['request'])
 
 {{-- A request's details as rows, the field's name left and its value right (REQ-09-22). The slot
-     adds rows of the page's own (the valid ID, the documentary requirements) to the same list. --}}
+     adds rows of the page's own (the valid ID) to the same list. --}}
 <dl {{ $attributes->class('divide-y divide-zinc-200 text-sm') }} data-request-details>
     <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
     <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>

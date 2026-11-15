@@ -245,10 +245,6 @@ class RequestWorkflow
             throw new InvalidTransition('Tick at least one requirement, so the requester knows what to bring.');
         }
 
-        if (blank($remarks)) {
-            throw new InvalidTransition('Tell the requester what to bring.');
-        }
-
         DB::transaction(function () use ($request, $registrar, $items, $remarks): void {
             $locked = $this->lock($request, [RequestStatus::UnderEvaluation], 'Only a request under evaluation can require an office visit.');
             $this->assertEvaluator($locked, $registrar);
@@ -260,8 +256,8 @@ class RequestWorkflow
             }
 
             $this->transition($locked, $request, RequestStatus::PendingCompliance, $registrar, RequestEventType::ComplianceRequested,
-                // "Required": a copy may already be uploaded; the office needs the original.
-                'Required: '.implode('; ', $items)."\n{$remarks}");
+                // "Required", never "missing": the office needs the original. Remarks are optional.
+                'Required: '.implode('; ', $items).(filled($remarks) ? "\n".trim($remarks) : ''));
         });
     }
 

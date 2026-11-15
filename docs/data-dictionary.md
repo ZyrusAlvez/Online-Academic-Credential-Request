@@ -126,7 +126,7 @@ The credential master list (spec 03): documents requesters can ask for. Never de
 | requires_payment | tinyint(1) | No | | 0 | 1 = student must pay on the UPHSL portal and upload a receipt |
 | fee | decimal(10,2) | Yes | | | Fee in pesos for one document; only kept when payment is required |
 | processing_days | tinyint unsigned | No | | 5 | Processing period in working days (spec 10), used for the due date |
-| requirements | json | Yes | | | List of documentary requirements, shown before submitting and checked by the evaluator |
+| requirements | json | Yes | | | List of documentary requirements, offered as the checkboxes of Require Office Visit |
 | special_conditions | text | Yes | | | Shown before submitting |
 | requires_receiving_institution | tinyint(1) | No | | 0 | 1 = transfer credential: the receiving school's complete name is required |
 | is_active | tinyint(1) | No | IX | 1 | Inactive types cannot be requested |
