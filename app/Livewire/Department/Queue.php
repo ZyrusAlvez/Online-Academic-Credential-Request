@@ -117,6 +117,36 @@ class Queue extends Component
     }
 
     /**
+     * To Forward: a row's "Forward to <next office>" button sends that one document on, as the
+     * registrar's In Progress row does (REQ-24-10, REQ-17-12).
+     */
+    public function forwardOne(int $visitId, RequestWorkflow $workflow): void
+    {
+        abort_unless($this->list === DepartmentQueue::ToForward, 404);
+
+        $visit = OfficeVisit::query()
+            ->whereKey($visitId)
+            ->where('department_id', $this->actor()->department_id)
+            ->with(['department', 'step', 'credentialRequest.steps.department'])
+            ->first();
+        abort_if($visit === null, 404);
+        $this->authorize('forward', $visit);
+
+        $next = $visit->nextStep()?->department?->name;
+
+        try {
+            $workflow->forwardDocument($visit, $this->actor());
+        } catch (InvalidTransition $e) {
+            $this->dispatch('notify', message: $e->getMessage());
+
+            return;
+        }
+
+        $this->selected = array_values(array_diff(array_map(strval(...), $this->selected), [(string) $visitId]));
+        $this->dispatch('notify', message: $next !== null ? "Forwarded to {$next}. The office confirms when it arrives." : 'Forwarded.');
+    }
+
+    /**
      * Run a transition on each ticked visit of this office in the given state that the policy
      * allows. Each is its own transaction, so one a colleague already handled is only counted.
      *

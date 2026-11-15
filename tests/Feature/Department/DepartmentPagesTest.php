@@ -217,6 +217,27 @@ test('REQ-24-10 To Forward sends the ticked approved documents on at once; the b
     officeList('incoming')->call('forward')->assertNotFound();
 });
 
+test('REQ-24-10 each To Forward row is a Forward to <next office> button for that document', function () {
+    $request = sentToDean();
+    workflow()->acceptReceipt(openVisit($request), $this->dean);
+    workflow()->completeVisit($visit = openVisit($request), $this->dean);
+
+    officeList('to_forward')
+        ->assertSeeInOrder([$request->reference_no, 'data-forward-row', 'Forward to Office of the VP for Finance'], false)
+        ->call('forwardOne', $visit->id)->assertDispatched('notify', message: 'Forwarded to Office of the VP for Finance. The office confirms when it arrives.')
+        ->assertDontSee($request->reference_no);
+
+    expect(openVisit($request))->department_id->toBe($this->org->vpf->id)->status->toBe(VisitStatus::InTransit);
+
+    // Another office's document, or outside To Forward: refused.
+    $other = sentToDean();
+    workflow()->acceptReceipt(openVisit($other), $this->dean);
+    workflow()->completeVisit($otherVisit = openVisit($other), $this->dean);
+    officeList('to_forward', $this->vpf)->call('forwardOne', $otherVisit->id)->assertNotFound();
+    officeList('to_validate')->call('forwardOne', $otherVisit->id)->assertNotFound();
+    expect(openVisit($other)->status)->toBe(VisitStatus::Done);
+});
+
 // ── The request page ───────────────────────────────────────────────────────────────────────
 
 test('REQ-24-06 a request opens under its list, moves with it, and the former address leads there', function () {
@@ -234,9 +255,11 @@ test('REQ-24-06 a request opens under its list, moves with it, and the former ad
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh(), 'queue' => 'to_validate'])
         ->call('completeVisit')->assertRedirect(route('department.to-forward.show', $request));
 
+    // To Forward: no panel on the page; the row forwards it, then it is History (REQ-24-07, 10).
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh(), 'queue' => 'to_forward'])
-        ->assertSee('Forward to Office of the VP for Finance')
-        ->call('forwardDocument')->assertRedirect(route('department.history.show', $request));
+        ->assertSee('Request Details')->assertDontSee('data-office-action', false)->assertDontSee('Forward to');
+    officeList('to_forward')->call('forwardOne', $request->visits()->where('department_id', $this->org->ccs->id)->sole()->id);
+    $this->actingAs($this->dean)->get(route('department.to-forward.show', $request))->assertRedirect(route('department.history.show', $request));
 
     // Never sent to the office: 404, at either address.
     $elsewhere = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
