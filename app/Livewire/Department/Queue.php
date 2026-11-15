@@ -10,6 +10,7 @@ use App\Models\OfficeVisit;
 use App\Models\User;
 use App\Queries\VisitQueue;
 use App\Services\RequestWorkflow;
+use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -19,8 +20,8 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
- * One of a department office's lists: Incoming, To Validate or History; the route chooses which
- * (REQ-24-01..05).
+ * One of a department office's lists: Incoming, To Validate, To Forward or History; the route
+ * chooses which (REQ-24-01..05, 10).
  */
 class Queue extends Component
 {
@@ -45,7 +46,7 @@ class Queue extends Component
     public string $direction = '';
 
     /**
-     * Incoming: the visits ticked for Acknowledge receipt (REQ-24-05).
+     * Incoming and To Forward: the visits ticked for Acknowledge receipt or Forward (REQ-24-05, 10).
      *
      * @var list<int|string>
      */
@@ -93,6 +94,37 @@ class Queue extends Component
     {
         abort_unless($this->list === DepartmentQueue::Incoming, 404);
 
+        $done = $this->eachSelected(VisitStatus::InTransit, 'act', fn (OfficeVisit $visit, User $actor) => $workflow->acceptReceipt($visit, $actor));
+
+        $this->report($done,
+            'Receipt acknowledged for :count document.|Receipt acknowledged for :count documents.',
+            ':count not acknowledged: already received, or no longer sent here.|:count not acknowledged: already received, or no longer sent here.');
+    }
+
+    /**
+     * To Forward: send every ticked document the office approved and still holds to its next
+     * office, which accepts its receipt there (REQ-24-10, REQ-17-07).
+     */
+    public function forward(RequestWorkflow $workflow): void
+    {
+        abort_unless($this->list === DepartmentQueue::ToForward, 404);
+
+        $done = $this->eachSelected(VisitStatus::Done, 'forward', fn (OfficeVisit $visit, User $actor) => $workflow->forwardDocument($visit, $actor));
+
+        $this->report($done,
+            'Forwarded :count document.|Forwarded :count documents.',
+            ':count not forwarded: already forwarded, or no longer here.|:count not forwarded: already forwarded, or no longer here.');
+    }
+
+    /**
+     * Run a transition on each ticked visit of this office in the given state that the policy
+     * allows. Each is its own transaction, so one a colleague already handled is only counted.
+     *
+     * @param  Closure(OfficeVisit, User): void  $transition
+     * @return int how many ran
+     */
+    private function eachSelected(VisitStatus $status, string $ability, Closure $transition): int
+    {
         $this->validate([
             'selected' => ['required', 'array', 'max:100'],
             'selected.*' => ['integer'],
@@ -105,28 +137,33 @@ class Queue extends Component
             ->with(['department', 'step', 'credentialRequest'])
             ->get();
 
-        $received = 0;
+        $done = 0;
 
         foreach ($visits as $visit) {
-            if ($visit->status !== VisitStatus::InTransit || Gate::denies('act', $visit)) {
+            if ($visit->status !== $status || Gate::denies($ability, $visit)) {
                 continue;
             }
 
             try {
-                $workflow->acceptReceipt($visit, $actor);
-                $received++;
+                $transition($visit, $actor);
+                $done++;
             } catch (InvalidTransition) {
-                // A colleague received it first: counted below as not acknowledged.
+                // A colleague got there first: counted as not done.
             }
         }
 
-        $skipped = count($this->selected) - $received;
+        return $done;
+    }
+
+    private function report(int $done, string $doneText, string $skippedText): void
+    {
+        $skipped = count($this->selected) - $done;
         $this->selected = [];
 
-        $message = trans_choice('Receipt acknowledged for :count document.|Receipt acknowledged for :count documents.', $received);
+        $message = trans_choice($doneText, $done);
 
         if ($skipped > 0) {
-            $message .= ' '.trans_choice(':count not acknowledged: already received, or no longer sent here.|:count not acknowledged: already received, or no longer sent here.', $skipped);
+            $message .= ' '.trans_choice($skippedText, $skipped);
         }
 
         $this->dispatch('notify', message: $message);

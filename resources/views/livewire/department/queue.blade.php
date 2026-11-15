@@ -3,7 +3,8 @@
     use App\Enums\VisitPurpose;
     use App\Enums\VisitStatus;
 
-    $incoming = $queue === Q::Incoming;
+    $bulk = $queue->hasCheckboxes();
+    $toForward = $queue === Q::ToForward;
     $history = $queue === Q::History;
     $allTicked = $pageIds !== [] && array_diff($pageIds, array_map('strval', $selected)) === [];
 @endphp
@@ -17,7 +18,7 @@
         </flux:callout>
     @endunless
 
-    {{-- Search and filter on the left, Acknowledge receipt on the right (wraps on small screens). --}}
+    {{-- Search and filter on the left, the bulk action on the right (wraps on small screens). --}}
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div class="grid w-full gap-3 sm:w-auto sm:grid-cols-2" data-queue-search>
             <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" label:sr-only :placeholder="__('Tracking no. or name')" clearable class="sm:w-64" />
@@ -29,17 +30,23 @@
             </flux:select>
         </div>
 
-        @if ($incoming)
+        @if ($queue === Q::Incoming)
             <flux:button variant="primary" icon="inbox-arrow-down" wire:click="acknowledge" :disabled="$selected === []" data-acknowledge
                 data-confirm-title="{{ __('Acknowledge receipt') }}" data-confirm-label="{{ __('Acknowledge') }}" :wire:confirm="trans_choice('Acknowledge receipt of :count document?|Acknowledge receipt of :count documents?', count($selected))">
                 {{ $selected === [] ? __('Acknowledge receipt') : __('Acknowledge receipt (:count)', ['count' => count($selected)]) }}
+            </flux:button>
+        @elseif ($toForward)
+            {{-- Each goes to its own next office (REQ-24-10). --}}
+            <flux:button variant="primary" icon="paper-airplane" wire:click="forward" :disabled="$selected === []" data-forward-selected
+                data-confirm-title="{{ __('Forward documents') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="trans_choice('Forward :count document to its next office?|Forward :count documents to their next offices?', count($selected))">
+                {{ $selected === [] ? __('Forward') : __('Forward (:count)', ['count' => count($selected)]) }}
             </flux:button>
         @endif
     </div>
 
     <flux:table :paginate="$visits">
         <flux:table.columns>
-            @if ($incoming)
+            @if ($bulk)
                 <flux:table.column class="w-8">
                     <input type="checkbox" class="size-4 cursor-pointer accent-primary" aria-label="{{ __('Select every document on this page') }}"
                         wire:click="togglePage(@js($pageIds))" @checked($allTicked) @disabled($pageIds === []) data-select-page>
@@ -49,6 +56,8 @@
             <flux:table.column sortable :sorted="$sortColumn === 'requester'" :direction="$sortDirection" wire:click="sortBy('requester')" class="cursor-pointer max-md:hidden">{{ __('Requester') }}</flux:table.column>
             @if ($history)
                 <flux:table.column>{{ __('Action') }}</flux:table.column>
+            @elseif ($toForward)
+                <flux:table.column>{{ __('Next') }}</flux:table.column>
             @endif
             <flux:table.column sortable :sorted="$sortColumn === 'since'" :direction="$sortDirection" wire:click="sortBy('since')" class="cursor-pointer">{{ $history ? __('Date') : __('Since') }}</flux:table.column>
         </flux:table.columns>
@@ -57,7 +66,7 @@
             @forelse ($visits as $visit)
                 @php($request = $visit->credentialRequest)
                 <flux:table.row :key="$visit->id">
-                    @if ($incoming)
+                    @if ($bulk)
                         <flux:table.cell>
                             <input type="checkbox" class="size-4 cursor-pointer accent-primary" value="{{ $visit->id }}" wire:model.live="selected"
                                 aria-label="{{ __('Select :ref', ['ref' => $request->reference_no]) }}" data-select-row>
@@ -91,13 +100,12 @@
                             @endif
                         </flux:table.cell>
                     @else
+                        @if ($toForward)
+                            <flux:table.cell class="whitespace-normal" data-next-office>{{ $visit->nextStep()?->department?->name ?? '—' }}</flux:table.cell>
+                        @endif
                         <flux:table.cell class="text-zinc-700">
-                            @php($since = $incoming ? $visit->forwarded_at : ($visit->done_at ?? $visit->received_at))
+                            @php($since = match ($queue) { Q::Incoming => $visit->forwarded_at, Q::ToForward => $visit->done_at, default => $visit->received_at })
                             <time datetime="{{ $since->toIso8601String() }}" title="{{ $since->format('M j, Y g:i A') }}">{{ $since->diffForHumans(short: true) }}</time>
-                            @if ($visit->status === VisitStatus::Done)
-                                {{-- Done but the paper has not left yet (REQ-17-15). --}}
-                                <flux:badge size="sm" :color="$visit->status->color()" class="mt-1" data-done>{{ __($visit->status->label()) }}</flux:badge>
-                            @endif
                         </flux:table.cell>
                     @endif
                 </flux:table.row>

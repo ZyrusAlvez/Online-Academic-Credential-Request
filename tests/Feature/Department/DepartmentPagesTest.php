@@ -42,10 +42,14 @@ function officeList(string $queue, ?User $user = null, array $query = []): Testa
 
 // ── The lists ──────────────────────────────────────────────────────────────────────────────
 
-test('REQ-24-01 the sidebar shows Incoming, To Validate and History with counts; /department leads to Incoming', function () {
+test('REQ-24-01 the sidebar shows Incoming, To Validate, To Forward and History with counts; /department leads to Incoming', function () {
     sentToDean();
     $received = sentToDean();
     workflow()->acceptReceipt(openVisit($received), $this->dean);
+    foreach ([sentToDean(), sentToDean()] as $approved) {
+        workflow()->acceptReceipt(openVisit($approved), $this->dean);
+        workflow()->completeVisit(openVisit($approved), $this->dean);
+    }
 
     $html = $this->actingAs($this->dean)->get(route('department.incoming'))->assertOk()->getContent();
     // The sidebar link's text: its label, then its count.
@@ -57,17 +61,19 @@ test('REQ-24-01 the sidebar shows Incoming, To Validate and History with counts;
 
     expect($html)->toContain('href="'.route('department.incoming').'"')
         ->toContain('href="'.route('department.to-validate').'"')
+        ->toContain('href="'.route('department.to-forward').'"')
         ->toContain('href="'.route('department.history').'"')
         ->not->toContain('Office Queue')
         ->and($link('incoming'))->toBe('Incoming 1')
         ->and($link('to_validate'))->toBe('To Validate 1')
+        ->and($link('to_forward'))->toBe('To Forward 2')
         ->and($link('history'))->toBe('History');
 
     $this->actingAs($this->dean)->get('/department')->assertRedirect('/department/incoming');
     $this->actingAs($this->dean)->get('/dashboard')->assertRedirect(route('department.incoming'));
 });
 
-test('REQ-24-02 Incoming lists papers sent to the office; To Validate those in it, done ones marked', function () {
+test('REQ-24-02 Incoming lists papers sent to the office; To Validate those to approve; To Forward the approved ones', function () {
     $incoming = sentToDean();
     $inOffice = sentToDean();
     workflow()->acceptReceipt(openVisit($inOffice), $this->dean);
@@ -81,9 +87,14 @@ test('REQ-24-02 Incoming lists papers sent to the office; To Validate those in i
         ->assertSee(route('department.incoming.show', $incoming), false);
 
     officeList('to_validate')
-        ->assertSee($inOffice->reference_no)->assertSee($done->reference_no)->assertDontSee($incoming->reference_no)
-        ->assertSee('Done, not yet forwarded')
+        ->assertSee($inOffice->reference_no)->assertDontSee($done->reference_no)->assertDontSee($incoming->reference_no)
         ->assertSee(route('department.to-validate.show', $inOffice), false);
+
+    officeList('to_forward')
+        ->assertSeeInOrder(['Request', 'Requester', 'Next', 'Since'])
+        ->assertSee($done->reference_no)->assertDontSee($inOffice->reference_no)->assertDontSee($incoming->reference_no)
+        ->assertSeeInOrder([$done->reference_no, 'Office of the VP for Finance'])
+        ->assertSee(route('department.to-forward.show', $done), false);
 
     // Another office sees none of them.
     officeList('incoming', $this->vpf)->assertDontSee($incoming->reference_no);
@@ -161,9 +172,49 @@ test('REQ-24-05 Incoming acknowledges the ticked documents at once; the button w
         ->assertDispatched('notify', message: 'Receipt acknowledged for 1 document. 1 not acknowledged: already received, or no longer sent here.');
     expect(openVisit($atVpf)->status)->toBe(VisitStatus::InTransit);
 
-    // No checkboxes elsewhere, and no acknowledging there.
+    // No checkboxes on To Validate or History, and no acknowledging outside Incoming.
     officeList('to_validate')->assertDontSeeHtml('data-select-row')->assertDontSeeHtml('data-acknowledge');
-    officeList('history')->call('acknowledge')->assertNotFound();
+    officeList('history')->assertDontSeeHtml('data-select-row')->call('acknowledge')->assertNotFound();
+    officeList('to_forward')->call('acknowledge')->assertNotFound();
+});
+
+test('REQ-24-10 To Forward sends the ticked approved documents on at once; the button waits for a tick', function () {
+    $approved = function (): CredentialRequest {
+        $request = sentToDean();
+        workflow()->acceptReceipt(openVisit($request), $this->dean);
+        workflow()->completeVisit(openVisit($request), $this->dean);
+
+        return $request;
+    };
+    $a = $approved();
+    $b = $approved();
+    $notYet = sentToDean();
+    workflow()->acceptReceipt(openVisit($notYet), $this->dean);   // received, not approved
+
+    $page = officeList('to_forward')->assertSeeHtml('data-select-page')->assertSeeHtml('data-select-row');
+    expect($page->html())->toMatch('#<button(?=[^>]*\sdisabled)(?=[^>]*data-forward-selected)[^>]*>#');
+
+    $page->set('selected', [(string) openVisit($a)->id, (string) openVisit($b)->id])
+        ->assertSee('Forward (2)')
+        ->call('forward')->assertDispatched('notify', message: 'Forwarded 2 documents.')
+        ->assertSet('selected', []);
+
+    foreach ([$a, $b] as $request) {
+        expect(openVisit($request))->department_id->toBe($this->org->vpf->id)->status->toBe(VisitStatus::InTransit)
+            ->and($request->visits()->where('department_id', $this->org->ccs->id)->sole())->completed_by->toBe($this->dean->id);
+    }
+    officeList('incoming', $this->vpf)->assertSee($a->reference_no)->assertSee($b->reference_no);
+
+    // Not approved, or another office's: skipped, never forwarded.
+    $c = $approved();
+    officeList('to_forward')->set('selected', [(string) openVisit($notYet)->id, (string) openVisit($a)->id, (string) openVisit($c)->id])->call('forward')
+        ->assertDispatched('notify', message: 'Forwarded 1 document. 2 not forwarded: already forwarded, or no longer here.');
+    expect(openVisit($notYet)->status)->toBe(VisitStatus::Received)
+        ->and(openVisit($a)->status)->toBe(VisitStatus::InTransit)
+        ->and(openVisit($c)->department_id)->toBe($this->org->vpf->id);
+
+    officeList('to_forward')->call('forward')->assertHasErrors(['selected']);
+    officeList('incoming')->call('forward')->assertNotFound();
 });
 
 // ── The request page ───────────────────────────────────────────────────────────────────────
@@ -181,7 +232,10 @@ test('REQ-24-06 a request opens under its list, moves with it, and the former ad
         ->call('acceptReceipt')->assertRedirect(route('department.to-validate.show', $request));
 
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh(), 'queue' => 'to_validate'])
-        ->call('completeVisit')->assertNoRedirect()
+        ->call('completeVisit')->assertRedirect(route('department.to-forward.show', $request));
+
+    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh(), 'queue' => 'to_forward'])
+        ->assertSee('Forward to Office of the VP for Finance')
         ->call('forwardDocument')->assertRedirect(route('department.history.show', $request));
 
     // Never sent to the office: 404, at either address.

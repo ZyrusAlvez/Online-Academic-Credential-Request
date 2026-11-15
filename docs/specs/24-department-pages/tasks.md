@@ -11,7 +11,7 @@
 
 ## To Forward (2026-11-15)
 
-- [ ] `DepartmentQueue::ToForward` (done visits); To Validate keeps the received ones only (REQ-24-01, 02)
-- [ ] To Forward list with Next, checkboxes and a bulk Forward, like Incoming (REQ-24-10)
-- [ ] Its request page offers Forward to <next office> (REQ-24-07)
-- [ ] Pest tests for REQ-24-10 and the changed REQ-24-01, 02, 07; REQ-17-15 test on To Forward
+- [x] `DepartmentQueue::ToForward` (done visits); To Validate keeps the received ones only (REQ-24-01, 02)
+- [x] To Forward list with Next, checkboxes and a bulk Forward, like Incoming (REQ-24-10)
+- [x] Its request page offers Forward to <next office> (REQ-24-07)
+- [x] Pest tests for REQ-24-10 and the changed REQ-24-01, 02, 07; REQ-17-15 test on To Forward
