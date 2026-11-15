@@ -251,7 +251,7 @@ test('REQ-09-21 the list is "Request Tracker", request pages live under /student
     $this->get(route('student.requests.create'))->assertOk()->assertDontSeeHtml('data-flux-breadcrumbs')->assertDontSee('My Requests');
 });
 
-test('REQ-09-22 the request page lists details as label/value rows, the ID and requirement files included, with Tracking History last', function () {
+test('REQ-09-22 the request page lists details as label/value rows, the ID and the requirements included, with Tracking History last', function () {
     $org = organisation();
     $owner = requester($org->ccs);
     $request = submitRequest($owner, $org->tor);
@@ -261,8 +261,9 @@ test('REQ-09-22 the request page lists details as label/value rows, the ID and r
 
     expect($details)->toMatch('#<dt class="text-zinc-600">Credential</dt>\s*<dd[^>]*>\s*Transcript of Records#')
         ->toMatch('#<dt class="text-zinc-600">Valid ID</dt>#')
-        // A requirement with no file is a row whose value is a grey "No file uploaded".
-        ->toMatch('#<dt class="text-zinc-600">Completed clearance</dt>\s*<dd[^>]*>\s*(<!--\[if BLOCK\]><!\[endif\]-->)?\s*<span class="font-normal text-zinc-600 italic" data-empty-value>No file uploaded</span>#');
+        // The credential's requirements are one row, listed by name; nothing is uploaded (REQ-04-22).
+        ->toMatch('#<dt class="text-zinc-600">Documentary requirements</dt>\s*<dd[^>]*>.*?<li>Completed clearance</li>#s')
+        ->not->toContain('No file uploaded');
 
     // Tracking History is the page's last section.
     preg_match_all('/<h2 id="([a-z-]+)-heading"/', $html, $headings);

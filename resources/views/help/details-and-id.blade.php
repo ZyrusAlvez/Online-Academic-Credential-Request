@@ -39,7 +39,7 @@
 </x-faq-item>
 
 <x-faq-item question="Who can see my ID and the files I upload?">
-    <p>Only you and the staff of the Office of the Registrar (and the system's administrators). Your ID, the copies of your requirements, an SPA and your proof of payment are stored privately and are never shown to the offices that sign your credential or to other requesters.</p>
+    <p>Only you and the staff of the Office of the Registrar (and the system's administrators). Your ID, an SPA and your proof of payment are stored privately and are never shown to the offices that sign your credential or to other requesters.</p>
 </x-faq-item>
 
 <x-faq-item question="Why do I tick the data privacy box every time?">

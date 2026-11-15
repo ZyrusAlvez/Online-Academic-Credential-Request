@@ -130,16 +130,17 @@ test('REQ-09-14 a PDF is shown from the browser\'s copy, so a preview served as 
 });
 
 test('REQ-09-14 a file chosen on New Request downloads through its signed preview, unchanged', function () {
-    $tor = $this->org->tor;
+    // The SPA of a representative: on the summary its name opens the signed preview.
     $form = Livewire::actingAs($this->owner)->test(Create::class)
-        ->set('form.credential_type_id', $tor->id)
+        ->set('form.credential_type_id', $this->org->tor->id)
         ->set('form.purpose', 'Employment abroad')
-        ->set("requirementFiles.{$tor->id}.0", [UploadedFile::fake()->create('clearance.pdf', 200, 'application/pdf')]);
+        ->set('form.requester_mode', 'representative')
+        ->set('form.representative_name', 'Pedro Santos')
+        ->set('spa', UploadedFile::fake()->create('spa.pdf', 200, 'application/pdf'))
+        ->set('representativeId', UploadedFile::fake()->create('pedro-id.pdf', 100, 'application/pdf'));
 
-    // In its field, and on the summary.
-    foreach ([$form->html(), Str::after($form->call('review')->assertHasNoErrors()->html(), 'data-summary-title')] as $html) {
-        expect($html)->toMatch("#\\\$dispatch\('open-file', \{ url: '([^']*preview-file[^']*)'[^}]*download: '\\1' \}\)#");
-    }
+    expect(Str::after($form->call('review')->assertHasNoErrors()->html(), 'data-summary-title'))
+        ->toMatch("#\\\$dispatch\('open-file', \{ url: '([^']*preview-file[^']*)'[^}]*download: '\\1' \}\)#");
 });
 
 test('REQ-09-15 a file is served inline for the viewer, or as a download when asked', function () {

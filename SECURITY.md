@@ -55,15 +55,16 @@ made twice:
 |---|---|
 | Requesters see only their own requests and files | Anyone else gets **404 Not Found**, not 403, so reference numbers and file IDs can't be probed (`denyAsNotFound`) |
 | Department staff see only requests sent to their office | Checked against the request's office visits |
-| Uploaded files are staff-only | IDs, proofs of payment, SPAs and requirement copies: the owner, the Registrar and the Admin. Department staff never see them |
+| Uploaded files are staff-only | IDs, proofs of payment and SPAs: the owner, the Registrar and the Admin. Department staff never see them |
 | Actions follow the workflow | A requester can edit only a request returned for clarification, cancel only before acceptance, and pay only while payment is awaited. Only the Registrar releases, and only when the request is ready |
 | One evaluator at a time | Another registrar can't act on a request someone else is evaluating (REQ-16-09) |
 | Status changes go through one place | `App\Services\RequestWorkflow` is the only code that changes a request's or step's status. It checks the transition is allowed and writes the ledger |
 
 ## 3. Uploaded files
 
-The only uploads are a requester's valid ID, a representative's SPA and IDs, optional copies of
-documentary requirements, and proofs of payment. No credential documents are ever transferred.
+The only uploads are a requester's valid ID, a representative's SPA and IDs, and proofs of
+payment. Documentary requirements are submitted in person and never uploaded (REQ-04-22). No
+credential documents are ever transferred.
 
 | Protection | How |
 |---|---|

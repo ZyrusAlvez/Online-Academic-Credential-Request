@@ -2,7 +2,6 @@
 
 use App\Enums\HelpTopic;
 use App\Models\IdentityDocument;
-use App\Models\RequestDocument;
 use App\Models\User;
 use Illuminate\Support\Str;
 
@@ -109,7 +108,7 @@ test('REQ-22-03 each topic answers its questions', function (HelpTopic $topic, a
     ]],
     'requesting' => [HelpTopic::Requesting, [
         'How do I request a credential?', "Where do I see a credential's fee, processing time and requirements?", "My purpose isn't in the list.",
-        'Why does it ask for a receiving school?', 'Do I have to upload the documentary requirements?', 'How do I request more than one copy?',
+        'Why does it ask for a receiving school?', 'How do I submit the documentary requirements?', 'How do I request more than one copy?',
         'What happens after I submit?', 'It says “Visit the Office of the Registrar”. What do I do?', 'Can I change a request after submitting it?', 'Can I cancel a request?',
     ]],
     'payment' => [HelpTopic::Payment, [
@@ -153,7 +152,9 @@ test('REQ-22-04 answers link to the pages they name and read the same settings a
     expect($tracking)->toContain('href="'.route('student.dashboard').'"')
         ->toContain('href="'.route('settings.notifications').'"');
 
-    expect($get(HelpTopic::Requesting))->toContain('up to '.RequestDocument::MAX_PER_REQUIREMENT.' files per requirement');
+    // Documentary requirements are submitted in person, never uploaded (REQ-04-22).
+    expect($get(HelpTopic::Requesting))->toContain('Submit the originals in person at the Office of the Registrar')
+        ->not->toContain('files per requirement');
 });
 
 test('REQ-22-05 every help page ends with where to ask anything else', function () {

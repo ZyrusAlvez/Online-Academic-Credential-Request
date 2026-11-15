@@ -250,10 +250,11 @@ test('REQ-15-17 the summary repeats the form\'s six numbered sections, each entr
 test('REQ-15-19 empty summary values are grey italics, and a typed "Not provided" stays plain', function () {
     $empty = fn (string $text): string => '<span class="font-normal text-zinc-600 italic" data-empty-value>'.$text.'</span>';
 
-    // Nothing typed for the receiving school, and no files chosen for the TOR's requirements.
+    // Nothing typed for the receiving school. The TOR's requirements are listed by name, with no
+    // "No files" beside them: nothing is uploaded for them (REQ-04-22).
     $summary = Str::after(reviewRequest($this->newcomer)->html(), 'data-summary-title');
     expect($summary)->toMatch('#Receiving school[^<]*</dt>\s*<dd[^>]*>(<!--\[if BLOCK\]><!\[endif\]-->)?\s*'.preg_quote($empty('Not provided'), '#').'#')
-        ->and($summary)->toContain($empty('No files'));
+        ->and($summary)->not->toContain('No files');
 
     // The requester typed the words themselves: an entry, shown like any other.
     $summary = Str::after(reviewRequest($this->newcomer, ['form.receiving_institution' => 'Not provided'])->html(), 'data-summary-title');

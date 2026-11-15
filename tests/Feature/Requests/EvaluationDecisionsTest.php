@@ -4,7 +4,6 @@ use App\Enums\ActivityCategory;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
-use App\Enums\DocumentKind;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
@@ -266,7 +265,7 @@ test('REQ-20-06 Edit Request is the New Request form filled in from the request,
         ->assertSee('Resubmit Request');
 });
 
-test('REQ-15-17 the Edit Request summary has sections 1 to 5, Summary as its title, and only new files', function () {
+test('REQ-15-17 the Edit Request summary has sections 1 to 5, Summary as its title, and the requirements by name', function () {
     returnedForClarification($this->request, [CheckItem::CredentialRequest]);
 
     $html = editPage()->call('review')->assertHasNoErrors()->html();
@@ -275,7 +274,9 @@ test('REQ-15-17 the Edit Request summary has sections 1 to 5, Summary as its tit
         ->not->toContain('6. Who Will Transact?')
         ->not->toContain('Edit request '.$this->request->reference_no)
         ->toContain('>Summary</h1>')
-        ->toContain('No new files');
+        // Section 2 lists the requirements; nothing is uploaded for them (REQ-04-22).
+        ->toContain('Completed clearance')
+        ->not->toContain('No new files');
 });
 
 test('REQ-20-06 a rejected ID requires another; its reason is on the request page, not repeated on Edit Request', function () {
@@ -318,7 +319,6 @@ test('REQ-20-07 resubmitting saves everything and sends the request back, rechec
         ->set('profile.contact_number', '09998887777')
         ->set('profile.id_type', 'UMID')
         ->set('profile.id_file', UploadedFile::fake()->image('umid.jpg'))
-        ->set('requirementFiles.'.$this->org->tor->id.'.0', [UploadedFile::fake()->create('clearance.pdf', 100, 'application/pdf')])
         ->call('review')
         ->assertHasNoErrors()
         ->set('profile.privacy_consent', true)
@@ -337,9 +337,8 @@ test('REQ-20-07 resubmitting saves everything and sends the request back, rechec
         ->identity_status->toBe(ReviewStatus::Pending)
         ->and($newId->id_type)->toBe('UMID')
         ->and($this->owner->fresh()->contact_number)->toBe('09998887777')
-        ->and($request->documents()->where('kind', DocumentKind::Requirement)->pluck('requirement')->all())->toBe(['Completed clearance'])
-        // Identity was rejected, the credential request and contact number changed, new copies came:
-        // only the unchanged academic record stays confirmed.
+        // Identity was rejected, and the credential request (its purpose) and the contact number
+        // changed: only the unchanged academic record stays confirmed.
         ->and($request->checks()->pluck('item')->map->value->all())->toBe([CheckItem::AcademicRecord->value])
         ->and($request->events()->where('type', RequestEventType::Resubmitted)->value('remarks'))->toBe('Clearer photo of my UMID.');
 
@@ -368,15 +367,6 @@ test('REQ-20-07 unchanged parts stay confirmed; a new credential brings its own 
     expect(fn () => workflow()->resubmit($other, $this->owner, identity: $intruder->latestIdentityDocument()->firstOrFail()))->toThrow(InvalidTransition::class)
         ->and(fn () => workflow()->resubmit($other, $this->owner))->toThrow(InvalidTransition::class, 'Upload another valid ID')
         ->and($other->fresh()->status)->toBe(RequestStatus::ReturnedForClarification);
-});
-
-test('REQ-20-07 new requirement copies have the credential request checked again', function () {
-    returnedForClarification($this->request, [CheckItem::AcademicRecord]);
-
-    workflow()->resubmit($this->request, $this->owner, newRequirementCopies: true);
-
-    // The rejected academic record and the credential request (its requirements) are checked again.
-    expect($this->request->fresh()->checks()->pluck('item')->map->value->all())->toBe([CheckItem::Identity->value]);
 });
 
 // ── Office visit ────────────────────────────────────────────────────────────────────────────

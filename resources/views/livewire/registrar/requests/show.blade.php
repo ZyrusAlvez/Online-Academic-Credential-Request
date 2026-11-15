@@ -123,8 +123,8 @@
                                 <x-summary-row :label="__('Amount due')">{{ $request->requires_payment ? '₱'.number_format((float) $request->amount_due, 2) : __('None required') }}</x-summary-row>
                                 <x-summary-row :label="__('Transacting')">{{ $request->requester_mode->label() }}</x-summary-row>
                                 <x-summary-row :label="__('Submitted')">{{ $request->submitted_at?->format('M j, Y g:i A') }}</x-summary-row>
-                                {{-- Each requirement and the copies the requester sent, as rows (REQ-04-19, REQ-09-22). --}}
-                                <x-requirement-document-list :request="$request" />
+                                {{-- The credential's requirements, checked against the records (REQ-04-22). --}}
+                                <x-requirement-list :request="$request" />
                             </dl>
                             @break
 

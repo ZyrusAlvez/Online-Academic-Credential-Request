@@ -8,7 +8,6 @@ use App\Livewire\Forms\CredentialRequestForm;
 use App\Models\CredentialRequest;
 use App\Models\Purpose;
 use App\Services\RequestWorkflow;
-use App\Support\EmptyValue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -43,8 +42,7 @@ class Edit extends Create
     }
 
     /**
-     * Save the details, store a new ID and requirement copies, and resubmit, all or nothing
-     * (REQ-20-07).
+     * Save the details, store a new ID, and resubmit, all or nothing (REQ-20-07).
      */
     public function submit(RequestWorkflow $workflow, SubmitIdentityDocument $submitIdentity): void
     {
@@ -59,31 +57,23 @@ class Edit extends Create
         $owner = $this->owner();
         $request = $this->credentialRequest;
         $stored = null;
-        $requirementDocuments = [];
 
         try {
             $this->validate(['note' => ['nullable', 'string', 'max:1000']]);
             $changes = $this->form->validatedRequest();
-            $this->validateRequirementFiles();
             $this->validateNewId();
-            $requirementFiles = $this->chosenRequirementFiles();
 
-            DB::transaction(function () use ($workflow, $submitIdentity, $owner, $request, $changes, $requirementFiles, &$stored, &$requirementDocuments): void {
+            DB::transaction(function () use ($workflow, $submitIdentity, $owner, $request, $changes, &$stored): void {
                 $chosen = $this->profile->save($owner, $this->mayReplaceSavedId());
 
                 if ($chosen !== null) {
                     $stored = $submitIdentity->handle($owner, $chosen['type'], $chosen['file']);
                 }
 
-                $workflow->resubmit($request, $owner, $this->note, $changes, $stored, $requirementFiles !== []);
-
-                if ($requirementFiles !== []) {
-                    // The credential may have changed: its requirement list is read afresh.
-                    $requirementDocuments = $workflow->attachRequirementDocuments($request->refresh(), $owner, $requirementFiles);
-                }
+                $workflow->resubmit($request, $owner, $this->note, $changes, $stored);
             });
         } catch (Throwable $e) {
-            $this->undo($owner, $stored, $requirementDocuments);
+            $this->undo($owner, $stored);
             $this->showFailure($e);
 
             return;
@@ -121,15 +111,6 @@ class Edit extends Create
     protected function transactSummary(): array
     {
         return [];
-    }
-
-    /**
-     * Files sent with the request before are kept; the summary lists only new ones. Shown in grey
-     * (REQ-15-19).
-     */
-    protected function noRequirementFiles(): EmptyValue
-    {
-        return new EmptyValue(__('No new files'));
     }
 
     /**
