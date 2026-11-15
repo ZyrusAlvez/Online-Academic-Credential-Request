@@ -22,7 +22,7 @@
       requests in the second (REQ-16-03)
 - [x] Pest test for the tabbed REQ-16-03
 - [x] `RegistrarRequestFilter::matching()` shared by Records and the stage queues; search field on
-      every queue but Release (REQ-16-25)
+      every queue (REQ-16-25)
 - [x] Pest test for REQ-16-25
 - [x] Final quality check without a checklist: remove `CheckStage::FinalCheck` and the items
       `credential_document`, `signatures` (migration deletes their rows); details and route shown
@@ -40,5 +40,5 @@
       Validation (REQ-16-27, REQ-16-17)
 - [x] Pest tests for REQ-16-27 and the changed REQ-16-17
 - [x] No working page under In Progress; a request in progress leads to the searched list (REQ-16-26, see spec 17)
-- [ ] Search on Release too: remove `RegistrarQueue::isSearchable()` (REQ-16-25)
-- [ ] Pest test for the changed REQ-16-25
+- [x] Search on Release too: remove `RegistrarQueue::isSearchable()` (REQ-16-25)
+- [x] Pest test for the changed REQ-16-25
