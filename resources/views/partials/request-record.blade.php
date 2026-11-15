@@ -87,7 +87,7 @@
 
 @if ($request->visits->isNotEmpty())
     <section aria-labelledby="visits-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="visits-heading" class="text-lg font-semibold text-primary">{{ __('Office Visits') }}</h2>
+        <h2 id="visits-heading" class="text-lg font-semibold text-primary">{{ __('Time in Each Office') }}</h2>
         <x-office-visits :visits="$request->visits" show-actors />
     </section>
 @endif

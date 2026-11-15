@@ -21,6 +21,7 @@ use App\Notifications\RequestActivity;
 use App\Reports\DepartmentReport;
 use App\Reports\ReportFilter;
 use App\Reports\SignatoryReport;
+use App\Reports\TrackingReport;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -559,6 +560,23 @@ test('REQ-17-14 the office visits table shows received, done and left with the s
         ->assertSeeInOrder(['Received', 'Done', 'Left', 'Time spent'])
         ->assertSeeInOrder(['Office of the Registrar', 'Nov 9, 9:00 AM', $this->registrar->name, 'Nov 9, 11:00 AM', $this->registrar->name, 'Nov 9, 2:00 PM', $this->registrar->name, 'Same day', 'Completed'])
         ->assertSeeInOrder(['College of Computer Studies', 'Not yet received']);
+});
+
+test('REQ-17-14 the paper\'s stops are "Time in Each Office", never "office visits"', function () {
+    $request = preparedAtRegistrar();
+    workflow()->forwardDocument(openVisit($request), $this->registrar);
+    workflow()->acceptReceipt(openVisit($request), $this->dean);
+
+    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
+        ->assertSee('Time in Each Office')->assertDontSee('Office Visits');
+    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request])
+        ->assertSee('Time in Each Office')->assertDontSee('Office Visits');
+
+    $this->actingAs(User::factory()->admin()->create())->get(route('admin.dashboard'))
+        ->assertSee('Average time per office')->assertDontSee('office visit');
+
+    expect((new DepartmentReport)->columns())->toContain('Avg working days per document')
+        ->and((new TrackingReport)->columns())->toContain('Pass')->not->toContain('Visit');
 });
 
 test('REQ-17-15 a done paper still counts as in the office', function () {
