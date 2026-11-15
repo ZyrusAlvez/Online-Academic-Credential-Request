@@ -77,17 +77,18 @@ Nothing creates new ones.
 |---|---|---|
 | `registrar/evaluation` | `Registrar\Queue` (stage `evaluation`) | `view=waiting` shows pending compliance |
 | `registrar/payments` | `Registrar\Queue` (`payment`) | |
-| `registrar/in-progress` | `Registrar\Queue` (`in_progress`) | office filter; links to Records |
+| `registrar/in-progress` | `Registrar\Queue` (`in_progress`) | office filter; Forward and Accept receipt in the row; links to Records; no working page (REQ-17-13) |
 | `registrar/final-check` | `Registrar\Queue` (`final_check`) | |
 | `registrar/release` | `Registrar\Queue` (`release`) | |
 | `registrar/records` | `Registrar\Records\Index` | `RegistrarRequestFilter`, no export |
 | `registrar/records/{request}` | `Registrar\Records\Show` | read-only |
-| `registrar/{queue}/{request}` | `Registrar\Requests\Show` | the working page, under its queue: `registrar.evaluation.show`, `registrar.payments.show`, `registrar.in-progress.show`, `registrar.final-check.show`, `registrar.release.show` (REQ-16-26) |
+| `registrar/{queue}/{request}` | `Registrar\Requests\Show` | the working page, under its queue: `registrar.evaluation.show`, `registrar.payments.show`, `registrar.final-check.show`, `registrar.release.show` (REQ-16-26) |
 | `registrar/requests/{request}` | redirect | `registrar.requests.show`: to the request's current queue page, or Records once closed; notifications link here so they always land on the current stage |
 
 `RegistrarQueue::forRequest()` is the one mapping from a request to its queue (the statuses of
 `StageQueue::for()`, with an open final-check visit choosing Final Quality Check), and
-`App\Support\RegistrarLink::to()` turns it into the address. The working page takes the route's
+`App\Support\RegistrarLink::to()` turns it into the address (for In Progress, which has no
+working page, the list searched by the tracking number). The working page takes the route's
 `queue` default like `Registrar\Queue`; it redirects when the request is elsewhere, and after an
 action that moves the request it follows it. The sidebar marks a queue current on its list and on
 its working pages.
