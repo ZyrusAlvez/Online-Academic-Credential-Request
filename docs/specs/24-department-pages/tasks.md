@@ -8,3 +8,10 @@
 - [x] Remove `Department\Dashboard`, `x-visit-queue` and the delay reason recording (REQ-24-09)
 - [x] Superseded criteria marked in specs 05, 06, 09, 17
 - [x] Pest tests for every REQ-24 criterion; tests of removed behaviour removed
+
+## To Forward (2026-11-15)
+
+- [x] `DepartmentQueue::ToForward` (done visits); To Validate keeps the received ones only (REQ-24-01, 02)
+- [x] To Forward list with Next, checkboxes and a bulk Forward, like Incoming (REQ-24-10)
+- [x] Its request page offers Forward to <next office> (REQ-24-07)
+- [x] Pest tests for REQ-24-10 and the changed REQ-24-01, 02, 07; REQ-17-15 test on To Forward

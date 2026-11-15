@@ -26,7 +26,10 @@ class VisitQueue
     {
         $query = match ($queue) {
             DepartmentQueue::Incoming => self::open($departmentId, VisitStatus::InTransit),
-            DepartmentQueue::ToValidate => self::open($departmentId, ...VisitStatus::inOffice()),
+            DepartmentQueue::ToValidate => self::open($departmentId, VisitStatus::Received),
+            // Approved, still here; the next office is shown, so the route comes along (REQ-24-10).
+            DepartmentQueue::ToForward => self::open($departmentId, VisitStatus::Done)
+                ->with(['step:id,task,position', 'credentialRequest.steps.department:id,name']),
             DepartmentQueue::History => self::history($departmentId),
         };
 
@@ -76,6 +79,7 @@ class VisitQueue
         $since = match ($queue) {
             DepartmentQueue::Incoming => 'forwarded_at',
             DepartmentQueue::ToValidate => 'received_at',
+            DepartmentQueue::ToForward => 'done_at',
             DepartmentQueue::History => 'completed_at',
         };
 

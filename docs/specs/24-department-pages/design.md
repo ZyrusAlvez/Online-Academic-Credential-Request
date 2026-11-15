@@ -6,7 +6,8 @@
 |---|---|---|
 | `department` | redirect | to `department/incoming`, named `department.dashboard`; the role's home (`Role::homeRoute`) is `department.incoming` |
 | `department/incoming` | `Department\Queue` (`incoming`) | checkboxes, Acknowledge receipt |
-| `department/to-validate` | `Department\Queue` (`to_validate`) | |
+| `department/to-validate` | `Department\Queue` (`to_validate`) | received, not yet approved |
+| `department/to-forward` | `Department\Queue` (`to_forward`) | done (approved); Next column, checkboxes, Forward |
 | `department/history` | `Department\Queue` (`history`) | |
 | `department/{list}/{request}` | `Department\Requests\Show` | `department.incoming.show`, `department.to-validate.show`, `department.history.show` |
 | `department/requests/{request}` | redirect | `department.requests.show`, kept for notifications and emails: to the request's list page |
@@ -16,16 +17,17 @@ Every route keeps the `role:department` middleware. The lists pass the list as t
 
 ## Pieces
 
-- `App\Enums\DepartmentQueue` (`incoming`, `to_validate`, `history`): label, description, icon,
-  route names, empty text, the default sort direction, and `forRequest($request, $departmentId)`:
-  the open visit at the office in transit → Incoming, received or done → To Validate, otherwise
+- `App\Enums\DepartmentQueue` (`incoming`, `to_validate`, `to_forward`, `history`): label,
+  description, icon, route names, empty text, the default sort direction, whether it has
+  checkboxes (Incoming, To Forward), and `forRequest($request, $departmentId)`: the open visit at
+  the office in transit → Incoming, received → To Validate, done → To Forward, otherwise
   History. `DepartmentLink::to($request, $departmentId)` turns it into the address.
 - `App\Queries\VisitQueue::for($queue, $departmentId, $search, $typeId, $sort, $direction)`
   builds a list's query from the existing `open()` and `history()`, applies
   `RegistrarRequestFilter::matching()` and the credential type on the visit's request, and orders
   by a whitelisted column:
   `request` (the request's `reference_no`), `requester` (`requester_name`), both by subquery, or
-  `since` (`forwarded_at`, `received_at` or `completed_at` by list). Direction is `asc` or
+  `since` (`forwarded_at`, `received_at`, `done_at` or `completed_at` by list). Direction is `asc` or
   `desc`, anything else the list's default.
 - `App\Livewire\Department\Queue`: `#[Locked] $list`; `#[Url]` `search`, `type`, `sort`,
   `direction`; `$selected` (visit ids). `sortBy($column)` flips the direction on the same column.
@@ -33,7 +35,9 @@ Every route keeps the `role:department` middleware. The lists pass the list as t
   else 404) validates `selected` as at most 100 integers, loads those visits of the user's office
   that are in transit, authorizes `OfficeVisitPolicy::act` on each, and calls
   `RequestWorkflow::acceptReceipt` one by one (each is its own transaction); a refused one is
-  counted, not fatal.
+  counted, not fatal. `forward()` (To Forward only) does the same for done visits, authorizing
+  `OfficeVisitPolicy::forward` and calling `RequestWorkflow::forwardDocument`. Both share one
+  loop over the selection.
 - Checkboxes are native inputs (`wire:model.live="selected"`, with an `aria-label` naming the
   tracking number); the header one selects or clears the page's rows. The button is disabled on
   the server while `selected` is empty, and asks for confirmation with the app's confirm dialog

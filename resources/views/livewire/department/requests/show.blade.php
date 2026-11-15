@@ -54,7 +54,7 @@
                 </div>
             </section>
         @endcan
-    @elseif ($queue === Q::ToValidate && $visit)
+    @elseif (in_array($queue, [Q::ToValidate, Q::ToForward], true) && $visit)
         @include('partials.visit-actions', ['visit' => $visit, 'returnOffices' => $returnOffices])
     @endif
 </div>

@@ -295,7 +295,8 @@ test('REQ-17-07 a corrected document is done, then forwarded back to the office 
     workflow()->acceptReceipt(openVisit($request), $this->dean);
 
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
-        ->assertSee('Returned to your office for correction')->assertSee('Approve')->assertDontSee('data-return-button', false)->call('completeVisit')
+        ->assertSee('Returned to your office for correction')->assertSee('Approve')->assertDontSee('data-return-button', false)->call('completeVisit');
+    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
         ->assertSee('Forward to Office of the VP for Finance')->call('forwardDocument');
 
     $correction = $request->visits()->where('department_id', $this->org->ccs->id)->orderByDesc('id')->first();
@@ -533,7 +534,9 @@ test('REQ-17-16 an office forwards only its own done papers; the registrar only 
 
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
         ->assertDontSee('Forward to')                                             // not done yet
-        ->call('completeVisit')
+        ->call('completeVisit');
+    // Approved: the page moves to To Forward, which offers the forward (REQ-24-07).
+    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
         ->assertSee('Forward to Office of the VP for Finance');
 
     expect($this->registrar->can('forward', openVisit($request)))->toBeFalse()    // at the Dean's office
@@ -585,9 +588,9 @@ test('REQ-17-15 a done paper still counts as in the office', function () {
     workflow()->acceptReceipt(openVisit($request), $this->dean);
     workflow()->completeVisit(openVisit($request), $this->dean);
 
-    // The "In office" tab is To Validate (REQ-24-02).
-    Livewire::actingAs($this->dean)->test(OfficeQueue::class, ['queue' => 'to_validate'])
-        ->assertSee($request->reference_no)->assertSee('Done, not yet forwarded');
+    // Done and not yet forwarded: the office's To Forward list (REQ-24-02, 10).
+    Livewire::actingAs($this->dean)->test(OfficeQueue::class, ['queue' => 'to_forward'])
+        ->assertSee($request->reference_no)->assertSee('To Forward');
 
     // The department report's "Pending now" counts it for the Dean's office.
     $row = collect((new DepartmentReport)->rows(new ReportFilter))->firstWhere(0, $this->org->ccs->name);
