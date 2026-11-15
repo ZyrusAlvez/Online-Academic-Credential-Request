@@ -93,7 +93,7 @@ working page, the list searched by the tracking number). The working page takes 
 action that moves the request it follows it. The sidebar marks a queue current on its list and on
 its working pages.
 
-`App\Queries\StageQueue` builds each queue's query. Every queue but Release has a `search`
+`App\Queries\StageQueue` builds each queue's query. Every queue has a `search`
 property (`?search=` in the URL, debounced) that `StageQueue::for()` applies with
 `RegistrarRequestFilter::matching()`, the same match as Records, so the two searches never drift
 (REQ-16-25). The "Waiting for the requester (n)" count stays the tab's full count. On the queues
