@@ -41,16 +41,20 @@
         <x-request-route :steps="$request->steps" />
     </section>
 
-    @if ($queue !== Q::History && $visit)
+    {{-- The office's action, laid out like the registrar's Decision panel (REQ-24-07). --}}
+    @if ($queue === Q::Incoming && $visit)
         @can('act', $visit)
-            <section aria-labelledby="action-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-office-action>
-                <h2 id="action-heading" class="text-lg font-semibold text-primary">{{ __('Your Office') }}</h2>
-                @if ($queue === Q::Incoming)
-                    <flux:button wire:click="acceptReceipt" variant="primary" icon="inbox-arrow-down" class="w-full" data-acknowledge>{{ __('Acknowledge receipt') }}</flux:button>
-                @else
-                    @include('partials.visit-actions', ['visit' => $visit, 'returnOffices' => $returnOffices])
-                @endif
+            <section aria-labelledby="decision-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-office-action>
+                <div>
+                    <h2 id="decision-heading" class="text-lg font-semibold text-primary">{{ __('Decision') }}</h2>
+                    <p class="text-xs text-zinc-600">{{ __('Forwarded :time by :office', ['time' => $visit->forwarded_at->diffForHumans(), 'office' => $visit->holder()->name]) }}</p>
+                </div>
+                <div class="flex flex-wrap justify-center gap-2">
+                    <flux:button wire:click="acceptReceipt" variant="primary" icon="inbox-arrow-down" data-acknowledge>{{ __('Acknowledge receipt') }}</flux:button>
+                </div>
             </section>
         @endcan
+    @elseif ($queue === Q::ToValidate && $visit)
+        @include('partials.visit-actions', ['visit' => $visit, 'returnOffices' => $returnOffices])
     @endif
 </div>
