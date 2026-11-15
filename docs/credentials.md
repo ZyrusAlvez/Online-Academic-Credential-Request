@@ -14,14 +14,16 @@ There are exactly three environments. Any other `APP_ENV` value stops the app at
 | Where | Your computer: `composer dev` → http://localhost:8000 | The server's staging address | The server's production address |
 | Database | `uphsl_credential_tracker_local` | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
 | Receipt files | `local/` folder (R2, or `storage/app/private/local`) | `staging/` folder | `production/` folder |
-| Data | Base data + demo accounts and requests | Base data + demo accounts and requests | Base data + the first registrar and admin accounts; real data only |
+| Data | Base data + demo accounts | Base data + demo accounts | Base data + the first registrar and admin accounts; real data only |
 | Email | Sent through Gmail, all redirected to your own inbox | Sent through Gmail | Sent through Gmail |
 
 Base data = the 15 offices (11 colleges and 4 offices), the 27 programs, the 17 credential types
 with their routes, the request purposes, the holiday calendar, and the first registrar and admin
 accounts.
 
-To reload the demo data (local or staging): `php artisan app:reset-demo`.
+To reload the demo accounts (local or staging): `php artisan app:reset-demo`. It leaves the
+request ledger empty. `php artisan app:reset-demo --requests` also loads the sample requests
+described in section 2 (and a saved valid ID for each requester).
 
 Automated tests use their own database, `uphsl_credential_tracker_testing`, so running them never
 touches your local or staging data.
@@ -36,7 +38,8 @@ Open the local or staging address and log in with an **email and password** belo
 |---|---|---|
 | `registrar@example.com` | `@Test123` | Initial Evaluation, Payment Validation, In Progress, Final Quality Check, Release and Records |
 
-The demo requests are evaluated, accepted, prepared, checked and released by this account.
+With `--requests`, the sample requests are evaluated, accepted, prepared, checked and released by
+this account.
 
 ### Admin
 
@@ -48,17 +51,18 @@ seeded account, and it creates the registrar and department staff accounts (spec
 
 ### Requesters
 
-Each requester already has requests in different states, so every screen has data to show.
+The requesters start with no requests and no saved ID. The last column lists the sample requests
+that `app:reset-demo --requests` adds.
 
-| Name | Email | Password | College and program | Requests to look at |
+| Name | Email | Password | College and program | Sample requests (`--requests` only) |
 |---|---|---|---|---|
 | Juan S. Dela Cruz | `student@example.com` | `@Test123` | CCS · Bachelor of Science in Computer Science, Specialization in Data Science | TOR just submitted; payment to verify; TOR **returned for correction** by VP Finance; Certification of Enrollment released; diploma paused for his action |
 | Maria Reyes | `maria@example.com` | `@Test123` | CBAA · Bachelor of Science in Accountancy | Certification under evaluation; Course Description awaiting payment; TOR at the Dean of CBAA; Copy of Grades ready for release to her verified representative; TOR **overdue** at the Chancellor |
 | Jose L. Garcia | `jose@example.com` | `@Test123` | CEA · Bachelor of Science in Civil Engineering | TOR pending compliance; Certification of Graduation just accepted; Transfer Certificate at the final check; TOR released late; one cancelled |
 | Ana Mendoza | `ana@example.com` | `@Test123` | CTE · Bachelor of Secondary Education | ID still **awaiting verification** (Identity Checks); Copy of Grades waiting for her clarification; Authentication declined |
 
-Juan, Maria and Jose are verified, so their My Profile is read-only. Ana's is read-only while her ID
-waits; reject it on Identity Checks to see the profile open up again.
+With `--requests`, Juan, Maria and Jose are verified, so their My Profile is read-only. Ana's is
+read-only while her ID waits; reject it on Identity Checks to see the profile open up again.
 
 ### Department staff
 
@@ -169,4 +173,4 @@ logged in as several roles at once.
 | 10 | Requester, then Registrar | Add a representative; verify them; **Release** to the representative | Released; the release record shows who received it |
 | 11 | Registrar | **Dashboard** (period indicators, time per office), **Reports** (each report, filters, CSV), **Requests → Overdue**, **Working Calendar** | Maria's TOR is overdue; the delay analysis shows the Chancellor's recorded reason |
 
-To start over: `php artisan app:reset-demo`.
+To start over: `php artisan app:reset-demo` (add `--requests` for the sample requests).

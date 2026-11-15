@@ -76,8 +76,10 @@ office filter (REQ-07-07) serve both the Registrar and the Admin, at `/records` 
 
 ### Demo data & documentation
 - **REQ-07-09** THE SYSTEM SHALL provide a demo seeder (refused in production) that creates one
-  account per office and sample requests in every status still in use (all but
-  `returned_for_customer_action`, which spec 16 retired). Every demo account SHALL use the
+  account per office, a demo registrar and the demo requesters, and a second demo seeder that adds
+  sample requests in every status still in use (all but `returned_for_customer_action`, which
+  spec 16 retired). `app:reset-demo` loads the accounts only unless given `--requests`
+  (REQ-23-07, 08; 2026-11-15). Every demo account SHALL use the
   password `@Test123`, which meets the password rules (REQ-01-03). *(User's decision, 2026-11-07:
   demo logins follow the same password rules as everyone else. The earlier `password` did not.)*
 - **REQ-07-10** THE SYSTEM SHALL include a README describing setup, demo accounts, architecture

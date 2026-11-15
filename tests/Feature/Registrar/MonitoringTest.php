@@ -4,7 +4,7 @@ use App\Enums\RequestStatus;
 use App\Livewire\Registrar\Records\Index;
 use App\Models\CredentialRequest;
 use App\Models\User;
-use Database\Seeders\DemoSeeder;
+use Database\Seeders\DemoRequestSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -90,7 +90,7 @@ test('REQ-07-07 the request list can be filtered by the office holding the docum
 test('REQ-07-09 the demo seeder creates accounts and requests in every status still in use', function () {
     CredentialRequest::query()->delete();
 
-    $this->seed(DemoSeeder::class);
+    $this->seed(DemoRequestSeeder::class);
 
     expect(User::where('email', 'student@example.com')->exists())->toBeTrue()
         ->and(User::where('email', 'vpf@example.com')->value('department_id'))->not->toBeNull()

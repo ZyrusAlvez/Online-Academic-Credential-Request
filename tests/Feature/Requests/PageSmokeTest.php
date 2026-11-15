@@ -4,7 +4,7 @@ use App\Enums\ReportKind;
 use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\User;
-use Database\Seeders\DemoSeeder;
+use Database\Seeders\DemoRequestSeeder;
 use Illuminate\Support\Facades\Storage;
 
 /*
@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
 
 test('every request page renders in every status for each role that can see it', function () {
     Storage::fake('local');
-    $this->seed(DemoSeeder::class);
+    $this->seed(DemoRequestSeeder::class);
     $registrar = User::where('role', Role::Registrar)->firstOrFail();
 
     foreach (CredentialRequest::with(['student', 'openVisit.department'])->get() as $request) {
