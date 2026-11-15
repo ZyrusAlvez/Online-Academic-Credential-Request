@@ -74,14 +74,14 @@ identity, and My Profile in REQ-09-09/12.
   refuses) until it is ticked; the first consent's time is recorded on the account.
 - **REQ-15-17** THE request summary SHALL repeat the form's numbered sections (1. What Do You
   Need? to 6. Who Will Transact?, or 1 to 5 on Edit Request), each entry as a row with its label
-  on the left and its value on the right (stacked on narrow screens), section 2 listing every
-  requirement with the names and sizes of the files chosen for it, each name a link that opens the
-  file in the file viewer (*user's request, 2026-11-11*), and section 6 the representative's name,
-  relationship, contact number, and the SPA and their ID as linked file names with sizes like
-  section 2's (*user's request, 2026-11-11*). "Summary" SHALL be the page's title, in place of
+  on the left and its value on the right (stacked on narrow screens), section 2 listing the
+  credential's requirements by name (REQ-04-22: nothing is uploaded for them, *2026-11-15*), and
+  section 6 the representative's name, relationship, contact number, and the SPA and their ID as
+  file names with sizes, each name a link that opens the file in the file viewer (*user's
+  request, 2026-11-11*). "Summary" SHALL be the page's title, in place of
   the form's title and description. *(User's request, 2026-11-10.)*
-- **REQ-15-19** WHERE a summary row has nothing to show ("Not provided", "No files", "No new
-  files", "None for this credential") THE SYSTEM SHALL write that text in italics and grey
+- **REQ-15-19** WHERE a summary row has nothing to show ("Not provided", "None for this
+  credential") THE SYSTEM SHALL write that text in italics and grey
   (`text-zinc-600`), unlike an entered value, so that it is never mistaken for one (a receiving
   school typed as "Not provided" stays plain). This applies to the summaries of New Request, Edit
   Request and Settings → Profile. *(User's request, 2026-11-11.)*
