@@ -46,7 +46,7 @@ This replaces:
   the documents the office approved and has not yet forwarded (REQ-24-10); all oldest first and
   only for requests still being processed. Each SHALL have the columns Request (tracking number
   as a link, credential type), Requester and Since (when it was forwarded to the office, received
-  there, or approved); To Forward also Next (the office it goes to).
+  there, or approved); To Forward also Next: a "Forward to <next office>" button (REQ-24-10).
 - **REQ-24-03** History SHALL list the visits the office has closed (forwarded on, returned or
   bypassed), newest first, with the columns Request, Requester, Action (what the office did:
   e.g. "Signed", "Returned to <office>", "Corrected, sent back") and Date (when, and by whom).
@@ -65,6 +65,9 @@ This replaces:
   its next office (REQ-17-07), which then accepts its receipt, and say how many were forwarded
   and how many were not. A selected id of another office's document, or one not approved, SHALL
   be skipped, never forwarded. *(User's request, 2026-11-15: "the same feature as Incoming".)*
+  Each row's Next column SHALL also be a "Forward to <next office>" button that forwards that one
+  document after a confirmation, as the registrar's In Progress row does (REQ-17-12); Forward is
+  offered only on this list, not on the request page (REQ-24-07). *(User's request, 2026-11-15.)*
 
 ### The request page
 - **REQ-24-06** A request SHALL open under the list it is in for the office:
@@ -80,8 +83,8 @@ This replaces:
   out like the registrar's (REQ-17-02, 03): the step's instructions, when it was received, Remarks
   with no hint, and one centred row with "Return" on the left (it opens the return dialog, REQ-05-06)
   and "Approve" on the right (it marks the office's task done, REQ-17-06, and moves the request to
-  To Forward); under To Forward "Forward to <next office>"; nothing under History. It SHALL NOT show the office visits table or
-  the tracking history. *(Approve and Return replace the task's done label, e.g. "Stamped", and
+  To Forward); nothing under To Forward (it is forwarded from its list, REQ-24-10) or History. It
+  SHALL NOT show the office visits table or the tracking history. *(Approve and Return replace the task's done label, e.g. "Stamped", and
   "Return for correction" on the buttons; user's request, 2026-11-15. History still says what was
   done, e.g. "Stamped".)*
 - **REQ-24-08** Department staff SHALL be able to open the verified proof of payment of a request
