@@ -65,7 +65,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('departments', Admin\Departments\Index::class)->name('departments');
         Route::get('programs', Admin\Programs\Index::class)->name('programs');
         Route::get('purposes', Admin\Purposes\Index::class)->name('purposes');
-        Route::get('users', Admin\Users\Index::class)->name('users');
+        Route::get('accounts', Admin\Users\Index::class)->name('accounts');
         Route::get('calendar', Admin\Calendar\Index::class)->name('calendar');
         Route::get('logs', Admin\Logs\Index::class)->name('logs');
     });

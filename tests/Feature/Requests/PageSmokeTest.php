@@ -31,8 +31,8 @@ test('every request page renders in every status for each role that can see it',
         $this->actingAs($registrar)->get(route($page))->assertOk();
     }
 
-    // The demo admin (REQ-18-12): its pages, and every record (REQ-18-06).
-    $admin = User::where('email', 'admin@example.com')->firstOrFail();
+    // The first admin (INITIAL_ADMIN_*; there is no demo admin): its pages, and every record (REQ-18-06).
+    $admin = User::where('email', config('uphsl.initial_admin.email'))->firstOrFail();
 
     foreach (CredentialRequest::all() as $request) {
         $this->actingAs($registrar)->get(route('records.show', $request))->assertOk();
@@ -41,7 +41,7 @@ test('every request page renders in every status for each role that can see it',
 
     $this->actingAs($registrar)->get(route('registrar.evaluation', ['waiting' => 1]))->assertOk();
 
-    foreach (['admin.dashboard', 'records', 'admin.credential-types', 'admin.departments', 'admin.programs', 'admin.purposes', 'admin.users', 'admin.calendar', 'admin.logs'] as $page) {
+    foreach (['admin.dashboard', 'records', 'admin.credential-types', 'admin.departments', 'admin.programs', 'admin.purposes', 'admin.accounts', 'admin.calendar', 'admin.logs'] as $page) {
         $this->actingAs($admin)->get(route($page))->assertOk();
     }
 

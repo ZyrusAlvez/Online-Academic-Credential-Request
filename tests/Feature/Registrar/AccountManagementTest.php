@@ -22,7 +22,7 @@ test('REQ-02-07 the admin can list, search and filter accounts with departments'
     // A fixed email: the search also looks there, and a random one can contain "lina".
     User::factory()->student()->create(['first_name' => 'Sam', 'middle_name' => null, 'last_name' => 'Student', 'email' => 'sam@example.com']);
 
-    $this->actingAs($this->admin)->get(route('admin.users'))
+    $this->actingAs($this->admin)->get(route('admin.accounts'))
         ->assertOk()->assertSee('Lina Librarian')->assertSee('Library')->assertSee('Sam Student');
 
     Livewire::actingAs($this->admin)->test(Index::class)
@@ -42,6 +42,28 @@ test('REQ-02-07 the account search matches a first and last name typed together'
         ->assertSee('Sam Student')->assertDontSee('Samuel Reyes')
         ->set('search', 'Samuel Reyes')
         ->assertSee('Samuel Reyes')->assertDontSee('Sam Student');
+});
+
+test('REQ-02-07 the accounts list shows only active accounts until another status is chosen', function () {
+    User::factory()->student()->create(['first_name' => 'Sam', 'middle_name' => null, 'last_name' => 'Student', 'email' => 'sam@example.com']);
+    User::factory()->student()->create(['first_name' => 'Ina', 'middle_name' => null, 'last_name' => 'Inactive', 'email' => 'ina@example.com', 'is_active' => false]);
+
+    Livewire::actingAs($this->admin)->test(Index::class)
+        ->assertSet('status', 'active')
+        ->assertSee('Sam Student')->assertDontSee('Ina Inactive')
+        ->set('status', 'inactive')
+        ->assertSee('Ina Inactive')->assertDontSee('Sam Student')
+        ->set('status', '')
+        ->assertSee('Sam Student')->assertSee('Ina Inactive');
+});
+
+test('REQ-02-07 an account with no name yet shows its email alone', function () {
+    User::factory()->student()->create(['first_name' => null, 'middle_name' => null, 'last_name' => null, 'email' => 'new@example.com']);
+
+    Livewire::actingAs($this->admin)->test(Index::class)
+        ->assertSee('new@example.com')
+        ->assertSeeHtmlInOrder(['font-medium text-ink">new@example.com</div>'])
+        ->assertDontSeeHtml('text-xs text-zinc-500">new@example.com');
 });
 
 test('REQ-02-08 the admin can create a verified department staff account', function () {
@@ -324,7 +346,7 @@ test('REQ-02-17 a role change is logged with the old and new role', function () 
 test('REQ-02-12 non-registrars cannot manage accounts', function (string $state) {
     $user = User::factory()->{$state}()->create();
 
-    $this->actingAs($user)->get(route('admin.users'))->assertForbidden();
+    $this->actingAs($user)->get(route('admin.accounts'))->assertForbidden();
 
     Livewire::actingAs($user)->test(Index::class)->assertForbidden();
 })->with(['student', 'departmentStaff', 'registrar']);

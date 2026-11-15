@@ -36,7 +36,7 @@
             <flux:navlist.item icon="building-office-2" :href="route('admin.departments')" :current="request()->routeIs('admin.departments')" wire:navigate>{{ __('Departments') }}</flux:navlist.item>
             <flux:navlist.item icon="academic-cap" :href="route('admin.programs')" :current="request()->routeIs('admin.programs')" wire:navigate>{{ __('Programs') }}</flux:navlist.item>
             <flux:navlist.item icon="clipboard-document-list" :href="route('admin.purposes')" :current="request()->routeIs('admin.purposes')" wire:navigate>{{ __('Purposes') }}</flux:navlist.item>
-            <flux:navlist.item icon="users" :href="route('admin.users')" :current="request()->routeIs('admin.users')" wire:navigate>{{ __('Accounts') }}</flux:navlist.item>
+            <flux:navlist.item icon="users" :href="route('admin.accounts')" :current="request()->routeIs('admin.accounts')" wire:navigate>{{ __('Accounts') }}</flux:navlist.item>
             <flux:navlist.item icon="calendar-days" :href="route('admin.calendar')" :current="request()->routeIs('admin.calendar')" wire:navigate>{{ __('Working Calendar') }}</flux:navlist.item>
             <flux:navlist.item icon="queue-list" :href="route('admin.logs')" :current="request()->routeIs('admin.logs')" wire:navigate>{{ __('Logs') }}</flux:navlist.item>
         </flux:navlist.group>

@@ -59,7 +59,6 @@ class DemoSeeder extends Seeder
 
         $departments = Department::active()->get()->keyBy('code');
         $this->staff = $departments->map(fn (Department $department) => self::staffAccount($department));
-        self::adminAccount();
 
         $requesters = collect([
             ['student@example.com', 'Juan', 'Santos', 'Dela Cruz', 'CCS', 'Bachelor of Science in Computer Science, Specialization in Data Science'],
@@ -234,20 +233,9 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * The demo admin, `admin@example.com` with the demo password (REQ-18-12).
-     */
-    public static function adminAccount(): User
-    {
-        $user = User::firstOrNew(['email' => 'admin@example.com']);
-        $user->fill(['first_name' => 'Demo', 'middle_name' => null, 'last_name' => 'Admin', 'password' => self::PASSWORD]);
-        $user->forceFill(['role' => Role::Admin, 'department_id' => null, 'is_active' => true, 'email_verified_at' => now()])->save();
-
-        return $user;
-    }
-
-    /**
      * The demo registrar, `registrar@example.com` with the demo password, who works the demo
-     * requests (REQ-18-12).
+     * requests (REQ-18-12). There is no demo admin: the first admin is the one from
+     * `INITIAL_ADMIN_*`.
      */
     public static function registrarAccount(): User
     {
