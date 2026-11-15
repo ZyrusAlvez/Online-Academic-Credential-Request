@@ -6,7 +6,6 @@ use App\Actions\Audit\RecordRequestEvent;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
-use App\Enums\DelayCategory;
 use App\Enums\DocumentKind;
 use App\Enums\PaymentStatus;
 use App\Enums\RecipientType;
@@ -593,33 +592,6 @@ class RequestWorkflow
             $this->transition($locked, $locked, RequestStatus::ReturnedForCorrection, $actor, RequestEventType::DocumentReturned,
                 "Returned to {$to->name}: {$reason}\nCorrective action: {$correctiveAction}", visit: $current);
             $this->forward($locked, $step, $to, VisitPurpose::Correction, $office, $actor);
-        });
-    }
-
-    /**
-     * Record why a request is delayed without changing its status (REQ-05-09).
-     */
-    public function recordDelay(CredentialRequest $request, User $actor, DelayCategory $category, string $reason, ?string $correctiveAction = null): void
-    {
-        if (blank($reason)) {
-            throw new InvalidTransition('Explain the reason for the delay.');
-        }
-
-        DB::transaction(function () use ($request, $actor, $category, $reason, $correctiveAction): void {
-            $locked = $this->lock($request, RequestStatus::open(), 'This request is already closed.');
-            $visit = $locked->openVisit()->first();
-
-            $locked->delayNotes()->create([
-                'office_visit_id' => $visit?->id,
-                'department_id' => $visit?->department_id,
-                'category' => $category,
-                'reason' => $reason,
-                'corrective_action' => filled($correctiveAction) ? $correctiveAction : null,
-                'recorded_by' => $actor->id,
-            ]);
-
-            $this->record($locked, $actor, RequestEventType::DelayRecorded, null, null,
-                "{$category->label()}: {$reason}".(filled($correctiveAction) ? "\nCorrective action: {$correctiveAction}" : ''), visit: $visit);
         });
     }
 

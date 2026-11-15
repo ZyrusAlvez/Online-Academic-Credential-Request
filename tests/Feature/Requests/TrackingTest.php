@@ -1,6 +1,5 @@
 <?php
 
-use App\Livewire\Department\Requests\Show as OfficeShow;
 use App\Livewire\Registrar\Records\Show as RecordShow;
 use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\User;
@@ -162,15 +161,4 @@ test('REQ-06-03 the registrar sees the full ledger with actors and the office vi
         ->assertSee('Rhea Registrar (Registrar)')
         ->assertSee('Forwarded to College of Computer Studies')
         ->assertSeeInOrder(['Time in Each Office', 'Office of the Registrar', 'Same day', 'Completed', 'College of Computer Studies', 'In progress', 'In office']);
-});
-
-test('REQ-06-04 office staff see the visits and history on their request page', function () {
-    $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
-    passOffice($request, $this->registrar);
-
-    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request])
-        ->assertSee('Time in Each Office')
-        ->assertSee('Tracking History')
-        ->assertSee('Prepared by Office of the Registrar')
-        ->assertSee('Accept receipt');
 });

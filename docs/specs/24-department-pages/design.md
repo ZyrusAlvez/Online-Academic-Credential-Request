@@ -4,7 +4,7 @@
 
 | Route | Component | Notes |
 |---|---|---|
-| `department` | redirect | to `department/incoming`; named `department.dashboard` (the role's home) |
+| `department` | redirect | to `department/incoming`, named `department.dashboard`; the role's home (`Role::homeRoute`) is `department.incoming` |
 | `department/incoming` | `Department\Queue` (`incoming`) | checkboxes, Acknowledge receipt |
 | `department/to-validate` | `Department\Queue` (`to_validate`) | |
 | `department/history` | `Department\Queue` (`history`) | |
@@ -20,10 +20,10 @@ Every route keeps the `role:department` middleware. The lists pass the list as t
   route names, empty text, the default sort direction, and `forRequest($request, $departmentId)`:
   the open visit at the office in transit → Incoming, received or done → To Validate, otherwise
   History. `DepartmentLink::to($request, $departmentId)` turns it into the address.
-- `App\Queries\VisitQueue::for($queue, $departmentId)` builds a list's query from the existing
-  `open()` and `history()`; `VisitQueue::filtered($query, $search, $typeId)` applies
-  `RegistrarRequestFilter::matching()` and the credential type on the visit's request;
-  `VisitQueue::sorted($query, $queue, $sort, $direction)` orders by a whitelisted column:
+- `App\Queries\VisitQueue::for($queue, $departmentId, $search, $typeId, $sort, $direction)`
+  builds a list's query from the existing `open()` and `history()`, applies
+  `RegistrarRequestFilter::matching()` and the credential type on the visit's request, and orders
+  by a whitelisted column:
   `request` (the request's `reference_no`), `requester` (`requester_name`), both by subquery, or
   `since` (`forwarded_at`, `received_at` or `completed_at` by list). Direction is `asc` or
   `desc`, anything else the list's default.

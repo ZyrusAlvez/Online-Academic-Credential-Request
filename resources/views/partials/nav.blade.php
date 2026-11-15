@@ -42,8 +42,14 @@
             <flux:navlist.item icon="queue-list" :href="route('admin.logs')" :current="request()->routeIs('admin.logs')" wire:navigate>{{ __('Logs') }}</flux:navlist.item>
         </flux:navlist.group>
     @else
+        {{-- Incoming, To Validate and History, with how many wait in the first two; a list is
+             current on its page and on the request pages under it (REQ-24-01, 06). --}}
+        @php($departmentId = (int) auth()->user()->department_id)
         <flux:navlist.group :heading="auth()->user()->department?->code ?? __('Department')" class="grid">
-            <flux:navlist.item icon="inbox-stack" :href="route('department.dashboard')" :current="request()->routeIs('department.*')" wire:navigate>{{ __('Office Queue') }}</flux:navlist.item>
+            @foreach (\App\Enums\DepartmentQueue::cases() as $queue)
+                <flux:navlist.item :icon="$queue->icon()" :href="route($queue->routeName())" :current="request()->routeIs($queue->routeName(), $queue->showRouteName())" wire:navigate
+                    :badge="$queue === \App\Enums\DepartmentQueue::History ? null : \App\Queries\VisitQueue::for($queue, $departmentId)->count()" data-queue-count="{{ $queue->value }}">{{ __($queue->label()) }}</flux:navlist.item>
+            @endforeach
         </flux:navlist.group>
     @endif
 </flux:navlist>

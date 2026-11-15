@@ -31,7 +31,7 @@ enum Role: string
         return match ($this) {
             self::Student => 'student.requests.create',
             self::Registrar => 'registrar.evaluation',
-            self::Department => 'department.dashboard',
+            self::Department => 'department.incoming',
             self::Admin => 'admin.dashboard',
         };
     }

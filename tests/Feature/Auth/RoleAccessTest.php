@@ -11,7 +11,7 @@ test('REQ-18-02 REQ-18-03 dashboard redirects each role to its home', function (
 })->with([
     'student' => ['student', 'student.requests.create'],
     'registrar' => ['registrar', 'registrar.evaluation'],
-    'department' => ['departmentStaff', 'department.dashboard'],
+    'department' => ['departmentStaff', 'department.incoming'],
     'admin' => ['admin', 'admin.dashboard'],
 ]);
 
@@ -23,7 +23,7 @@ test('REQ-01-32 a logged-in user opening the landing page goes to their role\'s 
 })->with([
     'student' => ['student', 'student.requests.create'],
     'registrar' => ['registrar', 'registrar.evaluation'],
-    'department' => ['departmentStaff', 'department.dashboard'],
+    'department' => ['departmentStaff', 'department.incoming'],
     'admin' => ['admin', 'admin.dashboard'],
 ]);
 
@@ -38,10 +38,10 @@ test('REQ-01-11 users cannot open another role\'s pages', function (string $stat
         $this->actingAs($user)->get(route($route))->assertForbidden();
     }
 })->with([
-    'student' => ['student', ['registrar.evaluation', 'department.dashboard', 'admin.dashboard']],
-    'registrar' => ['registrar', ['student.dashboard', 'department.dashboard', 'admin.dashboard']],
+    'student' => ['student', ['registrar.evaluation', 'department.incoming', 'admin.dashboard']],
+    'registrar' => ['registrar', ['student.dashboard', 'department.incoming', 'department.to-validate', 'department.history', 'admin.dashboard']],
     'department' => ['departmentStaff', ['student.dashboard', 'registrar.evaluation', 'admin.dashboard']],
-    'admin' => ['admin', ['student.dashboard', 'department.dashboard', 'registrar.evaluation']],
+    'admin' => ['admin', ['student.dashboard', 'department.incoming', 'registrar.evaluation']],
 ]);
 
 test('guests are redirected to login', function () {

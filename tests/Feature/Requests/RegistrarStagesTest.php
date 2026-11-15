@@ -528,8 +528,6 @@ test('REQ-16-21 the registrar cannot change the college, cancel, bypass, pause o
     stagePage()->assertDontSee('Cancel request')->assertDontSee('Bypass')->assertDontSee('Record delay reason')
         ->assertDontSee('Return for customer action')->assertDontSee('Update college');
 
-    stagePage()->set('delayCategory', 'pending_signature')->set('delayReason', 'Late.')->call('recordDelay')->assertForbidden();
-
     expect($this->registrar->can('cancel', $this->request))->toBeFalse()
         ->and(fn () => workflow()->cancel($this->request, $this->registrar, 'No.'))->toThrow(InvalidTransition::class);
 

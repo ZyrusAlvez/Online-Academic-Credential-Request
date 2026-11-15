@@ -135,7 +135,7 @@ test('REQ-09-05 request pages offer a copy-tracking-number button', function () 
         ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 
     $this->actingAs(User::factory()->departmentStaff($org->ccs)->create())
-        ->get(route('department.requests.show', $request))
+        ->followingRedirects()->get(route('department.requests.show', $request))
         ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 });
 
@@ -459,7 +459,7 @@ test('REQ-09-19 every section heading and report name is in Title Case', functio
     }
 });
 
-test('REQ-09-19 the requester, office and Records pages head the ledger "Tracking History"', function () {
+test('REQ-09-19 the requester and Records pages head the ledger "Tracking History"; the office page has none', function () {
     $org = organisation();
     $owner = requester($org->ccs);
     $registrar = User::factory()->registrar()->create();
@@ -470,7 +470,7 @@ test('REQ-09-19 the requester, office and Records pages head the ledger "Trackin
     Livewire::actingAs($owner)->test(RequesterShow::class, ['credentialRequest' => $request])
         ->assertSee('Tracking History')->assertSee('Request Details');
     Livewire::actingAs($dean)->test(OfficeShow::class, ['credentialRequest' => $request])
-        ->assertSee('Tracking History')->assertSee('Time in Each Office');
+        ->assertSee('Request Details')->assertDontSee('Tracking History');   // REQ-24-07
     Livewire::actingAs($registrar)->test(RecordShow::class, ['credentialRequest' => $request])
         ->assertSee('Tracking History')->assertDontSee('Ledger')->assertSee('Time in Each Office');
 });

@@ -6,7 +6,6 @@ use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
-use App\Enums\DelayCategory;
 use App\Enums\RecipientType;
 use App\Enums\RouteTask;
 use App\Enums\VisitStatus;
@@ -172,12 +171,11 @@ class DemoRequestSeeder extends Seeder
                 $this->release($request);
             });
 
-            // Overdue: waiting for the Chancellor's signature, with a delay reason.
+            // Overdue: waiting for the Chancellor's signature (no delay reasons, REQ-24-09).
             $this->at(21, function () use ($maria, $tor): void {
                 $request = $this->accepted($maria, $tor, 'Board or licensure examination');
                 $this->advanceUntil($request, 'CHAN', receive: true);
                 $this->later(48);
-                $this->workflow->recordDelay($request, $this->staff['CHAN'], DelayCategory::PendingSignature, 'The Chancellor is attending a conference abroad.', 'Signing scheduled on return.');
             });
 
             // Accepted, received by the Registrar for preparation: not yet in progress (REQ-16-18).
