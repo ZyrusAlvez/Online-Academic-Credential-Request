@@ -474,3 +474,21 @@ test('REQ-09-19 the requester and Records pages head the ledger "Tracking Histor
     Livewire::actingAs($registrar)->test(RecordShow::class, ['credentialRequest' => $request])
         ->assertSee('Tracking History')->assertDontSee('Ledger')->assertSee('Time in Each Office');
 });
+
+test('REQ-09-23 Request Details shows the Fee, marked Paid once verified, and no Adjusted due date', function () {
+    Storage::fake('local');
+    $org = organisation();
+    $owner = requester($org->ccs);
+    $registrar = User::factory()->registrar()->create();
+    $details = fn ($request) => Str::between(Livewire::actingAs($registrar)->test(RecordShow::class, ['credentialRequest' => $request->fresh()])->html(), 'data-request-details', '</dl>');
+
+    $unpaid = submitRequest($owner, $org->tor);
+    expect($details($unpaid))->toContain('Fee')->toContain('₱530.00')->not->toContain('data-paid')->not->toContain('Amount due');
+
+    $paid = acceptRequest(submitRequest($owner, $org->tor), $registrar);
+    expect($details($paid))->toContain('Fee')->toContain('₱530.00')->toContain('data-paid')->toContain('Paid')
+        ->toContain('Due date')->toContain('Processing time')->not->toContain('Adjusted due date');
+
+    $free = acceptRequest(submitRequest($owner, $org->free), $registrar);
+    expect($details($free))->toContain('None required')->not->toContain('data-paid');
+});

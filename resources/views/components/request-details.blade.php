@@ -28,9 +28,13 @@
             <span class="font-normal text-zinc-600 italic" data-empty-value>{{ __('Not yet') }}</span>
         @endif
     </x-summary-row>
-    <x-summary-row :label="__('Amount due')">
+    {{-- The fee, marked paid once the payment is verified, which is when a paid request is accepted (REQ-09-23). --}}
+    <x-summary-row :label="__('Fee')" data-fee>
         @if ($request->requires_payment)
             {{ $request->amount_due !== null ? '₱'.number_format((float) $request->amount_due, 2) : __('Required') }}
+            @if ($request->accepted_at)
+                <flux:badge size="sm" color="green" class="ms-1" data-paid>{{ __('Paid') }}</flux:badge>
+            @endif
         @else
             {{ __('None required') }}
         @endif
