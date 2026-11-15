@@ -26,23 +26,25 @@ past requests after a rename; a request must keep what was true when it was made
 
 ## Source
 
-The colleges and their 27 programs are the list the project team supplied on 2026-11-06. It
-replaces the earlier 12-college, 34-program list. The colleges are now named as on the
-university's site; the list's "category" labels aren't used by the app.
+The colleges and their programs are the list the project team supplied on 2026-11-06 (27
+programs), corrected on 2026-11-15: the Basic Education program is "Senior High School
+Department", and 7 programs were added (34 in all). It replaces the earlier 12-college,
+34-program list. The colleges are now named as on the university's site; the list's "category"
+labels aren't used by the app.
 
 | Code | College | Programs |
 |---|---|---|
 | `CAS` | College of Arts and Sciences | 3 |
 | `SOA` | School of Aviation | 2 |
-| `BED` | Basic Education Department | 1 |
-| `CBAA` | College of Business Administration and Accountancy | 3 |
-| `CCS` | College of Computer Studies | 3 |
+| `BED` | Basic Education Department | 1 (Senior High School Department) |
+| `CBAA` | College of Business Administration and Accountancy | 4 (+ Management Accounting) |
+| `CCS` | College of Computer Studies | 4 (+ IT, Specialization in Game Development) |
 | `CCJE` | College of Criminal Justice Education | 1 |
-| `CTE` | College of Teacher Education | 5 |
-| `CEA` | College of Engineering and Architecture | 4 |
+| `CTE` | College of Teacher Education | 6 (+ Special Needs Education) |
+| `CEA` | College of Engineering and Architecture | 7 (+ Electrical, Electronics, Mechanical Engineering) |
 | `GS` | Graduate School | 1 |
 | `CNHTM` | College of Nutrition, Hospitality and Tourism Management | 3 |
-| `CME` | College of Maritime Education | 1 |
+| `CME` | College of Maritime Education | 2 (+ Marine Engineering) |
 
 `DepartmentSeeder::COLLEGES` and `ProgramSeeder::PROGRAMS` hold the list.
 

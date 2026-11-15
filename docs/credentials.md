@@ -17,7 +17,7 @@ There are exactly three environments. Any other `APP_ENV` value stops the app at
 | Data | Base data + demo accounts | Base data + demo accounts | Base data + the first registrar and admin accounts; real data only |
 | Email | Sent through Gmail, all redirected to your own inbox | Sent through Gmail | Sent through Gmail |
 
-Base data = the 15 offices (11 colleges and 4 offices), the 27 programs, the 17 credential types
+Base data = the 15 offices (11 colleges and 4 offices), the 34 programs, the 17 credential types
 with their routes, the request purposes, the holiday calendar, and the first registrar and admin
 accounts.
 
@@ -102,15 +102,15 @@ accounts under **Administration → Accounts**.
 |---|---|
 | CAS | Bachelor of Arts in Communication · Bachelor of Arts in Political Science · Bachelor of Arts/Science in Psychology |
 | SOA | Bachelor of Science in Aircraft Maintenance and Technology · Bachelor of Science in Aviation Electronics Technology |
-| BED | Basic Education |
-| CBAA | Bachelor of Science in Accountancy · Bachelor of Science in Business Administration · Bachelor of Science in Real Estate Management |
-| CCS | Bachelor of Information Technology in Cybersecurity and Forensics · Bachelor of Science in Computer Science, Specialization in Data Science · Bachelor of Science in Entertainment and Multimedia Computing |
+| BED | Senior High School Department |
+| CBAA | Bachelor of Science in Accountancy · Bachelor of Science in Business Administration · Bachelor of Science in Management Accounting · Bachelor of Science in Real Estate Management |
+| CCS | Bachelor of Information Technology in Cybersecurity and Forensics · Bachelor of Science in Computer Science, Specialization in Data Science · Bachelor of Science in Entertainment and Multimedia Computing · Bachelor of Science in Information Technology, Specialization in Game Development |
 | CCJE | Bachelor of Science in Criminology |
-| CTE | Bachelor of Early Childhood Education · Bachelor of Elementary Education · Bachelor of Library and Information Science · Bachelor of Physical Education · Bachelor of Secondary Education |
-| CEA | Bachelor of Science in Architecture · Bachelor of Science in Civil Engineering · Bachelor of Science in Computer Engineering · Bachelor of Science in Industrial Engineering |
+| CTE | Bachelor of Early Childhood Education · Bachelor of Elementary Education · Bachelor of Library and Information Science · Bachelor of Physical Education · Bachelor of Secondary Education · Bachelor of Special Needs Education |
+| CEA | Bachelor of Science in Architecture · Bachelor of Science in Civil Engineering · Bachelor of Science in Computer Engineering · Bachelor of Science in Electrical Engineering · Bachelor of Science in Electronics Engineering · Bachelor of Science in Industrial Engineering · Bachelor of Science in Mechanical Engineering |
 | GS | Graduate School |
 | CNHTM | Bachelor of Science in Hospitality Management · Bachelor of Science in Nutrition & Dietetics · Bachelor of Science in Tourism Management |
-| CME | Bachelor of Science in Marine Transportation |
+| CME | Bachelor of Science in Marine Engineering · Bachelor of Science in Marine Transportation |
 
 Registrar accounts also act on the Office of the Registrar's steps (preparation and the final
 quality check).
