@@ -138,4 +138,5 @@
   "Request Details", "Time in Each Office", "Proofs of Payment"; short articles, conjunctions and
   prepositions stay lower case unless first), including the report names. Dialog titles, field
   labels and buttons keep sentence case. The request's event ledger is headed "Tracking History"
-  on every request page (requester, office and Records), not "Ledger" or "History".
+  on every request page that shows it (requester and Records; the office page has none since
+  REQ-24-07), not "Ledger" or "History".

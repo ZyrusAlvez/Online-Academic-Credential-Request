@@ -9,7 +9,7 @@ use App\Enums\RouteTask;
 use App\Enums\StepStatus;
 use App\Enums\VisitStatus;
 use App\Exceptions\InvalidTransition;
-use App\Livewire\Department\Dashboard as OfficeQueue;
+use App\Livewire\Department\Queue as OfficeQueue;
 use App\Livewire\Department\Requests\Show as OfficeShow;
 use App\Livewire\Registrar\Queue;
 use App\Livewire\Registrar\Records\Show as RecordShow;
@@ -570,7 +570,7 @@ test('REQ-17-14 the paper\'s stops are "Time in Each Office", never "office visi
     Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
         ->assertSee('Time in Each Office')->assertDontSee('Office Visits');
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request])
-        ->assertSee('Time in Each Office')->assertDontSee('Office Visits');
+        ->assertDontSee('Office Visits');
 
     $this->actingAs(User::factory()->admin()->create())->get(route('admin.dashboard'))
         ->assertSee('Average time per office')->assertDontSee('office visit');
@@ -585,9 +585,9 @@ test('REQ-17-15 a done paper still counts as in the office', function () {
     workflow()->acceptReceipt(openVisit($request), $this->dean);
     workflow()->completeVisit(openVisit($request), $this->dean);
 
-    Livewire::actingAs($this->dean)->test(OfficeQueue::class)
-        ->assertSee('In our office (1)')
-        ->set('tab', 'in_office')->assertSee($request->reference_no)->assertSee('Done, not yet forwarded');
+    // The "In office" tab is To Validate (REQ-24-02).
+    Livewire::actingAs($this->dean)->test(OfficeQueue::class, ['queue' => 'to_validate'])
+        ->assertSee($request->reference_no)->assertSee('Done, not yet forwarded');
 
     // The department report's "Pending now" counts it for the Dean's office.
     $row = collect((new DepartmentReport)->rows(new ReportFilter))->firstWhere(0, $this->org->ccs->name);

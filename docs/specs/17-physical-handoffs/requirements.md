@@ -141,7 +141,7 @@ REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16
   the office reports SHALL count a done document still in the office as held by that office.
   The "In office" tab SHALL mark it "Done, not yet forwarded". The dashboard's office counts and
   the office reports SHALL count a forwarded document not yet received at the office that
-  forwarded it (REQ-17-18).
+  forwarded it (REQ-17-18). *(The "In office" tab is the To Validate list since REQ-24-02.)*
 
 ### Who holds the paper
 - **REQ-17-18** WHILE a forwarded document is not yet received THE SYSTEM SHALL treat it as held

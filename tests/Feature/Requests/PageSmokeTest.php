@@ -24,7 +24,7 @@ test('every request page renders in every status for each role that can see it',
 
         if ($request->openVisit && $request->openVisit->department->code !== 'REG') {
             $staff = User::where('department_id', $request->openVisit->department_id)->firstOrFail();
-            $this->actingAs($staff)->get(route('department.requests.show', $request))->assertOk();
+            $this->actingAs($staff)->followingRedirects()->get(route('department.requests.show', $request))->assertOk();
         }
     }
 
@@ -51,7 +51,9 @@ test('every request page renders in every status for each role that can see it',
         $this->actingAs($admin)->get(route('admin.reports', ['report' => $kind->value, ...$period]))->assertOk();
     }
 
-    $this->actingAs(User::where('email', 'vpf@example.com')->firstOrFail())->get(route('department.dashboard'))->assertOk();
+    foreach (['department.incoming', 'department.to-validate', 'department.history'] as $page) {
+        $this->actingAs(User::where('email', 'vpf@example.com')->firstOrFail())->get(route($page))->assertOk();
+    }
     $this->actingAs(User::where('email', 'student@example.com')->firstOrFail())->get(route('student.dashboard'))->assertOk();
     $this->actingAs(User::where('email', 'student@example.com')->firstOrFail())->get(route('student.requests.create'))->assertOk();
     $this->actingAs(User::where('email', 'student@example.com')->firstOrFail())->get(route('settings.profile'))->assertOk();

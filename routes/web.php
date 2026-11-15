@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\DepartmentQueue;
 use App\Enums\HelpTopic;
 use App\Enums\RegistrarQueue;
 use App\Enums\Role;
@@ -12,8 +13,11 @@ use App\Livewire\Notifications;
 use App\Livewire\Registrar;
 use App\Livewire\Student;
 use App\Models\CredentialRequest;
+use App\Support\DepartmentLink;
 use App\Support\RegistrarLink;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Livewire\Volt\Volt;
 
 // Guests only: the guest middleware sends a logged-in user to /dashboard, their role's home (REQ-01-32).
@@ -80,9 +84,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('logs', Admin\Logs\Index::class)->name('logs');
     });
 
+    // A department office's lists, and a request under the list it is in (REQ-24-01, 06).
     Route::prefix('department')->name('department.')->middleware('role:department')->group(function () {
-        Route::get('/', Department\Dashboard::class)->name('dashboard');
-        Route::get('requests/{credentialRequest}', Department\Requests\Show::class)->name('requests.show');
+        Route::redirect('/', '/department/incoming')->name('dashboard');
+        foreach (DepartmentQueue::cases() as $queue) {
+            $path = str_replace('_', '-', $queue->value);
+            Route::get($path, Department\Queue::class)->defaults('queue', $queue->value)->name(Str::after($queue->routeName(), 'department.'));
+            Route::get($path.'/{credentialRequest}', Department\Requests\Show::class)->defaults('queue', $queue->value)->name(Str::after($queue->showRouteName(), 'department.'));
+        }
+        // The former address, in notifications and emails: to the list the request is in now.
+        Route::get('requests/{credentialRequest}', function (CredentialRequest $credentialRequest) {
+            Gate::authorize('view', $credentialRequest);
+
+            return redirect(DepartmentLink::to($credentialRequest, (int) auth()->user()->department_id));
+        })->name('requests.show');
     });
 });
 

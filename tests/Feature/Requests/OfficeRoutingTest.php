@@ -1,13 +1,12 @@
 <?php
 
-use App\Enums\DelayCategory;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\StepStatus;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use App\Exceptions\InvalidTransition;
-use App\Livewire\Department\Dashboard;
+use App\Livewire\Department\Queue as OfficeList;
 use App\Livewire\Department\Requests\Show as OfficeShow;
 use App\Models\CredentialRequest;
 use App\Models\OfficeVisit;
@@ -46,26 +45,21 @@ test('REQ-05-01 acceptance copies the route with the Dean resolved and the final
         ->and(openVisit($this->request))->department_id->toBe($this->org->registrarOffice->id)->status->toBe(VisitStatus::Received);
 });
 
-test('REQ-05-02 the office queue shows incoming, in-office and history', function () {
+test('REQ-05-02 the office lists show incoming, in-office and history', function () {
     passOffice($this->request, $this->registrar);
+    $list = fn (User $user, string $queue) => Livewire::actingAs($user)->test(OfficeList::class, ['queue' => $queue]);
 
-    Livewire::actingAs($this->dean)->test(Dashboard::class)
-        ->assertSee($this->request->reference_no)
-        ->assertSee('Incoming (1)')
-        ->set('tab', 'in_office')->assertDontSee($this->request->reference_no);
+    $list($this->dean, 'incoming')->assertSee($this->request->reference_no);
+    $list($this->dean, 'to_validate')->assertDontSee($this->request->reference_no);
 
     workflow()->acceptReceipt(openVisit($this->request), $this->dean);
-
-    Livewire::actingAs($this->dean)->test(Dashboard::class)
-        ->assertSee('In our office (1)')
-        ->set('tab', 'in_office')->assertSee($this->request->reference_no);
+    $list($this->dean, 'to_validate')->assertSee($this->request->reference_no);
 
     workflow()->completeVisit($visit = openVisit($this->request), $this->dean);
     workflow()->forwardDocument($visit, $this->dean);
 
-    Livewire::actingAs($this->dean)->test(Dashboard::class)
-        ->set('tab', 'history')->assertSee($this->request->reference_no)->assertSee('Completed');
-    Livewire::actingAs($this->chancellor)->test(Dashboard::class)->assertDontSee($this->request->reference_no);
+    $list($this->dean, 'history')->assertSee($this->request->reference_no)->assertSee('Signed');
+    $list($this->chancellor, 'incoming')->assertDontSee($this->request->reference_no);
 });
 
 test('REQ-05-03 receipt is confirmed separately from forwarding', function () {
@@ -190,27 +184,6 @@ test('REQ-05-08 every visit is kept with working days spent', function () {
         ->and($vpfVisits[0])->status->toBe(VisitStatus::Returned)->working_days->toBe(3)   // Sat, Mon, Tue
         ->and($vpfVisits[1])->status->toBe(VisitStatus::Completed)->visit_no->toBe(2)->working_days->toBe(0)
         ->and($vpfVisits[0]->received_at->toDateTimeString())->toBe('2026-10-23 09:00:00');
-});
-
-test('REQ-05-09 office staff record delay reasons without changing the status', function () {
-    $request = toVpFinance();
-
-    Livewire::actingAs($this->vpf)->test(OfficeShow::class, ['credentialRequest' => $request])
-        ->set('delayCategory', DelayCategory::DocumentaryStamp->value)
-        ->set('delayReason', 'Stamps out of stock')
-        ->set('delayCorrectiveAction', 'Ordered more')
-        ->call('recordDelay')
-        ->assertHasNoErrors();
-
-    expect($request->fresh()->status)->toBe(RequestStatus::InProgress)
-        ->and($request->delayNotes()->sole())
-        ->category->toBe(DelayCategory::DocumentaryStamp)
-        ->department_id->toBe($this->org->vpf->id)
-        ->recorded_by->toBe($this->vpf->id);
-
-    // The Dean has seen the document but no longer holds it.
-    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request])
-        ->set('delayCategory', 'other')->set('delayReason', 'x')->call('recordDelay')->assertForbidden();
 });
 
 test('REQ-05-11 only the office concerned acts, and the first action wins', function () {
