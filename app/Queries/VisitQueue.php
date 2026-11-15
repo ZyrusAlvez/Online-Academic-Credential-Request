@@ -40,7 +40,7 @@ class VisitQueue
         return OfficeVisit::query()
             ->where('department_id', $departmentId)
             ->whereIn('status', [VisitStatus::Completed, VisitStatus::Returned, VisitStatus::Bypassed])
-            ->with([...self::relations(), 'completer:id,first_name,middle_name,last_name'])
+            ->with([...self::relations(), 'completer:id,first_name,middle_name,last_name,email'])
             ->latest('completed_at')
             ->latest('id');
     }
