@@ -86,7 +86,7 @@ REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16
   forwarded". It SHALL NOT forward the document or notify the next office.
 - **REQ-17-07** WHILE a document is done and still in an office THE SYSTEM SHALL let staff of that
   office forward it to the next office: the next office on the route, or, for a corrected
-  document, the office that returned it. Department staff forward from their request page, and
+  document, the office that returned it. Department staff forward from their To Forward list, and
   registrars, for the Office of the Registrar, from the In Progress list (REQ-17-12). Forwarding
   SHALL record the time and staff member as
   the time the document left. It SHALL count the working days from receipt to leaving as the
@@ -124,7 +124,8 @@ REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16
   where the paper was, the step's instructions, optional remarks and a Done button, which the
   row's Forward already covers.)*
 - **REQ-17-16** THE SYSTEM SHALL let department office staff forward only the done documents their
-  own office holds, from their request page. Registrars SHALL forward only the documents the
+  own office holds, from their To Forward list (REQ-24-10; their request page until 2026-11-15).
+  Registrars SHALL forward only the documents the
   Office of the Registrar holds, and only from the In Progress list. Any other forward SHALL be
   refused (403).
 

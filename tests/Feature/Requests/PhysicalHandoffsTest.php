@@ -296,8 +296,9 @@ test('REQ-17-07 a corrected document is done, then forwarded back to the office 
 
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
         ->assertSee('Returned to your office for correction')->assertSee('Approve')->assertDontSee('data-return-button', false)->call('completeVisit');
-    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
-        ->assertSee('Forward to Office of the VP for Finance')->call('forwardDocument');
+    // Sent back from the To Forward row (REQ-24-10).
+    Livewire::actingAs($this->dean)->test(OfficeQueue::class, ['queue' => 'to_forward'])
+        ->assertSee('Forward to Office of the VP for Finance')->call('forwardOne', openVisit($request)->id);
 
     $correction = $request->visits()->where('department_id', $this->org->ccs->id)->orderByDesc('id')->first();
     expect($correction)->status->toBe(VisitStatus::Completed)->done_at->not->toBeNull()
@@ -359,7 +360,7 @@ test('REQ-17-10 a done document can no longer be returned for correction', funct
     expect(fn () => workflow()->returnVisit($visit, $this->dean, $this->org->registrarOffice, 'x', 'y'))
         ->toThrow(InvalidTransition::class);
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
-        ->assertDontSee('Return for correction')->assertDontSee('data-return-button', false)->assertSee('Forward to Office of the VP for Finance');
+        ->assertDontSee('Return for correction')->assertDontSee('data-return-button', false);
 });
 
 // ── In Progress ─────────────────────────────────────────────────────────────────────────────
@@ -535,15 +536,13 @@ test('REQ-17-16 an office forwards only its own done papers; the registrar only 
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
         ->assertDontSee('Forward to')                                             // not done yet
         ->call('completeVisit');
-    // Approved: the page moves to To Forward, which offers the forward (REQ-24-07).
-    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
-        ->assertSee('Forward to Office of the VP for Finance');
-
     expect($this->registrar->can('forward', openVisit($request)))->toBeFalse()    // at the Dean's office
         ->and($this->vpf->can('forward', openVisit($request)))->toBeFalse()
         ->and($this->dean->can('forward', openVisit($request)))->toBeTrue();
 
-    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])->call('forwardDocument');
+    // Approved: the office forwards it from its To Forward list (REQ-24-10).
+    Livewire::actingAs($this->dean)->test(OfficeQueue::class, ['queue' => 'to_forward'])
+        ->assertSee('Forward to Office of the VP for Finance')->call('forwardOne', openVisit($request)->id);
 
     expect(openVisit($request))->department_id->toBe($this->org->vpf->id)->status->toBe(VisitStatus::InTransit)
         ->and($request->visits()->where('department_id', $this->org->ccs->id)->sole())->completed_by->toBe($this->dean->id);

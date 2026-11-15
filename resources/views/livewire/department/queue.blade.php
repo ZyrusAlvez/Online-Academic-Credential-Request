@@ -101,7 +101,18 @@
                         </flux:table.cell>
                     @else
                         @if ($toForward)
-                            <flux:table.cell class="whitespace-normal" data-next-office>{{ $visit->nextStep()?->department?->name ?? '—' }}</flux:table.cell>
+                            {{-- The button names the next office, as on the registrar's In Progress (REQ-24-10). --}}
+                            @php($next = $visit->nextStep()?->department)
+                            <flux:table.cell class="whitespace-normal" data-next-office>
+                                @if ($next)
+                                    <flux:button size="sm" variant="primary" icon="paper-airplane" wire:click="forwardOne({{ $visit->id }})" data-forward-row
+                                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Forward :ref to :office now?', ['ref' => $request->reference_no, 'office' => $next->name])">
+                                        {{ __('Forward to :office', ['office' => $next->name]) }}
+                                    </flux:button>
+                                @else
+                                    —
+                                @endif
+                            </flux:table.cell>
                         @endif
                         <flux:table.cell class="text-zinc-700">
                             @php($since = match ($queue) { Q::Incoming => $visit->forwarded_at, Q::ToForward => $visit->done_at, default => $visit->received_at })

@@ -54,7 +54,8 @@
                 </div>
             </section>
         @endcan
-    @elseif (in_array($queue, [Q::ToValidate, Q::ToForward], true) && $visit)
+    @elseif ($queue === Q::ToValidate && $visit)
+        {{-- To Forward has no panel: it is forwarded from its list (REQ-24-10). --}}
         @include('partials.visit-actions', ['visit' => $visit, 'returnOffices' => $returnOffices])
     @endif
 </div>
