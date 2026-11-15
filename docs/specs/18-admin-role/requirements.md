@@ -91,8 +91,9 @@ This replaces:
   - WHEN an account with that email already exists THE SYSTEM SHALL leave it unchanged.
   - IF the email is not set, or the account doesn't exist and no password is set, THEN THE SYSTEM
     SHALL refuse to seed, so no install ends up without a way to sign in.
-- **REQ-18-12** THE demo data (local and staging only, REQ-07-09) SHALL include an Admin account,
-  `admin@example.com`, and a Registrar account, `registrar@example.com`, both with the demo
-  password `@Test123` (REQ-07-09). The demo requests are evaluated and released by that Registrar.
+- **REQ-18-12** THE demo data (local and staging only, REQ-07-09) SHALL include a Registrar
+  account, `registrar@example.com`, with the demo password `@Test123` (REQ-07-09). The demo
+  requests are evaluated and released by that Registrar. There is no demo Admin (removed
+  2026-11-15): the only Admin is the first admin from `INITIAL_ADMIN_*` (REQ-18-11).
 - **REQ-18-13** THE demo reset (`app:reset-demo`) SHALL refuse to start, changing nothing, unless
   `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` are set.

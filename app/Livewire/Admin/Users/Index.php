@@ -33,8 +33,8 @@ class Index extends Component
     #[Url(except: '')]
     public string $role = '';
 
-    #[Url(except: '')]
-    public string $status = '';
+    #[Url(except: 'active')]
+    public string $status = 'active';
 
     public function mount(): void
     {

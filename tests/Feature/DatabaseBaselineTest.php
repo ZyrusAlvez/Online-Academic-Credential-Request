@@ -137,7 +137,7 @@ test('REQ-23-07 app:reset-demo does the same reset and then loads the demo data'
 
     expect($migrate->calls)->toBe([['seed' => true, 'force' => true]])
         ->and(User::where('email', 'registrar@example.com')->sole()->role)->toBe(Role::Registrar)
-        ->and(User::where('email', 'admin@example.com')->exists())->toBeTrue()
+        ->and(User::where('email', 'admin@example.com')->exists())->toBeFalse()
         ->and(User::where('email', config('uphsl.initial_admin.email'))->exists())->toBeTrue();
 });
 

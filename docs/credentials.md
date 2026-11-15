@@ -40,13 +40,11 @@ The demo requests are evaluated, accepted, prepared, checked and released by thi
 
 ### Admin
 
-| Email | Password | Sees |
-|---|---|---|
-| `admin@example.com` | `@Test123` | Dashboard, Records, Reports, and Administration (Credential Types, Departments, Programs, Purposes, Accounts, Working Calendar, Logs) |
-
-Your own admin account from `.env` (`INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`) also exists,
-the same way production gets its first admin. Production has no demo accounts: its first admin is
-the only seeded account, and it creates the registrar and department staff accounts (spec 18).
+There is no demo admin. Sign in with the admin account from `.env` (`INITIAL_ADMIN_EMAIL` /
+`INITIAL_ADMIN_PASSWORD`), the same way production gets its first admin. It sees Dashboard,
+Records, Reports, and Administration (Credential Types, Departments, Programs, Purposes,
+Accounts, Working Calendar, Logs). Production has no demo accounts: its first admin is the only
+seeded account, and it creates the registrar and department staff accounts (spec 18).
 
 ### Requesters
 

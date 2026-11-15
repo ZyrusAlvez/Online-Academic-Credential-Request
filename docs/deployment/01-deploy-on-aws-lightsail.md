@@ -594,7 +594,7 @@ their own JavaScript.
 | `CredentialTypeSeeder` | The 17 credential types and their signing order (`workflow_steps`) |
 | `NonWorkingDaySeeder` | Philippine holidays, for the working-day due dates |
 | `AdminSeeder` | The first admin account, from `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`. It is the only account seeding creates |
-| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff, a demo admin (`admin@example.com`), a demo registrar (`registrar@example.com`) and requests in every status, all at `@example.com` with the password `@Test123`. The demo requests are worked by the demo registrar |
+| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff, a demo registrar (`registrar@example.com`) and requests in every status, all at `@example.com` with the password `@Test123`. The demo requests are worked by the demo registrar |
 
 ### Migrations and seeders: who does what
 
