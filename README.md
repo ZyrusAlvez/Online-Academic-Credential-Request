@@ -57,13 +57,13 @@ Any other value stops the app at startup.
 | Error details (debug mode) | Shown | Shown | Never shown |
 
 Base data means the 15 offices, the 17 credential types of the master list with their routes,
-the 2026–2027 holiday calendar, and the first registrar account.
+the 2026–2027 holiday calendar, and the first admin account (from `.env`).
 
 The `.env` file is small: the environment name, the address, the database login, and the
 secrets for email and receipt storage (see `.env.example`). Everything that follows from the
 environment, such as the database name and debug mode, is set automatically in `config/`.
 
-Staging works exactly like production, including email and the first registrar account. The only
+Staging works exactly like production, including email and the first admin account. The only
 differences are its separate database, the demo data, and visible error details. Without Gmail
 settings, any environment writes its emails to `storage/logs/laravel.log` instead.
 
