@@ -62,18 +62,18 @@
         </dl>
         <dl class="grid grid-cols-2 gap-3 text-sm lg:grid-cols-4">
             <div class="rounded-xl border border-secondary/50 p-3"><dt class="text-zinc-600">{{ __('Overdue workload (open now)') }}</dt><dd class="text-lg font-semibold text-ink tabular-nums">{{ $metrics->overdueWorkload }}</dd></div>
-            <div class="rounded-xl border border-secondary/50 p-3"><dt class="text-zinc-600">{{ __('Returned for correction') }}</dt><dd class="text-lg font-semibold text-ink tabular-nums">{{ $metrics->returns }}{{ $metrics->returnRate() === null ? '' : ' ('.$metrics->returnRate().'% of office visits)' }}</dd></div>
-            <div class="rounded-xl border border-secondary/50 p-3"><dt class="text-zinc-600">{{ __('Average time per office visit') }}</dt><dd class="text-lg font-semibold text-ink tabular-nums">{{ $metrics->avgOfficeDays === null ? '—' : trans_choice(':count working day|:count working days', $metrics->avgOfficeDays) }}</dd></div>
+            <div class="rounded-xl border border-secondary/50 p-3"><dt class="text-zinc-600">{{ __('Returned for correction') }}</dt><dd class="text-lg font-semibold text-ink tabular-nums">{{ $metrics->returns }}{{ $metrics->returnRate() === null ? '' : ' ('.$metrics->returnRate().'% of office steps)' }}</dd></div>
+            <div class="rounded-xl border border-secondary/50 p-3"><dt class="text-zinc-600">{{ __('Average time per office') }}</dt><dd class="text-lg font-semibold text-ink tabular-nums">{{ $metrics->avgOfficeDays === null ? '—' : trans_choice(':count working day|:count working days', $metrics->avgOfficeDays) }}</dd></div>
             <div class="rounded-xl border border-secondary/50 p-3"><dt class="text-zinc-600">{{ __('Average initial evaluation time') }}</dt><dd class="text-lg font-semibold text-ink tabular-nums">{{ $metrics->avgInitialEvaluationHours === null ? '—' : trans_choice(':count hour|:count hours', $metrics->avgInitialEvaluationHours) }}</dd></div>
         </dl>
 
         <div class="space-y-3">
             <div>
                 <h3 class="font-semibold text-primary">{{ __('Processing Time by Office') }}</h3>
-                <p class="text-sm text-zinc-600">{{ __('Average working days per visit, longest first.') }}</p>
+                <p class="text-sm text-zinc-600">{{ __('Average working days per document, longest first.') }}</p>
             </div>
             @if ($metrics->byOffice->isEmpty())
-                <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No office visits were completed in this period.') }}</p>
+                <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No office finished a step in this period.') }}</p>
             @else
                 @php($maxDays = max(1, $metrics->byOffice->max('days')))
                 <ul class="space-y-2.5">

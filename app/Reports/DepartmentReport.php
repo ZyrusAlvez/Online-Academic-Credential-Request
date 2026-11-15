@@ -25,7 +25,7 @@ final class DepartmentReport implements Report
 
     public function columns(): array
     {
-        return ['Office', 'Received', 'Released', 'Returned', 'Pending now', 'Avg working days per visit'];
+        return ['Office', 'Received', 'Released', 'Returned', 'Pending now', 'Avg working days per document'];
     }
 
     public function rows(ReportFilter $filter): iterable

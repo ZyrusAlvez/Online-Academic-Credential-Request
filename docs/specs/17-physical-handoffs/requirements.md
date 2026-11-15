@@ -131,7 +131,12 @@ REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16
 ### Records and queues
 - **REQ-17-14** THE office visits table SHALL show for each visit when the paper was forwarded to
   the office, received (delivered), done and forwarded on (left), with the staff member for each,
-  the time spent and the status.
+  the time spent and the status. On screen it SHALL be headed "Time in Each Office" (Proposed
+  Workflow VI-C), and no screen or report SHALL call the paper's stops "office visits": "Office
+  Visit" means only the requester's visit to the Registrar's office (REQ-20-04). The admin
+  dashboard says "Average time per office" and "% of office steps"; the department report "Avg
+  working days per document"; the tracking report's visit number is "Pass". *(User's request,
+  2026-11-15.)*
 - **REQ-17-15** THE office queue's "In office" tab, the registrar dashboard's office counts and
   the office reports SHALL count a done document still in the office as held by that office.
   The "In office" tab SHALL mark it "Done, not yet forwarded". The dashboard's office counts and

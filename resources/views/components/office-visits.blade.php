@@ -33,7 +33,7 @@
                     <div class="font-medium text-ink">{{ $visit->department->name }}</div>
                     <div class="text-xs text-zinc-500">
                         {{ $visit->purpose === \App\Enums\VisitPurpose::Route ? $visit->step->task->label() : $visit->purpose->label() }}
-                        @if ($visit->visit_no > 1) · {{ __('visit :n', ['n' => $visit->visit_no]) }} @endif
+                        @if ($visit->visit_no > 1) · {{ __('pass :n', ['n' => $visit->visit_no]) }} @endif
                     </div>
                     <div class="text-xs text-zinc-500">{{ __('Forwarded :date', ['date' => $visit->forwarded_at->format('M j, g:i A')]) }}</div>
                     @if ($visit->return_reason)

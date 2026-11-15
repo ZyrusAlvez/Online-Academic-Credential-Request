@@ -470,7 +470,7 @@ test('REQ-09-19 the requester, office and Records pages head the ledger "Trackin
     Livewire::actingAs($owner)->test(RequesterShow::class, ['credentialRequest' => $request])
         ->assertSee('Tracking History')->assertSee('Request Details');
     Livewire::actingAs($dean)->test(OfficeShow::class, ['credentialRequest' => $request])
-        ->assertSee('Tracking History')->assertSee('Office Visits');
+        ->assertSee('Tracking History')->assertSee('Time in Each Office');
     Livewire::actingAs($registrar)->test(RecordShow::class, ['credentialRequest' => $request])
-        ->assertSee('Tracking History')->assertDontSee('Ledger')->assertSee('Office Visits');
+        ->assertSee('Tracking History')->assertDontSee('Ledger')->assertSee('Time in Each Office');
 });
