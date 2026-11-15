@@ -113,11 +113,11 @@
 - **REQ-09-22** THE requester's request page SHALL show "Tracking History" as its last section,
   after "Request Details". "Request Details" SHALL list each entry as a row, the field's name on
   the left and its value on the right (stacked on narrow screens, like the summary rows of
-  REQ-15-17), the valid ID and each documentary requirement with its uploaded files included as
-  rows of the same list; a requirement without a file reads "No file uploaded" in grey italics
-  (REQ-15-19). The same rows SHALL be used wherever Request Details appears (office and Records
-  pages) and for the documentary requirements on the Initial Evaluation checklist.
-  *(User's request, 2026-11-11.)*
+  REQ-15-17), the valid ID and the credential's documentary requirements (one row listing them by
+  name, REQ-04-22) included as rows of the same list. The same rows SHALL be used wherever
+  Request Details appears (office and Records pages) and for the documentary requirements on the
+  Initial Evaluation checklist. *(User's request, 2026-11-11; the requirements became one row of
+  names on 2026-11-15, when their uploads were removed.)*
 
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the

@@ -34,8 +34,8 @@ identity, and My Profile in REQ-09-09/12.
 
 ### New Request
 - **REQ-15-03** THE SYSTEM SHALL show New Request as numbered sections: what you need (credential,
-  purpose, receiving school), documentary requirements (the chosen credential's upload fields,
-  REQ-04-18), personal information (first, middle (optional) and last name, contact number),
+  purpose, receiving school), documentary requirements (the chosen credential's list,
+  REQ-04-22), personal information (first, middle (optional) and last name, contact number),
   academic information (the fields of REQ-01-16), valid ID, and who will transact, followed by the
   *Incomplete requirements* notice; the personal and academic sections SHALL start filled in from
   the requester's saved profile. *(User's decision, 2026-11-10: documentary requirements are
@@ -56,7 +56,7 @@ identity, and My Profile in REQ-09-09/12.
   another one (REQ-20-06). WHEN an ID file is chosen THE SYSTEM SHALL show its name as a link that opens the chosen file in
   the file viewer, in their own browser, before anything is uploaded. The name SHALL appear once,
   next to a "Choose file" (then "Change file") button; the browser's own picker, which repeats it,
-  is hidden, and the upload shows the progress bar of REQ-04-18. *(User's report, 2026-11-10.)*
+  is hidden, and the upload shows a progress bar with the percentage. *(User's report, 2026-11-10.)*
 - **REQ-15-18** WHEN the requester has a saved ID THE SYSTEM SHALL show a "Remove" button beside it,
   on New Request, Edit Request and Settings → Profile, and remove it from their profile once they
   confirm, at once and without the summary step; the type of ID and file fields then appear and an
@@ -66,7 +66,7 @@ identity, and My Profile in REQ-09-09/12.
 - **REQ-15-05** WHEN the requester chooses "Review request" THE SYSTEM SHALL check every entry and
   save nothing. IF an entry is missing or invalid THEN THE SYSTEM SHALL show the errors modal of
   REQ-01-26. Otherwise THE SYSTEM SHALL show a "Summary" of the request, the personal and academic
-  information and the ID (one row like a requirement's in section 2: the type of ID on the left,
+  information and the ID (one row: the type of ID on the left,
   and on the right its file name, as a link that opens it, image or PDF, in the file viewer,
   followed by its size; no picture on the page, *user's requests, 2026-11-10 and 2026-11-11*), the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry
   and the chosen file, and a "Submit request" button. THE SYSTEM SHALL show the consent as an
@@ -74,14 +74,14 @@ identity, and My Profile in REQ-09-09/12.
   refuses) until it is ticked; the first consent's time is recorded on the account.
 - **REQ-15-17** THE request summary SHALL repeat the form's numbered sections (1. What Do You
   Need? to 6. Who Will Transact?, or 1 to 5 on Edit Request), each entry as a row with its label
-  on the left and its value on the right (stacked on narrow screens), section 2 listing every
-  requirement with the names and sizes of the files chosen for it, each name a link that opens the
-  file in the file viewer (*user's request, 2026-11-11*), and section 6 the representative's name,
-  relationship, contact number, and the SPA and their ID as linked file names with sizes like
-  section 2's (*user's request, 2026-11-11*). "Summary" SHALL be the page's title, in place of
+  on the left and its value on the right (stacked on narrow screens), section 2 listing the
+  credential's requirements by name (REQ-04-22: nothing is uploaded for them, *2026-11-15*), and
+  section 6 the representative's name, relationship, contact number, and the SPA and their ID as
+  file names with sizes, each name a link that opens the file in the file viewer (*user's
+  request, 2026-11-11*). "Summary" SHALL be the page's title, in place of
   the form's title and description. *(User's request, 2026-11-10.)*
-- **REQ-15-19** WHERE a summary row has nothing to show ("Not provided", "No files", "No new
-  files", "None for this credential") THE SYSTEM SHALL write that text in italics and grey
+- **REQ-15-19** WHERE a summary row has nothing to show ("Not provided", "None for this
+  credential") THE SYSTEM SHALL write that text in italics and grey
   (`text-zinc-600`), unlike an entered value, so that it is never mistaken for one (a receiving
   school typed as "Not provided" stays plain). This applies to the summaries of New Request, Edit
   Request and Settings → Profile. *(User's request, 2026-11-11.)*

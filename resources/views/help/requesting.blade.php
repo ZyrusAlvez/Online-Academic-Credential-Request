@@ -3,7 +3,7 @@
     <p>Open <a href="{{ route('student.requests.create') }}" wire:navigate>New Request</a> and fill in its sections:</p>
     <ol>
         <li><strong>What Do You Need?</strong> The credential, its purpose, and the receiving school when the credential needs one.</li>
-        <li><strong>Documentary Requirements</strong>: copies, if you have them (optional).</li>
+        <li><strong>Documentary Requirements</strong>: the list for the credential you chose. Nothing is uploaded here.</li>
         <li><strong>Personal Information</strong>, <strong>Academic Information</strong> and your <strong>Valid ID</strong>, filled in from your profile after your first request.</li>
         <li><strong>Who Will Transact?</strong> You, or an authorized representative.</li>
     </ol>
@@ -22,9 +22,9 @@
     <p>Transfer credentials, such as a TOR for Transfer Credentials, are issued for a specific school. Give its complete name.</p>
 </x-faq-item>
 
-<x-faq-item question="Do I have to upload the documentary requirements?">
-    <p>No, the uploads are optional. Copies help the evaluator, but the Office of the Registrar may still ask you to bring the originals or complete your clearance in person.</p>
-    <p>You can add up to {{ \App\Models\RequestDocument::MAX_PER_REQUIREMENT }} files per requirement, each a JPG, PNG, WebP or PDF of up to 5 MB. Choosing files again adds to the ones already listed; use <strong>Remove</strong> to take one out. Select a file's name to view it.</p>
+<x-faq-item question="How do I submit the documentary requirements?">
+    <p>You don't upload them. The Office of the Registrar checks them against your records when it evaluates your request.</p>
+    <p>If something is missing, your request page says what to bring. Submit the originals in person at the Office of the Registrar, or send the representative you named on New Request with a Special Power of Attorney (SPA) and the valid IDs of you both.</p>
 </x-faq-item>
 
 <x-faq-item question="How do I request more than one copy?">
@@ -47,7 +47,7 @@
 </x-faq-item>
 
 <x-faq-item question="Can I change a request after submitting it?">
-    <p>Only when the Office of the Registrar returns it to you for clarification: then <strong>Edit Request</strong> lets you change the credential, purpose, receiving school, your details and ID, and add requirement copies before resubmitting.</p>
+    <p>Only when the Office of the Registrar returns it to you for clarification: then <strong>Edit Request</strong> lets you change the credential, purpose, receiving school, and your details and ID before resubmitting.</p>
     <p>Otherwise, cancel it (while you still can) and submit a new one.</p>
 </x-faq-item>
 

@@ -208,7 +208,8 @@ Every office has the same buttons:
   *(Confirmed by the client.)*
 - A representative never uses the owner's account as the owner: their identity and authority are
   recorded separately, and a credential is not released until the claimant is verified.
-- Uploaded IDs, SPAs, documentary-requirement copies and payment proofs are private: only
+- Uploaded IDs, SPAs and payment proofs are private (documentary requirements are never uploaded,
+  REQ-04-22): only
   registrar staff (and the uploader for their own files) can open them.
 - Routes, fees, processing periods, requirements and the working calendar are configuration,
   edited by the registrar in the app.

@@ -196,7 +196,7 @@
 
     <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
-        {{-- Field left, value right; the ID and the requirement files are rows too (REQ-09-22). --}}
+        {{-- Field left, value right; the ID and the requirements are rows too (REQ-09-22). --}}
         <x-request-details :request="$request">
             @if ($request->identityDocument)
                 {{-- The ID sent with this request, without a verification badge: "Verified" shows on
@@ -207,8 +207,7 @@
                     </x-file-link>
                 </x-summary-row>
             @endif
-            {{-- The copies of the requirements sent with this request (REQ-04-19). --}}
-            <x-requirement-document-list :request="$request" />
+            <x-requirement-list :request="$request" />
         </x-request-details>
     </section>
 

@@ -28,3 +28,9 @@
 - [x] Proof of payment uses `x-file-picker` (REQ-04-12); proofs list moved into a Payment History
       dialog opened from the notice's right side (REQ-04-21)
 - [x] Pest tests for the changed REQ-04-12 and REQ-04-21
+- [x] Remove the requirement copies (REQ-04-18, 19 superseded): New Request's file fields,
+      `attachRequirementDocuments()`, `DocumentKind::Requirement`, `requirementDocuments()`;
+      migration drops `request_documents.requirement` and its rows (REQ-04-22)
+- [x] Section 2 lists the requirements with the in-person note; `<x-requirement-list>` on the
+      evaluation checklist, Records and the owner's page (REQ-04-22)
+- [x] Pest tests for REQ-04-22
