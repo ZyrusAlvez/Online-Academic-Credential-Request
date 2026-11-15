@@ -310,7 +310,7 @@ Proofs of payment uploaded by the requester (private files on the receipts disk)
 | amount | decimal(10,2) | Yes | | | Amount paid, as given |
 | paid_on | date | Yes | | | Date paid, as given |
 | status | varchar(20) | No | IX | | See [PaymentStatus](#paymentstatus) |
-| official_receipt_no | varchar(50) | Yes | | | Recorded by the registrar on verification |
+| official_receipt_no | varchar(50) | Yes | | | Recorded on verification until 2026-11-16; no longer written (REQ-16-17) |
 | reviewed_by, reviewed_at, remarks | | Yes | | | |
 | created_at, updated_at | timestamp | Yes | | | |
 
@@ -574,13 +574,10 @@ entries hidden from requesters: forwarding, returns, resubmissions, delay notes,
 
 ### CheckItem
 
-The parts of each Registrar stage's checklist (spec 16):
-
-| Stage | Values |
-|---|---|
-| Initial Evaluation | `credential_request`, `identity`, `academic_record`, `representative` (only when the requester transacts through one) |
-| Payment Validation | `payment_proof`, `payment_amount` |
-| Final Quality Check | `credential_document`, `signatures` |
+The parts of Initial Evaluation's checklist, the only Registrar stage with one (spec 16):
+`credential_request`, `identity`, `academic_record`, `representative` (only when the requester
+transacts through one). The Final Quality Check's parts were removed on 2026-11-13 (REQ-16-19)
+and Payment Validation's (`payment_proof`, `payment_amount`) on 2026-11-16 (REQ-16-17).
 
 ### CheckResult
 

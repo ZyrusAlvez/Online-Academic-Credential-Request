@@ -226,7 +226,8 @@ Rules the document leaves open, taken as follows until the client says otherwise
 3. Requesters see an internal *returned for correction* as "In progress".
 4. The Registrar's final quality check is inside the processing period.
 5. A credential is *unclaimed* once it has been ready for release for more than 10 working days.
-6. Payment verification records the official receipt (OR) number.
+6. ~~Payment verification records the official receipt (OR) number.~~ Dropped 2026-11-16: the
+   BRD asks only that the payment be confirmed against the official payment record (REQ-16-17).
 7. A registrar's action approved a due-date pause. Since spec 16 nothing pauses the processing
    period; pauses recorded earlier keep their adjusted due dates.
 8. Working days are Monday to Saturday (the document's own example counts Monday to Friday; the

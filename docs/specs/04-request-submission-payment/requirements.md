@@ -74,8 +74,9 @@ period starts only at acceptance.
   (status `payment_verification`). The proof field SHALL be the valid ID's picker (REQ-15-04): the
   chosen file's name is a link that opens it in the file viewer. *(User's request, 2026-11-13.)*
 - **REQ-04-13** THE SYSTEM SHALL let the registrar reject a proof with remarks (back to
-  `awaiting_payment`) or verify it against the official record, recording the official receipt
-  number; an uploaded proof alone SHALL NOT mark a request as paid.
+  `awaiting_payment`) or verify it against the official record; an uploaded proof alone SHALL NOT
+  mark a request as paid. *(Since 2026-11-16 no official receipt number is recorded; it is not in
+  the BRD, REQ-16-17.)*
 - **REQ-04-20** WHEN the requester uploads a new proof of payment after one was returned (REQ-04-13,
   the Proposed Workflow's "request clarification or valid proof → customer uploads proof again")
   THE SYSTEM SHALL offer an optional note to the Office of the Registrar (at most 500 characters),
