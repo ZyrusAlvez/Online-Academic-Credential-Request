@@ -16,6 +16,7 @@ use App\Models\CredentialRequest;
 use App\Models\User;
 use App\Notifications\RequestActivity;
 use App\Services\RequestWorkflow;
+use App\Support\RegistrarLink;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -187,7 +188,7 @@ test('REQ-11-02 the representative is recorded apart from the owner and shown wi
     // The owner sees no "For verification" (2026-11-13); the registrar still does, to act on it.
     $ownerPage = fn (): string => Str::after($this->actingAs($this->owner)->get(route('student.requests.show', $request))->getContent(), 'id="representatives-heading"');
     expect($ownerPage())->toContain('Pedro Santos')->not->toContain('For verification');
-    $this->actingAs($this->registrar)->get(route('registrar.requests.show', $request))->assertSee('Pedro Santos')->assertSee('For verification');
+    $this->actingAs($this->registrar)->get(RegistrarLink::to($request))->assertSee('Pedro Santos')->assertSee('For verification');
 
     Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])
         ->call('verifyRepresentative', $representative->id);

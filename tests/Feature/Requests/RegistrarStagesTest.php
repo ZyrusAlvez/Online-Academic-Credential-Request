@@ -18,8 +18,10 @@ use App\Models\CredentialRequest;
 use App\Models\RequestCheck;
 use App\Models\User;
 use App\Notifications\RequestActivity;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
@@ -373,20 +375,26 @@ test('REQ-16-14 declining ends the request with the remarks as the reason and te
 
 // ── Payment Validation ──────────────────────────────────────────────────────────────────────
 
-test('REQ-16-17 payment validation: approve with both parts and the OR number; return or decline with remarks', function () {
+test('REQ-16-17 payment validation shows the proof and its details read-only, then Decline, Return to Requester and Approve', function () {
     awaitingValidation($this->request);
 
-    stagePage()->assertSee('Proof of Payment')->assertSee('Amount and Reference')->assertSee('REF-123')->assertSee('Official receipt no.');
+    $html = stagePage()->html();
+    $decision = Str::after($html, 'data-decision>');
 
-    stagePage()->set('officialReceiptNo', 'OR-1')->call('approve')
-        ->assertSet('blockedParts', [['label' => 'Proof of Payment', 'state' => 'unchecked'], ['label' => 'Amount and Reference', 'state' => 'unchecked']]);
-    checkAll($this->request, $this->registrar, CheckStage::Payment);
-    stagePage()->call('approve')->assertHasErrors('officialReceiptNo')->assertSet('blockedParts', [['label' => 'Official receipt number', 'state' => 'not_entered']])->assertSet('blockers', []);
-    stagePage()->set('officialReceiptNo', 'OR-1')->call('approve')->assertHasNoErrors();
+    // No checklist and no receipt number: the proof and its details, read-only.
+    expect($html)->toContain('data-payment-proof')->toContain('data-payment-details')->toContain('REF-123')
+        ->not->toContain('data-check=')->not->toContain('data-confirm-button')
+        ->not->toContain('Official receipt')
+        ->and(Str::between($html, 'data-payment-details', '</section>'))->toContain('Amount due')->toContain('Amount paid')->toContain('Date paid')
+        ->and($decision)->not->toContain('Every part is confirmed')->not->toContain('Confirm every part');
+    stagePage()->assertSeeInOrder(['Remarks', 'Decline', 'Return to Requester', 'Approve'])->assertDontSee('Require Office Visit');
 
+    // Approve needs nothing else; remarks are optional.
+    stagePage()->call('approve')->assertHasNoErrors()->assertNotDispatched('modal-show');
     expect($this->request->fresh())->status->toBe(RequestStatus::AcceptedForProcessing)->due_at->not->toBeNull()
-        ->and($this->request->paymentProofs()->first())->status->toBe(PaymentStatus::Verified)->official_receipt_no->toBe('OR-1');
+        ->and($this->request->paymentProofs()->first())->status->toBe(PaymentStatus::Verified)->official_receipt_no->toBeNull();
 
+    // Return to Requester and Decline need remarks.
     $returned = awaitingValidation(submitRequest($this->owner, $this->org->tor));
     stagePage($returned)->call('returnRequest')->assertHasErrors('remarks');
     stagePage($returned)->set('remarks', 'Amount does not match.')->call('returnRequest')->assertHasNoErrors();
@@ -394,8 +402,19 @@ test('REQ-16-17 payment validation: approve with both parts and the OR number; r
         ->and($returned->paymentProofs()->first()->status)->toBe(PaymentStatus::Rejected);
 
     $declined = awaitingValidation(submitRequest($this->owner, $this->org->tor));
+    stagePage($declined)->call('decline')->assertHasErrors('remarks');
     stagePage($declined)->set('remarks', 'No matching payment after three attempts.')->call('decline')->assertHasNoErrors();
     expect($declined->fresh()->status)->toBe(RequestStatus::Declined);
+});
+
+test('REQ-16-17 payment checklist results saved before are deleted by the migration', function () {
+    $request = awaitingValidation(submitRequest($this->owner, $this->org->tor));
+    DB::table('request_checks')->insert(['credential_request_id' => $request->id, 'item' => 'payment_amount', 'result' => 'confirmed', 'checked_by' => $this->registrar->id, 'checked_at' => now()]);
+
+    (require database_path('migrations/2026_11_16_000001_delete_payment_checks.php'))->up();
+
+    expect(DB::table('request_checks')->whereIn('item', ['payment_proof', 'payment_amount'])->exists())->toBeFalse()
+        ->and($request->fresh()->checks)->toHaveCount(collect(CheckItem::for(CheckStage::Evaluation, $request))->count());
 });
 
 // ── In progress ─────────────────────────────────────────────────────────────────────────────

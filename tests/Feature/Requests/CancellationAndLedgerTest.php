@@ -61,7 +61,7 @@ test('REQ-04-17 actions not allowed in the current status are refused', function
     $request = submitRequest($this->owner, $this->org->tor);
 
     expect(fn () => workflow()->approveEvaluation($request, $this->registrar))->toThrow(InvalidTransition::class)
-        ->and(fn () => workflow()->verifyPaymentAndAccept($request, $this->registrar, 'OR-1'))->toThrow(InvalidTransition::class)
+        ->and(fn () => workflow()->verifyPaymentAndAccept($request, $this->registrar))->toThrow(InvalidTransition::class)
         ->and(fn () => uploadPayment($request))->toThrow(InvalidTransition::class)
         ->and($request->fresh()->status)->toBe(RequestStatus::Submitted);
 });

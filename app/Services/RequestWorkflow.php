@@ -444,26 +444,21 @@ class RequestWorkflow
             $locked = $this->lock($request, [RequestStatus::PaymentVerification], 'Only payments awaiting verification can be rejected.');
 
             $this->reviewLatestProof($locked, $registrar, PaymentStatus::Rejected, remarks: $remarks);
-            $locked->checks()->whereIn('item', array_map(fn (CheckItem $item) => $item->value, CheckItem::for(CheckStage::Payment, $locked)))->delete();   // the next proof is checked anew
             $this->transition($locked, $request, RequestStatus::AwaitingPayment, $registrar, RequestEventType::PaymentRejected, $remarks);
         });
     }
 
     /**
-     * The payment matches the official record: accept the request for processing (REQ-04-13, 14).
+     * The registrar confirmed the payment against the official payment record: accept the request
+     * for processing (REQ-04-13, 14). No checklist and no receipt number (REQ-16-17).
      */
-    public function verifyPaymentAndAccept(CredentialRequest $request, User $registrar, string $officialReceiptNo, ?string $remarks = null): void
+    public function verifyPaymentAndAccept(CredentialRequest $request, User $registrar, ?string $remarks = null): void
     {
-        if (blank($officialReceiptNo)) {
-            throw new InvalidTransition('Enter the official receipt number from the payment record.');
-        }
-
-        DB::transaction(function () use ($request, $registrar, $officialReceiptNo, $remarks): void {
+        DB::transaction(function () use ($request, $registrar, $remarks): void {
             $locked = $this->lock($request, [RequestStatus::PaymentVerification], 'Only payments awaiting verification can be verified.');
-            $this->assertAllConfirmed($locked, CheckStage::Payment);
 
-            $this->reviewLatestProof($locked, $registrar, PaymentStatus::Verified, $officialReceiptNo, $remarks);
-            $this->record($locked, $registrar, RequestEventType::PaymentVerified, null, null, "Official receipt {$officialReceiptNo}");
+            $this->reviewLatestProof($locked, $registrar, PaymentStatus::Verified, remarks: $remarks);
+            $this->record($locked, $registrar, RequestEventType::PaymentVerified, null, null);
             $this->accept($locked, $request, $registrar, $remarks);
         });
     }
@@ -757,7 +752,6 @@ class RequestWorkflow
     /** The status in which each stage's checklist is filled in. */
     private const STAGE_STATUS = [
         'evaluation' => RequestStatus::UnderEvaluation,
-        'payment' => RequestStatus::PaymentVerification,
     ];
 
     /**
@@ -1263,7 +1257,8 @@ class RequestWorkflow
         return $event;
     }
 
-    private function reviewLatestProof(CredentialRequest $request, User $registrar, PaymentStatus $status, ?string $officialReceiptNo = null, ?string $remarks = null): void
+    /** The proof under review is verified or rejected; no receipt number is kept (REQ-16-17). */
+    private function reviewLatestProof(CredentialRequest $request, User $registrar, PaymentStatus $status, ?string $remarks = null): void
     {
         $proof = $request->paymentProofs()->where('status', PaymentStatus::Submitted)->first();
 
@@ -1273,7 +1268,6 @@ class RequestWorkflow
 
         $proof->forceFill([
             'status' => $status,
-            'official_receipt_no' => $officialReceiptNo,
             'reviewed_by' => $registrar->id,
             'reviewed_at' => now(),
             'remarks' => filled($remarks) ? $remarks : null,

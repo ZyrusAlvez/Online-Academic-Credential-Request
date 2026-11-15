@@ -13,6 +13,7 @@ use App\Models\RequestCheck;
 use App\Models\RequesterVerification;
 use App\Models\User;
 use App\Services\RequestWorkflow;
+use App\Support\RegistrarLink;
 use App\Support\VerifiedDetails;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -266,7 +267,7 @@ test('REQ-21-06 the registrar\'s request page and Records badge the valid ID onl
 
     // Before Start evaluation: the ID with no badge.
     $request = submitRequest($this->owner, $this->org->tor);
-    foreach ([route('registrar.requests.show', $request), route('records.show', $request)] as $url) {
+    foreach ([RegistrarLink::to($request), route('records.show', $request)] as $url) {
         expect($idRow($url))->toContain($request->identityDocument->id_type)
             ->not->toContain('For verification')->not->toContain('data-flux-badge');
     }

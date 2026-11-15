@@ -253,8 +253,7 @@ class DemoRequestSeeder extends Seeder
         if ($request->requires_payment) {
             $this->pay($request);
             $this->later(4);
-            $this->check($request, CheckStage::Payment);
-            $this->workflow->verifyPaymentAndAccept($request, $this->registrar, 'OR-'.fake()->numerify('######'));
+            $this->workflow->verifyPaymentAndAccept($request, $this->registrar);
         }
 
         return $request;

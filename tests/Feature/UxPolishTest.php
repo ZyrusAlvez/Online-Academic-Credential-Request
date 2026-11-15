@@ -12,6 +12,7 @@ use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\User;
+use App\Support\RegistrarLink;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -129,7 +130,7 @@ test('REQ-09-05 request pages offer a copy-tracking-number button', function () 
     $this->actingAs($owner)->get(route('student.requests.show', $request))
         ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 
-    $this->actingAs($registrar)->get(route('registrar.requests.show', $request))
+    $this->actingAs($registrar)->get(RegistrarLink::to($request))
         ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 
     $this->actingAs(User::factory()->departmentStaff($org->ccs)->create())
@@ -324,7 +325,7 @@ test('REQ-09-18 signed-in pages stop at 96rem on wide screens and detail grids c
     $this->actingAs($registrar);
     // The request page is one column of checklist cards (spec 16) whose detail rows stack on phones
     // and sit side by side from the sm breakpoint (REQ-09-22).
-    expect($this->get(route('registrar.requests.show', $request))->assertOk()->getContent())->toContain('class="mx-auto max-w-4xl space-y-6"')->toContain('data-request-details')->toContain('sm:grid sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]');
+    expect($this->get(RegistrarLink::to($request))->assertOk()->getContent())->toContain('class="mx-auto max-w-4xl space-y-6"')->toContain('data-request-details')->toContain('sm:grid sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]');
 });
 
 test('REQ-09-12 New Request and Request Tracker share one column and one section style', function () {

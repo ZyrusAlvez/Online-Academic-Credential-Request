@@ -7,11 +7,10 @@ use App\Enums\CheckResult;
 use App\Enums\CheckStage;
 use App\Enums\PaymentStatus;
 use App\Enums\RecipientType;
+use App\Enums\RegistrarQueue;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
-use App\Enums\RouteTask;
-use App\Enums\VisitPurpose;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\ActsOnVisits;
 use App\Livewire\Concerns\TrimsInput;
@@ -19,6 +18,7 @@ use App\Models\CredentialRequest;
 use App\Models\RequestCheck;
 use App\Models\RequestRepresentative;
 use App\Services\RequestWorkflow;
+use App\Support\RegistrarLink;
 use App\Support\ReturnOffices;
 use Closure;
 use Flux\Flux;
@@ -35,7 +35,9 @@ use Livewire\Component;
  */
 class Show extends Component
 {
-    use ActsOnVisits;
+    use ActsOnVisits {
+        attempt as runTransition;
+    }
     use TrimsInput;
 
     /** What the page shows, by the request's stage. */
@@ -62,15 +64,14 @@ class Show extends Component
     /** Require Office Visit: the "Other" checkbox's value among the ticked items (REQ-20-04). */
     public const OTHER_ITEM = '__other__';
 
-    /** Listed as a blocking part of Approve, not as a sentence (REQ-17-17). */
-    private const RECEIPT_REQUIRED = 'Enter the official receipt number.';
-
     #[Locked]
     public CredentialRequest $credentialRequest;
 
-    public string $remarks = '';
+    /** The queue the page is under (REQ-16-26); null for a closed request opened directly. */
+    #[Locked]
+    public ?RegistrarQueue $currentQueue = null;
 
-    public string $officialReceiptNo = '';
+    public string $remarks = '';
 
     /**
      * Require Office Visit: the credential's requirements ticked as required at the office, and
@@ -97,10 +98,9 @@ class Show extends Component
     public string $blockedAction = '';
 
     /**
-     * What blocks a decision: each part not confirmed, a receipt number not entered, an office-visit
-     * item not received (REQ-17-17).
+     * What blocks a decision: each part not confirmed, an office-visit item not received (REQ-17-17).
      *
-     * @var list<array{label: string, state: 'rejected'|'unchecked'|'not_entered'|'to_receive'}>
+     * @var list<array{label: string, state: 'rejected'|'unchecked'|'to_receive'}>
      */
     #[Locked]
     public array $blockedParts = [];
@@ -109,11 +109,41 @@ class Show extends Component
     #[Locked]
     public array $blockers = [];
 
-    public function mount(CredentialRequest $credentialRequest): void
+    /**
+     * @param  RegistrarQueue|string|null  $queue  the route's default; a page opened under another
+     *                                             queue than the request's moves there (REQ-16-26)
+     */
+    public function mount(CredentialRequest $credentialRequest, RegistrarQueue|string|null $queue = null): void
     {
         $this->authorize('review', $credentialRequest);
 
         $this->credentialRequest = $credentialRequest;
+        $current = RegistrarQueue::forRequest($credentialRequest);
+        $this->currentQueue = $current;
+
+        if ($queue !== null && $current !== (is_string($queue) ? RegistrarQueue::from($queue) : $queue)) {
+            $this->redirect(RegistrarLink::to($credentialRequest), navigate: true);
+        }
+    }
+
+    /**
+     * Run a transition; when it moves the request to another queue, follow it there so the address
+     * and the sidebar stay right (REQ-16-26).
+     */
+    protected function attempt(Closure $transition, string $success): bool
+    {
+        if (! $this->runTransition($transition, $success)) {
+            return false;
+        }
+
+        $request = $this->credentialRequest->fresh();
+
+        if ($request !== null && RegistrarQueue::forRequest($request) !== $this->currentQueue) {
+            session()->flash('notify', $success);
+            $this->redirect(RegistrarLink::to($request), navigate: true);
+        }
+
+        return true;
     }
 
     public function startEvaluation(RequestWorkflow $workflow): void
@@ -156,8 +186,9 @@ class Show extends Component
             RequestStatus::UnderEvaluation => ['approve', $optional,
                 fn () => $workflow->approveEvaluation($request, $this->actor(), $this->remarks),
                 $request->requires_payment ? 'Approved. Payment instructions were sent to the requester.' : 'Approved and accepted for processing.'],
-            RequestStatus::PaymentVerification => ['approve', $optional + ['officialReceiptNo' => ['required', 'string', 'max:50']],
-                fn () => $workflow->verifyPaymentAndAccept($request, $this->actor(), $this->officialReceiptNo, $this->remarks),
+            // No checklist and no receipt number: Approve is the confirmation (REQ-16-17).
+            RequestStatus::PaymentVerification => ['approve', $optional,
+                fn () => $workflow->verifyPaymentAndAccept($request, $this->actor(), $this->remarks),
                 'Payment verified and request accepted. The processing period has started.'],
             RequestStatus::ForFinalApproval => ['approve', $optional,
                 fn () => $workflow->approveFinalCheck($request, $this->actor(), $this->remarks),
@@ -336,11 +367,8 @@ class Show extends Component
         ]);
 
         $panel = $this->panel($request);
-        $stage = match ($panel) {
-            self::PANEL_EVALUATION, self::PANEL_CLARIFICATION => CheckStage::Evaluation,
-            self::PANEL_PAYMENT => CheckStage::Payment,
-            default => null,
-        };
+        // Only Initial Evaluation has a checklist (REQ-16-17, 19).
+        $stage = in_array($panel, [self::PANEL_EVALUATION, self::PANEL_CLARIFICATION], true) ? CheckStage::Evaluation : null;
 
         return view('livewire.registrar.requests.show', [
             'request' => $request,
@@ -370,7 +398,7 @@ class Show extends Component
     private function panel(CredentialRequest $request): string
     {
         $visit = $request->openVisit;
-        $atFinalCheck = $visit !== null && $visit->step->task === RouteTask::FinalCheck && $visit->purpose !== VisitPurpose::Correction;
+        $atFinalCheck = $request->isAtFinalCheck();
 
         return match (true) {
             $request->isEvaluatedBySomeoneElse($this->actor()) => self::PANEL_LOCKED,
@@ -400,10 +428,6 @@ class Show extends Component
 
         if ($action === 'approve') {
             $parts = $this->unconfirmedParts();
-
-            if (array_key_exists('officialReceiptNo', $rules) && blank($this->officialReceiptNo)) {
-                $parts[] = ['label' => 'Official receipt number', 'state' => 'not_entered'];
-            }
         } elseif ($action === 'return' && $this->stage() === CheckStage::Evaluation && ! in_array('rejected', array_column($this->stageParts(), 'state'), true)) {
             $blockers[] = 'Reject at least one part of the checklist, so the requester knows what to correct.';
         } elseif ($action === 'confirm') {
@@ -412,14 +436,10 @@ class Show extends Component
         }
 
         try {
-            $this->validate($rules, [
-                'remarks.required' => 'Write your remarks; the requester sees them.',
-                'officialReceiptNo.required' => self::RECEIPT_REQUIRED,
-            ], ['officialReceiptNo' => 'official receipt number']);
+            $this->validate($rules, ['remarks.required' => 'Write your remarks; the requester sees them.']);
         } catch (ValidationException $e) {
-            // The receipt number is already in the parts. The field is marked too, so the exception
-            // goes on to Livewire.
-            $messages = array_values(array_diff(array_map(strval(...), Arr::flatten($e->errors())), [self::RECEIPT_REQUIRED]));
+            // The field is marked too, so the exception goes on to Livewire.
+            $messages = array_values(array_map(strval(...), Arr::flatten($e->errors())));
             $this->block($action, $parts, [...$blockers, ...$messages]);
 
             throw $e;
@@ -432,18 +452,14 @@ class Show extends Component
         }
 
         if ($this->attempt($decision, $success)) {
-            $this->reset('remarks', 'officialReceiptNo');
+            $this->reset('remarks');
         }
     }
 
-    /** The checklist stage the request is at, if any. */
+    /** The checklist stage the request is at, if any: only Initial Evaluation has one (REQ-16-17). */
     private function stage(): ?CheckStage
     {
-        return match ($this->credentialRequest->status) {
-            RequestStatus::UnderEvaluation => CheckStage::Evaluation,
-            RequestStatus::PaymentVerification => CheckStage::Payment,
-            default => null,
-        };
+        return $this->credentialRequest->status === RequestStatus::UnderEvaluation ? CheckStage::Evaluation : null;
     }
 
     /**
@@ -491,7 +507,7 @@ class Show extends Component
     }
 
     /**
-     * @param  list<array{label: string, state: 'rejected'|'unchecked'|'not_entered'|'to_receive'}>  $parts
+     * @param  list<array{label: string, state: 'rejected'|'unchecked'|'to_receive'}>  $parts
      * @param  list<string>  $reasons
      */
     private function block(string $action, array $parts, array $reasons): void

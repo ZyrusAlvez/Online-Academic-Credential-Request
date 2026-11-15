@@ -84,7 +84,8 @@ class Queue extends Component
             'showWaiting' => $waiting,
             'waitingCount' => $hasWaitingTab ? StageQueue::for($stage, true)->count() : 0,
             'offices' => $stage === RegistrarQueue::InProgress ? Department::active()->orderBy('name')->get(['id', 'name']) : collect(),
-            'linkRoute' => 'registrar.requests.show',
+            // The working page under this queue, so the sidebar keeps it current (REQ-16-26).
+            'linkRoute' => $stage->showRouteName(),
         ])->title(__($stage->label()));
     }
 }
