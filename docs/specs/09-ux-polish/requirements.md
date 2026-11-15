@@ -116,6 +116,11 @@
   REQ-15-17), the valid ID included as a row of the same list. The same rows SHALL be used
   wherever Request Details appears (office and Records pages). *(User's request, 2026-11-11; the
   documentary requirements row was removed on 2026-11-15, REQ-04-23.)*
+- **REQ-09-23** Request Details SHALL show the credential's fee as "Fee" (not "Amount due"), with
+  a "Paid" badge once the payment is verified (the request accepted), or "None required" for a
+  free credential. The Records page SHALL NOT show an "Adjusted due date" row: nothing pauses the
+  processing period since REQ-16-21. "Processing time" stays, empty until the release.
+  *(User's request, 2026-11-15: "Amount due" read as unpaid on a paid request.)*
 
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the

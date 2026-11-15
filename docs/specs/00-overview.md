@@ -191,7 +191,8 @@ Every office has the same buttons:
 - Working days are Monday to Saturday, minus the days in the working calendar (holidays,
   special non-working days, office closures), which the registrar maintains.
 - Due date = accepted date + the credential's processing period in working days. It is never
-  changed. A formally approved pause produces a separate adjusted due date; both are shown.
+  changed. A formally approved pause produced a separate adjusted due date (none since REQ-16-21;
+  the Records page no longer shows it, REQ-09-23).
 - Time spent at an office = working days from receipt to completion (receipt day excluded,
   completion day included; the same day counts as 0).
 
