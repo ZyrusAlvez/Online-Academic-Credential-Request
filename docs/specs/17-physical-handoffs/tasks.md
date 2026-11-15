@@ -32,7 +32,7 @@
 
 ## In Progress is a list only (2026-11-15)
 
-- [ ] Remove `registrar.in-progress.show` and the working page's office panel; `RegistrarLink` sends a request in progress to the searched list (REQ-16-26, REQ-17-13)
-- [ ] Accept receipt in the In Progress row for papers sent to the Office of the Registrar; every row opens the record (REQ-17-12, 13)
-- [ ] Remove the registrar's "Forward it from In Progress" line from `partials.visit-actions`
-- [ ] Pest tests for the changed REQ-16-26, REQ-17-12 and REQ-17-13
+- [x] Remove `registrar.in-progress.show` and the working page's office panel; `RegistrarLink` sends a request in progress to the searched list (REQ-16-26, REQ-17-13)
+- [x] Accept receipt in the In Progress row for papers sent to the Office of the Registrar; every row opens the record (REQ-17-12, 13)
+- [x] Remove the registrar's "Forward it from In Progress" line from `partials.visit-actions`
+- [x] Pest tests for the changed REQ-16-26, REQ-17-12 and REQ-17-13

@@ -7,6 +7,7 @@ use App\Livewire\Registrar\Queue;
 use App\Livewire\Registrar\Requests\Show;
 use App\Models\CredentialRequest;
 use App\Models\User;
+use App\Support\RegistrarLink;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -64,9 +65,17 @@ function oneInEachQueue(): array
     ];
 }
 
-test('REQ-16-26 each request opens under its queue, with that queue current in the sidebar and as the breadcrumb', function () {
+test('REQ-16-26 each request opens under its queue, with that queue current in the sidebar and as the breadcrumb; In Progress has no page', function () {
     foreach (oneInEachQueue() as [$queue, $request]) {
         expect(RegistrarQueue::forRequest($request))->toBe($queue);
+
+        if (! $queue->hasWorkingPage()) {
+            $this->actingAs($this->registrar)->get('/registrar/in-progress/'.$request->reference_no)->assertNotFound();
+            expect(RegistrarLink::to($request))->toBe(route('registrar.in-progress', ['search' => $request->reference_no]));
+
+            continue;
+        }
+
         $url = route($queue->showRouteName(), $request);
         expect($url)->toEndWith('/registrar/'.str_replace(['registrar.', '.'], ['', '/'], $queue->routeName()).'/'.$request->reference_no);
 
@@ -139,7 +148,7 @@ test('REQ-16-26 a payment approved at Payment Validation moves to In Progress', 
 
     Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request->fresh(), 'queue' => RegistrarQueue::Payment->value])
         ->call('approve')
-        ->assertRedirect(route('registrar.in-progress.show', $request));
+        ->assertRedirect(route('registrar.in-progress', ['search' => $request->reference_no]));
 
     expect(session('notify'))->toBe('Payment verified and request accepted. The processing period has started.');
 });
@@ -153,6 +162,12 @@ test('REQ-16-26 the former address in notifications always lands where the reque
 
     evaluate($request, $this->registrar);
     $this->actingAs($this->registrar)->get($link)->assertRedirect(route('registrar.payments.show', $request));
+
+    // In progress: the In Progress list, searched by its tracking number.
+    $accepted = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    $list = route('registrar.in-progress', ['search' => $accepted->reference_no]);
+    $this->actingAs($this->registrar)->get(route('registrar.requests.show', $accepted))->assertRedirect($list);
+    $this->actingAs($this->registrar)->get($list)->assertOk()->assertSee($accepted->reference_no);
 });
 
 test('REQ-16-26 a request\'s queue follows its status', function () {

@@ -50,9 +50,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('final-check', Registrar\Queue::class)->defaults('queue', RegistrarQueue::FinalCheck->value)->name('final-check');
         Route::get('release', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Release->value)->name('release');
         // A request's working page lives under the queue it is in, e.g. payments/cr26-00042 (REQ-16-26).
+        // In Progress has none: its rows forward and accept receipt in place (REQ-17-13).
         Route::get('evaluation/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::Evaluation->value)->name('evaluation.show');
         Route::get('payments/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::Payment->value)->name('payments.show');
-        Route::get('in-progress/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::InProgress->value)->name('in-progress.show');
         Route::get('final-check/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::FinalCheck->value)->name('final-check.show');
         Route::get('release/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::Release->value)->name('release.show');
         // The former address, in notifications and emails: to wherever the request is now.

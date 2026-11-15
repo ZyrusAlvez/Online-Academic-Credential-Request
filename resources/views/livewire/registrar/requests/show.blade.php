@@ -252,33 +252,6 @@
             </section>
         @endif
 
-        @if ($panel === Page::PANEL_OFFICE)
-            {{-- The Office of the Registrar's own route step: preparation or a correction (spec 05). --}}
-            @php($nextOffice = $request->nextOffice())
-            <section aria-labelledby="current-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-office-panel>
-                {{-- Where the paper is and where it goes next (REQ-17-13). --}}
-                <dl class="grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <dt id="current-heading" class="text-sm font-medium text-zinc-600">{{ __('Currently at') }}</dt>
-                        {{-- A forwarded paper stays with its sender until it is received (REQ-17-18). --}}
-                        <dd class="text-lg font-semibold text-primary" data-holder>{{ $visit->holder()->name }}</dd>
-                        <dd class="text-xs text-zinc-600">
-                            @if ($visit->status === \App\Enums\VisitStatus::InTransit)
-                                {{ __('Forwarded :time to :office, not yet received', ['time' => $visit->forwarded_at->diffForHumans(), 'office' => $visit->department->name]) }}
-                            @else
-                                {{ __($visit->status->label()) }} · {{ ($visit->done_at ?? $visit->received_at)->diffForHumans() }}
-                            @endif
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm font-medium text-zinc-600">{{ __('Next') }}</dt>
-                        <dd class="text-lg font-semibold text-ink" data-next-office>{{ $nextOffice?->name ?? __('Release') }}</dd>
-                    </div>
-                </dl>
-                @include('partials.visit-actions', ['visit' => $visit, 'returnOffices' => $returnOffices])
-            </section>
-        @endif
-
         {{-- The ledger is on the Records page only (REQ-17-04). --}}
         @include('partials.request-record', ['hide' => ['ledger', ...match ($panel) {
             Page::PANEL_EVALUATION => ['details', 'representatives'],

@@ -25,12 +25,7 @@
         @elseif ($visit->status === \App\Enums\VisitStatus::Done)
             {{-- Done, but the paper is still here until it is forwarded (REQ-17-07, 16). --}}
             <p class="text-sm text-zinc-700" data-done>{{ __('Done :time.', ['time' => $visit->done_at->diffForHumans()]) }}</p>
-            @if ($next && auth()->user()->hasRole(\App\Enums\Role::Registrar))
-                <p class="text-sm text-zinc-700">
-                    {{ __('Forward it to :office from', ['office' => $next->name]) }}
-                    <a href="{{ route('registrar.in-progress') }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ __('In Progress') }}</a>.
-                </p>
-            @elseif ($next)
+            @if ($next)
                 @can('forward', $visit)
                     <flux:button wire:click="forwardDocument" variant="primary" icon="paper-airplane" class="w-full" data-forward
                         data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Forward the document to :office now?', ['office' => $next->name])">
