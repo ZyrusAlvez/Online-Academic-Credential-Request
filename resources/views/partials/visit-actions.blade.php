@@ -1,6 +1,26 @@
-{{-- Office actions on the request's open visit. Requires $visit (with step, department, credentialRequest), $returnOffices. --}}
+{{--
+    The office's Decision on a document in its office (To Validate), laid out like the registrar's
+    Decision panel: Return on the left, Approve on the right (REQ-24-07, REQ-17-02). Requires
+    $visit (with step, department, credentialRequest), $returnOffices.
+--}}
+@php
+    $next = $visit->nextStep()?->department;
+    $canReturn = $visit->purpose !== \App\Enums\VisitPurpose::Correction && $returnOffices->isNotEmpty();
+@endphp
+
 @can('act', $visit)
-    <div class="space-y-3">
+    <section aria-labelledby="decision-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-office-action>
+        <div>
+            <h2 id="decision-heading" class="text-lg font-semibold text-primary">{{ __('Decision') }}</h2>
+            <p class="text-xs text-zinc-600">
+                @if ($visit->status === \App\Enums\VisitStatus::Done)
+                    <span data-done>{{ __('Done :time', ['time' => $visit->done_at->diffForHumans()]) }}</span>
+                @else
+                    {{ __('Received :time', ['time' => $visit->received_at->diffForHumans()]) }}
+                @endif
+            </p>
+        </div>
+
         @if ($visit->step->instructions && $visit->purpose === \App\Enums\VisitPurpose::Route)
             <flux:callout icon="information-circle" color="sky">
                 <flux:callout.text>{{ $visit->step->instructions }}</flux:callout.text>
@@ -17,42 +37,34 @@
             </flux:callout>
         @endif
 
-        @php($next = $visit->nextStep()?->department)
-
-        @if ($visit->status === \App\Enums\VisitStatus::InTransit)
-            <p class="text-sm text-zinc-700">{{ __('Forwarded :time.', ['time' => $visit->forwarded_at->diffForHumans()]) }}</p>
-            <flux:button wire:click="acceptReceipt" variant="primary" icon="inbox-arrow-down" class="w-full">{{ __('Accept receipt') }}</flux:button>
-        @elseif ($visit->status === \App\Enums\VisitStatus::Done)
-            {{-- Done, but the paper is still here until it is forwarded (REQ-17-07, 16). --}}
-            <p class="text-sm text-zinc-700" data-done>{{ __('Done :time.', ['time' => $visit->done_at->diffForHumans()]) }}</p>
+        @if ($visit->status === \App\Enums\VisitStatus::Done)
+            {{-- Done, but the paper is still here until it is forwarded (REQ-17-07). --}}
             @if ($next)
                 @can('forward', $visit)
-                    <flux:button wire:click="forwardDocument" variant="primary" icon="paper-airplane" class="w-full" data-forward
-                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Forward the document to :office now?', ['office' => $next->name])">
-                        {{ __('Forward to :office', ['office' => $next->name]) }}
-                    </flux:button>
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <flux:button wire:click="forwardDocument" variant="primary" icon="paper-airplane" data-forward
+                            data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Forward the document to :office now?', ['office' => $next->name])">
+                            {{ __('Forward to :office', ['office' => $next->name]) }}
+                        </flux:button>
+                    </div>
                 @endcan
             @endif
         @else
-            <p class="text-xs text-zinc-600">{{ __('Received :time', ['time' => $visit->received_at->diffForHumans()]) }}</p>
-            <form wire:submit="completeVisit" class="space-y-3">
-                <flux:textarea wire:model="completeRemarks" :label="__('Remarks')" badge="Optional" rows="2" />
-                <flux:button type="submit" variant="primary" icon="check" class="w-full">
-                    @if ($visit->purpose === \App\Enums\VisitPurpose::Correction)
-                        {{ __('Corrected') }}
-                    @elseif ($visit->step->task === \App\Enums\RouteTask::FinalCheck)
-                        {{ __('Checked – ready for release') }}
-                    @else
-                        {{ __($visit->step->task->doneLabel()) }}
+            <form wire:submit="completeVisit" class="space-y-4">
+                <flux:textarea wire:model="completeRemarks" :label="__('Remarks')" rows="3" />
+
+                {{-- The approving action on the right (REQ-17-02). --}}
+                <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
+                    @if ($canReturn)
+                        <flux:modal.trigger name="return-visit">
+                            <flux:button type="button" icon="arrow-uturn-left" data-return-button>{{ __('Return') }}</flux:button>
+                        </flux:modal.trigger>
                     @endif
-                </flux:button>
+                    <flux:button type="submit" variant="primary" icon="check" data-approve-button>{{ __('Approve') }}</flux:button>
+                </div>
             </form>
 
-            @if ($visit->purpose !== \App\Enums\VisitPurpose::Correction && $returnOffices->isNotEmpty())
-                <flux:modal.trigger name="return-visit">
-                    <flux:button icon="arrow-uturn-left" class="w-full">{{ __('Return for correction') }}</flux:button>
-                </flux:modal.trigger>
-
+            @if ($canReturn)
                 <flux:modal name="return-visit" class="w-full md:w-[30rem]">
                     <form wire:submit="returnVisit" class="space-y-6">
                         <div>
@@ -74,5 +86,5 @@
                 </flux:modal>
             @endif
         @endif
-    </div>
+    </section>
 @endcan

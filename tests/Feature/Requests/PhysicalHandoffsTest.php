@@ -295,7 +295,7 @@ test('REQ-17-07 a corrected document is done, then forwarded back to the office 
     workflow()->acceptReceipt(openVisit($request), $this->dean);
 
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
-        ->assertSee('Corrected')->call('completeVisit')
+        ->assertSee('Returned to your office for correction')->assertSee('Approve')->assertDontSee('data-return-button', false)->call('completeVisit')
         ->assertSee('Forward to Office of the VP for Finance')->call('forwardDocument');
 
     $correction = $request->visits()->where('department_id', $this->org->ccs->id)->orderByDesc('id')->first();
@@ -358,7 +358,7 @@ test('REQ-17-10 a done document can no longer be returned for correction', funct
     expect(fn () => workflow()->returnVisit($visit, $this->dean, $this->org->registrarOffice, 'x', 'y'))
         ->toThrow(InvalidTransition::class);
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
-        ->assertDontSee('Return for correction');
+        ->assertDontSee('Return for correction')->assertDontSee('data-return-button', false)->assertSee('Forward to Office of the VP for Finance');
 });
 
 // ── In Progress ─────────────────────────────────────────────────────────────────────────────

@@ -194,13 +194,14 @@ test('REQ-24-07 the page shows details, the verified proof and the route, then t
     $request = sentToDean();
 
     $this->actingAs($this->dean)->get(route('department.incoming.show', $request))->assertOk()
-        ->assertSeeInOrder(['Request Details', 'Proof of Payment', 'Route', 'Acknowledge receipt'])
+        ->assertSeeInOrder(['Request Details', 'Proof of Payment', 'Route', 'Decision', 'Acknowledge receipt'])
         ->assertDontSee('Time in Each Office')->assertDontSee('Tracking History')->assertDontSee('Record delay reason');
 
     workflow()->acceptReceipt(openVisit($request), $this->dean);
     $this->actingAs($this->dean)->get(route('department.to-validate.show', $request))->assertOk()
-        ->assertSeeInOrder(['Request Details', 'Route', 'Signed', 'Return for correction'])
-        ->assertDontSee('Acknowledge receipt');
+        ->assertSeeInOrder(['Request Details', 'Route', 'Decision', 'Received', 'Remarks', 'data-return-button', 'Return', 'data-approve-button', 'Approve'], false)
+        ->assertDontSee('Acknowledge receipt')->assertDontSee('Optional')
+        ->assertDontSee('>Signed<', false);
 
     passOffice($request, $this->dean);
     $this->actingAs($this->dean)->get(route('department.history.show', $request))->assertOk()
