@@ -77,18 +77,17 @@ This replaces:
 - **REQ-20-06** THE Edit Request page SHALL be the New Request form filled in with the request's
   credential, purpose and receiving school, and the requester's saved details. The requester SHALL
   be able to change the credential, purpose, receiving school, their name, contact number and
-  academic information, and add copies of the requirements. WHEN the request's ID was rejected THE
+  academic information. WHEN the request's ID was rejected THE
   SYSTEM SHALL require another valid ID; the reason is shown on the request page only (REQ-20-05),
   not repeated on Edit Request *(user's request, 2026-11-11)*. A summary SHALL follow, with an
   optional note to the Office of the Registrar, the privacy consent and the button
   **Resubmit Request**.
 - **REQ-20-07** WHEN the requester resubmits THE SYSTEM SHALL, all or nothing: save their details to
   their profile; update the request's credential, purpose, receiving school, fee, amount due and
-  copy of their details; attach a new ID (it becomes their saved ID and awaits verification) and
-  any new requirement copies; set the status `submitted`, so the request is back in the Initial
+  copy of their details; attach a new ID (it becomes their saved ID and awaits verification); set the status `submitted`, so the request is back in the Initial
   Evaluation queue; write the note to the ledger and notify the registrars. Rejected parts SHALL be
-  cleared, and so SHALL each part whose data changed: Credential request (credential, purpose,
-  receiving school or new requirement copies), User identity (name, contact number or ID) and
+  cleared, and so SHALL each part whose data changed: Credential request (credential, purpose or
+  receiving school), User identity (name, contact number or ID) and
   Academic record (academic information). Other confirmed parts SHALL stay confirmed.
 
 ### Office visit

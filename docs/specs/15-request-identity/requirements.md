@@ -34,8 +34,8 @@ identity, and My Profile in REQ-09-09/12.
 
 ### New Request
 - **REQ-15-03** THE SYSTEM SHALL show New Request as numbered sections: what you need (credential,
-  purpose, receiving school), documentary requirements (the chosen credential's upload fields,
-  REQ-04-18), personal information (first, middle (optional) and last name, contact number),
+  purpose, receiving school), documentary requirements (the chosen credential's list,
+  REQ-04-22), personal information (first, middle (optional) and last name, contact number),
   academic information (the fields of REQ-01-16), valid ID, and who will transact, followed by the
   *Incomplete requirements* notice; the personal and academic sections SHALL start filled in from
   the requester's saved profile. *(User's decision, 2026-11-10: documentary requirements are
@@ -56,7 +56,7 @@ identity, and My Profile in REQ-09-09/12.
   another one (REQ-20-06). WHEN an ID file is chosen THE SYSTEM SHALL show its name as a link that opens the chosen file in
   the file viewer, in their own browser, before anything is uploaded. The name SHALL appear once,
   next to a "Choose file" (then "Change file") button; the browser's own picker, which repeats it,
-  is hidden, and the upload shows the progress bar of REQ-04-18. *(User's report, 2026-11-10.)*
+  is hidden, and the upload shows a progress bar with the percentage. *(User's report, 2026-11-10.)*
 - **REQ-15-18** WHEN the requester has a saved ID THE SYSTEM SHALL show a "Remove" button beside it,
   on New Request, Edit Request and Settings → Profile, and remove it from their profile once they
   confirm, at once and without the summary step; the type of ID and file fields then appear and an
@@ -66,7 +66,7 @@ identity, and My Profile in REQ-09-09/12.
 - **REQ-15-05** WHEN the requester chooses "Review request" THE SYSTEM SHALL check every entry and
   save nothing. IF an entry is missing or invalid THEN THE SYSTEM SHALL show the errors modal of
   REQ-01-26. Otherwise THE SYSTEM SHALL show a "Summary" of the request, the personal and academic
-  information and the ID (one row like a requirement's in section 2: the type of ID on the left,
+  information and the ID (one row: the type of ID on the left,
   and on the right its file name, as a link that opens it, image or PDF, in the file viewer,
   followed by its size; no picture on the page, *user's requests, 2026-11-10 and 2026-11-11*), the Data Privacy Act (RA 10173) notice, a "Back to edit" button that keeps every entry
   and the chosen file, and a "Submit request" button. THE SYSTEM SHALL show the consent as an

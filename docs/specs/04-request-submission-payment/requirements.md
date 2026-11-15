@@ -27,26 +27,16 @@ period starts only at acceptance.
   requirements, fee, processing period, offices on its route and special
   conditions; THE SYSTEM SHALL also show the *Incomplete requirements* notice of the client's
   workflow.
-- **REQ-04-18** WHERE the chosen credential lists documentary requirements THE SYSTEM SHALL offer,
-  on New Request, one file field per requirement, labelled with the requirement, taking up to 5
-  files of JPG, PNG, WebP or PDF, 5 MB each. Every field is optional and SHALL NOT be marked
-  "Optional"; each file is checked as soon as it is chosen. Each field SHALL list every file
-  chosen for it by name and size, each with its own Remove, and count them ("2 of 5 files");
-  choosing files again adds to them, so the button then reads "Add more files" and is gone at
-  5. *(User's report, 2026-11-10: the browser's own picker showed only the last file's name.)*
-  The count SHALL stay at the right of the requirement's name, however long the name, and the
-  button at the right of the field; while files upload, the field SHALL show a progress bar with
-  the percentage in place of the button. *(User's request, 2026-11-10.)* Each listed file's name
-  SHALL be a link that opens it in the file viewer, as on the summary (REQ-15-17). *(User's
-  request, 2026-11-11.)*
-  Files chosen for another credential SHALL NOT be sent. *(User's decision, 2026-11-10: copies help the evaluator; the originals are
-  still checked at the Registrar's Office, REQ-16-15.)*
-- **REQ-04-19** THE SYSTEM SHALL store the requirement files privately with the request, each
-  under its requirement, and SHALL let only the owner, registrars and admins open them; the
-  evaluator sees them under *Credential Request Verification*, and they appear on the Records
-  page and the owner's request page. *(User's decision, 2026-11-11: the requirements are checked
-  on every request, like the credential itself, whereas a verified identity and academic record
-  carry over to later requests, REQ-21-04.)*
+- ~~REQ-04-18, REQ-04-19~~ *Superseded by REQ-04-22 (user's decision, 2026-11-15):* the optional
+  upload of copies of the documentary requirements on New Request, and their listing for the
+  evaluator, Records and the owner, are removed. The client's workflow never asks the requester to
+  send these documents online: the evaluator checks them against the university's records (III-B),
+  and the originals are submitted in person (III-C).
+- **REQ-04-22** WHERE the chosen credential lists documentary requirements THE SYSTEM SHALL show
+  them on New Request as a list, with the note that the originals are submitted in person at the
+  Office of the Registrar, and SHALL NOT offer to upload them. The review summary, the evaluator's
+  *Credential Request Verification*, the Records page and the owner's request page SHALL list the
+  credential's requirements by name. No file of a documentary requirement is stored.
 - **REQ-04-03** WHEN a request is submitted THE SYSTEM SHALL give it the status `submitted`, a
   unique tracking number `cr<2-digit year>-<id>` in lowercase, the id padded with zeros to at
   least 5 digits (`cr26-00042`) and growing past 99999 without a cap (`cr26-100000`); requests

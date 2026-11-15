@@ -44,7 +44,8 @@ of their own.
     saved ID; a rejected ID; who can see the uploads; the data privacy consent.
   - *Requesting a Credential:* the steps of New Request and the tracking number; where to see a
     credential's fee, processing period, requirements and offices; the purpose and "Others"; the
-    receiving school; documentary requirement copies; copies of a credential; changing or
+    receiving school; how the documentary requirements are submitted (in person); copies of a
+    credential; changing or
     cancelling a request; what happens after submitting (the four evaluation outcomes); an office
     visit.
   - *Payment:* when to pay; how to pay and upload the proof; the amount; what happens after
