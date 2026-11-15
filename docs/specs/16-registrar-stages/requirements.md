@@ -145,7 +145,12 @@ This replaces:
   *(User's request, 2026-11-16: the page had Initial Evaluation's checklist, with Confirm and
   Reject on two parts, and an official receipt number required to approve. The BRD asks only that
   authorized personnel confirm the payment against the official payment record (V, step 3), so
-  both are removed, like the final check's checklist (REQ-16-19).)*
+  both are removed, like the final check's checklist (REQ-16-19).)* The request's record below
+  SHALL NOT list the proofs of payment again *(user's request, 2026-11-16: it repeated the proof)*.
+- **REQ-16-27** WHERE a stage has a decision (Initial Evaluation, Payment Validation, Final Quality
+  Check) THE SYSTEM SHALL show the Decision section last on the working page, after the request's
+  record, with the requester's resubmit note just above it (REQ-20-14). *(User's request,
+  2026-11-16.)*
 
 ### In progress
 - **REQ-16-18** THE SYSTEM SHALL keep an accepted request `accepted_for_processing` while the
