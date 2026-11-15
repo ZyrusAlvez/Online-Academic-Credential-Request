@@ -36,6 +36,6 @@
       `RegistrarLink`, redirects from the wrong queue and from `registrar/requests/{…}`, following
       the request after an action, sidebar current item (REQ-16-26)
 - [x] Pest tests for REQ-16-26
-- [ ] Decision last on the working page, after the record; no Proofs of Payment list at Payment
+- [x] Decision last on the working page, after the record; no Proofs of Payment list at Payment
       Validation (REQ-16-27, REQ-16-17)
-- [ ] Pest tests for REQ-16-27 and the changed REQ-16-17
+- [x] Pest tests for REQ-16-27 and the changed REQ-16-17

@@ -407,6 +407,32 @@ test('REQ-16-17 payment validation shows the proof and its details read-only, th
     expect($declined->fresh()->status)->toBe(RequestStatus::Declined);
 });
 
+test('REQ-16-27 the Decision is the last section on every stage that has one; Payment Validation shows the proof once', function () {
+    // The page's sections after the Decision, before the dialogs.
+    $afterDecision = fn (string $html): string => Str::before(Str::after($html, 'data-decision>'), 'data-decision-blocked');
+
+    $evaluating = underEvaluation(submitRequest($this->owner, $this->org->tor));
+    $payment = awaitingValidation(submitRequest($this->owner, $this->org->tor));
+    $finalCheck = atFinalCheck(submitRequest($this->owner, $this->org->tor));
+
+    foreach ([$evaluating, $payment, $finalCheck] as $request) {
+        $html = stagePage($request)->html();
+
+        expect($html)->toContain('data-decision>')
+            ->and($afterDecision($html))->not->toContain('<section')
+            // The request's record comes before it.
+            ->and(strpos($html, 'id="visits-heading"') ?: 0)->toBeLessThan(strpos($html, 'data-decision>'));
+    }
+
+    // Payment Validation: the proof under review, and no Proofs of Payment list repeating it.
+    $html = stagePage($payment)->html();
+    expect($html)->toContain('data-payment-proof')->not->toContain('id="proofs-heading"')->not->toContain('Proofs of Payment')
+        ->and(strpos($html, 'id="details-heading"'))->toBeLessThan(strpos($html, 'data-decision>'));
+
+    // Records still lists every proof.
+    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $payment])->assertSee('Proofs of Payment');
+});
+
 test('REQ-16-17 payment checklist results saved before are deleted by the migration', function () {
     $request = awaitingValidation(submitRequest($this->owner, $this->org->tor));
     DB::table('request_checks')->insert(['credential_request_id' => $request->id, 'item' => 'payment_amount', 'result' => 'confirmed', 'checked_by' => $this->registrar->id, 'checked_at' => now()]);

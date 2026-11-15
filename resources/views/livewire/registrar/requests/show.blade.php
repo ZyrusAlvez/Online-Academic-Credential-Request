@@ -159,11 +159,6 @@
                     @endswitch
                 </x-check-card>
             @endforeach
-
-            {{-- What the requester wrote when resubmitting, just above the Decision (REQ-20-14). --}}
-            @if ($resubmitNote !== '')
-                <p class="rounded-md border border-secondary/50 bg-white p-3 text-sm whitespace-pre-line text-ink" data-resubmit-note><span class="font-semibold">{{ __('Requester\'s note:') }}</span> {{ $resubmitNote }}</p>
-            @endif
         @endif
 
         @if ($panel === Page::PANEL_PAYMENT)
@@ -228,45 +223,6 @@
             @endif
         @endif
 
-        @if (in_array($panel, [Page::PANEL_EVALUATION, Page::PANEL_PAYMENT], true) || ($panel === Page::PANEL_FINAL_CHECK && $visit->status !== \App\Enums\VisitStatus::InTransit))
-            {{-- The stage's decision (REQ-16-11). --}}
-            <section aria-labelledby="decision-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-decision>
-                <div>
-                    <h2 id="decision-heading" class="text-lg font-semibold text-primary">{{ __('Decision') }}</h2>
-                    @if ($panel === Page::PANEL_EVALUATION)
-                        <p class="text-sm text-zinc-700">
-                            @if ($allConfirmed)
-                                {{ __('Every part is confirmed.') }}
-                            @elseif ($anyRejected)
-                                {{ __('Some parts are rejected.') }}
-                            @else
-                                {{ __('Confirm every part to approve.') }}
-                            @endif
-                        </p>
-                        <p class="text-xs text-zinc-600">{{ __('Evaluator: :name', ['name' => $request->evaluator?->name]) }}</p>
-                    @endif
-                </div>
-
-                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
-
-                {{-- Always enabled; a decision that can't run says why (REQ-17-17). The approving one is on the right (REQ-17-02). --}}
-                <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
-                    <flux:button wire:click="decline" variant="danger" icon="no-symbol" data-decline-button data-confirm-title="{{ __('Decline request') }}" data-confirm-label="{{ __('Decline') }}" :wire:confirm="__('Decline :ref? The requester is notified with your remarks. This cannot be undone.', ['ref' => $request->reference_no])">{{ __('Decline') }}</flux:button>
-                    @if ($panel === Page::PANEL_EVALUATION)
-                        {{-- The four evaluation decisions (REQ-20-02). --}}
-                        <flux:modal.trigger name="office-visit">
-                            <flux:button icon="building-office" data-office-visit-button>{{ __('Require Office Visit') }}</flux:button>
-                        </flux:modal.trigger>
-                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return for Clarification') }}</flux:button>
-                    @elseif ($panel === Page::PANEL_PAYMENT)
-                        {{-- Payment Validation: Decline, Return to Requester, Approve (REQ-16-17). --}}
-                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return to Requester') }}</flux:button>
-                    @endif
-                    <flux:button wire:click="approve" variant="primary" icon="check" data-approve-button>{{ __('Approve') }}</flux:button>
-                </div>
-            </section>
-        @endif
-
         @if ($panel === Page::PANEL_RELEASE)
             @if ($request->representatives->contains(fn ($r) => $r->status === \App\Enums\ReviewStatus::Pending))
                 {{-- A representative declared after the evaluation (REQ-16-20). --}}
@@ -327,9 +283,55 @@
         @include('partials.request-record', ['hide' => ['ledger', ...match ($panel) {
             Page::PANEL_EVALUATION => ['details', 'representatives'],
             Page::PANEL_COMPLIANCE => ['deficiencies'],
+            // The proof under review is shown above; the list would repeat it (REQ-16-17).
+            Page::PANEL_PAYMENT => ['proofs'],
             Page::PANEL_FINAL_CHECK => $visit->status === \App\Enums\VisitStatus::InTransit ? [] : ['route'],
             default => [],
         }]])
+
+        @if (in_array($panel, [Page::PANEL_EVALUATION, Page::PANEL_PAYMENT], true) || ($panel === Page::PANEL_FINAL_CHECK && $visit->status !== \App\Enums\VisitStatus::InTransit))
+            {{-- What the requester wrote when resubmitting, just above the Decision (REQ-20-14). --}}
+            @if ($resubmitNote !== '')
+                <p class="rounded-md border border-secondary/50 bg-white p-3 text-sm whitespace-pre-line text-ink" data-resubmit-note><span class="font-semibold">{{ __('Requester\'s note:') }}</span> {{ $resubmitNote }}</p>
+            @endif
+
+            {{-- The stage's decision (REQ-16-11), last on the page (REQ-16-27). --}}
+            <section aria-labelledby="decision-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-decision>
+                <div>
+                    <h2 id="decision-heading" class="text-lg font-semibold text-primary">{{ __('Decision') }}</h2>
+                    @if ($panel === Page::PANEL_EVALUATION)
+                        <p class="text-sm text-zinc-700">
+                            @if ($allConfirmed)
+                                {{ __('Every part is confirmed.') }}
+                            @elseif ($anyRejected)
+                                {{ __('Some parts are rejected.') }}
+                            @else
+                                {{ __('Confirm every part to approve.') }}
+                            @endif
+                        </p>
+                        <p class="text-xs text-zinc-600">{{ __('Evaluator: :name', ['name' => $request->evaluator?->name]) }}</p>
+                    @endif
+                </div>
+
+                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
+
+                {{-- Always enabled; a decision that can't run says why (REQ-17-17). The approving one is on the right (REQ-17-02). --}}
+                <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
+                    <flux:button wire:click="decline" variant="danger" icon="no-symbol" data-decline-button data-confirm-title="{{ __('Decline request') }}" data-confirm-label="{{ __('Decline') }}" :wire:confirm="__('Decline :ref? The requester is notified with your remarks. This cannot be undone.', ['ref' => $request->reference_no])">{{ __('Decline') }}</flux:button>
+                    @if ($panel === Page::PANEL_EVALUATION)
+                        {{-- The four evaluation decisions (REQ-20-02). --}}
+                        <flux:modal.trigger name="office-visit">
+                            <flux:button icon="building-office" data-office-visit-button>{{ __('Require Office Visit') }}</flux:button>
+                        </flux:modal.trigger>
+                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return for Clarification') }}</flux:button>
+                    @elseif ($panel === Page::PANEL_PAYMENT)
+                        {{-- Payment Validation: Decline, Return to Requester, Approve (REQ-16-17). --}}
+                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return to Requester') }}</flux:button>
+                    @endif
+                    <flux:button wire:click="approve" variant="primary" icon="check" data-approve-button>{{ __('Approve') }}</flux:button>
+                </div>
+            </section>
+        @endif
     @endif
 
     {{-- Why a decision could not run (REQ-17-17). --}}
