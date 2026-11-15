@@ -44,5 +44,8 @@ The rule from now on:
 - **REQ-23-06** WHILE the environment is production, `app:reset` SHALL ask the operator to type
   `reset production` and SHALL stop, changing nothing, on any other answer. Local and staging are
   not asked.
-- **REQ-23-07** `php artisan app:reset-demo` SHALL do the same reset and then load the demo data
-  (REQ-07-09). It SHALL refuse to run in production.
+- **REQ-23-07** `php artisan app:reset-demo` SHALL do the same reset and then load the demo
+  accounts (REQ-07-09) and no requests: the request ledger stays empty. It SHALL refuse to run in
+  production.
+- **REQ-23-08** WHERE `app:reset-demo` is run with `--requests`, THE SYSTEM SHALL also load the
+  sample requests in every status, with the saved valid ID of each demo requester (2026-11-15).

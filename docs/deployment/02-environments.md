@@ -16,7 +16,7 @@ For setting up the server itself, see [01 — Deploying on AWS Lightsail](01-dep
 | **Git branch** | your feature branch | `staging` | `production` (the default branch) |
 | **`APP_ENV`** | `local` | `staging` | `production` |
 | **Database** | `uphsl_credential_tracker_local` | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
-| **Data** | Base data + demo accounts and requests | Base data + demo accounts and requests | Base data + real data only |
+| **Data** | Base data + demo accounts | Base data + demo accounts | Base data + real data only |
 | **Email** | Real (Gmail), **every email redirected to your own inbox** | Real (Gmail) | Real (Gmail) |
 | **Error details** | Shown | Shown | Never shown |
 | **Receipts folder** (R2 or disk) | `local/` | `staging/` | `production/` |
@@ -40,7 +40,7 @@ It differs only where it has to:
 | Difference | Why |
 |---|---|
 | Its own database and receipt folder | So testing can never change real records |
-| Demo data allowed (`php artisan app:reset-demo`) | So every screen has something to show; production refuses demo data |
+| Demo data allowed (`php artisan app:reset-demo`) | Demo accounts to sign in with (add `--requests` for sample requests so every screen has something to show); production refuses demo data |
 | Error details shown | So a failing change explains itself; production shows a plain error page instead |
 
 ### Demo data never emails anyone
@@ -238,7 +238,7 @@ It stops at the first error, so a failed step never leaves half-cached settings 
 | I want to… | Do this |
 |---|---|
 | Work on a feature | Branch from `staging`; `composer dev` (`composer qa` is optional, CI runs it) |
-| Reload demo data | `php artisan app:reset-demo` (local or staging folder) |
+| Reload demo accounts | `php artisan app:reset-demo` (local or staging folder; `--requests` also loads sample requests) |
 | Empty production before going live | `php artisan app:reset` in the production folder (asks you to type `reset production`); see the Lightsail guide, "Resetting an environment" |
 | Test a change on the server | Merge your branch into `staging` and push; it deploys once `qa` passes |
 | Release to users | Merge the PR `staging` → `production`; it deploys once `qa` passes |

@@ -51,7 +51,7 @@ Any other value stops the app at startup.
 | Purpose | Development on your own computer | Testing changes and demos on the server | Real use |
 | Runs | `composer dev` → http://localhost:8000 | Server folder `/var/www/uphsl-staging` | Server folder `/var/www/uphsl-production` |
 | Database | `uphsl_credential_tracker_local` | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
-| Data | Base data plus demo accounts and sample requests | Base data plus demo accounts and sample requests | Base data and real data only |
+| Data | Base data plus demo accounts | Base data plus demo accounts | Base data and real data only |
 | Email | Sent through Gmail, all redirected to your own inbox | Sent through Gmail | Sent through Gmail |
 | Receipts | `local/` folder | `staging/` folder | `production/` folder |
 | Error details (debug mode) | Shown | Shown | Never shown |
@@ -80,7 +80,7 @@ by hand if GitHub Actions is unavailable. Details:
 
 - Automated tests run on their own database, `uphsl_credential_tracker_testing`, and refuse to
   start on any database whose name does not end in `_testing`.
-- Demo data and `php artisan app:reset-demo` (reload the demo data) work only in local and staging.
+- Demo data and `php artisan app:reset-demo` (reload the demo accounts; `--requests` adds sample requests) work only in local and staging.
 - Each environment has its own database and its own receipts folder, so nothing done in
   local or staging can change production.
 
