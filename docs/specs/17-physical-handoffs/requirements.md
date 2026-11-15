@@ -56,12 +56,11 @@ another criterion says "the office holding the document", REQ-07-07's office fil
   to receive, user's request 2026-11-13). WHEN the registrar clicks Approve,
   Return or Decline and the action's conditions (spec 16) are not met THE SYSTEM SHALL change
   nothing, keep what was typed and checked, and open a dialog that says why:
-  - Approve: the rule "Approve needs every part of the checklist confirmed" (at Payment
-    Validation, "… and the official receipt number"), then each part that blocks it with its
-    state, rejected first and then not checked yet (and the official receipt number, not entered
-    yet), then how to approve: "To approve, change these to Confirm" (or "it", or "enter the
-    official receipt number"). It SHALL NOT suggest Return or Decline, because the registrar's
-    goal is to approve.
+  - Approve at the Initial Evaluation: the rule "Approve needs every part of the checklist
+    confirmed", then each part that blocks it with its state, rejected first and then not checked
+    yet, then how to approve: "To approve, change these to Confirm" (or "it"). It SHALL NOT
+    suggest Return or Decline, because the registrar's goal is to approve. *(Payment Validation's
+    checklist and receipt number were removed on 2026-11-16, REQ-16-17.)*
   - Return at the Initial Evaluation: no rejected part.
   - Return and Decline: no remarks.
 
@@ -69,7 +68,7 @@ another criterion says "the office holding the document", REQ-07-07's office fil
   disabled buttons did not say why. Approve wording revised the same day: the first version
   read "Rejected: …. Confirm it to approve, or return or decline the request.", which was
   unclear.)*
-- **REQ-17-04** THE registrar's working page (`/registrar/requests/{id}`) SHALL NOT show the
+- **REQ-17-04** THE registrar's working page (`/registrar/<queue>/{id}`, REQ-16-26) SHALL NOT show the
   ledger. The Records page (`/registrar/records/{id}`) SHALL keep it.
 
 REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16.

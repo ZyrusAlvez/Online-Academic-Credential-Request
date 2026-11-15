@@ -10,6 +10,7 @@ use App\Models\CredentialRequest;
 use App\Models\IdentityDocument;
 use App\Models\User;
 use App\Services\RequestWorkflow;
+use App\Support\RegistrarLink;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -439,7 +440,7 @@ test('REQ-15-08 request pages and lists show the request\'s copy of the name', f
 
     $this->actingAs($this->registrar)->get(route('records'))->assertSee('Copied Name On Request')->assertDontSee('Renamed');
     $this->actingAs($this->registrar)->get(route('registrar.evaluation'))->assertSee('Copied Name On Request')->assertDontSee('Renamed');
-    $this->actingAs($this->registrar)->get(route('registrar.requests.show', $request))->assertSee('Copied Name On Request');
+    $this->actingAs($this->registrar)->get(RegistrarLink::to($request))->assertSee('Copied Name On Request');
     $this->actingAs($owner)->get(route('student.requests.show', $request))->assertSee('Copied Name On Request');
 });
 

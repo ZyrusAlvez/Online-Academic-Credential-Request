@@ -179,28 +179,19 @@ test('REQ-17-17 one rejected part says to change it to Confirm', function () {
     expect(blockedDialog($page))->not->toContain('decline')->not->toContain('Decline');
 });
 
-test('REQ-17-17 at payment validation a receipt number not entered is listed with the parts', function () {
+test('REQ-17-17 at payment validation Approve is never blocked; Return to Requester without remarks says why', function () {
     $request = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
     uploadPayment($request);
 
-    handoffPage($request)->call('approve')
-        ->assertHasErrors('officialReceiptNo')
-        ->assertSet('blockedParts', [
-            ['label' => 'Proof of Payment', 'state' => 'unchecked'],
-            ['label' => 'Amount and Reference', 'state' => 'unchecked'],
-            ['label' => 'Official receipt number', 'state' => 'not_entered'],
-        ])
-        ->assertSet('blockers', [])
-        ->assertSeeInOrder([
-            'Approve needs every part of the checklist confirmed and the official receipt number.',
-            'Official receipt number', 'not entered yet',
-            'To approve, change the checklist parts to Confirm and enter the official receipt number.',
-        ]);
+    handoffPage($request)->call('returnRequest')
+        ->assertHasErrors('remarks')
+        ->assertDispatched('modal-show', name: 'decision-blocked')
+        ->assertSet('blockedParts', [])
+        ->assertSet('blockers', ['Write your remarks; the requester sees them.'])
+        ->assertSee("Can't return to the requester yet");
 
-    checkAll($request, $this->registrar, CheckStage::Payment);
-    handoffPage($request)->call('approve')
-        ->assertSet('blockedParts', [['label' => 'Official receipt number', 'state' => 'not_entered']])
-        ->assertSee('To approve, enter the official receipt number.');
+    handoffPage($request)->call('approve')->assertHasNoErrors()->assertNotDispatched('modal-show');
+    expect($request->fresh()->status)->toBe(RequestStatus::AcceptedForProcessing);
 });
 
 test('REQ-17-03 the remarks field has no hint but its rules still apply', function () {
@@ -486,7 +477,7 @@ test('REQ-17-12 rows where the Registrar acts next open the working page, the ot
     workflow()->forwardDocument(openVisit($elsewhere), $this->registrar);
 
     inProgressQueue()
-        ->assertSee(route('registrar.requests.show', $mine), false)
+        ->assertSee(route('registrar.in-progress.show', $mine), false)
         ->assertSee(route('records.show', $elsewhere), false);
 });
 

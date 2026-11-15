@@ -28,3 +28,11 @@
       `credential_document`, `signatures` (migration deletes their rows); details and route shown
       read-only; Approve needs no parts (REQ-16-19)
 - [x] Pest tests for the changed REQ-16-19
+- [x] Payment Validation without a checklist or receipt number: remove `CheckStage::Payment` and
+      the items `payment_proof`, `payment_amount` (migration deletes their rows); proof and Payment
+      Details read-only; Decline, Return to Requester, Approve (REQ-16-17, REQ-04-13)
+- [x] Pest tests for the changed REQ-16-17
+- [x] Working pages under their queue (`registrar.<queue>.show`), `RegistrarQueue::forRequest()`,
+      `RegistrarLink`, redirects from the wrong queue and from `registrar/requests/{…}`, following
+      the request after an action, sidebar current item (REQ-16-26)
+- [x] Pest tests for REQ-16-26

@@ -14,7 +14,7 @@
 | `checked_at` | datetime | |
 
 There is a unique key on (`credential_request_id`, `item`). An item belongs to one stage
-(`App\Enums\CheckStage`: `evaluation`, `payment`), so the stage is not stored. A
+(`App\Enums\CheckStage`: `evaluation` only since 2026-11-16), so the stage is not stored. A
 result is updated when the evaluator changes their mind. Clearing the rejected parts on resubmit or
 reopen deletes their rows. The decision's ledger entry keeps the history (REQ-16-22).
 
@@ -26,14 +26,18 @@ not the ID they showed (REQ-16-20).
 | Stage | Items |
 |---|---|
 | evaluation | `credential_request`, `identity`, `academic_record`, `representative` (only when `requester_mode` is representative) |
-| payment | `payment_proof`, `payment_amount` |
 
 `CheckItem::for(CheckStage, CredentialRequest)` lists the items that apply to a request.
 
 The final quality check has no checklist (REQ-16-19): its page shows the credential's details and
-route read-only. The migration `2026_11_13_000001_remove_final_check_items` deletes the
-`credential_document` and `signatures` rows saved before; each final check stays in the ledger
-(`StepCompleted` with the registrar, time and remarks).
+route read-only. Each final check stays in the ledger (`StepCompleted` with the registrar, time
+and remarks).
+
+Payment Validation has none either since 2026-11-16 (REQ-16-17): `CheckStage::Payment` and the
+items `payment_proof`, `payment_amount` are removed, and the migration
+`2026_11_16_000001_delete_payment_checks` deletes their rows so the enum cast never meets them.
+The page shows the proof and a "Payment Details" list read-only. Verifying no longer records an
+official receipt number; `payment_proofs.official_receipt_no` keeps the numbers of older proofs.
 
 ## Workflow (`App\Services\RequestWorkflow`)
 
@@ -46,8 +50,8 @@ route read-only. The migration `2026_11_13_000001_remove_final_check_items` dele
 | `decline(request, registrar, reason)` | under_evaluation, payment_verification, for_final_approval → declined | at the final check it closes the open visit and step |
 | `resubmit(request, owner, ?note)` | pending_compliance → submitted | clears rejected items and the lock; event `Resubmitted`, registrars notified |
 | `reopenEvaluation(request, registrar)` | pending_compliance → under_evaluation | clears rejected items; the registrar becomes the evaluator |
-| `verifyPaymentAndAccept` | payment_verification → accepted_for_processing | also needs both payment items confirmed |
-| `rejectPayment` | payment_verification → awaiting_payment | unchanged; clears the payment items so the next proof is checked anew |
+| `verifyPaymentAndAccept(request, registrar, ?remarks)` | payment_verification → accepted_for_processing | the proof becomes verified; no checklist, no receipt number (2026-11-16) |
+| `rejectPayment` | payment_verification → awaiting_payment | the proof becomes rejected with the remarks |
 | `approveFinalCheck(request, registrar, ?remarks)` | for_final_approval → ready_for_release | completes the final-check visit (`completeVisit`) |
 | `release(request, registrar, recipientType, ?representativeId)` | ready_for_release → released | the name comes from the owner or the representative |
 
@@ -78,7 +82,15 @@ Nothing creates new ones.
 | `registrar/release` | `Registrar\Queue` (`release`) | |
 | `registrar/records` | `Registrar\Records\Index` | `RegistrarRequestFilter`, no export |
 | `registrar/records/{request}` | `Registrar\Records\Show` | read-only |
-| `registrar/requests/{request}` | `Registrar\Requests\Show` | the working page for the current stage |
+| `registrar/{queue}/{request}` | `Registrar\Requests\Show` | the working page, under its queue: `registrar.evaluation.show`, `registrar.payments.show`, `registrar.in-progress.show`, `registrar.final-check.show`, `registrar.release.show` (REQ-16-26) |
+| `registrar/requests/{request}` | redirect | `registrar.requests.show`: to the request's current queue page, or Records once closed; notifications link here so they always land on the current stage |
+
+`RegistrarQueue::forRequest()` is the one mapping from a request to its queue (the statuses of
+`StageQueue::for()`, with an open final-check visit choosing Final Quality Check), and
+`App\Support\RegistrarLink::to()` turns it into the address. The working page takes the route's
+`queue` default like `Registrar\Queue`; it redirects when the request is elsewhere, and after an
+action that moves the request it follows it. The sidebar marks a queue current on its list and on
+its working pages.
 
 `App\Queries\StageQueue` builds each queue's query. Every queue but Release has a `search`
 property (`?search=` in the URL, debounced) that `StageQueue::for()` applies with

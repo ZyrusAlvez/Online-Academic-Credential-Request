@@ -17,10 +17,11 @@
             @endforeach
         </flux:navlist.group>
     @elseif ($role === \App\Enums\Role::Registrar)
-        {{-- Initial Evaluation to Release, and Records (REQ-18-03). --}}
+        {{-- Initial Evaluation to Release, and Records (REQ-18-03); a queue is current on its list
+             and on the working pages under it (REQ-16-26). --}}
         <flux:navlist.group :heading="__('Registrar')" class="grid">
             @foreach (\App\Enums\RegistrarQueue::cases() as $queue)
-                <flux:navlist.item :icon="$queue->icon()" :href="route($queue->routeName())" :current="request()->routeIs($queue->routeName())" wire:navigate>{{ __($queue->label()) }}</flux:navlist.item>
+                <flux:navlist.item :icon="$queue->icon()" :href="route($queue->routeName())" :current="request()->routeIs($queue->routeName(), $queue->showRouteName())" wire:navigate>{{ __($queue->label()) }}</flux:navlist.item>
             @endforeach
             <flux:navlist.item icon="archive-box" :href="route('records')" :current="request()->routeIs('records*')" wire:navigate>{{ __('Records') }}</flux:navlist.item>
         </flux:navlist.group>

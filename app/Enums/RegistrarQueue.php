@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use App\Models\CredentialRequest;
+
 /**
  * The registrar's stage queues (REQ-16-01..06).
  */
@@ -61,6 +63,29 @@ enum RegistrarQueue: string
             self::InProgress => 'registrar.in-progress',
             self::FinalCheck => 'registrar.final-check',
             self::Release => 'registrar.release',
+        };
+    }
+
+    /** The request's working page under this queue (REQ-16-26). */
+    public function showRouteName(): string
+    {
+        return $this->routeName().'.show';
+    }
+
+    /**
+     * The queue a request is in now, as `StageQueue::for()` lists them, or null once it is closed
+     * (released, declined, cancelled) (REQ-16-26).
+     */
+    public static function forRequest(CredentialRequest $request): ?self
+    {
+        $status = $request->status;
+
+        return match (true) {
+            in_array($status, [RequestStatus::Submitted, RequestStatus::UnderEvaluation, RequestStatus::ReturnedForCustomerAction, ...RequestStatus::waitingForRequester()], true) => self::Evaluation,
+            in_array($status, [RequestStatus::AwaitingPayment, RequestStatus::PaymentVerification], true) => self::Payment,
+            in_array($status, RequestStatus::processing(), true) => $request->isAtFinalCheck() ? self::FinalCheck : self::InProgress,
+            $status === RequestStatus::ReadyForRelease => self::Release,
+            default => null,
         };
     }
 

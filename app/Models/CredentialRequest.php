@@ -8,6 +8,8 @@ use App\Enums\CheckStage;
 use App\Enums\RequesterMode;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
+use App\Enums\RouteTask;
+use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use Carbon\CarbonInterface;
 use Database\Factories\CredentialRequestFactory;
@@ -196,10 +198,12 @@ class CredentialRequest extends Model
      */
     public function checkResults(CheckStage $stage): array
     {
-        return $this->checks
-            ->filter(fn (RequestCheck $check): bool => $check->item->stage() === $stage)
-            ->mapWithKeys(fn (RequestCheck $check): array => [$check->item->value => $check->result])
-            ->all();
+        // Every stored part is Initial Evaluation's, the only checklist (REQ-16-17, 19).
+        $checks = match ($stage) {
+            CheckStage::Evaluation => $this->checks,
+        };
+
+        return $checks->mapWithKeys(fn (RequestCheck $check): array => [$check->item->value => $check->result])->all();
     }
 
     /**
@@ -247,6 +251,17 @@ class CredentialRequest extends Model
         return $this->hasOne(OfficeVisit::class)
             ->whereIn('status', VisitStatus::open())
             ->latestOfMany();
+    }
+
+    /**
+     * The document is with the Registrar for the final quality check, not a correction sent from
+     * it (REQ-16-05, 19).
+     */
+    public function isAtFinalCheck(): bool
+    {
+        $visit = $this->loadMissing('openVisit.step')->openVisit;
+
+        return $visit !== null && $visit->step->task === RouteTask::FinalCheck && $visit->purpose !== VisitPurpose::Correction;
     }
 
     /**

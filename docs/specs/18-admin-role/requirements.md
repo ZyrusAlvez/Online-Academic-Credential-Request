@@ -56,7 +56,7 @@ This replaces:
   SHALL redirect there.
 - **REQ-18-04** THE Dashboard, Reports and the Administration pages SHALL be at `/admin/…`. IF
   anyone but the Admin opens one, or calls one of its actions, THEN THE SYSTEM SHALL respond 403.
-- **REQ-18-05** THE stage queues and the registrar's working page (`/registrar/requests/{id}`)
+- **REQ-18-05** THE stage queues and the registrar's working pages (`/registrar/<queue>/{id}`, REQ-16-26)
   SHALL stay the Registrar's. IF the Admin opens one, or calls one of its actions, THEN THE
   SYSTEM SHALL respond 403.
 - **REQ-18-06** THE SYSTEM SHALL serve Records at `/records` and a request's read-only record at

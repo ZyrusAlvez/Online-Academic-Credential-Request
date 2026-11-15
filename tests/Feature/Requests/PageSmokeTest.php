@@ -4,6 +4,7 @@ use App\Enums\ReportKind;
 use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\User;
+use App\Support\RegistrarLink;
 use Database\Seeders\DemoRequestSeeder;
 use Illuminate\Support\Facades\Storage;
 
@@ -18,7 +19,7 @@ test('every request page renders in every status for each role that can see it',
     $registrar = User::where('role', Role::Registrar)->firstOrFail();
 
     foreach (CredentialRequest::with(['student', 'openVisit.department'])->get() as $request) {
-        $this->actingAs($registrar)->get(route('registrar.requests.show', $request))->assertOk();
+        $this->actingAs($registrar)->get(RegistrarLink::to($request))->assertOk();
         $this->actingAs($request->student)->get(route('student.requests.show', $request))->assertOk();
 
         if ($request->openVisit && $request->openVisit->department->code !== 'REG') {

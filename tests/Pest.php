@@ -156,8 +156,7 @@ function acceptRequest(CredentialRequest $request, User $registrar): CredentialR
 
     if ($request->fresh()->requires_payment) {
         uploadPayment($request);
-        checkAll($request, $registrar, CheckStage::Payment);
-        workflow()->verifyPaymentAndAccept($request, $registrar, 'OR-0001');
+        workflow()->verifyPaymentAndAccept($request, $registrar);
     }
 
     return $request->fresh();
