@@ -41,8 +41,8 @@ before that a separate migration added them).
   attached as pending. Then it clears the rejected checks and the checks of changed parts, and
   moves to `Submitted`.
 - `decline()` also accepts `PendingCompliance`.
-- `reopenEvaluation()` and `replaceIdentity()` are removed. `attachRequirementDocuments()` is
-  called after `resubmit()` in the same transaction, while the request is `Submitted`.
+- `reopenEvaluation()` and `replaceIdentity()` are removed. Requirement copies are no longer sent
+  with a resubmission (REQ-04-22, 2026-11-15).
 
 ## Screens
 
@@ -74,8 +74,7 @@ before that a separate migration added them).
 - When the request's ID is rejected, the Valid ID section shows no saved ID and the ID is
   required. The reason is not repeated here: the request page shows it (REQ-20-05, 06).
 - The summary ends with a note field, the consent and Resubmit Request. Submit runs profile save,
-  ID storage, `resubmit()` and `attachRequirementDocuments()` in one transaction, and removes any
-  stored file if it fails.
+  ID storage and `resubmit()` in one transaction, and removes the stored ID file if it fails.
 
 ## Policy
 
