@@ -86,7 +86,8 @@
                         <li wire:key="required-{{ $deficiency->id }}" class="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
                             <span class="font-medium text-ink">{{ $deficiency->description }}</span>
                             @if ($deficiency->resolved_at)
-                                <span class="inline-flex items-center gap-1 text-green-800" data-received>
+                                {{-- Always on its own line at the lower right, however long the name (REQ-20-09). --}}
+                                <span class="flex w-full items-center justify-end gap-1 text-green-800" data-received>
                                     <flux:icon.check-circle variant="mini" aria-hidden="true" />
                                     {{ __('Received :date · :name', ['date' => $deficiency->resolved_at->format('M j, Y g:i A'), 'name' => $deficiency->resolver?->name]) }}
                                 </span>
@@ -96,7 +97,7 @@
                         </li>
                     @endforeach
                 </ul>
-                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
+                <flux:textarea wire:model="remarks" :label="__('Remarks')" badge="Optional" rows="3" data-compliance-remarks />
                 <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
                     <flux:button wire:click="decline" variant="danger" icon="no-symbol" data-decline-button data-confirm-title="{{ __('Decline request') }}" data-confirm-label="{{ __('Decline') }}" :wire:confirm="__('Decline :ref? The requester is notified with your remarks. This cannot be undone.', ['ref' => $request->reference_no])">{{ __('Decline') }}</flux:button>
                     {{-- Not until every item is received; the server refuses it too (REQ-20-09). --}}
@@ -123,8 +124,6 @@
                                 <x-summary-row :label="__('Amount due')">{{ $request->requires_payment ? '₱'.number_format((float) $request->amount_due, 2) : __('None required') }}</x-summary-row>
                                 <x-summary-row :label="__('Transacting')">{{ $request->requester_mode->label() }}</x-summary-row>
                                 <x-summary-row :label="__('Submitted')">{{ $request->submitted_at?->format('M j, Y g:i A') }}</x-summary-row>
-                                {{-- The credential's requirements, checked against the records (REQ-04-22). --}}
-                                <x-requirement-list :request="$request" />
                             </dl>
                             @break
 
@@ -165,6 +164,11 @@
                     @endswitch
                 </x-check-card>
             @endforeach
+
+            {{-- What the requester wrote when resubmitting, just above the Decision (REQ-20-14). --}}
+            @if ($resubmitNote !== '')
+                <p class="rounded-md border border-secondary/50 bg-white p-3 text-sm whitespace-pre-line text-ink" data-resubmit-note><span class="font-semibold">{{ __('Requester\'s note:') }}</span> {{ $resubmitNote }}</p>
+            @endif
         @endif
 
         @if ($panel === Page::PANEL_PAYMENT)
@@ -422,15 +426,17 @@
                     <flux:heading size="lg">{{ __('Require Office Visit') }}</flux:heading>
                     <flux:text class="mt-2">{{ __('Tick what the requester must bring or complete at the office.') }}</flux:text>
                 </div>
-                @if ($request->credentialType->requirements)
-                    <flux:checkbox.group wire:model="requiredItems" :label="__('Requirements')">
-                        @foreach ($request->credentialType->requirements as $requirement)
-                            <flux:checkbox :value="$requirement" :label="$requirement" />
-                        @endforeach
-                    </flux:checkbox.group>
-                @endif
-                <flux:input wire:model="otherRequirement" :label="__('Other')" :badge="$request->credentialType->requirements ? __('Optional') : null" :placeholder="__('e.g. Completed clearance form')" maxlength="250" />
-                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
+                {{-- The credential's list, then "Other", whose field shows once it is ticked (REQ-20-04). --}}
+                <flux:checkbox.group wire:model="requiredItems" :label="__('Requirements')">
+                    @foreach ($request->credentialType->requirements ?? [] as $requirement)
+                        <flux:checkbox :value="$requirement" :label="$requirement" />
+                    @endforeach
+                    <flux:checkbox :value="Page::OTHER_ITEM" :label="__('Other')" data-other-checkbox />
+                </flux:checkbox.group>
+                <div x-show="($wire.requiredItems ?? []).includes(@js(Page::OTHER_ITEM))" @unless (in_array(Page::OTHER_ITEM, $requiredItems, true)) x-cloak style="display: none" @endunless data-other-field>
+                    <flux:input wire:model="otherRequirement" :label="__('Please specify')" :placeholder="__('e.g. Completed clearance form')" maxlength="250" />
+                </div>
+                <flux:textarea wire:model="remarks" :label="__('Remarks')" badge="Optional" rows="3" data-office-visit-remarks />
                 <div class="flex justify-end gap-2">
                     <flux:modal.close><flux:button variant="ghost">{{ __('Back') }}</flux:button></flux:modal.close>
                     <flux:button type="submit" variant="primary" icon="building-office">{{ __('Require Office Visit') }}</flux:button>

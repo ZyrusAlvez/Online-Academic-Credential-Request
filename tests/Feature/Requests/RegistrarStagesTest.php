@@ -332,8 +332,9 @@ test('REQ-16-11 remarks are optional to approve and required to return or declin
 
     // The buttons themselves are REQ-20-02's.
     stagePage()->call('returnRequest')->assertHasErrors('remarks');
-    stagePage()->call('requireOfficeVisit')->assertHasErrors('remarks');
     stagePage()->call('decline')->assertHasErrors('remarks');
+    // Requiring an office visit needs an item, not remarks (REQ-20-04, 2026-11-15).
+    stagePage()->call('requireOfficeVisit')->assertHasErrors('requiredItems')->assertHasNoErrors('remarks');
 
     expect($this->request->fresh()->status)->toBe(RequestStatus::UnderEvaluation);
 });

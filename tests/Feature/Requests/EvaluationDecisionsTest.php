@@ -115,12 +115,11 @@ test('REQ-20-01 returned for clarification is a status of its own, third in the 
 
 // ── The decision ────────────────────────────────────────────────────────────────────────────
 
-test('REQ-20-02 Initial Evaluation has four buttons, Approve on the right; remarks are needed except to approve', function () {
+test('REQ-20-02 Initial Evaluation has four buttons, Approve on the right; remarks are needed to return or decline', function () {
     evaluating($this->request, [CheckItem::Identity->value => CheckResult::Rejected]);
 
     decisionPage()->assertSeeInOrder(['Remarks', 'Decline', 'Require Office Visit', 'Return for Clarification', 'Approve']);
     decisionPage()->call('returnRequest')->assertHasErrors('remarks');
-    decisionPage()->set('requiredItems', ['PSA-authenticated birth certificate'])->call('requireOfficeVisit')->assertHasErrors('remarks');
     decisionPage()->call('decline')->assertHasErrors('remarks');
 
     $free = submitRequest($this->owner, $this->org->free);
@@ -167,18 +166,19 @@ test('REQ-20-04 Require Office Visit asks what is required, records each item an
     Notification::fake();
     evaluating($this->request, [CheckItem::AcademicRecord->value => CheckResult::Rejected]);
 
-    // The dialog lists the credential's requirements, never calling them missing.
+    // The dialog lists the credential's requirements, then Other, never calling them missing.
     $dialog = Str::after(decisionPage()->html(), 'data-office-visit-modal');
     expect($dialog)->toContain('Requirements')->toContain('Completed clearance')->toContain('PSA-authenticated birth certificate')
+        ->toContain('data-other-checkbox')
         ->and(Str::lower($dialog))->not->toContain('missing requirement');
 
     decisionPage()->set('remarks', 'Bring them.')->call('requireOfficeVisit')
-        ->assertHasErrors('otherRequirement')->assertSee('Tick at least one requirement, or describe it under Other.');
+        ->assertHasErrors('requiredItems')->assertSee('Tick at least one requirement, or Other.');
     decisionPage()->set('requiredItems', ['Not a requirement'])->set('remarks', 'Bring them.')->call('requireOfficeVisit')->assertHasErrors('requiredItems.0');
     expect($this->request->fresh()->status)->toBe(RequestStatus::UnderEvaluation);
 
     decisionPage()
-        ->set('requiredItems', ['PSA-authenticated birth certificate'])
+        ->set('requiredItems', ['PSA-authenticated birth certificate', RegistrarShow::OTHER_ITEM])
         ->set('otherRequirement', 'Original Form 137')
         ->set('remarks', 'Bring the originals, personally or through a representative.')
         ->call('requireOfficeVisit')
@@ -201,6 +201,48 @@ test('REQ-20-04 Require Office Visit asks what is required, records each item an
 
     expect(fn () => workflow()->requireOfficeVisit(submitRequest($this->owner, $this->org->tor), $this->registrar, ['Form 137'], 'Bring it.'))
         ->toThrow(InvalidTransition::class);
+});
+
+test('REQ-20-04 ticking Other shows its field, which is then required; remarks are optional', function () {
+    evaluating($this->request, [CheckItem::AcademicRecord->value => CheckResult::Rejected]);
+
+    // Other's field is hidden until Other is ticked; the remarks are marked Optional.
+    $dialog = Str::after(decisionPage()->html(), 'data-office-visit-modal');
+    expect($dialog)->toMatch('#<div[^>]*x-show="[^"]*requiredItems[^"]*"[^>]*style="display: none"[^>]*data-other-field#')
+        ->and(Str::after($dialog, 'data-other-field'))->toContain('Please specify')
+        ->and(Str::between($dialog, 'data-other-field', 'data-office-visit-remarks'))->toContain('Optional');
+    expect(Str::after(decisionPage()->set('requiredItems', [RegistrarShow::OTHER_ITEM])->html(), 'data-office-visit-modal'))
+        ->not->toMatch('#style="display: none"[^>]*data-other-field#');
+
+    // Other ticked with nothing written.
+    decisionPage()->set('requiredItems', [RegistrarShow::OTHER_ITEM])->call('requireOfficeVisit')
+        ->assertHasErrors('otherRequirement')->assertSee('Write what else is required under Other.');
+
+    // Text left under Other counts only while Other is ticked; no remarks are needed.
+    decisionPage()
+        ->set('requiredItems', ['Completed clearance'])
+        ->set('otherRequirement', 'Ignored, Other is not ticked')
+        ->call('requireOfficeVisit')
+        ->assertHasNoErrors();
+
+    $request = $this->request->fresh();
+    expect($request->status)->toBe(RequestStatus::PendingCompliance)
+        ->and($request->deficiencies->pluck('description')->all())->toBe(['Completed clearance'])
+        ->and($request->events()->get()->last()->remarks)->toBe('Required: Completed clearance');
+
+    // The requester sees the item, and no empty remarks.
+    requesterPage()->assertSee('Completed clearance')->assertDontSee('Remarks:');
+});
+
+test('REQ-20-04 a credential without listed requirements offers Other alone', function () {
+    $free = submitRequest($this->owner, $this->org->free);
+    evaluating($free, [CheckItem::AcademicRecord->value => CheckResult::Rejected]);
+
+    decisionPage($free)->assertSeeHtml('data-other-checkbox')
+        ->set('requiredItems', [RegistrarShow::OTHER_ITEM])->set('otherRequirement', 'Original Form 137')
+        ->call('requireOfficeVisit')->assertHasNoErrors();
+
+    expect($free->fresh()->deficiencies->pluck('description')->all())->toBe(['Original Form 137']);
 });
 
 test('REQ-20-04 entries written before the change say Required wherever they are shown, without being edited', function () {
@@ -230,7 +272,8 @@ test('REQ-20-05 the requester sees what was rejected and Edit Request; only they
     returnedForClarification($this->request, [CheckItem::Identity], 'The ID photo is blurred.');
 
     requesterPage()
-        ->assertSee('Please Correct Your Request')
+        ->assertSee('Please Correct and Clarify Your Request')
+        ->assertDontSee('Please Correct Your Request')
         ->assertSee('User Identity Verification')
         ->assertSee('The ID photo is blurred.')
         ->assertSeeHtml('href="'.route('student.requests.edit', $this->request).'"')
@@ -256,7 +299,7 @@ test('REQ-20-06 Edit Request is the New Request form filled in from the request,
         ->assertSet('form.purpose_other', 'For my own records')
         ->assertSet('profile.first_name', $this->owner->first_name)
         ->assertSee('Edit request '.$this->request->reference_no)
-        ->assertDontSee('6. Who Will Transact?')
+        ->assertDontSee('Who Will Transact?')
         ->assertDontSeeHtml('data-id-rejected')
         ->call('review')
         ->assertHasNoErrors()
@@ -265,18 +308,18 @@ test('REQ-20-06 Edit Request is the New Request form filled in from the request,
         ->assertSee('Resubmit Request');
 });
 
-test('REQ-15-17 the Edit Request summary has sections 1 to 5, Summary as its title, and the requirements by name', function () {
+test('REQ-15-17 the Edit Request summary has sections 1 to 4, Summary as its title, and no requirements', function () {
     returnedForClarification($this->request, [CheckItem::CredentialRequest]);
 
     $html = editPage()->call('review')->assertHasNoErrors()->html();
 
-    expect($html)->toContain('>1. What Do You Need?</h2>')->toContain('>5. Valid ID</h2>')
-        ->not->toContain('6. Who Will Transact?')
+    expect($html)->toContain('>1. What Do You Need?</h2>')->toContain('>2. Personal Information</h2>')->toContain('>4. Valid ID</h2>')
+        ->not->toContain('Who Will Transact?')
         ->not->toContain('Edit request '.$this->request->reference_no)
         ->toContain('>Summary</h1>')
-        // Section 2 lists the requirements; nothing is uploaded for them (REQ-04-22).
-        ->toContain('Completed clearance')
-        ->not->toContain('No new files');
+        // No documentary requirements anywhere (REQ-04-23).
+        ->not->toContain('Documentary Requirements')
+        ->not->toContain('Completed clearance');
 });
 
 test('REQ-20-06 a rejected ID requires another; its reason is on the request page, not repeated on Edit Request', function () {
@@ -439,6 +482,50 @@ test('REQ-20-09 the registrar marks each item received, then confirms compliance
     $declined = sentToOffice(submitRequest($this->owner, $this->org->tor));
     decisionPage($declined)->set('remarks', 'The records show no graduation.')->call('decline')->assertHasNoErrors();
     expect($declined->fresh()->status)->toBe(RequestStatus::Declined);
+});
+
+test('REQ-20-09 each received mark sits at the item\'s lower right; the remarks are optional, except to decline', function () {
+    sentToOffice($this->request, ['Complete admission requirements: Form 137 or the UPHSL copy of the previous Transcript of Records', 'Completed clearance']);
+    foreach ($this->request->deficiencies()->get() as $deficiency) {
+        workflow()->markReceived($deficiency, $this->registrar);
+    }
+
+    $panel = Str::of(decisionPage()->html())->after('data-compliance-panel')->before('data-decision-buttons')->toString();
+
+    // Long name or short, the mark takes its own full-width line, aligned right.
+    expect(substr_count($panel, 'data-received'))->toBe(2);
+    preg_match_all('/<span class="([^"]*)" data-received>/', $panel, $marks);
+    foreach ($marks[1] as $classes) {
+        expect(explode(' ', $classes))->toContain('w-full')->toContain('justify-end');
+    }
+
+    // The Remarks field is marked Optional: Confirm Compliance needs none, Decline still asks.
+    expect(Str::of($panel)->after('</ul>')->before('data-compliance-remarks')->toString())->toContain('Remarks')->toContain('Optional');
+    decisionPage()->call('decline')->assertHasErrors('remarks');
+    decisionPage()->call('confirmCompliance')->assertHasNoErrors();
+    expect($this->request->fresh()->status)->toBe(RequestStatus::AwaitingPayment);
+});
+
+// ── The requester's note on a resubmission ─────────────────────────────────────────────────
+
+test('REQ-20-14 the evaluator sees the requester\'s resubmit note between the checklist and the Decision', function () {
+    returnedForClarification($this->request, [CheckItem::CredentialRequest]);
+    workflow()->resubmit($this->request, $this->owner, 'I chose the right purpose.', ['credential_type_id' => $this->org->tor->id, 'purpose' => 'Employment']);
+    evaluating($this->request);
+
+    $html = decisionPage()->assertSee("Requester's note:")->assertSee('I chose the right purpose.')->html();
+    expect(strpos($html, 'data-check="academic_record"'))->toBeLessThan(strpos($html, 'data-resubmit-note'))
+        ->and(strpos($html, 'data-resubmit-note'))->toBeLessThan(strpos($html, 'data-decision>'));
+
+    // A first evaluation, or a resubmission without a note, shows none.
+    $first = submitRequest($this->owner, $this->org->tor);
+    evaluating($first);
+    decisionPage($first)->assertDontSeeHtml('data-resubmit-note');
+
+    $silent = returnedForClarification(submitRequest($this->owner, $this->org->tor), [CheckItem::CredentialRequest]);
+    workflow()->resubmit($silent, $this->owner, null, ['credential_type_id' => $this->org->tor->id, 'purpose' => 'Employment']);
+    evaluating($silent);
+    decisionPage($silent)->assertDontSeeHtml('data-resubmit-note');
 });
 
 // ── Queues, wording and reports ─────────────────────────────────────────────────────────────

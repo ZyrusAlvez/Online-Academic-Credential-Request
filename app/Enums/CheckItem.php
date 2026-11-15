@@ -44,7 +44,7 @@ enum CheckItem: string
     public function hint(): string
     {
         return match ($this) {
-            self::CredentialRequest => 'The credential, purpose and receiving school are right for this requester, with its documentary requirements complete.',
+            self::CredentialRequest => 'The credential, purpose and receiving school are right for this requester.',
             self::Identity => 'The valid ID is authentic and matches the requester.',
             self::AcademicRecord => "The requester's status, student number, college, program and years match the university's records.",
             self::Representative => 'The SPA and the IDs of the owner and the representative are valid.',

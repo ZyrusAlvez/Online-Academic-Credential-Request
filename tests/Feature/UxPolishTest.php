@@ -251,7 +251,7 @@ test('REQ-09-21 the list is "Request Tracker", request pages live under /student
     $this->get(route('student.requests.create'))->assertOk()->assertDontSeeHtml('data-flux-breadcrumbs')->assertDontSee('My Requests');
 });
 
-test('REQ-09-22 the request page lists details as label/value rows, the ID and the requirements included, with Tracking History last', function () {
+test('REQ-09-22 the request page lists details as label/value rows, the ID included, with Tracking History last', function () {
     $org = organisation();
     $owner = requester($org->ccs);
     $request = submitRequest($owner, $org->tor);
@@ -261,9 +261,8 @@ test('REQ-09-22 the request page lists details as label/value rows, the ID and t
 
     expect($details)->toMatch('#<dt class="text-zinc-600">Credential</dt>\s*<dd[^>]*>\s*Transcript of Records#')
         ->toMatch('#<dt class="text-zinc-600">Valid ID</dt>#')
-        // The credential's requirements are one row, listed by name; nothing is uploaded (REQ-04-22).
-        ->toMatch('#<dt class="text-zinc-600">Documentary requirements</dt>\s*<dd[^>]*>.*?<li>Completed clearance</li>#s')
-        ->not->toContain('No file uploaded');
+        // No documentary requirements row (REQ-04-23).
+        ->not->toContain('Documentary requirements');
 
     // Tracking History is the page's last section.
     preg_match_all('/<h2 id="([a-z-]+)-heading"/', $html, $headings);
@@ -276,7 +275,7 @@ test('REQ-09-10 the incomplete-requirements notice is collapsed between "Who Wil
     $heading = 'Important notice: incomplete requirements';
 
     $html = $this->actingAs(requester($org->ccs))->get(route('student.requests.create'))->assertOk()
-        ->assertSeeInOrder(['6. Who Will Transact?', $heading, 'Review request'])
+        ->assertSeeInOrder(['5. Who Will Transact?', $heading, 'Review request'])
         ->getContent();
 
     $notice = Str::between($html, '<details', '</details>');
@@ -310,9 +309,8 @@ test('REQ-09-11 the chosen credential shows its offices as a numbered list endin
         '5 '.$org->registrarOffice->name.' (final quality check)',
     ]);
 
-    // The requirements are section 2, not part of the card (REQ-15-03).
-    expect($html)->not->toContain('PSA-authenticated birth certificate')
-        ->and(requirementBlock($page, $org->tor))->toContain('PSA-authenticated birth certificate');
+    // The requirements are not shown, in the card or elsewhere (REQ-04-23).
+    expect($page)->not->toContain('Completed clearance')->not->toContain('Documentary Requirements');
 });
 
 test('REQ-09-18 signed-in pages stop at 96rem on wide screens and detail grids can shrink on phones', function () {

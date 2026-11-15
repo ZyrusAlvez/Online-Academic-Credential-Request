@@ -16,9 +16,9 @@
 - [x] No "missing" anywhere: older "Missing: …" ledger lines and notifications shown as
       "Required: …"; messages, report text, delay category, code names (REQ-20-04)
 - [x] Pest tests for the changed REQ-20-04 and REQ-20-09
-- [ ] Office-visit modal: "Other" checkbox revealing a required field; optional remarks, in the
+- [x] Office-visit modal: "Other" checkbox revealing a required field; optional remarks, in the
       modal and the workflow (REQ-20-04)
-- [ ] "Please correct and clarify your request" heading (REQ-20-05)
-- [ ] Requester's resubmit note above the Decision (REQ-20-14)
-- [ ] Compliance panel: received mark at each item's lower right; Remarks marked Optional (REQ-20-09)
-- [ ] Pest tests for the changed REQ-20-04, 05, 09 and REQ-20-14
+- [x] "Please Correct and Clarify Your Request" heading (REQ-20-05)
+- [x] Requester's resubmit note above the Decision (REQ-20-14)
+- [x] Compliance panel: received mark at each item's lower right; Remarks marked Optional (REQ-20-09)
+- [x] Pest tests for the changed REQ-20-04, 05, 09 and REQ-20-14

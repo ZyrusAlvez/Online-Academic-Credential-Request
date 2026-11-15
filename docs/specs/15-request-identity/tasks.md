@@ -22,5 +22,5 @@
   section 2 file a link to the viewer (REQ-15-05, 17)
 - [x] `App\Support\EmptyValue` for "nothing to show" summary values, shown italic and
   `text-zinc-600` by `<x-summary-section>` (REQ-15-19)
-- [ ] Five sections without documentary requirements, on the form and the summary (REQ-15-03, 15, 17)
-- [ ] Pest tests for the changed REQ-15-03, 15, 17
+- [x] Five sections without documentary requirements, on the form and the summary (REQ-15-03, 15, 17)
+- [x] Pest tests for the changed REQ-15-03, 15, 17

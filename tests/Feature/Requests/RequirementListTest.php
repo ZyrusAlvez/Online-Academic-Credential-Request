@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\CheckItem;
+use App\Enums\CheckResult;
 use App\Enums\DocumentKind;
 use App\Livewire\Registrar\Records\Show as RecordShow;
 use App\Livewire\Registrar\Requests\Show as StageShow;
@@ -14,8 +16,9 @@ use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 /*
-| Documentary requirements are submitted in person at the Office of the Registrar: the app lists
-| them and never takes a file for them (REQ-04-22, the client's workflow III-B and III-C).
+| A credential's documentary requirements are not listed anywhere a request is made or checked,
+| and never uploaded: when the evaluator finds one required, Require Office Visit asks for it
+| (REQ-04-23, user's decision 2026-11-15).
 */
 
 beforeEach(function () {
@@ -25,39 +28,33 @@ beforeEach(function () {
     $this->registrar = User::factory()->registrar()->create();
 });
 
-test('REQ-04-22 New Request lists the chosen credential\'s requirements, to submit in person, with no upload', function () {
-    $html = Livewire::actingAs($this->owner)->test(Create::class)->html();
-    $block = requirementBlock($html, $this->org->tor);
+test('REQ-04-23 New Request has no documentary requirements section and numbers its sections 1 to 5', function () {
+    $html = Livewire::actingAs($this->owner)->test(Create::class)->set('form.credential_type_id', $this->org->tor->id)->html();
 
-    expect($block)->toContain('data-requirement-list')
-        ->toContain('Submit the originals in person at the Office of the Registrar.')
-        ->toContain('<li>Completed clearance</li>')
-        ->toContain('<li>PSA-authenticated birth certificate</li>')
-        ->not->toContain('type="file"')
-        ->not->toContain('Upload copies')
-        ->not->toContain('Choose files');
-
-    // A credential without requirements says so.
-    expect(requirementBlock($html, $this->org->free))
-        ->not->toContain('data-requirement-list')
-        ->toContain('No documentary requirements.');
+    expect($html)->not->toContain('Documentary Requirements')
+        ->not->toContain('data-requirement')
+        ->not->toContain('Completed clearance')
+        ->not->toContain('Submit the originals in person')
+        ->toContain('>2. Personal Information</h2>')
+        ->toContain('>3. Academic Information</h2>')
+        ->toContain('>4. Valid ID</h2>')
+        ->toContain('>5. Who Will Transact?</h2>');
 });
 
-test('REQ-04-22 the review summary lists the requirements by name, without files', function () {
+test('REQ-04-23 the review summary has no documentary requirements', function () {
     $summary = Str::after(Livewire::actingAs($this->owner)->test(Create::class)
         ->set('form.credential_type_id', $this->org->tor->id)
         ->set('form.purpose', 'Employment abroad')
         ->call('review')->assertHasNoErrors()->html(), 'data-summary-title');
 
-    $section = Str::between($summary, '2. Documentary Requirements', '3. ');
-
-    expect($section)->toContain('Requirements')
-        ->toContain('Completed clearance')
-        ->toContain('PSA-authenticated birth certificate')
-        ->not->toContain('No files');
+    expect($summary)->not->toContain('Documentary Requirements')
+        ->not->toContain('Completed clearance')
+        ->not->toContain('None for this credential')
+        ->toContain('>2. Personal Information</h2>')
+        ->toContain('>5. Who Will Transact?</h2>');
 });
 
-test('REQ-04-22 a request is submitted without any requirement file', function () {
+test('REQ-04-23 a request is submitted without any requirement file', function () {
     Livewire::actingAs($this->owner)->test(Create::class)
         ->set('form.credential_type_id', $this->org->tor->id)
         ->set('form.purpose', 'Employment abroad')
@@ -71,35 +68,29 @@ test('REQ-04-22 a request is submitted without any requirement file', function (
         ->and(Storage::disk('local')->allFiles('request-documents'))->toBe([]);
 });
 
-test('REQ-04-22 the evaluator sees the requirements by name under Credential Request Verification', function () {
+test('REQ-04-23 Credential Request Verification has no requirements; they are the Office Visit checkboxes only', function () {
     $request = submitRequest($this->owner, $this->org->tor);
     workflow()->startEvaluation($request, $this->registrar);
+    workflow()->recordCheck($request, $this->registrar, CheckItem::AcademicRecord, CheckResult::Rejected);
 
     $html = Livewire::actingAs($this->registrar)->test(StageShow::class, ['credentialRequest' => $request->fresh()])->html();
     $card = Str::between($html, 'data-check="credential_request"', 'data-check="identity"');
 
-    expect($card)->toContain('data-requirement-list')
-        ->toMatch('#<dt class="text-zinc-600">Documentary requirements</dt>\s*<dd[^>]*>.*?<li>Completed clearance</li>\s*<li>PSA-authenticated birth certificate</li>#s')
-        ->not->toContain('No file uploaded')
-        ->and(Str::after($html, 'data-check="academic_record"'))->not->toContain('data-requirement-list');
+    expect($card)->not->toContain('Documentary requirements')->not->toContain('Completed clearance')
+        ->and(Str::after($html, 'data-office-visit-modal'))->toContain('Completed clearance')->toContain('PSA-authenticated birth certificate');
 });
 
-test('REQ-04-22 the Records page and the owner\'s page list the requirements by name', function () {
+test('REQ-04-23 the Records page and the owner\'s page do not list the requirements', function () {
     $request = submitRequest($this->owner, $this->org->tor);
 
     Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
-        ->assertSeeHtml('data-requirement-list')->assertSee('Documentary requirements')->assertSee('Completed clearance')->assertDontSee('No file uploaded');
+        ->assertDontSee('Documentary requirements')->assertDontSee('Completed clearance');
 
     Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])
-        ->assertSeeHtml('data-requirement-list')->assertSee('Documentary requirements')->assertSee('Completed clearance')->assertDontSee('No file uploaded');
-
-    // A credential without requirements has no such row.
-    $free = submitRequest($this->owner, $this->org->free);
-
-    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $free])->assertDontSeeHtml('data-requirement-list');
+        ->assertDontSee('Documentary requirements')->assertDontSee('Completed clearance');
 });
 
-test('REQ-04-22 no requirement file can be stored: no column and no kind for it', function () {
+test('REQ-04-23 no requirement file can be stored: no column and no kind for it', function () {
     expect(Schema::hasColumn('request_documents', 'requirement'))->toBeFalse()
         ->and(array_map(fn (DocumentKind $kind) => $kind->value, DocumentKind::cases()))->toBe(['spa', 'representative_id']);
 });
