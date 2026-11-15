@@ -14,7 +14,7 @@ environments running side by side:
 | Error details | Shown | Never shown |
 | Receipts | R2 folder `staging/` | R2 folder `production/` |
 
-Staging works like production in everything else: real email, the same first registrar, the same
+Staging works like production in everything else: real email, the same first admin, the same
 installed packages. That's what makes it a trustworthy place to test a change.
 
 It explains *why* each step is done, not only what to type, so you can fix things when they
