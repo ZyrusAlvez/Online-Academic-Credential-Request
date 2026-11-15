@@ -54,7 +54,8 @@ This replaces:
 ### The decision
 - **REQ-20-02** BELOW the evaluation checklist THE SYSTEM SHALL show Remarks and the buttons
   Decline, Require Office Visit, Return for Clarification and Approve, in that order, Approve on
-  the right. Remarks SHALL be optional to approve and required for the other three.
+  the right. Remarks SHALL be optional to approve and to require an office visit (REQ-20-04, since
+  2026-11-15), and required to decline and to return for clarification.
 - **REQ-20-03** WHEN the evaluator chooses Return for Clarification THE SYSTEM SHALL require at least
   one rejected part and remarks. It SHALL then set the status `returned_for_clarification` and
   record the rejected parts and the remarks. If the identity part was rejected, the request's ID
@@ -75,8 +76,9 @@ This replaces:
 
 ### Returned for clarification
 - **REQ-20-05** WHILE a request is returned for clarification THE SYSTEM SHALL show its requester
-  the rejected parts, the remarks and an **Edit Request** button, under the heading "Please correct
-  and clarify your request" *(user's request, 2026-11-15; was "Please Correct Your Request")*.
+  the rejected parts, the remarks and an **Edit Request** button, under the heading "Please Correct
+  and Clarify Your Request" *(user's request, 2026-11-15, in the Title Case of REQ-09-19; was
+  "Please Correct Your Request")*.
   Nobody else SHALL be able to edit it, and it SHALL NOT be editable in any other status.
 - **REQ-20-06** THE Edit Request page SHALL be the New Request form filled in with the request's
   credential, purpose and receiving school, and the requester's saved details. The requester SHALL
