@@ -27,7 +27,6 @@
             </x-summary-row>
             @if ($request->accepted_at)
                 <x-summary-row :label="__('Due date')">{{ $request->due_at->format('M j, Y') }}</x-summary-row>
-                <x-summary-row :label="__('Adjusted due date')">{{ $request->adjusted_due_at?->format('M j, Y') ?? '—' }}</x-summary-row>
                 <x-summary-row :label="__('Processing time')">{{ $request->processing_working_days !== null ? trans_choice(':count working day|:count working days', $request->processing_working_days) : '—' }}</x-summary-row>
             @endif
         </x-request-details>
