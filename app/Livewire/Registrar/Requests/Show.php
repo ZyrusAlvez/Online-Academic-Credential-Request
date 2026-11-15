@@ -19,7 +19,6 @@ use App\Models\RequestCheck;
 use App\Models\RequestRepresentative;
 use App\Services\RequestWorkflow;
 use App\Support\RegistrarLink;
-use App\Support\ReturnOffices;
 use Closure;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -56,8 +55,6 @@ class Show extends Component
     public const PANEL_FINAL_CHECK = 'final_check';
 
     public const PANEL_RELEASE = 'release';
-
-    public const PANEL_OFFICE = 'office';
 
     public const PANEL_VIEW = 'view';
 
@@ -378,7 +375,6 @@ class Show extends Component
             // Parts confirmed from an earlier verification, by item (REQ-21-05).
             'carried' => $request->checks->whereNotNull('carried_from_request_id')->keyBy(fn (RequestCheck $check): string => $check->item->value),
             'pendingProof' => $request->paymentProofs->firstWhere('status', PaymentStatus::Submitted),
-            'returnOffices' => ReturnOffices::for($request),
             'verifiedRepresentatives' => $request->representatives->where('status', ReviewStatus::Verified)->values(),
             'lastReturn' => $request->events->last(fn ($event) => in_array($event->type, [RequestEventType::CustomerActionRequested, RequestEventType::ComplianceRequested], true)),
             // What the requester wrote with the proof under review (REQ-04-20).
@@ -409,7 +405,7 @@ class Show extends Component
             $request->status === RequestStatus::PaymentVerification => self::PANEL_PAYMENT,
             $atFinalCheck => self::PANEL_FINAL_CHECK,
             $request->status === RequestStatus::ReadyForRelease => self::PANEL_RELEASE,
-            $visit !== null && $this->actor()->can('act', $visit) => self::PANEL_OFFICE,
+            // In Progress has no working page: its rows act in place (REQ-17-13).
             default => self::PANEL_VIEW,
         };
     }

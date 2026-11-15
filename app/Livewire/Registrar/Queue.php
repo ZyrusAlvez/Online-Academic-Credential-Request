@@ -69,6 +69,20 @@ class Queue extends Component
         $this->attempt(fn () => $workflow->forwardDocument($visit, $this->actor()), 'Forwarded. The next office confirms when it arrives.');
     }
 
+    /**
+     * In Progress: a paper sent to the Office of the Registrar arrived there (REQ-17-13).
+     */
+    public function acceptReceipt(int $requestId, RequestWorkflow $workflow): void
+    {
+        abort_unless($this->stage === RegistrarQueue::InProgress, 404);
+
+        $visit = CredentialRequest::findOrFail($requestId)->openVisit()->with(['department', 'step', 'credentialRequest'])->first();
+        abort_if($visit === null, 404);
+        $this->authorize('act', $visit);
+
+        $this->attempt(fn () => $workflow->acceptReceipt($visit, $this->actor()), "Receipt confirmed at {$visit->department->name}.");
+    }
+
     public function render(): View
     {
         $stage = $this->stage;

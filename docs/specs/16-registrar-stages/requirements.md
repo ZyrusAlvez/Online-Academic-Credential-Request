@@ -66,14 +66,17 @@ This replaces:
   them (REQ-16-07, which also matches the student number). Release keeps its plain list. *(User's
   request, 2026-11-12.)*
 - **REQ-16-26** A request's working page SHALL live under the queue it is in:
-  `/registrar/evaluation/{tracking no.}`, `/registrar/payments/…`, `/registrar/in-progress/…`,
+  `/registrar/evaluation/{tracking no.}`, `/registrar/payments/…`,
   `/registrar/final-check/…` and `/registrar/release/…`, and that queue's sidebar item SHALL be
-  shown as the current one, with the queue as the breadcrumb. WHEN a working page is opened under
+  shown as the current one, with the queue as the breadcrumb. In Progress has no working page
+  (REQ-17-13): `/registrar/in-progress/{tracking no.}` SHALL respond 404, and a request in progress
+  SHALL lead to the In Progress list searched by its tracking number. WHEN a working page is opened under
   another queue than the request's, or at the former `/registrar/requests/{tracking no.}` (in
   notifications and emails), THE SYSTEM SHALL redirect to the request's current queue, or to its
   Records page once it is released, declined or cancelled. WHEN a decision or action moves the
   request to another queue THE SYSTEM SHALL follow it there. *(User's report, 2026-11-16: every
-  request page was `/registrar/requests/…`, so no sidebar item was highlighted.)*
+  request page was `/registrar/requests/…`, so no sidebar item was highlighted. In Progress page
+  removed 2026-11-15, user's decision.)*
 - **REQ-16-07** THE Records list SHALL show every request, searchable by tracking number, student
   number or name, and filterable by status (including "Overdue"), credential type and the office
   holding it. A record SHALL open a read-only page with the request's details, route, office visits

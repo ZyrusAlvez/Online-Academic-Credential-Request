@@ -4,7 +4,6 @@ use App\Enums\RequestStatus;
 use App\Livewire\Registrar\Records\Index;
 use App\Models\CredentialRequest;
 use App\Models\User;
-use App\Support\RegistrarLink;
 use Database\Seeders\DemoRequestSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -42,7 +41,8 @@ test('REQ-07-02 requests being processed past their due date are overdue and fil
         ->assertDontSee($onTime->reference_no)
         ->assertSee('Overdue');
 
-    $this->actingAs($this->registrar)->get(RegistrarLink::to($late))->assertSee('Overdue since');
+    // In progress: its row opens the record (REQ-17-12).
+    $this->actingAs($this->registrar)->get(route('records.show', $late))->assertSee('Overdue since');
 });
 
 test('REQ-07-03 the dashboard shows the work-queue counts', function () {

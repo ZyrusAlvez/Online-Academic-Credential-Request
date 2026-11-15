@@ -130,7 +130,8 @@ test('REQ-09-05 request pages offer a copy-tracking-number button', function () 
     $this->actingAs($owner)->get(route('student.requests.show', $request))
         ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 
-    $this->actingAs($registrar)->get(RegistrarLink::to($request))
+    // In progress: its row opens the record (REQ-17-12).
+    $this->actingAs($registrar)->get(route('records.show', $request))
         ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 
     $this->actingAs(User::factory()->departmentStaff($org->ccs)->create())

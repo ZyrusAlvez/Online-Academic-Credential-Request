@@ -231,7 +231,7 @@ test('REQ-17-05 an accepted paper is at the Registrar, received at once by the a
         ->and($request->fresh()->status)->toBe(RequestStatus::AcceptedForProcessing)
         ->and($request->events()->pluck('type')->all())->toContain(RequestEventType::ReceiptAccepted);
 
-    handoffPage($request)->assertDontSee('Accept receipt')->assertSee('Prepared');
+    inProgressQueue()->assertDontSee('data-accept-receipt', false)->assertSee('Forward to College of Computer Studies');
 });
 
 test('REQ-17-05 a route that starts at another office sends the paper there, to be received', function () {
@@ -243,22 +243,25 @@ test('REQ-17-05 a route that starts at another office sends the paper there, to 
 
 test('REQ-17-06 marking done keeps the paper in the office and does not notify the next office', function () {
     Notification::fake();
-    $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    $request = preparedAtRegistrar();
+    workflow()->forwardDocument(openVisit($request), $this->registrar);
+    workflow()->acceptReceipt(openVisit($request), $this->dean);
 
-    handoffPage($request)->set('completeRemarks', 'Printed')->call('completeVisit')->assertHasNoErrors();
+    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
+        ->set('completeRemarks', 'Signed')->call('completeVisit')->assertHasNoErrors();
 
-    $visit = $request->visits()->sole();
+    $visit = $request->visits()->where('department_id', $this->org->ccs->id)->sole();
     expect($visit)
         ->status->toBe(VisitStatus::Done)
-        ->done_by->toBe($this->registrar->id)
+        ->done_by->toBe($this->dean->id)
         ->done_at->not->toBeNull()
         ->completed_at->toBeNull()
-        ->remarks->toBe('Printed')
-        ->and($request->steps()->orderBy('position')->first()->status)->toBe(StepStatus::Completed)
-        ->and($request->fresh()->status)->toBe(RequestStatus::AcceptedForProcessing)
+        ->remarks->toBe('Signed')
+        ->and($request->steps()->where('position', 2)->sole()->status)->toBe(StepStatus::Completed)
+        ->and($request->fresh()->status)->toBe(RequestStatus::InProgress)
         ->and(openVisit($request)->id)->toBe($visit->id);
 
-    Notification::assertNotSentTo($this->dean, RequestActivity::class);
+    Notification::assertNotSentTo($this->vpf, RequestActivity::class);
 });
 
 test('REQ-17-07 forwarding records when the paper left, opens the next visit and notifies that office', function () {
@@ -405,11 +408,7 @@ test('REQ-17-18 a paper the Dean forwarded to the Registrar shows at the Dean, n
     // Sent back to the Registrar for correction, not yet received there.
     expect(openVisit($request))->department_id->toBe($this->org->registrarOffice->id)->status->toBe(VisitStatus::InTransit);
 
-    inProgressQueue()->assertSeeInOrder([$request->reference_no, 'College of Computer Studies', 'to Office of the Registrar, not yet received', 'Office of the Registrar']);
-
-    handoffPage($request)
-        ->assertSeeInOrder(['Currently at', 'College of Computer Studies', 'to Office of the Registrar, not yet received', 'Next', 'Office of the Registrar'])
-        ->assertSee('Accept receipt');
+    inProgressQueue()->assertSeeInOrder([$request->reference_no, 'College of Computer Studies', 'to Office of the Registrar, not yet received', 'Accept receipt']);
 
     // The requester's pages and emails say where the paper is.
     expect($request->fresh()->load('openVisit.department', 'openVisit.fromDepartment')->whereabouts())->toBe('College of Computer Studies');
@@ -471,29 +470,55 @@ test('REQ-17-12 at Accepted for processing one Forward marks the preparation don
         ->and($request->fresh()->status)->toBe(RequestStatus::InProgress);
 });
 
-test('REQ-17-12 rows where the Registrar acts next open the working page, the others the record', function () {
+test('REQ-17-12 every In Progress row opens the record', function () {
     $mine = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
     $elsewhere = preparedAtRegistrar();
     workflow()->forwardDocument(openVisit($elsewhere), $this->registrar);
 
     inProgressQueue()
-        ->assertSee(route('registrar.in-progress.show', $mine), false)
-        ->assertSee(route('records.show', $elsewhere), false);
+        ->assertSee(route('records.show', $mine), false)
+        ->assertSee(route('records.show', $elsewhere), false)
+        ->assertDontSee('/registrar/in-progress/', false);
 });
 
-test('REQ-17-13 the working page shows where the Registrar\'s paper is, where it goes next, and the action', function () {
+test('REQ-17-13 In Progress has no working page; the Registrar\'s task is done only through Forward', function () {
     $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
 
-    handoffPage($request)
-        ->assertSeeInOrder(['Currently at', 'Office of the Registrar', 'In office', 'Next', 'College of Computer Studies'])
-        ->assertSee('Prepared')->assertDontSee('Forward to')
-        ->call('completeVisit')
-        ->assertSee('Done, not yet forwarded')
-        ->assertDontSee('Forward to')->assertDontSee('wire:click="forwardDocument"', false)
-        ->assertSee('Forward it to College of Computer Studies from')->assertSee(route('registrar.in-progress'), false)
-        ->call('forwardDocument')->assertForbidden();
+    $this->actingAs($this->registrar)->get('/registrar/in-progress/'.$request->getRouteKey())->assertNotFound();
 
-    expect(openVisit($request)->status)->toBe(VisitStatus::Done);
+    inProgressQueue()
+        ->assertSee('Forward to College of Computer Studies')
+        ->assertDontSee('Prepared')->assertDontSee('wire:click="completeVisit"', false);
+});
+
+test('REQ-17-13 a paper sent to the Registrar is received from its In Progress row', function () {
+    $request = preparedAtRegistrar();
+    workflow()->forwardDocument(openVisit($request), $this->registrar);
+    workflow()->acceptReceipt(openVisit($request), $this->dean);
+    workflow()->returnVisit(openVisit($request), $this->dean, $this->org->registrarOffice, 'Wrong grade', 'Fix the grade');
+
+    inProgressQueue()
+        ->assertSeeInOrder([$request->reference_no, 'not yet received', 'Accept receipt'])
+        ->assertDontSee('Forward to')
+        ->call('acceptReceipt', $request->id)->assertDispatched('notify');
+
+    expect(openVisit($request))->department_id->toBe($this->org->registrarOffice->id)->status->toBe(VisitStatus::Received)
+        ->received_by->toBe($this->registrar->id);
+
+    inProgressQueue()->assertSee('Forward to College of Computer Studies')->assertDontSee('data-accept-receipt', false);
+});
+
+test('REQ-17-13 the row\'s Accept receipt is refused for another office\'s paper and outside In Progress', function () {
+    $request = preparedAtRegistrar();
+    workflow()->forwardDocument(openVisit($request), $this->registrar);   // to the Dean, not yet received
+
+    inProgressQueue()->assertDontSee('data-accept-receipt', false)
+        ->call('acceptReceipt', $request->id)->assertForbidden();
+
+    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => 'final_check'])
+        ->call('acceptReceipt', $request->id)->assertNotFound();
+
+    expect(openVisit($request)->status)->toBe(VisitStatus::InTransit);
 });
 
 test('REQ-17-16 an office forwards only its own done papers; the registrar only the Registrar\'s', function () {

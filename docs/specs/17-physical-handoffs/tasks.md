@@ -29,3 +29,10 @@
 - [x] `RegistrarRequestFilter::heldBy`, dashboard office counts, `DepartmentReport` pending, `SignatoryReport` by holder (REQ-17-15, 18)
 - [x] In Progress and the working page: Currently at the holder, "Forwarded :time to :office, not yet received", Next the receiving office (REQ-17-11, 13, 18)
 - [x] Pest tests for REQ-17-18; REQ-16-04 and REQ-17-11 tests follow the holder
+
+## In Progress is a list only (2026-11-15)
+
+- [x] Remove `registrar.in-progress.show` and the working page's office panel; `RegistrarLink` sends a request in progress to the searched list (REQ-16-26, REQ-17-13)
+- [x] Accept receipt in the In Progress row for papers sent to the Office of the Registrar; every row opens the record (REQ-17-12, 13)
+- [x] Remove the registrar's "Forward it from In Progress" line from `partials.visit-actions`
+- [x] Pest tests for the changed REQ-16-26, REQ-17-12 and REQ-17-13

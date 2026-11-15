@@ -66,7 +66,13 @@ enum RegistrarQueue: string
         };
     }
 
-    /** The request's working page under this queue (REQ-16-26). */
+    /** In Progress is a list only; its rows act in place (REQ-17-13). */
+    public function hasWorkingPage(): bool
+    {
+        return $this !== self::InProgress;
+    }
+
+    /** The request's working page under this queue (REQ-16-26); see hasWorkingPage(). */
     public function showRouteName(): string
     {
         return $this->routeName().'.show';
