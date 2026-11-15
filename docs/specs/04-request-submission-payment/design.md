@@ -107,3 +107,15 @@ From 2026-11-10 to 2026-11-15 New Request took optional copies of each requireme
   (`app:reset` empties the folder).
 - `request_documents` again holds only a representative's SPA and valid ID (spec 11).
 
+## Documentary requirements: not listed (2026-11-15, REQ-04-23)
+
+The same day the list itself went (REQ-04-22 superseded):
+
+- New Request loses section 2; its sections are 1. What Do You Need?, 2. Personal Information,
+  3. Academic Information, 4. Valid ID, 5. Who Will Transact? (REQ-15-03), and the summary
+  follows (REQ-15-17). `Create::requestSummary()` returns section 1 only.
+- `<x-requirement-list>` is deleted, with its rows on the evaluation checklist, Records and the
+  owner's Request Details.
+- `credential_types.requirements` stays, edited on Credential Types as before: it is the list of
+  checkboxes in Require Office Visit (REQ-20-04).
+

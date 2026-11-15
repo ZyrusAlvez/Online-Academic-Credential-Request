@@ -43,8 +43,9 @@ of their own.
     submitted request keeps the details it was sent with; the accepted IDs and files; changing the
     saved ID; a rejected ID; who can see the uploads; the data privacy consent.
   - *Requesting a Credential:* the steps of New Request and the tracking number; where to see a
-    credential's fee, processing period, requirements and offices; the purpose and "Others"; the
-    receiving school; how the documentary requirements are submitted (in person); copies of a
+    credential's fee, processing period and offices; the purpose and "Others"; the receiving
+    school; that documents are submitted in person only when an office visit asks for them
+    (REQ-04-23, 2026-11-15); copies of a
     credential; changing or
     cancelling a request; what happens after submitting (the four evaluation outcomes); an office
     visit.

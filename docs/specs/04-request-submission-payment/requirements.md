@@ -23,20 +23,28 @@ period starts only at acceptance.
 - **REQ-04-01** THE SYSTEM SHALL let a requester (giving their details and ID on the same form,
   REQ-15-03) submit a request for an active credential type that has a route, with the purpose (chosen from the registrar's list, spec 13), and — when the credential type requires it — the complete name of the receiving school.
 - **REQ-04-02** BEFORE a request is submitted THE SYSTEM SHALL let the requester choose the
-  credential from a dropdown and, once one is chosen, show its description, documentary
-  requirements, fee, processing period, offices on its route and special
-  conditions; THE SYSTEM SHALL also show the *Incomplete requirements* notice of the client's
-  workflow.
+  credential from a dropdown and, once one is chosen, show its description, fee, processing
+  period, offices on its route and special conditions; THE SYSTEM SHALL also show the *Incomplete
+  requirements* notice of the client's workflow. *(Documentary requirements no longer shown since
+  2026-11-15, REQ-04-23.)*
 - ~~REQ-04-18, REQ-04-19~~ *Superseded by REQ-04-22 (user's decision, 2026-11-15):* the optional
   upload of copies of the documentary requirements on New Request, and their listing for the
   evaluator, Records and the owner, are removed. The client's workflow never asks the requester to
   send these documents online: the evaluator checks them against the university's records (III-B),
   and the originals are submitted in person (III-C).
-- **REQ-04-22** WHERE the chosen credential lists documentary requirements THE SYSTEM SHALL show
-  them on New Request as a list, with the note that the originals are submitted in person at the
-  Office of the Registrar, and SHALL NOT offer to upload them. The review summary, the evaluator's
-  *Credential Request Verification*, the Records page and the owner's request page SHALL list the
-  credential's requirements by name. No file of a documentary requirement is stored.
+- ~~REQ-04-22~~ *Superseded by REQ-04-23 (user's decision, 2026-11-15, the same day):* New
+  Request's section "2. Documentary Requirements", its summary row, and the requirement row on the
+  evaluator's *Credential Request Verification*, the Records page and the owner's request page are
+  removed.
+- **REQ-04-23** THE SYSTEM SHALL NOT list a credential's documentary requirements on New Request,
+  Edit Request, their summary, the evaluator's *Credential Request Verification*, the Records page
+  or the requester's request page, and SHALL NOT take a file for them; no file of a documentary
+  requirement is stored. A credential's list (credential master list, spec 03) SHALL be used only
+  as the checkboxes of Require Office Visit (REQ-20-04): when the evaluator finds something
+  required, the requester is asked to visit the office. *(User's decision, 2026-11-15. This departs
+  on purpose from Proposed Workflow III-A step 6, where the customer sees the applicable documentary
+  requirements before submitting: the user chose to show only what the evaluator requires at the
+  office visit.)*
 - **REQ-04-03** WHEN a request is submitted THE SYSTEM SHALL give it the status `submitted`, a
   unique tracking number `cr<2-digit year>-<id>` in lowercase, the id padded with zeros to at
   least 5 digits (`cr26-00042`) and growing past 99999 without a cap (`cr26-100000`); requests
