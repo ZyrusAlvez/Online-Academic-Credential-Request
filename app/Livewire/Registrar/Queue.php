@@ -33,7 +33,7 @@ class Queue extends Component
     #[Url(except: '')]
     public string $office = '';
 
-    /** Every queue but Release: tracking number or requester name (REQ-16-25). */
+    /** Every queue: tracking number or requester name (REQ-16-25). */
     #[Url(except: '')]
     public string $search = '';
 
@@ -89,11 +89,10 @@ class Queue extends Component
         $hasWaitingTab = $stage->hasWaitingTab();
         $waiting = $hasWaitingTab && $this->waiting;
         $office = $stage === RegistrarQueue::InProgress ? $this->office : '';
-        $search = $stage->isSearchable() ? $this->search : '';
 
         return view('livewire.registrar.queue', [
             'queue' => $stage,
-            'requests' => StageQueue::for($stage, $waiting, $office, $search)->paginate(20),
+            'requests' => StageQueue::for($stage, $waiting, $office, $this->search)->paginate(20),
             'hasWaitingTab' => $hasWaitingTab,
             'showWaiting' => $waiting,
             'waitingCount' => $hasWaitingTab ? StageQueue::for($stage, true)->count() : 0,

@@ -172,15 +172,22 @@ test('REQ-16-06 Release lists the credentials ready for release', function () {
     queuePage('release')->assertSee($ready->reference_no)->assertDontSee($this->request->reference_no);
 });
 
-test('REQ-16-25 the stage queues but Release search by tracking number or requester name', function () {
+test('REQ-16-25 every stage queue, Release included, searches by tracking number or requester name', function () {
     $other = User::factory()->withProfile($this->org->ccs)->create(['first_name' => 'Zephyrine', 'last_name' => 'Quillborne']);
+    $ready = function (User $requester) {
+        $request = atFinalCheck(submitRequest($requester, $this->org->tor));
+        workflow()->approveFinalCheck($request, $this->registrar);
 
-    // One request of each requester per searchable queue.
+        return $request;
+    };
+
+    // One request of each requester per queue.
     $pairs = [
         'evaluation' => [$this->request, submitRequest($other, $this->org->tor)],
         'payment' => [awaitingValidation(submitRequest($this->owner, $this->org->tor)), awaitingValidation(submitRequest($other, $this->org->tor))],
         'in_progress' => [acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar), acceptRequest(submitRequest($other, $this->org->tor), $this->registrar)],
         'final_check' => [atFinalCheck(submitRequest($this->owner, $this->org->tor)), atFinalCheck(submitRequest($other, $this->org->tor))],
+        'release' => [$ready($this->owner), $ready($other)],
     ];
 
     foreach ($pairs as $queue => [$mine, $hers]) {
@@ -199,8 +206,6 @@ test('REQ-16-25 the stage queues but Release search by tracking number or reques
     queuePage('evaluation', ['waiting' => true, 'search' => $this->request->reference_no])->assertDontSee($returned->reference_no);
     queuePage('in_progress', ['office' => (string) $this->org->registrarOffice->id, 'search' => 'Zephyrine'])
         ->assertSee($pairs['in_progress'][1]->reference_no)->assertDontSee($pairs['in_progress'][0]->reference_no);
-
-    queuePage('release')->assertDontSeeHtml('data-queue-search');
 });
 
 test('REQ-16-25 on the queues with a waiting tab the search sits right of the tabs, on their line', function () {
