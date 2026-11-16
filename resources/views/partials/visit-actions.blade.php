@@ -26,7 +26,7 @@
             <flux:callout icon="arrow-uturn-left" color="amber">
                 <flux:callout.heading>{{ __('Returned to your office for correction') }}</flux:callout.heading>
                 @if ($returning)
-                    <flux:callout.text>{{ $returning->return_reason }} · {{ __('Corrective action: :action', ['action' => $returning->corrective_action]) }}</flux:callout.text>
+                    <flux:callout.text>{{ $returning->return_reason }}@if ($returning->corrective_action) · {{ __('Corrective action: :action', ['action' => $returning->corrective_action]) }}@endif</flux:callout.text>
                 @endif
             </flux:callout>
         @endif
@@ -59,7 +59,7 @@
                             @endforeach
                         </flux:select>
                         <flux:textarea wire:model="returnReason" :label="__('Reason for return')" rows="2" required />
-                        <flux:textarea wire:model="correctiveAction" :label="__('Corrective action needed')" rows="2" required />
+                        <flux:textarea wire:model="correctiveAction" :label="__('Corrective action needed')" badge="Optional" rows="2" />
                         <div class="flex justify-end gap-2">
                             <flux:modal.close><flux:button variant="ghost">{{ __('Back') }}</flux:button></flux:modal.close>
                             <flux:button type="submit" variant="primary">{{ __('Return document') }}</flux:button>

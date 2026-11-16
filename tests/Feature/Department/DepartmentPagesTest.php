@@ -8,6 +8,7 @@ use App\Models\CredentialRequest;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
@@ -276,10 +277,13 @@ test('REQ-24-07 the page shows details, the verified proof and the route, then t
         ->assertDontSee('Time in Each Office')->assertDontSee('Tracking History')->assertDontSee('Record delay reason');
 
     workflow()->acceptReceipt(openVisit($request), $this->dean);
-    $this->actingAs($this->dean)->get(route('department.to-validate.show', $request))->assertOk()
+    $html = $this->actingAs($this->dean)->get(route('department.to-validate.show', $request))->assertOk()
         ->assertSeeInOrder(['Request Details', 'Route', 'Decision', 'Received', 'Remarks', 'data-return-button', 'Return', 'data-approve-button', 'Approve'], false)
-        ->assertDontSee('Acknowledge receipt')->assertDontSee('Optional')
-        ->assertDontSee('>Signed<', false);
+        ->assertDontSee('Acknowledge receipt')
+        ->assertDontSee('>Signed<', false)
+        ->getContent();
+    // Remarks has no hint; only the return dialog's corrective action is optional (REQ-05-06).
+    expect(Str::between($html, 'wire:submit="completeVisit"', 'data-approve-button'))->not->toContain('Optional');
 
     passOffice($request, $this->dean);
     $this->actingAs($this->dean)->get(route('department.history.show', $request))->assertOk()

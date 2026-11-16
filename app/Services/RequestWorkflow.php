@@ -558,13 +558,16 @@ class RequestWorkflow
     }
 
     /**
-     * Return the document to an earlier office for correction (REQ-05-06).
+     * Return the document to an earlier office for correction, with the reason and, optionally,
+     * the corrective action needed (REQ-05-06).
      */
-    public function returnVisit(OfficeVisit $visit, User $actor, Department $to, string $reason, string $correctiveAction, ?string $remarks = null): void
+    public function returnVisit(OfficeVisit $visit, User $actor, Department $to, string $reason, ?string $correctiveAction = null, ?string $remarks = null): void
     {
-        if (blank($reason) || blank($correctiveAction)) {
-            throw new InvalidTransition('Give the reason for the return and the corrective action needed.');
+        if (blank($reason)) {
+            throw new InvalidTransition('Give the reason for the return.');
         }
+
+        $correctiveAction = filled($correctiveAction) ? $correctiveAction : null;
 
         DB::transaction(function () use ($visit, $actor, $to, $reason, $correctiveAction, $remarks): void {
             [$locked, $current] = $this->lockVisit($visit, [VisitStatus::Received]);
@@ -590,7 +593,7 @@ class RequestWorkflow
 
             $office = $current->department()->firstOrFail();
             $this->transition($locked, $locked, RequestStatus::ReturnedForCorrection, $actor, RequestEventType::DocumentReturned,
-                "Returned to {$to->name}: {$reason}\nCorrective action: {$correctiveAction}", visit: $current);
+                "Returned to {$to->name}: {$reason}".($correctiveAction !== null ? "\nCorrective action: {$correctiveAction}" : ''), visit: $current);
             $this->forward($locked, $step, $to, VisitPurpose::Correction, $office, $actor);
         });
     }
