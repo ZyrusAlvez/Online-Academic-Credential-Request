@@ -6,7 +6,7 @@
         <li><strong>Personal Information</strong>, <strong>Academic Information</strong> and your <strong>Valid ID</strong>, filled in from your profile after your first request.</li>
         <li><strong>Who Will Transact?</strong> You, or an authorized representative.</li>
     </ol>
-    <p>Choose <strong>Review request</strong> to see a summary, tick the data privacy box, then choose <strong>Submit request</strong>. Your request gets a tracking number such as <strong>cr26-00042</strong>; use it whenever you contact the Office of the Registrar.</p>
+    <p>Choose <strong>Review request</strong> to see a summary, tick the data privacy box, then choose <strong>Submit request</strong>. Your request gets a tracking number such as <strong>rc26-00042</strong>; use it whenever you contact the Office of the Registrar.</p>
 </x-faq-item>
 
 <x-faq-item question="Where do I see a credential's fee and processing time?">
