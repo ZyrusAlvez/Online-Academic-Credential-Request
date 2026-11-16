@@ -66,6 +66,9 @@ class Show extends Component
 
         return view('livewire.cashier.requests.show', [
             'request' => $request,
+            // One payment for every credential of the application (REQ-27-09).
+            'credentials' => CredentialRequest::query()->where('application_id', $request->application_id)
+                ->with('credentialType:id,name')->orderBy('item_no')->get(),
             'pendingProof' => $request->paymentProofs->firstWhere('status', PaymentStatus::Submitted),
             // What the requester wrote with the proof under review (REQ-04-20).
             'paymentNote' => (string) $request->events->last(fn ($event) => $event->type === RequestEventType::PaymentSubmitted)?->remarks,

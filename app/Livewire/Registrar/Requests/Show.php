@@ -123,7 +123,10 @@ class Show extends Component
         $current = RegistrarQueue::forRequest($credentialRequest);
         $this->currentQueue = $current;
 
-        if ($queue !== null && $current !== (is_string($queue) ? RegistrarQueue::from($queue) : $queue)) {
+        // Until acceptance the application is worked on through its first credential (REQ-27-03).
+        $follower = ! $credentialRequest->isLead() && $credentialRequest->status->isBeforeAcceptance();
+
+        if ($follower || ($queue !== null && $current !== (is_string($queue) ? RegistrarQueue::from($queue) : $queue))) {
             $this->redirect(RegistrarLink::to($credentialRequest), navigate: true);
         }
     }
@@ -387,6 +390,9 @@ class Show extends Component
 
         return view('livewire.registrar.requests.show', [
             'request' => $request,
+            // The application's credentials, listed until acceptance (REQ-27-09).
+            'credentials' => CredentialRequest::query()->where('application_id', $request->application_id)
+                ->with('credentialType:id,name')->orderBy('item_no')->get(),
             'panel' => $panel,
             'items' => $stage !== null ? CheckItem::for($stage, $request) : [],
             'results' => $stage !== null ? $request->checkResults($stage) : [],

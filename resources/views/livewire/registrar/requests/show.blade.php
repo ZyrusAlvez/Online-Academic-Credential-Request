@@ -110,11 +110,17 @@
                 <x-check-card :item="$item" :result="$results[$item->value] ?? null" :carried="$carried[$item->value] ?? null" wire:key="check-{{ $item->value }}">
                     @switch($item)
                         @case(Item::CredentialRequest)
+                            {{-- Every credential of the application (REQ-27-09). --}}
+                            @if ($credentials->count() > 1)
+                                <x-application-credentials :requests="$credentials" class="mb-3" />
+                            @endif
                             <dl class="divide-y divide-zinc-200 text-sm">
-                                <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
-                                <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
-                                @if ($request->receiving_institution)
-                                    <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
+                                @if ($credentials->count() <= 1)
+                                    <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
+                                    <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
+                                    @if ($request->receiving_institution)
+                                        <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
+                                    @endif
                                 @endif
                                 <x-summary-row :label="__('Amount due')">{{ $request->requires_payment ? '₱'.number_format((float) $request->amount_due, 2) : __('None required') }}</x-summary-row>
                                 <x-summary-row :label="__('Transacting')">{{ $request->requester_mode->label() }}</x-summary-row>
@@ -254,7 +260,11 @@
                 </div>
 
                 @if ($panel === Page::PANEL_PAYMENT)
-                    {{-- A walk-in payment, made at the counter: its official receipt (REQ-26-05). --}}
+                    {{-- A walk-in payment, made at the counter: its official receipt (REQ-26-05), for
+                         every credential of the application (REQ-27-09). --}}
+                    @if ($credentials->count() > 1)
+                        <x-application-credentials :requests="$credentials" :total="$request->amount_due" />
+                    @endif
                     <dl class="divide-y divide-zinc-200 text-sm" data-walk-in-payment>
                         <x-summary-row :label="__('Amount due')">₱{{ number_format((float) $request->amount_due, 2) }}</x-summary-row>
                     </dl>

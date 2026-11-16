@@ -16,6 +16,11 @@
     {{-- The proof and its details, read-only (REQ-16-17, REQ-25-05). --}}
     @include('partials.payment-review')
 
+    {{-- The credentials the payment is for (REQ-27-09). --}}
+    @if ($credentials->count() > 1)
+        <x-application-credentials :requests="$credentials" :total="$request->amount_due" />
+    @endif
+
     <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
         <x-request-details :request="$request">

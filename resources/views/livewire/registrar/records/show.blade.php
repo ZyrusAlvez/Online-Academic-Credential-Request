@@ -1,23 +1,40 @@
+{{-- An application's record; a tab per credential when it has several (REQ-27-08). $request is the
+     credential shown. --}}
+@php($several = $credentials->count() > 1)
+@php($trackingNo = $several ? $request->application->reference_no : $request->reference_no)
 <div class="mx-auto max-w-4xl space-y-6" data-read-only-record>
     <flux:breadcrumbs>
         <flux:breadcrumbs.item :href="route('records')" wire:navigate>{{ __('Records') }}</flux:breadcrumbs.item>
-        <flux:breadcrumbs.item>{{ $request->reference_no }}</flux:breadcrumbs.item>
+        <flux:breadcrumbs.item>{{ $trackingNo }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 
-    <x-page-header :title="$request->reference_no" :description="$request->credentialType->name.' · '.$request->requester_name">
+    <x-page-header :title="$trackingNo" :description="($several ? trans_choice(':count credential|:count credentials', $credentials->count()) : $request->credentialType->name).' · '.$request->requester_name">
         <x-slot:afterTitle>
-            <x-copy-button :value="$request->reference_no" :label="__('Copy tracking number')" :copied="__('Tracking number copied.')" />
+            <x-copy-button :value="$trackingNo" :label="__('Copy tracking number')" :copied="__('Tracking number copied.')" />
         </x-slot:afterTitle>
         <x-slot:actions>
             <x-walk-in-badge :request="$request" class="self-center" />
-            <x-request-status :status="$request->status" class="self-center" />
-            @if ($request->isOverdue())
-                <flux:badge color="red" icon="clock" class="self-center">{{ __('Overdue since :date', ['date' => $request->effective_due_at->format('M j')]) }}</flux:badge>
-            @endif
+            @unless ($several)
+                <x-request-status :status="$request->status" class="self-center" />
+                @if ($request->isOverdue())
+                    <flux:badge color="red" icon="clock" class="self-center">{{ __('Overdue since :date', ['date' => $request->effective_due_at->format('M j')]) }}</flux:badge>
+                @endif
+            @endunless
         </x-slot:actions>
     </x-page-header>
 
+    <x-credential-tabs :requests="$credentials" :current="$request" />
+
+    @if ($several)
+        <div class="flex flex-wrap items-center gap-2" data-credential-status>
+            <x-request-status :status="$request->status" />
+            @if ($request->isOverdue())
+                <flux:badge color="red" icon="clock">{{ __('Overdue since :date', ['date' => $request->effective_due_at->format('M j')]) }}</flux:badge>
+            @endif
+        </div>
+    @endif
+
     <p class="text-sm text-zinc-600">{{ __('Where it is now: :where', ['where' => $request->staffWhereabouts()]) }}</p>
 
-    @include('partials.request-record', ['hide' => []])
+    @include('partials.request-record', ['hide' => [], 'events' => $events])
 </div>

@@ -51,8 +51,19 @@ class Index extends Component
 
     public function render(): View
     {
-        $requests = (new RegistrarRequestFilter($this->search, $this->status, $this->type, $this->office))->query()
-            ->with(['credentialType:id,name', 'openVisit.department:id,name', 'openVisit.fromDepartment:id,name'])
+        // One row per application with a credential that matches the filters (REQ-27-08).
+        $matching = (new RegistrarRequestFilter($this->search, $this->status, $this->type, $this->office))->query()
+            ->reorder()->select('application_id');
+
+        $requests = CredentialRequest::query()
+            ->where('item_no', 1)
+            ->whereIn('application_id', $matching)
+            ->with([
+                'application.credentialRequests.credentialType:id,name',
+                'application.credentialRequests.openVisit.department:id,name',
+                'application.credentialRequests.openVisit.fromDepartment:id,name',
+            ])
+            ->when($this->status === RegistrarRequestFilter::OVERDUE, fn ($q) => $q->orderBy('effective_due_at'), fn ($q) => $q->latest('id'))
             ->paginate(20);
 
         return view('livewire.registrar.records.index', [

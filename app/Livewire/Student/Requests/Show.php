@@ -13,26 +13,33 @@ use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use App\Models\User;
 use App\Services\RequestWorkflow;
+use App\Support\ApplicationHistory;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 /**
- * The requester's view of one request: tracker, what is needed from them, payment,
- * representatives and history (specs 04, 06, 11).
+ * The requester's view of one application: what is needed from them, payment and representatives,
+ * then a tab per credential with its tracker, details and history (specs 04, 06, 11, 27).
  */
 class Show extends Component
 {
     use TrimsInput;
     use WithFileUploads;
 
+    /** The application's first credential, which carries it until acceptance (REQ-27-03). */
     #[Locked]
     public CredentialRequest $credentialRequest;
+
+    /** The credential tab shown: its position in the application (REQ-27-07). */
+    #[Url(as: 'credential', except: 1)]
+    public int $tab = 1;
 
     /** @var UploadedFile|null */
     public $receipt = null;
@@ -51,6 +58,13 @@ class Show extends Component
     public function mount(CredentialRequest $credentialRequest): void
     {
         $this->authorize('view', $credentialRequest);
+
+        // A credential's own address opens the application on its tab (REQ-27-07).
+        if (! $credentialRequest->isLead()) {
+            $this->tab = $credentialRequest->item_no;
+            $credentialRequest = $credentialRequest->application()->firstOrFail()->lead()->firstOrFail();
+            $this->authorize('view', $credentialRequest);
+        }
 
         $this->credentialRequest = $credentialRequest;
     }
@@ -105,13 +119,22 @@ class Show extends Component
     public function render(): View
     {
         $request = $this->credentialRequest->load([
-            'credentialType', 'college', 'identityDocument', 'openVisit.department', 'openVisit.fromDepartment', 'paymentProofs', 'deficiencies',
+            'application', 'credentialType', 'college', 'identityDocument', 'openVisit.department', 'openVisit.fromDepartment', 'paymentProofs', 'deficiencies',
             'representatives.documents', 'release', 'steps.department', 'checks',
         ]);
 
-        $events = $request->events()->with(['department', 'step'])->get()
-            ->reject(fn ($event) => $event->type->isInternal())
-            ->values();
+        $credentials = CredentialRequest::query()
+            ->where('application_id', $request->application_id)
+            ->with(['credentialType', 'college', 'identityDocument', 'openVisit.department', 'openVisit.fromDepartment', 'release', 'steps.department'])
+            ->orderBy('item_no')
+            ->get();
+        $current = $credentials->firstWhere('item_no', $this->tab) ?? $credentials->first() ?? $request;
+
+        $visible = fn ($events) => $events->reject(fn ($event) => $event->type->isInternal())->values();
+        $events = $visible($request->events()->with(['department', 'step'])->get());
+        $currentEvents = $current->is($request)
+            ? $events
+            : ApplicationHistory::for($current, $events, $visible($current->events()->with(['department', 'step'])->get()));
 
         $results = $request->checkResults(CheckStage::Evaluation);
 
@@ -122,6 +145,9 @@ class Show extends Component
 
         return view('livewire.student.requests.show', [
             'request' => $request,
+            'credentials' => $credentials,
+            'current' => $current,
+            'currentEvents' => $currentEvents,
             'rejectedProof' => $request->paymentProofs->firstWhere('status', PaymentStatus::Rejected),
             // What the evaluator rejected and why (REQ-20-05).
             'rejectedParts' => array_values(array_filter(
@@ -135,8 +161,7 @@ class Show extends Component
             },
             // Who may come in the owner's place, if anyone (REQ-11-05).
             'representative' => $request->claimingRepresentative(),
-            'events' => $events,
-        ])->title($request->reference_no);
+        ])->title($credentials->count() > 1 ? $request->application()->value('reference_no') : $request->reference_no);
     }
 
     private function owner(): User

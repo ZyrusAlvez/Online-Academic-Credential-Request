@@ -29,19 +29,37 @@
         @else
             <ul role="list" class="-mx-2 divide-y divide-secondary/30">
                 @foreach ($requests as $request)
+                    @php($credentials = $request->application->credentialRequests)
                     <li wire:key="request-{{ $request->id }}" class="py-1">
                         <a href="{{ route('student.requests.show', $request) }}" wire:navigate
                             class="flex flex-col gap-3 rounded-lg px-2 py-3 transition hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight sm:flex-row sm:items-center sm:justify-between">
-                            {{-- The credential, its tracking number and where it is; no status badge or
-                                 submission date, which the request's page shows (REQ-09-12). --}}
-                            <div class="min-w-0">
-                                <p class="font-semibold text-ink">{{ $request->credentialType->name }}</p>
-                                <p class="text-xs text-zinc-600" data-tracking-no>{{ $request->reference_no }}</p>
-                            </div>
-                            <span class="flex items-center gap-1 text-sm text-zinc-700 sm:justify-end sm:text-end" data-whereabouts>
-                                <flux:icon.map-pin class="size-4 shrink-0 text-secondary" />
-                                {{ $request->whereabouts() }}
-                            </span>
+                            @if ($credentials->count() > 1)
+                                {{-- An application of several credentials: each with where it is (REQ-27-06). --}}
+                                <div class="min-w-0 flex-1 space-y-2">
+                                    <p class="text-xs text-zinc-600" data-tracking-no>{{ $request->application->reference_no }}</p>
+                                    @foreach ($credentials as $credential)
+                                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between" data-application-credential>
+                                            <p class="font-semibold text-ink">{{ $credential->credentialType->name }}</p>
+                                            <span class="flex items-center gap-1 text-sm text-zinc-700 sm:text-end" data-whereabouts>
+                                                <flux:icon.map-pin class="size-4 shrink-0 text-secondary" />
+                                                {{ $credential->whereabouts() }}
+                                            </span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                @php($request = $credentials->first())
+                                {{-- The credential, its tracking number and where it is; no status badge or
+                                     submission date, which the request's page shows (REQ-09-12). --}}
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-ink">{{ $request->credentialType->name }}</p>
+                                    <p class="text-xs text-zinc-600" data-tracking-no>{{ $request->reference_no }}</p>
+                                </div>
+                                <span class="flex items-center gap-1 text-sm text-zinc-700 sm:justify-end sm:text-end" data-whereabouts>
+                                    <flux:icon.map-pin class="size-4 shrink-0 text-secondary" />
+                                    {{ $request->whereabouts() }}
+                                </span>
+                            @endif
                         </a>
                     </li>
                 @endforeach
