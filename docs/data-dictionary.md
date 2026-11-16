@@ -174,6 +174,7 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 | identity_reviewed_at | timestamp | Yes | | | |
 | identity_remarks | varchar(500) | Yes | | | Reason for a rejection, shown to the requester |
 | requester_mode | varchar(20) | No | | personal | `personal` or `representative` (see [RequesterMode](#requestermode)) |
+| channel | varchar(20) | No | IX (with status) | online | `online` (made by the requester) or `walk_in` (recorded by the Registrar); the Cashier validates online payments, the Registrar walk-in ones (spec 25) |
 | requires_payment | tinyint(1) | No | | 0 | Snapshot of the credential type |
 | fee | decimal(10,2) | Yes | | | Snapshot of the credential's fee |
 | amount_due | decimal(10,2) | Yes | | | The fee (one document per request) |

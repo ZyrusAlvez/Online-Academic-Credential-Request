@@ -3,6 +3,7 @@
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
+use App\Enums\RequestChannel;
 use App\Enums\RouteTask;
 use App\Enums\VisitStatus;
 use App\Models\CredentialRequest;
@@ -139,6 +140,16 @@ function declareRepresentative(CredentialRequest $request, User $owner, array $d
 {
     return workflow()->declareRepresentative($request, $owner, $data,
         UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'), UploadedFile::fake()->image('representative-id.jpg'));
+}
+
+/**
+ * Make a request walk-in, so its payment is the registrar's to validate (REQ-25-07).
+ */
+function walkIn(CredentialRequest $request): CredentialRequest
+{
+    $request->forceFill(['channel' => RequestChannel::WalkIn])->save();
+
+    return $request->fresh();
 }
 
 function uploadPayment(CredentialRequest $request): void

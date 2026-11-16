@@ -25,6 +25,11 @@
             @endforeach
             <flux:navlist.item icon="archive-box" :href="route('records')" :current="request()->routeIs('records*')" wire:navigate>{{ __('Records') }}</flux:navlist.item>
         </flux:navlist.group>
+    @elseif ($role === \App\Enums\Role::Cashier)
+        {{-- Online payments to validate (REQ-25-02). --}}
+        <flux:navlist.group :heading="__('Cashier')" class="grid">
+            <flux:navlist.item icon="credit-card" :href="route('cashier.payments')" :current="request()->routeIs('cashier.payments*')" wire:navigate>{{ __('Payment Validation') }}</flux:navlist.item>
+        </flux:navlist.group>
     @elseif ($role === \App\Enums\Role::Admin)
         {{-- The dashboard, Records and Reports, and the Administration pages (REQ-18-02). --}}
         <flux:navlist.group :heading="__('Overview')" class="grid">

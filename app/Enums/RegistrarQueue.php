@@ -30,17 +30,20 @@ enum RegistrarQueue: string
     {
         return match ($this) {
             self::Evaluation => 'Requests to evaluate.',
-            self::Payment => 'Proofs of payment to verify.',
+            self::Payment => 'Walk-in payments to validate.',
             self::InProgress => 'Where each document is and where it goes next.',
             self::FinalCheck => 'Documents back for the final check.',
             self::Release => 'Credentials ready to be claimed.',
         };
     }
 
-    /** Queues with a second tab for the requests waiting for the requester (REQ-16-02, 03). */
+    /**
+     * Queues with a second tab for the requests waiting for the requester (REQ-16-02). Walk-in
+     * payments never wait for the requester; the cashier's list has its own (REQ-25-04, 07).
+     */
     public function hasWaitingTab(): bool
     {
-        return $this === self::Evaluation || $this === self::Payment;
+        return $this === self::Evaluation;
     }
 
     /** The first tab's name, beside "Waiting for the requester". */
@@ -74,7 +77,7 @@ enum RegistrarQueue: string
 
     /**
      * The queue a request is in now, as `StageQueue::for()` lists them, or null once it is closed
-     * (released, declined, cancelled) (REQ-16-26).
+     * (released, declined, cancelled) or while its payment is the cashier's (REQ-16-26, REQ-25-07).
      */
     public static function forRequest(CredentialRequest $request): ?self
     {
@@ -82,7 +85,7 @@ enum RegistrarQueue: string
 
         return match (true) {
             in_array($status, [RequestStatus::Submitted, RequestStatus::UnderEvaluation, RequestStatus::ReturnedForCustomerAction, ...RequestStatus::waitingForRequester()], true) => self::Evaluation,
-            in_array($status, [RequestStatus::AwaitingPayment, RequestStatus::PaymentVerification], true) => self::Payment,
+            in_array($status, [RequestStatus::AwaitingPayment, RequestStatus::PaymentVerification], true) => $request->isWalkIn() ? self::Payment : null,
             in_array($status, RequestStatus::processing(), true) => $request->isAtFinalCheck() ? self::FinalCheck : self::InProgress,
             $status === RequestStatus::ReadyForRelease => self::Release,
             default => null,

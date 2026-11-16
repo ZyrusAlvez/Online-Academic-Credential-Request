@@ -6,7 +6,7 @@ use App\Enums\RequestStatus;
 use App\Enums\RouteTask;
 use App\Enums\StepStatus;
 use App\Enums\VisitStatus;
-use App\Livewire\Registrar\Requests\Show;
+use App\Livewire\Cashier\Requests\Show;
 use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\User;
 use App\Notifications\RequestActivity;
@@ -24,6 +24,7 @@ beforeEach(function () {
     $this->org = organisation();
     $this->owner = requester($this->org->ccs);
     $this->registrar = User::factory()->registrar()->create();
+    $this->cashier = User::factory()->cashier()->create();
     $this->request = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
 });
 
@@ -90,10 +91,10 @@ test('REQ-04-21 the uploaded proofs open from a Payment History button beside th
         ->and(Str::after($html, 'data-payment-history>'))->toMatch('/second\.jpg.*Remarks: Still unreadable\..*receipt\.jpg.*Remarks: The reference does not match our record\./s');
 });
 
-test('REQ-04-13 the registrar rejects a proof with remarks', function () {
+test('REQ-04-13 the cashier rejects a proof with remarks', function () {
     uploadPayment($this->request);
 
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request])
+    Livewire::actingAs($this->cashier)->test(Show::class, ['credentialRequest' => $this->request->fresh()])
         ->call('returnRequest')->assertHasErrors('remarks')
         ->set('remarks', 'No matching transaction')->call('returnRequest')->assertHasNoErrors();
 
@@ -103,27 +104,27 @@ test('REQ-04-13 the registrar rejects a proof with remarks', function () {
 
 test('REQ-04-13 a rejection that fails keeps the remarks typed', function () {
     uploadPayment($this->request);
-    $page = Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request]);
+    $page = Livewire::actingAs($this->cashier)->test(Show::class, ['credentialRequest' => $this->request->fresh()]);
 
-    // Meanwhile another registrar verified the payment in another tab.
-    workflow()->verifyPaymentAndAccept($this->request, User::factory()->registrar()->create());
+    // Meanwhile another cashier verified the payment in another tab.
+    workflow()->verifyPaymentAndAccept($this->request, User::factory()->cashier()->create());
 
     $page->set('remarks', 'No matching transaction')->call('returnRequest')
         ->assertDispatched('notify')
         ->assertSet('remarks', 'No matching transaction');
 });
 
-test('REQ-04-13 a proof alone is not paid; the registrar verifies it, with no receipt number', function () {
+test('REQ-04-13 a proof alone is not paid; the cashier verifies it, with no receipt number', function () {
     uploadPayment($this->request);
     expect($this->request->fresh()->accepted_at)->toBeNull();
 
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request])
+    Livewire::actingAs($this->cashier)->test(Show::class, ['credentialRequest' => $this->request->fresh()])
         ->call('approve')->assertHasNoErrors();
 
     expect($this->request->paymentProofs()->sole())
         ->status->toBe(PaymentStatus::Verified)
         ->official_receipt_no->toBeNull()
-        ->reviewed_by->toBe($this->registrar->id)
+        ->reviewed_by->toBe($this->cashier->id)
         ->and($this->request->fresh()->accepted_at)->not->toBeNull()
         ->and($this->request->events()->where('type', RequestEventType::PaymentVerified)->value('remarks'))->toBeNull();
 });
@@ -164,26 +165,26 @@ test('REQ-04-20 after a returned proof the requester can send a note with the ne
     expect($this->request->events()->get()->last()->remarks)->toBeNull();
 });
 
-test('REQ-04-20 the registrar sees the note on Payment Validation, in the notification and in the email', function () {
+test('REQ-04-20 the cashier sees the note on Payment Validation, in the notification and in the email', function () {
     Notification::fake();
     uploadPayment($this->request);
-    workflow()->rejectPayment($this->request, $this->registrar, 'The reference does not match our record.');
+    workflow()->rejectPayment($this->request, $this->cashier, 'The reference does not match our record.');
     newProof()->set('paymentNote', 'I paid at the bank; the reference is on the stamped slip.')->call('uploadReceipt')->assertHasNoErrors();
 
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request->fresh()])
+    Livewire::actingAs($this->cashier)->test(Show::class, ['credentialRequest' => $this->request->fresh()])
         ->assertSeeHtml('data-payment-note')
         ->assertSeeInOrder(["Requester's note:", 'I paid at the bank; the reference is on the stamped slip.', 'Proof of Payment']);
 
-    Notification::assertSentTo($this->registrar, RequestActivity::class, function (RequestActivity $notification) {
+    Notification::assertSentTo($this->cashier, RequestActivity::class, function (RequestActivity $notification) {
         return $notification->event->type === RequestEventType::PaymentSubmitted
-            && str_contains($notification->toArray($this->registrar)['message'], 'I paid at the bank')
-            && str_contains(implode(' ', $notification->toMail($this->registrar)->introLines), 'Remarks: I paid at the bank');
+            && str_contains($notification->toArray($this->cashier)['message'], 'I paid at the bank')
+            && str_contains(implode(' ', $notification->toMail($this->cashier)->introLines), 'Remarks: I paid at the bank');
     });
 
     // A first proof, sent without a return, shows no note box.
     $other = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
     uploadPayment($other);
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $other])->assertDontSeeHtml('data-payment-note');
+    Livewire::actingAs($this->cashier)->test(Show::class, ['credentialRequest' => $other->fresh()])->assertDontSeeHtml('data-payment-note');
 });
 
 test('REQ-04-14 acceptance starts the clock: due date, route and first hand-off', function () {

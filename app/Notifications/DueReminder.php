@@ -68,6 +68,7 @@ class DueReminder extends Notification implements ShouldQueue
             Role::Department => 'department.requests.show',
             Role::Registrar => 'registrar.requests.show',
             Role::Admin => 'records.show',   // admins are not reminded; the read-only record (REQ-18-06)
+            Role::Cashier => 'cashier.payments.show',   // cashiers are not reminded (REQ-25-08)
         }, $this->request);
     }
 

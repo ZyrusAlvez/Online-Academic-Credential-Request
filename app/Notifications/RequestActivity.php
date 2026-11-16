@@ -142,6 +142,7 @@ class RequestActivity extends Notification implements ShouldQueue
             Role::Department => 'department.requests.show',
             Role::Registrar => 'registrar.requests.show',
             Role::Admin => 'records.show',   // admins are not notified; the read-only record (REQ-18-06)
+            Role::Cashier => 'cashier.payments.show',   // payments to validate (REQ-25-08)
         };
 
         return route($route, $request);

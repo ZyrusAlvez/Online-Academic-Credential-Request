@@ -37,6 +37,8 @@ class DemoRequestSeeder extends Seeder
 
     private User $registrar;
 
+    private User $cashier;
+
     /** @var Collection<string, User> office code => staff account */
     private Collection $staff;
 
@@ -50,6 +52,7 @@ class DemoRequestSeeder extends Seeder
 
         $this->workflow = $workflow;
         $this->registrar = DemoSeeder::registrarAccount();
+        $this->cashier = DemoSeeder::cashierAccount();
         $this->staff = Department::active()->get()->keyBy('code')->map(fn (Department $department) => DemoSeeder::staffAccount($department));
 
         $requesters = collect(DemoSeeder::REQUESTERS)->map(fn (array $r) => User::where('email', $r[0])->firstOrFail());
@@ -251,7 +254,8 @@ class DemoRequestSeeder extends Seeder
         if ($request->requires_payment) {
             $this->pay($request);
             $this->later(4);
-            $this->workflow->verifyPaymentAndAccept($request, $this->registrar);
+            // Online payments are the cashier's to validate (REQ-25-04).
+            $this->workflow->verifyPaymentAndAccept($request, $this->cashier);
         }
 
         return $request;

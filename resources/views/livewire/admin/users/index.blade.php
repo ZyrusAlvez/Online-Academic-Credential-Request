@@ -87,6 +87,7 @@
                 <flux:radio.group wire:model.live="form.role" :label="__('Role')" variant="segmented">
                     <flux:radio value="department" :label="__('Department staff')" />
                     <flux:radio value="registrar" :label="__('Registrar')" />
+                    <flux:radio value="cashier" :label="__('Cashier')" />
                     <flux:radio value="admin" :label="__('Admin')" />
                 </flux:radio.group>
             @endunless
@@ -136,6 +137,7 @@
                 <flux:radio value="student" :label="__('Student')" :description="__('Requests credentials and tracks them.')" />
                 <flux:radio value="department" :label="__('Department staff')" :description="__('Receives and processes requests for one college or office.')" />
                 <flux:radio value="registrar" :label="__('Registrar')" :description="__('Evaluates, accepts and releases requests.')" />
+                <flux:radio value="cashier" :label="__('Cashier')" :description="__('Validates the payments of online requests.')" />
                 <flux:radio value="admin" :label="__('Admin')" :description="__('Manages setup, accounts and the logs, and sees the dashboard and reports.')" />
             </flux:radio.group>
 

@@ -183,6 +183,7 @@ test('REQ-17-17 one rejected part says to change it to Confirm', function () {
 test('REQ-17-17 at payment validation Approve is never blocked; Return to Requester without remarks says why', function () {
     $request = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
     uploadPayment($request);
+    walkIn($request);   // the registrar validates walk-in payments (REQ-25-07)
 
     handoffPage($request)->call('returnRequest')
         ->assertHasErrors('remarks')
