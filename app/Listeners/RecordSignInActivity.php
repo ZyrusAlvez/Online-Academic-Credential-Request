@@ -56,17 +56,22 @@ class RecordSignInActivity
         );
     }
 
-    /** Nobody is signed in, so there is no actor; the account, if the email matched one, is the subject. */
+    /**
+     * Logged under the account whose email was typed (REQ-14-15); an email with no account is
+     * shown as typed.
+     */
     public function handleFailed(Failed $event): void
     {
         $email = Str::limit((string) ($event->credentials['email'] ?? ''), 255, '');
+        $account = $event->user instanceof User ? $event->user : null;
 
         $this->record->handle(
-            null,
+            $account,
             ActivityCategory::SignIn,
             'sign_in.failed',
             "Failed sign-in for {$email}",
-            subject: $event->user instanceof User ? $event->user : null,
+            subject: $account,
+            actorName: $account === null && $email !== '' ? $email : null,
         );
     }
 }

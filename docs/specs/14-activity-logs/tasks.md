@@ -7,4 +7,4 @@
 - [x] Copy existing ledger entries on migrate (REQ-14-14)
 - [x] `ActivityLogFilter`, `ActivityLogPolicy`, Logs page and nav item (REQ-14-09..13)
 - [x] Pest tests for every REQ-14 criterion
-- [ ] Signed-out entries belong to the account they concern; drop the "System" role filter (REQ-14-11, 15)
+- [x] Signed-out entries belong to the account they concern; drop the "System" role filter (REQ-14-11, 15)
