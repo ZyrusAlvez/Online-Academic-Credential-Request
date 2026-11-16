@@ -240,7 +240,7 @@ test('REQ-24-10 each To Forward row is a Forward to <next office> button for tha
 
 // ── The request page ───────────────────────────────────────────────────────────────────────
 
-test('REQ-24-06 a request opens under its list, moves with it, and the former address leads there', function () {
+test('REQ-24-06 a request opens under its list, an action goes back to that list, and the former address leads there', function () {
     $request = sentToDean();
 
     $html = $this->actingAs($this->dean)->get(route('department.incoming.show', $request))->assertOk()->getContent();
@@ -250,10 +250,11 @@ test('REQ-24-06 a request opens under its list, moves with it, and the former ad
     $this->actingAs($this->dean)->get(route('department.requests.show', $request))->assertRedirect(route('department.incoming.show', $request));
 
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request, 'queue' => 'incoming'])
-        ->call('acceptReceipt')->assertRedirect(route('department.to-validate.show', $request));
+        ->call('acceptReceipt')->assertRedirect(route('department.incoming'));
+    expect(session('notify'))->toBe("Receipt confirmed at {$this->org->ccs->name}.");
 
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh(), 'queue' => 'to_validate'])
-        ->call('completeVisit')->assertRedirect(route('department.to-forward.show', $request));
+        ->call('completeVisit')->assertRedirect(route('department.to-validate'));
 
     // To Forward: no panel on the page; the row forwards it, then it is History (REQ-24-07, 10).
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh(), 'queue' => 'to_forward'])
