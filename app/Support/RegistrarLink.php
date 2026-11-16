@@ -14,6 +14,11 @@ final class RegistrarLink
 {
     public static function to(CredentialRequest $request): string
     {
+        // Until acceptance the application is worked on through its first credential (REQ-27-03).
+        if (! $request->isLead() && $request->status->isBeforeAcceptance()) {
+            $request = $request->application()->firstOrFail()->lead()->firstOrFail();
+        }
+
         $queue = RegistrarQueue::forRequest($request);
 
         return match (true) {

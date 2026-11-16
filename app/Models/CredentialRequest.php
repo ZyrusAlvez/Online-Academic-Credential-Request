@@ -26,6 +26,8 @@ use Illuminate\Support\Carbon;
  * A requester's request for a credential. Status changes only via App\Services\RequestWorkflow.
  *
  * @property string $reference_no
+ * @property int $application_id
+ * @property int $item_no 1 for the application's first credential (spec 27)
  * @property ?int $user_id null for a walk-in request not linked to an account yet (spec 26)
  * @property string $requester_name
  * @property ?string $contact_number
@@ -68,11 +70,41 @@ class CredentialRequest extends Model
     /** Requests are made online unless the Registrar records a walk-in (spec 25). */
     protected $attributes = [
         'channel' => 'online',
+        'item_no' => 1,
     ];
 
     public function isWalkIn(): bool
     {
         return $this->channel === RequestChannel::WalkIn;
+    }
+
+    /**
+     * The application this credential is part of (spec 27).
+     *
+     * @return BelongsTo<RequestApplication, $this>
+     */
+    public function application(): BelongsTo
+    {
+        return $this->belongsTo(RequestApplication::class, 'application_id');
+    }
+
+    /**
+     * The application's other credentials.
+     *
+     * @return HasMany<CredentialRequest, $this>
+     */
+    public function siblings(): HasMany
+    {
+        return $this->hasMany(self::class, 'application_id', 'application_id')
+            ->whereKeyNot($this->getKey())->orderBy('item_no');
+    }
+
+    /**
+     * The application's first credential, which carries it until acceptance (REQ-27-03).
+     */
+    public function isLead(): bool
+    {
+        return $this->item_no === 1;
     }
 
     /**
@@ -90,6 +122,7 @@ class CredentialRequest extends Model
             'requires_payment' => 'boolean',
             'fee' => 'decimal:2',
             'amount_due' => 'decimal:2',
+            'item_no' => 'integer',
             'attended_from' => 'integer',
             'attended_to' => 'integer',
             'submitted_at' => 'datetime',

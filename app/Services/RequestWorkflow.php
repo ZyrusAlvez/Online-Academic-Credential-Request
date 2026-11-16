@@ -27,6 +27,7 @@ use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\OfficeVisit;
 use App\Models\PaymentProof;
+use App\Models\RequestApplication;
 use App\Models\RequestCheck;
 use App\Models\RequestDeficiency;
 use App\Models\RequesterVerification;
@@ -36,6 +37,7 @@ use App\Models\RequestStep;
 use App\Models\User;
 use App\Support\VerifiedDetails;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -44,6 +46,8 @@ use Throwable;
 /**
  * The single place where credential requests, their route steps and office visits change
  * status (specs 04, 05, 11).
+ *
+ * @phpstan-type CredentialItem array{credential_type_id: int, purpose: string, receiving_institution?: ?string}
  *
  * Every public method runs in a transaction, locks the request row, checks that the action is
  * allowed in the current status, and appends a ledger entry (request_events). Listeners are
@@ -62,10 +66,11 @@ class RequestWorkflow
     // ── Submission (spec 04) ───────────────────────────────────────────────────────────────
 
     /**
-     * Submit a request with a copy of the owner's details and the ID sent with it, by default their
-     * saved ID (REQ-04-03, REQ-15-06).
+     * Submit an application for one or more credentials, with a copy of the owner's details and the
+     * ID sent with it, by default their saved ID (REQ-04-03, REQ-15-06, REQ-27-01). Returns its
+     * first credential, which carries it until acceptance (REQ-27-03).
      *
-     * @param  array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $data
+     * @param  CredentialItem|list<CredentialItem>  $data
      */
     public function submit(User $owner, array $data, ?IdentityDocument $identity = null): CredentialRequest
     {
@@ -80,21 +85,7 @@ class RequestWorkflow
         }
 
         return DB::transaction(function () use ($owner, $data, $identity): CredentialRequest {
-            $type = CredentialType::requestable()->findOrFail($data['credential_type_id']);
-            $receivingInstitution = $data['receiving_institution'] ?? null;
-
-            if ($type->requires_receiving_institution && blank($receivingInstitution)) {
-                throw new InvalidTransition('Give the complete name of the receiving school.');
-            }
-
-            $request = new CredentialRequest([
-                'credential_type_id' => $type->id,
-                'purpose' => $data['purpose'],
-                'receiving_institution' => $type->requires_receiving_institution ? $receivingInstitution : null,
-            ]);
-
-            $request->forceFill([
-                'user_id' => $owner->id,
+            $request = $this->createApplication($data, $owner->id, RequestChannel::Online, [
                 'requester_name' => $owner->requesterName(),
                 'contact_number' => $owner->contact_number,
                 'identity_document_id' => $identity->id,
@@ -105,19 +96,8 @@ class RequestWorkflow
                 'student_number' => $owner->student_number,
                 'attended_from' => $owner->attended_from,
                 'attended_to' => $owner->attended_to,
-                'requester_mode' => RequesterMode::Personal,
-                'requires_payment' => $type->requires_payment,
-                'fee' => $type->requires_payment ? $type->fee : null,
-                // One request is one document, so the amount due is the fee (REQ-04-03).
-                'amount_due' => $type->requires_payment ? $type->fee : null,
                 'status' => RequestStatus::Submitted,
-                'submitted_at' => now(),
-            ])->save();
-
-            // The tracking number uses the id, so it is set once the row exists (REQ-04-03).
-            $request->forceFill([
-                'reference_no' => CredentialRequest::trackingNumber($request->id, $request->created_at),
-            ])->save();
+            ]);
 
             $this->record($request, $owner, RequestEventType::Submitted, null, $request->status);
 
@@ -127,6 +107,98 @@ class RequestWorkflow
 
             return $request;
         });
+    }
+
+    /**
+     * The application and one credential row per item, each with the same copy of the requester's
+     * details; returns the first (REQ-27-01, 03). The first carries the total amount due.
+     *
+     * @param  CredentialItem|list<CredentialItem>  $data
+     * @param  array<string, mixed>  $snapshot  the requester's details and the starting status
+     */
+    private function createApplication(array $data, ?int $userId, RequestChannel $channel, array $snapshot): CredentialRequest
+    {
+        $items = $this->items($data);
+        $paid = $items->filter(fn (array $item): bool => $item['type']->requires_payment);
+        $total = $paid->isNotEmpty() ? number_format($paid->sum(fn (array $item): float => (float) $item['type']->fee), 2, '.', '') : null;
+
+        $application = RequestApplication::create([
+            'reference_no' => 'tmp-'.Str::random(12),
+            'user_id' => $userId,
+            'channel' => $channel,
+            'submitted_at' => now(),
+        ]);
+        // The tracking number uses the id, so it is set once the row exists (REQ-04-03).
+        $application->update(['reference_no' => CredentialRequest::trackingNumber($application->id, $application->created_at)]);
+
+        $requests = $items->map(function (array $item, int $index) use ($application, $userId, $channel, $snapshot, $total): CredentialRequest {
+            $type = $item['type'];
+            $first = $index === 0;
+
+            $request = new CredentialRequest([
+                'credential_type_id' => $type->id,
+                'purpose' => $item['purpose'],
+                'receiving_institution' => $item['receiving_institution'],
+            ]);
+
+            $request->forceFill([
+                ...$snapshot,
+                'application_id' => $application->id,
+                'item_no' => $index + 1,
+                'reference_no' => $application->reference_no.'-'.($index + 1),
+                'user_id' => $userId,
+                'channel' => $channel,
+                'requester_mode' => RequesterMode::Personal,
+                // The application is paid once, on its first credential (REQ-27-03).
+                'requires_payment' => $first ? $total !== null : $type->requires_payment,
+                'fee' => $type->requires_payment ? $type->fee : null,
+                'amount_due' => $first ? $total : ($type->requires_payment ? $type->fee : null),
+                'submitted_at' => now(),
+            ])->save();
+
+            return $request;
+        });
+
+        return $requests->first();
+    }
+
+    /**
+     * The credentials asked for, each requestable, with the receiving school it needs, and none
+     * twice (REQ-27-01).
+     *
+     * @param  CredentialItem|list<CredentialItem>  $data
+     * @return Collection<int, array{type: CredentialType, purpose: string, receiving_institution: ?string}>
+     */
+    private function items(array $data): Collection
+    {
+        $list = isset($data['credential_type_id']) ? [$data] : $data;
+
+        if ($list === []) {
+            throw new InvalidTransition('Choose at least one credential.');
+        }
+
+        $items = collect();
+
+        foreach ($list as $item) {
+            $type = CredentialType::requestable()->findOrFail((int) $item['credential_type_id']);
+            $receivingInstitution = $item['receiving_institution'] ?? null;
+
+            if ($type->requires_receiving_institution && blank($receivingInstitution)) {
+                throw new InvalidTransition('Give the complete name of the receiving school.');
+            }
+
+            $items->push([
+                'type' => $type,
+                'purpose' => (string) $item['purpose'],
+                'receiving_institution' => $type->requires_receiving_institution ? $receivingInstitution : null,
+            ]);
+        }
+
+        if ($items->map(fn (array $item): int => $item['type']->id)->duplicates()->isNotEmpty()) {
+            throw new InvalidTransition('Each credential can be requested only once in an application.');
+        }
+
+        return $items;
     }
 
     // ── Initial Evaluation (specs 04, 16) ──────────────────────────────────────────────────
@@ -472,30 +544,16 @@ class RequestWorkflow
      * straight to Payment Validation, or is accepted when the credential is free. It belongs to the
      * verified requester account with the client's email, if there is one (REQ-26-04, 08).
      *
-     * @param  array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $data
+     * @param  CredentialItem|list<CredentialItem>  $data
      * @param  array{first_name: string, middle_name: ?string, last_name: string, email: string, contact_number: string, academic_status: string, college_id: int, program: string, student_number: ?string, attended_from: int, attended_to: int}  $details
      */
     public function submitWalkIn(User $registrar, array $data, array $details): CredentialRequest
     {
         return DB::transaction(function () use ($registrar, $data, $details): CredentialRequest {
-            $type = CredentialType::requestable()->findOrFail($data['credential_type_id']);
-            $receivingInstitution = $data['receiving_institution'] ?? null;
-
-            if ($type->requires_receiving_institution && blank($receivingInstitution)) {
-                throw new InvalidTransition('Give the complete name of the receiving school.');
-            }
-
             $email = Str::lower($details['email']);
+            $requiresPayment = $this->items($data)->contains(fn (array $item): bool => $item['type']->requires_payment);
 
-            $request = new CredentialRequest([
-                'credential_type_id' => $type->id,
-                'purpose' => $data['purpose'],
-                'receiving_institution' => $type->requires_receiving_institution ? $receivingInstitution : null,
-            ]);
-
-            $request->forceFill([
-                'user_id' => self::requesterAccount($email)?->id,
-                'channel' => RequestChannel::WalkIn,
+            $request = $this->createApplication($data, self::requesterAccount($email)?->id, RequestChannel::WalkIn, [
                 'recorded_by' => $registrar->id,
                 'requester_name' => trim(implode(' ', array_filter([$details['first_name'], $details['middle_name'], $details['last_name']], filled(...)))),
                 'requester_email' => $email,
@@ -510,24 +568,15 @@ class RequestWorkflow
                 'identity_status' => ReviewStatus::Verified,
                 'identity_reviewed_by' => $registrar->id,
                 'identity_reviewed_at' => now(),
-                'requester_mode' => RequesterMode::Personal,
-                'requires_payment' => $type->requires_payment,
-                'fee' => $type->requires_payment ? $type->fee : null,
-                'amount_due' => $type->requires_payment ? $type->fee : null,
-                'status' => $type->requires_payment ? RequestStatus::PaymentVerification : RequestStatus::Submitted,
-                'submitted_at' => now(),
+                'status' => $requiresPayment ? RequestStatus::PaymentVerification : RequestStatus::Submitted,
                 'evaluation_started_at' => now(),
                 'evaluated_by' => $registrar->id,
                 'requirements_completed_at' => now(),
-            ])->save();
-
-            $request->forceFill([
-                'reference_no' => CredentialRequest::trackingNumber($request->id, $request->created_at),
-            ])->save();
+            ]);
 
             $this->record($request, $registrar, RequestEventType::WalkInRecorded, null, $request->status);
 
-            if (! $type->requires_payment) {
+            if (! $requiresPayment) {
                 $this->accept($request, $request, $registrar);
             }
 
@@ -585,8 +634,12 @@ class RequestWorkflow
 
             $locked->forceFill(['user_id' => $owner->id])->save();
             $request->setRawAttributes($locked->getAttributes(), sync: true);
+            RequestApplication::whereKey($locked->application_id)->whereNull('user_id')->update(['user_id' => $owner->id]);
 
-            $this->record($locked, $owner, RequestEventType::LinkedToAccount, null, null);
+            // One entry per application, on its first credential (REQ-27-05).
+            if ($locked->isLead()) {
+                $this->record($locked, $owner, RequestEventType::LinkedToAccount, null, null);
+            }
         });
     }
 
@@ -1087,6 +1140,24 @@ class RequestWorkflow
      */
     private function accept(CredentialRequest $locked, CredentialRequest $original, User $registrar, ?string $remarks = null): void
     {
+        $this->acceptOne($locked, $original, $registrar, $remarks);
+
+        // Every credential of the application is accepted with it, each with its own route and due
+        // date, and moves on its own from here (REQ-27-04).
+        if ($locked->isLead()) {
+            CredentialRequest::query()
+                ->where('application_id', $locked->application_id)
+                ->whereKeyNot($locked->getKey())
+                ->whereIn('status', RequestStatus::beforeAcceptance())
+                ->orderBy('item_no')
+                ->lockForUpdate()
+                ->get()
+                ->each(fn (CredentialRequest $sibling) => $this->acceptOne($sibling, $sibling, $registrar, $remarks));
+        }
+    }
+
+    private function acceptOne(CredentialRequest $locked, CredentialRequest $original, User $registrar, ?string $remarks = null): void
+    {
         $type = $locked->credentialType()->firstOrFail();
         $template = $type->steps()->get();
 
@@ -1319,6 +1390,11 @@ class RequestWorkflow
             throw new InvalidTransition($message);
         }
 
+        // Until acceptance the application is acted on through its first credential (REQ-27-03).
+        if (! $locked->isLead() && $locked->status->isBeforeAcceptance()) {
+            throw new InvalidTransition('Act on the application\'s first credential, '.$locked->application()->value('reference_no').'-1.');
+        }
+
         return $locked;
     }
 
@@ -1341,7 +1417,32 @@ class RequestWorkflow
 
         $original->setRawAttributes($locked->getAttributes(), sync: true);
 
+        if ($locked->isLead() && $from->isBeforeAcceptance() && $to !== RequestStatus::AcceptedForProcessing) {
+            $this->mirrorToSiblings($locked);
+        }
+
         return $this->record($locked, $actor, $type, $from, $to, $remarks, $step, $visit);
+    }
+
+    /** What the other credentials of an application share with the first until acceptance (REQ-27-03). */
+    private const MIRRORED = [
+        'status', 'evaluation_started_at', 'evaluated_by', 'requirements_completed_at',
+        'identity_status', 'identity_reviewed_by', 'identity_reviewed_at', 'identity_remarks',
+        'declined_at', 'decline_reason', 'cancelled_at', 'cancel_reason',
+    ];
+
+    /**
+     * The other credentials take the first's status and evaluation, with no ledger entry of their
+     * own, so the requester is told once (REQ-27-03, 05).
+     */
+    private function mirrorToSiblings(CredentialRequest $lead): void
+    {
+        $values = collect(self::MIRRORED)->mapWithKeys(fn (string $column): array => [$column => $lead->getAttributes()[$column] ?? null])->all();
+
+        CredentialRequest::query()
+            ->where('application_id', $lead->application_id)
+            ->whereKeyNot($lead->getKey())
+            ->update([...$values, 'updated_at' => now()]);
     }
 
     private function record(

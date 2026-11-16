@@ -149,14 +149,28 @@ The route (template) of a credential type: its offices in order and each one's t
 
 Rules: at most one Dean step per route; an office appears at most once.
 
-## credential_requests
+## request_applications
 
-One row per request (specs 04, 05, 11). Status changes only through `RequestWorkflow`.
+One row per application: one or more credentials requested together, evaluated and paid as one until acceptance (spec 27).
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
-| reference_no | varchar(20) | Yes | UQ | | Tracking number `rcYY-NNNNN` (lowercase): the id with at least 5 digits (set right after insert); older requests keep their number |
+| reference_no | varchar(20) | No | UQ | | Tracking number `rcYY-NNNNN` (lowercase): the id with at least 5 digits; applications made before spec 27 keep their request's number |
+| user_id | bigint unsigned | Yes | FK → users, IX (with created_at) | | The requester; null for a walk-in application not linked yet |
+| channel | varchar(20) | No | | online | `online` or `walk_in` |
+| submitted_at | timestamp | Yes | | | |
+
+## credential_requests
+
+One row per credential of an application (specs 04, 05, 11, 27). Status changes only through `RequestWorkflow`.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| application_id | bigint unsigned | No | FK → request_applications, UQ (with item_no) | | The application (spec 27) |
+| item_no | smallint unsigned | No | | 1 | Position in the application; 1 carries it until acceptance |
+| reference_no | varchar(20) | Yes | UQ | | The application's number and the position, `rcYY-NNNNN-N` (REQ-27-01); requests made earlier keep their number |
 | user_id | bigint unsigned | Yes | FK → users, IX (with created_at) | | The document owner (requester); null for a walk-in request not linked to an account yet (spec 26) |
 | credential_type_id | bigint unsigned | No | FK → credential_types | | |
 | purpose | varchar(500) | No | | | A copy of the chosen purpose's name (spec 13); older requests keep their free text |

@@ -124,7 +124,7 @@ test('REQ-26-04 a submitted walk-in request goes straight to Payment Validation,
     expect($request)
         ->channel->toBe(RequestChannel::WalkIn)
         ->status->toBe(RequestStatus::PaymentVerification)
-        ->reference_no->toBe(sprintf('rc%s-%05d', now()->format('y'), $request->id))
+        ->reference_no->toBe(sprintf('rc%s-%05d-1', now()->format('y'), $request->application_id))
         ->user_id->toBeNull()
         ->requester_name->toBe('Pedro Cruz Villanueva')
         ->requester_email->toBe('pedro.v@example.com')

@@ -56,7 +56,7 @@ test('REQ-23-01 the migrations alone build every table, and add no rows except t
         'activity_logs', 'cache', 'cache_locks', 'credential_requests', 'credential_types', 'delay_notes', 'departments',
         'due_date_pauses', 'email_verification_codes', 'failed_jobs', 'identity_documents', 'job_batches', 'jobs',
         'non_working_days', 'notifications', 'office_visits', 'password_reset_tokens', 'payment_proofs', 'programs',
-        'purposes', 'releases', 'reminder_logs', 'request_checks', 'request_deficiencies', 'request_documents',
+        'purposes', 'releases', 'reminder_logs', 'request_applications', 'request_checks', 'request_deficiencies', 'request_documents',
         'request_events', 'request_representatives', 'request_statuses', 'request_steps', 'requester_verifications',
         'sessions', 'users', 'workflow_steps',
     ];

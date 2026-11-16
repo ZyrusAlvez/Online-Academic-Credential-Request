@@ -167,7 +167,8 @@ test('REQ-04-03 a submitted request gets a tracking number and snapshots of the 
     $request = submitRequest($this->owner, $this->org->tor);
 
     expect($request->status)->toBe(RequestStatus::Submitted)
-        ->and($request->reference_no)->toBe(sprintf('rc%s-%05d', now()->format('y'), $request->id))
+        // The application's number and the credential's position (REQ-27-01).
+        ->and($request->reference_no)->toBe(sprintf('rc%s-%05d-1', now()->format('y'), $request->application_id))
         ->and($request->submitted_at)->not->toBeNull()
         ->and($request->accepted_at)->toBeNull()
         ->and($request->due_at)->toBeNull()
