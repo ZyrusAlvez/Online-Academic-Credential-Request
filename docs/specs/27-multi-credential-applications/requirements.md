@@ -49,3 +49,18 @@ This changes REQ-04-03, the tracking number.
   each with its own route, due date and first hand-off (REQ-04-14). From then on each credential
   SHALL move, be returned, declined at the final check and released on its own.
 - **REQ-27-05** Notifications before acceptance SHALL be sent once per application.
+
+### Pages
+- **REQ-27-06** THE Request Tracker SHALL list one row per application: its tracking number, its
+  credentials, and where each is. The search SHALL match the application's or a credential's
+  tracking number, or a credential's name.
+- **REQ-27-07** THE requester's request page SHALL show the application's part first: what is needed
+  from them, the payment, the representative, Cancel. WHERE the application has more than one
+  credential, a tab per credential SHALL follow, each with where it is, its progress, its details
+  and its history (the application's entries until acceptance, then its own). A credential's own
+  address SHALL open the application on that credential's tab.
+- **REQ-27-08** Records SHALL list one row per application, with its credentials. A record SHALL
+  have the same tabs as the requester's page (REQ-27-07), each with the credential's record.
+- **REQ-27-09** Initial Evaluation, the Registrar's and the Cashier's Payment Validation and the
+  requester's payment instructions SHALL list every credential of the application, with its
+  purpose and fee, and the total due.
