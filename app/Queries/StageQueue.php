@@ -32,6 +32,11 @@ final class StageQueue
             'openVisit.department:id,name,code', 'openVisit.fromDepartment:id,name', 'openVisit.step:id,task,position,department_id',
         ]);
 
+        // Until acceptance an application is one row, its first credential (REQ-27-03).
+        if (in_array($queue, [RegistrarQueue::Evaluation, RegistrarQueue::Payment], true)) {
+            $query->where('item_no', 1);
+        }
+
         return match ($queue) {
             RegistrarQueue::Evaluation => $query
                 ->whereIn('status', $waiting ? RequestStatus::waitingForRequester() : [RequestStatus::Submitted, RequestStatus::UnderEvaluation])

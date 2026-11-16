@@ -51,6 +51,8 @@ period starts only at acceptance.
   numbered earlier keep their number, `cr…` ones included *(user's requests, 2026-11-11 and
   2026-11-17: the prefix changed from `cr` to `rc`)*, a snapshot of the requester's name, contact
   number, academic profile and ID (REQ-15-06) and of the fee (the amount due is the fee: one request is one document), and confirm that it was received for evaluation.
+  *Changed by REQ-27-01 (2026-11-17):* the number is the application's; each of its credentials
+  adds a hyphen and its position (`rc26-00042-1`), and the amount due is the total of their fees.
 - **REQ-04-04** THE SYSTEM SHALL list a requester's own requests (newest first) and SHALL NOT show
   other requesters' requests (404).
 

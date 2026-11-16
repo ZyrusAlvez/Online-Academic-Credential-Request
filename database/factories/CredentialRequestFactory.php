@@ -9,8 +9,10 @@ use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\IdentityDocument;
+use App\Models\RequestApplication;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * Creates requests directly in a given status (bypassing the workflow) for tests and demos.
@@ -27,6 +29,13 @@ class CredentialRequestFactory extends Factory
     {
         return [
             'user_id' => User::factory()->student(),
+            // Its own application of one credential (spec 27); numbered after creation.
+            'application_id' => fn (array $attributes) => RequestApplication::create([
+                'reference_no' => 'tmp-'.Str::random(12),
+                'user_id' => $attributes['user_id'],
+                'submitted_at' => now(),
+            ])->id,
+            'item_no' => 1,
             // The owner's copy, as RequestWorkflow::submit() takes it (REQ-15-06).
             'requester_name' => fn (array $attributes) => User::find($attributes['user_id'])?->requesterName() ?: fake()->name(),
             'contact_number' => fn (array $attributes) => User::find($attributes['user_id'])?->contact_number,
@@ -50,10 +59,14 @@ class CredentialRequestFactory extends Factory
     public function configure(): static
     {
         return $this->afterCreating(function (CredentialRequest $request): void {
-            $request->forceFill([
-                // Same format as a real submission (REQ-04-03).
-                'reference_no' => CredentialRequest::trackingNumber($request->id, $request->created_at),
-            ])->save();
+            // Same format as a real submission (REQ-04-03, REQ-27-01).
+            $application = $request->application()->firstOrFail();
+
+            if (str_starts_with($application->reference_no, 'tmp-')) {
+                $application->update(['reference_no' => CredentialRequest::trackingNumber($application->id, $request->created_at)]);
+            }
+
+            $request->forceFill(['reference_no' => "{$application->reference_no}-{$request->item_no}"])->save();
         });
     }
 
