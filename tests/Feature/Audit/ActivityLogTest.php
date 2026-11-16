@@ -17,6 +17,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\GoogleProvider;
+use Laravel\Socialite\Two\User as GoogleUser;
 use Livewire\Livewire;
 use Livewire\Volt\Volt;
 
@@ -145,7 +148,7 @@ test('REQ-14-05 sign-ins, sign-outs and failed sign-ins are logged', function ()
 
     $logs = ActivityLog::where('category', ActivityCategory::SignIn)->orderBy('id')->get();
     expect($logs->pluck('action')->all())->toBe(['sign_in.failed', 'sign_in.login', 'sign_in.logout'])
-        ->and($logs[0]->actor_id)->toBeNull()
+        ->and($logs[0]->actor_id)->toBe($user->id)
         ->and($logs[0]->description)->toBe('Failed sign-in for juan@example.com')
         ->and($logs[1]->actor_id)->toBe($user->id)
         ->and($logs[2]->actor_id)->toBe($user->id);
@@ -247,14 +250,17 @@ test('REQ-14-11 the registrar can filter by role, kind of action, office and dat
     Carbon::setTestNow('2026-11-05 10:00:00');
     $this->actingAs($this->registrar);
     $this->org->tor->update(['fee' => '600.00']);
-    Volt::test('auth.login')->set('email', 'nobody@example.com')->set('password', 'wrong')->call('login');
+    auth()->logout();
+    Volt::test('auth.login')->set('email', $owner->email)->set('password', 'wrong')->call('login');
 
     $page = Livewire::actingAs($this->admin)->test(Index::class);
 
     $page->set('role', 'student')
-        ->assertSee('Submitted')->assertDontSee('Payment verified')->assertDontSee('Updated credential type');
-    $page->set('role', 'system')
-        ->assertSee('Failed sign-in for nobody@example.com')->assertDontSee('Submitted');
+        ->assertSee('Submitted')->assertSee("Failed sign-in for {$owner->email}")
+        ->assertDontSee('Payment verified')->assertDontSee('Updated credential type');
+    $page->set('role', 'registrar')
+        ->assertSee('Updated credential type')->assertDontSee('Failed sign-in')->assertDontSee('Submitted')
+        ->assertDontSee('System (no one signed in)');
 
     $page->set('role', '')->set('category', 'setup')
         ->assertSee('Updated credential type')->assertDontSee($request->reference_no);
@@ -291,6 +297,45 @@ test('REQ-14-14 copying an existing ledger entry keeps its time and leaves no IP
         ->and($log->reference_no)->toBe($request->reference_no)
         ->and($log->created_at->format('Y-m-d H:i'))->toBe('2026-10-20 08:30')
         ->and($log->ip_address)->toBeNull();
+});
+
+test('REQ-14-15 a failed sign-in is logged under the account whose email was typed, or as the typed email with no account', function () {
+    $owner = requester($this->org->ccs);
+
+    Volt::test('auth.login')->set('email', $owner->email)->set('password', 'wrong')->call('login');
+    Volt::test('auth.login')->set('email', 'nobody@example.com')->set('password', 'wrong')->call('login');
+
+    [$known, $unknown] = ActivityLog::where('action', 'sign_in.failed')->orderBy('id')->get();
+    expect($known->actor_id)->toBe($owner->id)
+        ->and($known->actor_name)->toBe($owner->name)
+        ->and($known->actor_role)->toBe(Role::Student)
+        ->and($unknown->actor_id)->toBeNull()
+        ->and($unknown->actor_name)->toBe('nobody@example.com')
+        ->and($unknown->actor_role)->toBeNull();
+
+    Livewire::actingAs($this->admin)->test(Index::class)
+        ->assertSeeInOrder(['nobody@example.com', 'No account', 'Failed sign-in for nobody@example.com'])
+        ->assertSeeInOrder([$owner->name, Role::Student->label(), "Failed sign-in for {$owner->email}"]);
+});
+
+test('REQ-14-15 a Google sign-in that verifies an account is logged under that account', function () {
+    config(['services.google.client_id' => 'client-id', 'services.google.client_secret' => 'client-secret']);
+    $existing = User::factory()->unverified()->create(['email' => 'juan@gmail.com']);
+
+    $claims = ['sub' => 'google-123', 'email' => 'juan@gmail.com', 'email_verified' => true, 'given_name' => 'Juan', 'family_name' => 'Cruz'];
+    $google = (new GoogleUser)->setRaw($claims)->map(['id' => $claims['sub'], 'email' => $claims['email'], 'name' => 'Juan Cruz']);
+    $provider = Mockery::mock(GoogleProvider::class);
+    $provider->shouldReceive('user')->andReturn($google);
+    Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
+
+    // A real web request, not the console the tests run in (where nothing is logged without a user).
+    (fn () => $this->isRunningInConsole = false)->call(app());
+    $this->get(route('auth.google.callback'))->assertRedirect();
+
+    $log = ActivityLog::where('category', ActivityCategory::Account)->sole();
+    expect($log->description)->toBe('Verified their email address')
+        ->and($log->actor_id)->toBe($existing->id)
+        ->and($log->actor_role)->toBe(Role::Student);
 });
 
 test('REQ-14-13 only the admin can open the Logs page', function (string $role) {
