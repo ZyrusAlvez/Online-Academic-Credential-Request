@@ -46,9 +46,10 @@ period starts only at acceptance.
   requirements before submitting: the user chose to show only what the evaluator requires at the
   office visit.)*
 - **REQ-04-03** WHEN a request is submitted THE SYSTEM SHALL give it the status `submitted`, a
-  unique tracking number `cr<2-digit year>-<id>` in lowercase, the id padded with zeros to at
-  least 5 digits (`cr26-00042`) and growing past 99999 without a cap (`cr26-100000`); requests
-  numbered earlier keep their number *(user's request, 2026-11-11)*, a snapshot of the requester's name, contact
+  unique tracking number `rc<2-digit year>-<id>` in lowercase, the id padded with zeros to at
+  least 5 digits (`rc26-00042`) and growing past 99999 without a cap (`rc26-100000`); requests
+  numbered earlier keep their number, `cr…` ones included *(user's requests, 2026-11-11 and
+  2026-11-17: the prefix changed from `cr` to `rc`)*, a snapshot of the requester's name, contact
   number, academic profile and ID (REQ-15-06) and of the fee (the amount due is the fee: one request is one document), and confirm that it was received for evaluation.
 - **REQ-04-04** THE SYSTEM SHALL list a requester's own requests (newest first) and SHALL NOT show
   other requesters' requests (404).
