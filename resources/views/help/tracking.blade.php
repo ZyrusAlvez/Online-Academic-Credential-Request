@@ -22,7 +22,7 @@
 </x-faq-item>
 
 <x-faq-item question="When does the processing period start? When will my credential be ready?">
-    <p>The processing period starts when your request is <strong>accepted for processing</strong> (when your payment is verified, or after the evaluation of a free credential), not when you submit it.</p>
+    <p>The processing period starts when your request is <strong>accepted for processing</strong> (when your payment is verified), not when you submit it.</p>
     <p>It is counted in working days: Monday to Saturday, without holidays and office closures. Once accepted, your request page shows the processing period and the expected release date.</p>
 </x-faq-item>
 

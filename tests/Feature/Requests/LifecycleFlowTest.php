@@ -2,7 +2,6 @@
 
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
-use App\Enums\CheckStage;
 use App\Enums\RecipientType;
 use App\Enums\RequestStatus;
 use App\Enums\VisitStatus;
@@ -41,8 +40,7 @@ test('a TOR request follows the client\'s flowchart from portal to release', fun
     uploadPayment($request);
     workflow()->rejectPayment($request, $registrar, 'Screenshot is unreadable');
     uploadPayment($request);
-    checkAll($request, $registrar, CheckStage::Payment);
-    workflow()->verifyPaymentAndAccept($request, $registrar, 'OR-2026-001');
+    workflow()->verifyPaymentAndAccept($request, $registrar);
     expect($request->fresh())->status->toBe(RequestStatus::AcceptedForProcessing)->due_at->not->toBeNull();
 
     // Route: Registrar → Dean → VP Finance returns to Dean → corrected → VP Finance again.

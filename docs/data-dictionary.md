@@ -126,7 +126,7 @@ The credential master list (spec 03): documents requesters can ask for. Never de
 | requires_payment | tinyint(1) | No | | 0 | 1 = student must pay on the UPHSL portal and upload a receipt |
 | fee | decimal(10,2) | Yes | | | Fee in pesos for one document; only kept when payment is required |
 | processing_days | tinyint unsigned | No | | 5 | Processing period in working days (spec 10), used for the due date |
-| requirements | json | Yes | | | List of documentary requirements, shown before submitting and checked by the evaluator |
+| requirements | json | Yes | | | List of documentary requirements, offered as the checkboxes of Require Office Visit |
 | special_conditions | text | Yes | | | Shown before submitting |
 | requires_receiving_institution | tinyint(1) | No | | 0 | 1 = transfer credential: the receiving school's complete name is required |
 | is_active | tinyint(1) | No | IX | 1 | Inactive types cannot be requested |
@@ -310,7 +310,7 @@ Proofs of payment uploaded by the requester (private files on the receipts disk)
 | amount | decimal(10,2) | Yes | | | Amount paid, as given |
 | paid_on | date | Yes | | | Date paid, as given |
 | status | varchar(20) | No | IX | | See [PaymentStatus](#paymentstatus) |
-| official_receipt_no | varchar(50) | Yes | | | Recorded by the registrar on verification |
+| official_receipt_no | varchar(50) | Yes | | | Recorded on verification until 2026-11-16; no longer written (REQ-16-17) |
 | reviewed_by, reviewed_at, remarks | | Yes | | | |
 | created_at, updated_at | timestamp | Yes | | | |
 
@@ -574,13 +574,10 @@ entries hidden from requesters: forwarding, returns, resubmissions, delay notes,
 
 ### CheckItem
 
-The parts of each Registrar stage's checklist (spec 16):
-
-| Stage | Values |
-|---|---|
-| Initial Evaluation | `credential_request`, `identity`, `academic_record`, `representative` (only when the requester transacts through one) |
-| Payment Validation | `payment_proof`, `payment_amount` |
-| Final Quality Check | `credential_document`, `signatures` |
+The parts of Initial Evaluation's checklist, the only Registrar stage with one (spec 16):
+`credential_request`, `identity`, `academic_record`, `representative` (only when the requester
+transacts through one). The Final Quality Check's parts were removed on 2026-11-13 (REQ-16-19)
+and Payment Validation's (`payment_proof`, `payment_amount`) on 2026-11-16 (REQ-16-17).
 
 ### CheckResult
 

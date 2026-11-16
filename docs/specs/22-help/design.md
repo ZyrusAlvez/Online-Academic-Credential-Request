@@ -17,8 +17,8 @@
 ## Content that must not drift
 
 The answers read from the code where a fact is configured: the ID types from
-`IdentityDocument::ID_TYPES`, the payment portal from `config('uphsl.payment_url')`, the upload
-limit from `RequestDocument::MAX_PER_REQUIREMENT`. Links use `route()`.
+`IdentityDocument::ID_TYPES` and the payment portal from `config('uphsl.payment_url')`. Links use
+`route()`.
 
 The rest of the content follows the specs as of 2026-11-11 (01, 04, 06, 10, 11, 13, 15, 20, 21);
 a later change to one of those rules should update the matching answer.

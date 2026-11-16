@@ -22,7 +22,3 @@
 <x-faq-item question="My proof of payment was not accepted.">
     <p>Your request goes back to <strong>Awaiting payment</strong>, and its page shows why. Upload a clearer or correct proof the same way. Your earlier proofs stay listed on the page.</p>
 </x-faq-item>
-
-<x-faq-item question="My credential is free. Do I need to do anything?">
-    <p>No. A free credential skips payment: once the evaluation is done, it is accepted for processing right away.</p>
-</x-faq-item>

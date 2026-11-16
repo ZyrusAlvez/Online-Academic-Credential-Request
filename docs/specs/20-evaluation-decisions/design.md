@@ -15,7 +15,7 @@ before that a separate migration added them).
 | Decision | Event type | Remarks |
 |---|---|---|
 | Return for Clarification | `customer_action_requested` (existing) | "Rejected: <parts>\n<remarks>" |
-| Require Office Visit | `compliance_requested` (existing) | "Required: <items>\n<remarks>" (older entries: "Missing: …", shown through `RequestEvent::displayRemarks()` as "Required: …") |
+| Require Office Visit | `compliance_requested` (existing) | "Required: <items>", then "\n<remarks>" when there are any (older entries: "Missing: …", shown through `RequestEvent::displayRemarks()` as "Required: …") |
 | Mark Received | `deficiency_resolved` (existing) | the item |
 | Confirm Compliance | `requirements_completed` (existing) | — |
 | Resubmit Request | `resubmitted` (existing) | the note |
@@ -41,23 +41,28 @@ before that a separate migration added them).
   attached as pending. Then it clears the rejected checks and the checks of changed parts, and
   moves to `Submitted`.
 - `decline()` also accepts `PendingCompliance`.
-- `reopenEvaluation()` and `replaceIdentity()` are removed. `attachRequirementDocuments()` is
-  called after `resubmit()` in the same transaction, while the request is `Submitted`.
+- `reopenEvaluation()` and `replaceIdentity()` are removed. Requirement copies are no longer sent
+  with a resubmission (REQ-04-22, 2026-11-15).
 
 ## Screens
 
 **Registrar, `Registrar\Requests\Show`**
 - Under evaluation: the decision row is Decline, Require Office Visit, Return for Clarification,
-  Approve. Require Office Visit opens the `office-visit` modal: the credential's requirements as
-  checkboxes under "Requirements", an Other field and the Remarks. The request record's list of
-  them is headed "Office Visit Requirements" (REQ-20-04). A decision that can't run uses the existing
-  "Can't … yet" dialog (REQ-17-17).
+  Approve. Require Office Visit opens the `office-visit` modal: the credential's requirements and
+  an "Other" checkbox (value `Show::OTHER_ITEM`) in one `requiredItems` group under
+  "Requirements"; ticking Other shows the `otherRequirement` field in the browser
+  (`x-show` on `$wire.requiredItems`), required on submit; then Remarks, marked Optional. The
+  request record's list of them is headed "Office Visit Requirements" (REQ-20-04). A decision that
+  can't run uses the existing "Can't … yet" dialog (REQ-17-17).
+- Under evaluation after a resubmission: the last `resubmitted` event's note, as "Requester's
+  note:" like the payment note (REQ-04-20), between the checklist and the Decision (REQ-20-14).
 - Returned for clarification (`PANEL_CLARIFICATION`): the remarks and "It comes back to Initial
   Evaluation when the requester resubmits."
 - Pending compliance (`PANEL_COMPLIANCE`): the evaluator's remarks only (the ledger line after its
   "Required: …" first line, with a "Remarks:" label), the required items, each with Mark Received
-  or the date and registrar who received it; Remarks; Decline and Confirm Compliance, which is
-  `disabled` while any item is still to receive (REQ-20-09).
+  or the date and registrar who received it (stacked under the name, right-aligned); Remarks
+  (Optional); Decline and Confirm Compliance, which is `disabled` while any item is still to
+  receive (REQ-20-09).
 
 **Requester, `Student\Requests\Show`**
 - Returned for clarification: the rejected parts, the remarks and **Edit Request** (a link).
@@ -74,8 +79,7 @@ before that a separate migration added them).
 - When the request's ID is rejected, the Valid ID section shows no saved ID and the ID is
   required. The reason is not repeated here: the request page shows it (REQ-20-05, 06).
 - The summary ends with a note field, the consent and Resubmit Request. Submit runs profile save,
-  ID storage, `resubmit()` and `attachRequirementDocuments()` in one transaction, and removes any
-  stored file if it fails.
+  ID storage and `resubmit()` in one transaction, and removes the stored ID file if it fails.
 
 ## Policy
 

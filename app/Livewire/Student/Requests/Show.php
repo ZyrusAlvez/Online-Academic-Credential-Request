@@ -106,7 +106,7 @@ class Show extends Component
     {
         $request = $this->credentialRequest->load([
             'credentialType', 'college', 'identityDocument', 'openVisit.department', 'openVisit.fromDepartment', 'paymentProofs', 'deficiencies',
-            'representatives.documents', 'requirementDocuments', 'release', 'steps.department', 'checks',
+            'representatives.documents', 'release', 'steps.department', 'checks',
         ]);
 
         $events = $request->events()->with(['department', 'step'])->get()
@@ -115,7 +115,8 @@ class Show extends Component
 
         $results = $request->checkResults(CheckStage::Evaluation);
 
-        // The return's ledger line is "Rejected: …" or "Required: …", then the remarks.
+        // The return's ledger line is "Rejected: …" or "Required: …", then the remarks; an office
+        // visit's remarks are optional, so its line may have none (REQ-20-04).
         $returnType = $request->status === RequestStatus::PendingCompliance ? RequestEventType::ComplianceRequested : RequestEventType::CustomerActionRequested;
         $returnLine = (string) $events->last(fn ($event) => $event->type === $returnType)?->remarks;
 
@@ -127,7 +128,11 @@ class Show extends Component
                 CheckItem::for(CheckStage::Evaluation, $request),
                 fn (CheckItem $item) => ($results[$item->value] ?? null) === CheckResult::Rejected,
             )),
-            'returnRemarks' => Str::contains($returnLine, "\n") ? Str::after($returnLine, "\n") : $returnLine,
+            'returnRemarks' => match (true) {
+                Str::contains($returnLine, "\n") => Str::after($returnLine, "\n"),
+                $returnType === RequestEventType::ComplianceRequested => '',
+                default => $returnLine,
+            },
             // Who may come in the owner's place, if anyone (REQ-11-05).
             'representative' => $request->claimingRepresentative(),
             'events' => $events,

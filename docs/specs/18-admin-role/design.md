@@ -88,5 +88,5 @@ The Logs page links a reference no. to `records.show`.
   `php artisan db:seed --class=AdminSeeder --force && php artisan optimize`.
 - `app:reset-demo` checks the `INITIAL_ADMIN_*` settings before wiping anything (REQ-18-13).
 
-`DemoSeeder` adds `admin@example.com` and `registrar@example.com` (`DemoSeeder::registrarAccount()`),
-and the demo requests are worked by that registrar.
+`DemoSeeder` adds `registrar@example.com` (`DemoSeeder::registrarAccount()`), and the demo requests
+are worked by that registrar. It adds no admin: the first admin is the only one.

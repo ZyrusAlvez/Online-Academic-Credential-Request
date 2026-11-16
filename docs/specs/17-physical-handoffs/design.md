@@ -64,10 +64,9 @@ office as before.
   and `decline()` gather the reasons before calling `RequestWorkflow`:
   - Approve: the parts that block it come from the stage's parts (`CheckItem::for`) and their
     results, rejected first and then not checked yet. They go in the locked `$blockedParts`
-    (`label`, `state`: `rejected` / `unchecked` / `not_entered`), with an official receipt
-    number not entered added as `not_entered` (and, for Confirm Compliance, items not received as
-    `to_receive`). The dialog shows the rule, that list (✗ rejected, – not checked
-    yet / not entered yet) and "To approve, …".
+    (`label`, `state`: `rejected` / `unchecked`; for Confirm Compliance, items not received as
+    `to_receive`). The dialog shows the rule, that list (✗ rejected, – not checked yet) and "To
+    approve, …". (The receipt number's `not_entered` state went with it on 2026-11-16.)
   - Return and Decline: the reasons are sentences in the locked `$blockers`: no rejected part
     for Return at the evaluation, and the validation messages (remarks), with friendly wording.
     Any other validation message for Approve (e.g. remarks too long) goes there too.
@@ -77,18 +76,19 @@ office as before.
   button. `RequestWorkflow` keeps its own guards; this only explains them earlier.
 - `partials.request-record` takes `'ledger'` in `$hide`. The working page always hides it, and
   the Records page keeps it.
-- `partials.visit-actions`: Received → Done button (`:done` label, e.g. "Signed") plus Return.
-  Done → "Done :time. Forward it to <next> from In Progress." with no button
-  for a registrar, with a link to In Progress. Department staff get the "Forward to <next>"
-  button, which calls `ActsOnVisits::forwardDocument` (refused for registrars, REQ-17-16). In
-  transit → Accept receipt.
+- `partials.visit-actions` (department request page): Received → Done button (`:done` label,
+  e.g. "Signed") plus Return. Done → the "Forward to <next>" button, which calls
+  `ActsOnVisits::forwardDocument` (refused for registrars, REQ-17-16). In transit → Accept receipt.
 - Registrar In Progress (`StageQueue::InProgress`): adds `accepted_for_processing`. Its columns are
   Request · Requester · Currently at (office, state) · Next · Due. `Queue::forward(int $id)`
   authorizes the new `OfficeVisitPolicy::forward` and calls `forwardDocument`. The policy
   requires an actionable visit that `OfficeVisit::isForwardable()`, held by the user's office,
   where a registrar's office is the Office of the Registrar. The row's button shows for
-  forwardable visits the Office of the Registrar holds. Rows held by the Registrar link to `registrar.requests.show`.
-- Working page `PANEL_OFFICE`: "Currently at / Next" header, then `partials.visit-actions`.
+  forwardable visits the Office of the Registrar holds. `Queue::acceptReceipt(int $id)` authorizes
+  `OfficeVisitPolicy::act` and calls `acceptReceipt`; its button shows for `in_transit` visits to
+  the Office of the Registrar (REQ-17-13). Every row links to `records.show`; there is no
+  `registrar.in-progress.show` (REQ-16-26), and `RegistrarLink::to()` sends a request in progress
+  to `registrar.in-progress?search=<tracking no.>`.
 - `x-office-visits`: columns Office · Received · Done · Left · Time spent · Status. Done and Left
   are hidden below `sm`.
 - Every open-visit status list (`openVisit`, `VisitQueue`, `RegistrarRequestFilter::heldBy`,
@@ -119,10 +119,8 @@ Using it:
   OfficeVisit::whereHeldBy)`.
 - The dashboard's `waitingByOffice` and `DepartmentReport`'s pending count group by
   `holderSql()`. `SignatoryReport` lists a visit under `holder()`.
-- In Progress and the working page show `holder()->name`. An `in_transit` state reads
+- In Progress shows `holder()->name`. An `in_transit` state reads
   "Forwarded :time to :office, not yet received".
-- The In Progress row links to the working page when the open visit's office is the Registrar
-  (it accepts receipt or forwards there).
 - The receiving office's Incoming tab, Accept receipt, the Registrar's own office queue and
   the office visits table are not changed. They are to-do lists and history, not "where is it".
 

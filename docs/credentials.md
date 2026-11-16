@@ -1,8 +1,9 @@
 # Credentials & Testing
 
-> **Local and staging only.** Every account below uses the password `@Test123` (it meets the
+> **Local and staging only.** Every demo account below uses the password `@Test123` (it meets the
 > app's password rules) and exists only
-> in the **local** and **staging** environments. Production has no demo data; the demo seeder and
+> in the **local** and **staging** environments. The admin is the one exception: it comes from
+> `.env`. Production has no demo data; the demo seeder and
 > `app:reset-demo` refuse to run there.
 
 ## 1. Environments
@@ -14,14 +15,15 @@ There are exactly three environments. Any other `APP_ENV` value stops the app at
 | Where | Your computer: `composer dev` → http://localhost:8000 | The server's staging address | The server's production address |
 | Database | `uphsl_credential_tracker_local` | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
 | Receipt files | `local/` folder (R2, or `storage/app/private/local`) | `staging/` folder | `production/` folder |
-| Data | Base data + demo accounts and requests | Base data + demo accounts and requests | Base data + the first registrar and admin accounts; real data only |
+| Data | Base data + demo accounts | Base data + demo accounts | Base data + the first admin account; real data only |
 | Email | Sent through Gmail, all redirected to your own inbox | Sent through Gmail | Sent through Gmail |
 
-Base data = the 15 offices (11 colleges and 4 offices), the 27 programs, the 17 credential types
-with their routes, the request purposes, the holiday calendar, and the first registrar and admin
-accounts.
+Base data = the 15 offices (11 colleges and 4 offices), the 34 programs, the 17 credential types
+with their routes, the request purposes, the holiday calendar, and the first admin account (from `.env`).
 
-To reload the demo data (local or staging): `php artisan app:reset-demo`.
+To reload the demo accounts (local or staging): `php artisan app:reset-demo`. It leaves the
+request ledger empty. `php artisan app:reset-demo --requests` also loads the sample requests
+described in section 2 (and a saved valid ID for each requester).
 
 Automated tests use their own database, `uphsl_credential_tracker_testing`, so running them never
 touches your local or staging data.
@@ -36,31 +38,35 @@ Open the local or staging address and log in with an **email and password** belo
 |---|---|---|
 | `registrar@example.com` | `@Test123` | Initial Evaluation, Payment Validation, In Progress, Final Quality Check, Release and Records |
 
-The demo requests are evaluated, accepted, prepared, checked and released by this account.
+With `--requests`, the sample requests are evaluated, accepted, prepared, checked and released by
+this account.
 
 ### Admin
 
+There is no demo admin. The only admin is the first admin from that environment's `.env`, the
+same way production gets its own.
+
 | Email | Password | Sees |
 |---|---|---|
-| `admin@example.com` | `@Test123` | Dashboard, Records, Reports, and Administration (Credential Types, Departments, Programs, Purposes, Accounts, Working Calendar, Logs) |
+| `INITIAL_ADMIN_EMAIL` | `INITIAL_ADMIN_PASSWORD` | Dashboard, Records, Reports, and Administration (Credential Types, Departments, Programs, Purposes, Accounts, Working Calendar, Logs) |
 
-Your own admin account from `.env` (`INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`) also exists,
-the same way production gets its first admin. Production has no demo accounts: its first admin is
-the only seeded account, and it creates the registrar and department staff accounts (spec 18).
+It is the only account every environment seeds (production included). The admin creates the
+registrar and department staff accounts under **Administration → Accounts** (spec 18).
 
 ### Requesters
 
-Each requester already has requests in different states, so every screen has data to show.
+The requesters start with no requests and no saved ID. The last column lists the sample requests
+that `app:reset-demo --requests` adds.
 
-| Name | Email | Password | College and program | Requests to look at |
+| Name | Email | Password | College and program | Sample requests (`--requests` only) |
 |---|---|---|---|---|
 | Juan S. Dela Cruz | `student@example.com` | `@Test123` | CCS · Bachelor of Science in Computer Science, Specialization in Data Science | TOR just submitted; payment to verify; TOR **returned for correction** by VP Finance; Certification of Enrollment released; diploma paused for his action |
 | Maria Reyes | `maria@example.com` | `@Test123` | CBAA · Bachelor of Science in Accountancy | Certification under evaluation; Course Description awaiting payment; TOR at the Dean of CBAA; Copy of Grades ready for release to her verified representative; TOR **overdue** at the Chancellor |
 | Jose L. Garcia | `jose@example.com` | `@Test123` | CEA · Bachelor of Science in Civil Engineering | TOR pending compliance; Certification of Graduation just accepted; Transfer Certificate at the final check; TOR released late; one cancelled |
 | Ana Mendoza | `ana@example.com` | `@Test123` | CTE · Bachelor of Secondary Education | ID still **awaiting verification** (Identity Checks); Copy of Grades waiting for her clarification; Authentication declined |
 
-Juan, Maria and Jose are verified, so their My Profile is read-only. Ana's is read-only while her ID
-waits; reject it on Identity Checks to see the profile open up again.
+With `--requests`, Juan, Maria and Jose are verified, so their My Profile is read-only. Ana's is
+read-only while her ID waits; reject it on Identity Checks to see the profile open up again.
 
 ### Department staff
 
@@ -100,15 +106,15 @@ accounts under **Administration → Accounts**.
 |---|---|
 | CAS | Bachelor of Arts in Communication · Bachelor of Arts in Political Science · Bachelor of Arts/Science in Psychology |
 | SOA | Bachelor of Science in Aircraft Maintenance and Technology · Bachelor of Science in Aviation Electronics Technology |
-| BED | Basic Education |
-| CBAA | Bachelor of Science in Accountancy · Bachelor of Science in Business Administration · Bachelor of Science in Real Estate Management |
-| CCS | Bachelor of Information Technology in Cybersecurity and Forensics · Bachelor of Science in Computer Science, Specialization in Data Science · Bachelor of Science in Entertainment and Multimedia Computing |
+| BED | Senior High School Department |
+| CBAA | Bachelor of Science in Accountancy · Bachelor of Science in Business Administration · Bachelor of Science in Management Accounting · Bachelor of Science in Real Estate Management |
+| CCS | Bachelor of Information Technology in Cybersecurity and Forensics · Bachelor of Science in Computer Science, Specialization in Data Science · Bachelor of Science in Entertainment and Multimedia Computing · Bachelor of Science in Information Technology, Specialization in Game Development |
 | CCJE | Bachelor of Science in Criminology |
-| CTE | Bachelor of Early Childhood Education · Bachelor of Elementary Education · Bachelor of Library and Information Science · Bachelor of Physical Education · Bachelor of Secondary Education |
-| CEA | Bachelor of Science in Architecture · Bachelor of Science in Civil Engineering · Bachelor of Science in Computer Engineering · Bachelor of Science in Industrial Engineering |
+| CTE | Bachelor of Early Childhood Education · Bachelor of Elementary Education · Bachelor of Library and Information Science · Bachelor of Physical Education · Bachelor of Secondary Education · Bachelor of Special Needs Education |
+| CEA | Bachelor of Science in Architecture · Bachelor of Science in Civil Engineering · Bachelor of Science in Computer Engineering · Bachelor of Science in Electrical Engineering · Bachelor of Science in Electronics Engineering · Bachelor of Science in Industrial Engineering · Bachelor of Science in Mechanical Engineering |
 | GS | Graduate School |
 | CNHTM | Bachelor of Science in Hospitality Management · Bachelor of Science in Nutrition & Dietetics · Bachelor of Science in Tourism Management |
-| CME | Bachelor of Science in Marine Transportation |
+| CME | Bachelor of Science in Marine Engineering · Bachelor of Science in Marine Transportation |
 
 Registrar accounts also act on the Office of the Registrar's steps (preparation and the final
 quality check).
@@ -171,4 +177,4 @@ logged in as several roles at once.
 | 10 | Requester, then Registrar | Add a representative; verify them; **Release** to the representative | Released; the release record shows who received it |
 | 11 | Registrar | **Dashboard** (period indicators, time per office), **Reports** (each report, filters, CSV), **Requests → Overdue**, **Working Calendar** | Maria's TOR is overdue; the delay analysis shows the Chancellor's recorded reason |
 
-To start over: `php artisan app:reset-demo`.
+To start over: `php artisan app:reset-demo` (add `--requests` for the sample requests).

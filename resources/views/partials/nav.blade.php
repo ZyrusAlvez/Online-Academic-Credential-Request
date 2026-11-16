@@ -17,10 +17,11 @@
             @endforeach
         </flux:navlist.group>
     @elseif ($role === \App\Enums\Role::Registrar)
-        {{-- Initial Evaluation to Release, and Records (REQ-18-03). --}}
+        {{-- Initial Evaluation to Release, and Records (REQ-18-03); a queue is current on its list
+             and on the working pages under it (REQ-16-26). --}}
         <flux:navlist.group :heading="__('Registrar')" class="grid">
             @foreach (\App\Enums\RegistrarQueue::cases() as $queue)
-                <flux:navlist.item :icon="$queue->icon()" :href="route($queue->routeName())" :current="request()->routeIs($queue->routeName())" wire:navigate>{{ __($queue->label()) }}</flux:navlist.item>
+                <flux:navlist.item :icon="$queue->icon()" :href="route($queue->routeName())" :current="request()->routeIs($queue->routeName(), $queue->showRouteName())" wire:navigate>{{ __($queue->label()) }}</flux:navlist.item>
             @endforeach
             <flux:navlist.item icon="archive-box" :href="route('records')" :current="request()->routeIs('records*')" wire:navigate>{{ __('Records') }}</flux:navlist.item>
         </flux:navlist.group>
@@ -36,13 +37,19 @@
             <flux:navlist.item icon="building-office-2" :href="route('admin.departments')" :current="request()->routeIs('admin.departments')" wire:navigate>{{ __('Departments') }}</flux:navlist.item>
             <flux:navlist.item icon="academic-cap" :href="route('admin.programs')" :current="request()->routeIs('admin.programs')" wire:navigate>{{ __('Programs') }}</flux:navlist.item>
             <flux:navlist.item icon="clipboard-document-list" :href="route('admin.purposes')" :current="request()->routeIs('admin.purposes')" wire:navigate>{{ __('Purposes') }}</flux:navlist.item>
-            <flux:navlist.item icon="users" :href="route('admin.users')" :current="request()->routeIs('admin.users')" wire:navigate>{{ __('Accounts') }}</flux:navlist.item>
+            <flux:navlist.item icon="users" :href="route('admin.accounts')" :current="request()->routeIs('admin.accounts')" wire:navigate>{{ __('Accounts') }}</flux:navlist.item>
             <flux:navlist.item icon="calendar-days" :href="route('admin.calendar')" :current="request()->routeIs('admin.calendar')" wire:navigate>{{ __('Working Calendar') }}</flux:navlist.item>
             <flux:navlist.item icon="queue-list" :href="route('admin.logs')" :current="request()->routeIs('admin.logs')" wire:navigate>{{ __('Logs') }}</flux:navlist.item>
         </flux:navlist.group>
     @else
+        {{-- Incoming, To Validate and History, with how many wait in the first two; a list is
+             current on its page and on the request pages under it (REQ-24-01, 06). --}}
+        @php($departmentId = (int) auth()->user()->department_id)
         <flux:navlist.group :heading="auth()->user()->department?->code ?? __('Department')" class="grid">
-            <flux:navlist.item icon="inbox-stack" :href="route('department.dashboard')" :current="request()->routeIs('department.*')" wire:navigate>{{ __('Office Queue') }}</flux:navlist.item>
+            @foreach (\App\Enums\DepartmentQueue::cases() as $queue)
+                <flux:navlist.item :icon="$queue->icon()" :href="route($queue->routeName())" :current="request()->routeIs($queue->routeName(), $queue->showRouteName())" wire:navigate
+                    :badge="$queue === \App\Enums\DepartmentQueue::History ? null : \App\Queries\VisitQueue::for($queue, $departmentId)->count()" data-queue-count="{{ $queue->value }}">{{ __($queue->label()) }}</flux:navlist.item>
+            @endforeach
         </flux:navlist.group>
     @endif
 </flux:navlist>

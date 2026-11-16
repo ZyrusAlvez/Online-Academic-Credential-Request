@@ -253,7 +253,10 @@ class User extends Authenticatable implements MustVerifyEmail
         return ['google_id'];
     }
 
-    /** Someone who registers or resets a forgotten password is not signed in yet: they acted themselves. */
+    /**
+     * With nobody signed in (registering, a password reset, a Google sign-in that verifies the
+     * email), the change belongs to the account itself (REQ-14-15).
+     */
     protected function activityActor(string $event): ?User
     {
         $user = Auth::user();
@@ -262,7 +265,7 @@ class User extends Authenticatable implements MustVerifyEmail
             return $user;
         }
 
-        return ! app()->runningInConsole() && ($event === 'created' || $this->wasChanged('password')) ? $this : null;
+        return app()->runningInConsole() ? null : $this;
     }
 
     /**

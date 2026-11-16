@@ -7,11 +7,10 @@ use App\Enums\CheckResult;
 use App\Enums\CheckStage;
 use App\Enums\PaymentStatus;
 use App\Enums\RecipientType;
+use App\Enums\RegistrarQueue;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
-use App\Enums\RouteTask;
-use App\Enums\VisitPurpose;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\ActsOnVisits;
 use App\Livewire\Concerns\TrimsInput;
@@ -19,7 +18,7 @@ use App\Models\CredentialRequest;
 use App\Models\RequestCheck;
 use App\Models\RequestRepresentative;
 use App\Services\RequestWorkflow;
-use App\Support\ReturnOffices;
+use App\Support\RegistrarLink;
 use Closure;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -35,7 +34,9 @@ use Livewire\Component;
  */
 class Show extends Component
 {
-    use ActsOnVisits;
+    use ActsOnVisits {
+        attempt as runTransition;
+    }
     use TrimsInput;
 
     /** What the page shows, by the request's stage. */
@@ -55,28 +56,29 @@ class Show extends Component
 
     public const PANEL_RELEASE = 'release';
 
-    public const PANEL_OFFICE = 'office';
-
     public const PANEL_VIEW = 'view';
 
-    /** Listed as a blocking part of Approve, not as a sentence (REQ-17-17). */
-    private const RECEIPT_REQUIRED = 'Enter the official receipt number.';
+    /** Require Office Visit: the "Other" checkbox's value among the ticked items (REQ-20-04). */
+    public const OTHER_ITEM = '__other__';
 
     #[Locked]
     public CredentialRequest $credentialRequest;
 
+    /** The queue the page is under (REQ-16-26); null for a closed request opened directly. */
+    #[Locked]
+    public ?RegistrarQueue $currentQueue = null;
+
     public string $remarks = '';
 
-    public string $officialReceiptNo = '';
-
     /**
-     * Require Office Visit: the credential's requirements ticked as required at the office (REQ-20-04).
+     * Require Office Visit: the credential's requirements ticked as required at the office, and
+     * OTHER_ITEM when "Other" is ticked (REQ-20-04).
      *
      * @var list<string>
      */
     public array $requiredItems = [];
 
-    /** Require Office Visit: anything else required, in the evaluator's words. */
+    /** Require Office Visit: what "Other" is, in the evaluator's words; required once it is ticked. */
     public string $otherRequirement = '';
 
     #[Locked]
@@ -93,10 +95,9 @@ class Show extends Component
     public string $blockedAction = '';
 
     /**
-     * What blocks a decision: each part not confirmed, a receipt number not entered, an office-visit
-     * item not received (REQ-17-17).
+     * What blocks a decision: each part not confirmed, an office-visit item not received (REQ-17-17).
      *
-     * @var list<array{label: string, state: 'rejected'|'unchecked'|'not_entered'|'to_receive'}>
+     * @var list<array{label: string, state: 'rejected'|'unchecked'|'to_receive'}>
      */
     #[Locked]
     public array $blockedParts = [];
@@ -105,11 +106,41 @@ class Show extends Component
     #[Locked]
     public array $blockers = [];
 
-    public function mount(CredentialRequest $credentialRequest): void
+    /**
+     * @param  RegistrarQueue|string|null  $queue  the route's default; a page opened under another
+     *                                             queue than the request's moves there (REQ-16-26)
+     */
+    public function mount(CredentialRequest $credentialRequest, RegistrarQueue|string|null $queue = null): void
     {
         $this->authorize('review', $credentialRequest);
 
         $this->credentialRequest = $credentialRequest;
+        $current = RegistrarQueue::forRequest($credentialRequest);
+        $this->currentQueue = $current;
+
+        if ($queue !== null && $current !== (is_string($queue) ? RegistrarQueue::from($queue) : $queue)) {
+            $this->redirect(RegistrarLink::to($credentialRequest), navigate: true);
+        }
+    }
+
+    /**
+     * Run a transition; when it moves the request to another queue, follow it there so the address
+     * and the sidebar stay right (REQ-16-26).
+     */
+    protected function attempt(Closure $transition, string $success): bool
+    {
+        if (! $this->runTransition($transition, $success)) {
+            return false;
+        }
+
+        $request = $this->credentialRequest->fresh();
+
+        if ($request !== null && RegistrarQueue::forRequest($request) !== $this->currentQueue) {
+            session()->flash('notify', $success);
+            $this->redirect(RegistrarLink::to($request), navigate: true);
+        }
+
+        return true;
     }
 
     public function startEvaluation(RequestWorkflow $workflow): void
@@ -152,8 +183,9 @@ class Show extends Component
             RequestStatus::UnderEvaluation => ['approve', $optional,
                 fn () => $workflow->approveEvaluation($request, $this->actor(), $this->remarks),
                 $request->requires_payment ? 'Approved. Payment instructions were sent to the requester.' : 'Approved and accepted for processing.'],
-            RequestStatus::PaymentVerification => ['approve', $optional + ['officialReceiptNo' => ['required', 'string', 'max:50']],
-                fn () => $workflow->verifyPaymentAndAccept($request, $this->actor(), $this->officialReceiptNo, $this->remarks),
+            // No checklist and no receipt number: Approve is the confirmation (REQ-16-17).
+            RequestStatus::PaymentVerification => ['approve', $optional,
+                fn () => $workflow->verifyPaymentAndAccept($request, $this->actor(), $this->remarks),
                 'Payment verified and request accepted. The processing period has started.'],
             RequestStatus::ForFinalApproval => ['approve', $optional,
                 fn () => $workflow->approveFinalCheck($request, $this->actor(), $this->remarks),
@@ -215,7 +247,8 @@ class Show extends Component
     }
 
     /**
-     * Require Office Visit, from its dialog: what is required at the office and the remarks (REQ-20-04).
+     * Require Office Visit, from its dialog: what is required at the office, and optional remarks
+     * (REQ-20-04).
      */
     public function requireOfficeVisit(RequestWorkflow $workflow): void
     {
@@ -223,18 +256,20 @@ class Show extends Component
         abort_unless($this->credentialRequest->status === RequestStatus::UnderEvaluation, 404);
 
         $listed = $this->credentialRequest->credentialType->requirements ?? [];
+        $other = in_array(self::OTHER_ITEM, $this->requiredItems, true);
 
         $this->validate([
-            'requiredItems' => ['array'],
-            'requiredItems.*' => ['string', Rule::in($listed)],
-            'otherRequirement' => [Rule::requiredIf($this->requiredItems === []), 'nullable', 'string', 'max:250'],
-            'remarks' => ['required', 'string', 'max:500'],
+            'requiredItems' => ['required', 'array'],
+            'requiredItems.*' => ['string', Rule::in([...$listed, self::OTHER_ITEM])],
+            'otherRequirement' => [Rule::requiredIf($other), 'nullable', 'string', 'max:250'],
+            'remarks' => ['nullable', 'string', 'max:500'],
         ], [
-            'otherRequirement.required' => 'Tick at least one requirement, or describe it under Other.',
-            'remarks.required' => 'Write your remarks; the requester sees them.',
+            'requiredItems.required' => 'Tick at least one requirement, or Other.',
+            'otherRequirement.required' => 'Write what else is required under Other.',
         ], ['otherRequirement' => 'other requirement']);
 
-        $items = [...array_values(array_intersect($listed, $this->requiredItems)), ...(filled($this->otherRequirement) ? [$this->otherRequirement] : [])];
+        // Text typed under Other counts only while Other is ticked.
+        $items = [...array_values(array_intersect($listed, $this->requiredItems)), ...($other ? [$this->otherRequirement] : [])];
 
         if ($this->attempt(fn () => $workflow->requireOfficeVisit($this->credentialRequest, $this->actor(), $items, $this->remarks),
             'The requester was asked to visit the Office of the Registrar.')) {
@@ -322,18 +357,15 @@ class Show extends Component
         $request = $this->credentialRequest->load([
             'student', 'identityDocument', 'credentialType', 'college', 'evaluator', 'checks.checker', 'checks.carriedFrom',
             'openVisit.department', 'openVisit.fromDepartment', 'openVisit.step', 'openVisit.credentialRequest.visits', 'openVisit.credentialRequest.steps.department',
-            'paymentProofs.reviewer', 'deficiencies.resolver', 'representatives.documents', 'requirementDocuments', 'release.releaser',
+            'paymentProofs.reviewer', 'deficiencies.resolver', 'representatives.documents', 'release.releaser',
             'steps.department', 'visits.department', 'visits.step', 'visits.returnedTo', 'visits.receiver', 'visits.doer', 'visits.completer',
             'delayNotes.department', 'delayNotes.recorder', 'pauses',
             'events.department', 'events.actor', 'events.step',
         ]);
 
         $panel = $this->panel($request);
-        $stage = match ($panel) {
-            self::PANEL_EVALUATION, self::PANEL_CLARIFICATION => CheckStage::Evaluation,
-            self::PANEL_PAYMENT => CheckStage::Payment,
-            default => null,
-        };
+        // Only Initial Evaluation has a checklist (REQ-16-17, 19).
+        $stage = in_array($panel, [self::PANEL_EVALUATION, self::PANEL_CLARIFICATION], true) ? CheckStage::Evaluation : null;
 
         return view('livewire.registrar.requests.show', [
             'request' => $request,
@@ -343,12 +375,15 @@ class Show extends Component
             // Parts confirmed from an earlier verification, by item (REQ-21-05).
             'carried' => $request->checks->whereNotNull('carried_from_request_id')->keyBy(fn (RequestCheck $check): string => $check->item->value),
             'pendingProof' => $request->paymentProofs->firstWhere('status', PaymentStatus::Submitted),
-            'returnOffices' => ReturnOffices::for($request),
             'verifiedRepresentatives' => $request->representatives->where('status', ReviewStatus::Verified)->values(),
             'lastReturn' => $request->events->last(fn ($event) => in_array($event->type, [RequestEventType::CustomerActionRequested, RequestEventType::ComplianceRequested], true)),
             // What the requester wrote with the proof under review (REQ-04-20).
             'paymentNote' => $panel === self::PANEL_PAYMENT
                 ? (string) $request->events->last(fn ($event) => $event->type === RequestEventType::PaymentSubmitted)?->remarks
+                : '',
+            // What the requester wrote when resubmitting, for the evaluation that follows (REQ-20-14).
+            'resubmitNote' => $panel === self::PANEL_EVALUATION
+                ? (string) $request->events->last(fn ($event) => $event->type === RequestEventType::Resubmitted)?->remarks
                 : '',
         ])->title($request->reference_no);
     }
@@ -359,7 +394,7 @@ class Show extends Component
     private function panel(CredentialRequest $request): string
     {
         $visit = $request->openVisit;
-        $atFinalCheck = $visit !== null && $visit->step->task === RouteTask::FinalCheck && $visit->purpose !== VisitPurpose::Correction;
+        $atFinalCheck = $request->isAtFinalCheck();
 
         return match (true) {
             $request->isEvaluatedBySomeoneElse($this->actor()) => self::PANEL_LOCKED,
@@ -370,7 +405,7 @@ class Show extends Component
             $request->status === RequestStatus::PaymentVerification => self::PANEL_PAYMENT,
             $atFinalCheck => self::PANEL_FINAL_CHECK,
             $request->status === RequestStatus::ReadyForRelease => self::PANEL_RELEASE,
-            $visit !== null && $this->actor()->can('act', $visit) => self::PANEL_OFFICE,
+            // In Progress has no working page: its rows act in place (REQ-17-13).
             default => self::PANEL_VIEW,
         };
     }
@@ -389,10 +424,6 @@ class Show extends Component
 
         if ($action === 'approve') {
             $parts = $this->unconfirmedParts();
-
-            if (array_key_exists('officialReceiptNo', $rules) && blank($this->officialReceiptNo)) {
-                $parts[] = ['label' => 'Official receipt number', 'state' => 'not_entered'];
-            }
         } elseif ($action === 'return' && $this->stage() === CheckStage::Evaluation && ! in_array('rejected', array_column($this->stageParts(), 'state'), true)) {
             $blockers[] = 'Reject at least one part of the checklist, so the requester knows what to correct.';
         } elseif ($action === 'confirm') {
@@ -401,14 +432,10 @@ class Show extends Component
         }
 
         try {
-            $this->validate($rules, [
-                'remarks.required' => 'Write your remarks; the requester sees them.',
-                'officialReceiptNo.required' => self::RECEIPT_REQUIRED,
-            ], ['officialReceiptNo' => 'official receipt number']);
+            $this->validate($rules, ['remarks.required' => 'Write your remarks; the requester sees them.']);
         } catch (ValidationException $e) {
-            // The receipt number is already in the parts. The field is marked too, so the exception
-            // goes on to Livewire.
-            $messages = array_values(array_diff(array_map(strval(...), Arr::flatten($e->errors())), [self::RECEIPT_REQUIRED]));
+            // The field is marked too, so the exception goes on to Livewire.
+            $messages = array_values(array_map(strval(...), Arr::flatten($e->errors())));
             $this->block($action, $parts, [...$blockers, ...$messages]);
 
             throw $e;
@@ -421,18 +448,14 @@ class Show extends Component
         }
 
         if ($this->attempt($decision, $success)) {
-            $this->reset('remarks', 'officialReceiptNo');
+            $this->reset('remarks');
         }
     }
 
-    /** The checklist stage the request is at, if any. */
+    /** The checklist stage the request is at, if any: only Initial Evaluation has one (REQ-16-17). */
     private function stage(): ?CheckStage
     {
-        return match ($this->credentialRequest->status) {
-            RequestStatus::UnderEvaluation => CheckStage::Evaluation,
-            RequestStatus::PaymentVerification => CheckStage::Payment,
-            default => null,
-        };
+        return $this->credentialRequest->status === RequestStatus::UnderEvaluation ? CheckStage::Evaluation : null;
     }
 
     /**
@@ -480,7 +503,7 @@ class Show extends Component
     }
 
     /**
-     * @param  list<array{label: string, state: 'rejected'|'unchecked'|'not_entered'|'to_receive'}>  $parts
+     * @param  list<array{label: string, state: 'rejected'|'unchecked'|'to_receive'}>  $parts
      * @param  list<string>  $reasons
      */
     private function block(string $action, array $parts, array $reasons): void

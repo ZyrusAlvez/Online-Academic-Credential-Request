@@ -8,7 +8,6 @@
             @foreach ($roles as $option)
                 <flux:select.option :value="$option->value">{{ $option->label() }}</flux:select.option>
             @endforeach
-            <flux:select.option value="{{ \App\Queries\ActivityLogFilter::SYSTEM }}">{{ __('System (no one signed in)') }}</flux:select.option>
         </flux:select>
         <flux:select wire:model.live="category" :label="__('Kind of action')">
             <flux:select.option value="">{{ __('All actions') }}</flux:select.option>
@@ -51,8 +50,8 @@
                         </time>
                     </flux:table.cell>
                     <flux:table.cell class="align-top whitespace-normal">
-                        <div class="font-medium text-ink">{{ $log->actor_name ?? __('System') }}</div>
-                        <div class="text-xs text-zinc-500">{{ $log->actor_role?->label() ?? __('No one signed in') }}</div>
+                        <div class="font-medium text-ink">{{ $log->actor_name ?? '—' }}</div>
+                        <div class="text-xs text-zinc-500">{{ $log->actor_role?->label() ?? __('No account') }}</div>
                     </flux:table.cell>
                     <flux:table.cell class="align-top whitespace-normal">
                         <flux:badge size="sm" :color="$log->category->color()">{{ $log->category->label() }}</flux:badge>

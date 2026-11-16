@@ -22,9 +22,23 @@
       requests in the second (REQ-16-03)
 - [x] Pest test for the tabbed REQ-16-03
 - [x] `RegistrarRequestFilter::matching()` shared by Records and the stage queues; search field on
-      every queue but Release (REQ-16-25)
+      every queue (REQ-16-25)
 - [x] Pest test for REQ-16-25
 - [x] Final quality check without a checklist: remove `CheckStage::FinalCheck` and the items
       `credential_document`, `signatures` (migration deletes their rows); details and route shown
       read-only; Approve needs no parts (REQ-16-19)
 - [x] Pest tests for the changed REQ-16-19
+- [x] Payment Validation without a checklist or receipt number: remove `CheckStage::Payment` and
+      the items `payment_proof`, `payment_amount` (migration deletes their rows); proof and Payment
+      Details read-only; Decline, Return to Requester, Approve (REQ-16-17, REQ-04-13)
+- [x] Pest tests for the changed REQ-16-17
+- [x] Working pages under their queue (`registrar.<queue>.show`), `RegistrarQueue::forRequest()`,
+      `RegistrarLink`, redirects from the wrong queue and from `registrar/requests/{…}`, following
+      the request after an action, sidebar current item (REQ-16-26)
+- [x] Pest tests for REQ-16-26
+- [x] Decision last on the working page, after the record; no Proofs of Payment list at Payment
+      Validation (REQ-16-27, REQ-16-17)
+- [x] Pest tests for REQ-16-27 and the changed REQ-16-17
+- [x] No working page under In Progress; a request in progress leads to the searched list (REQ-16-26, see spec 17)
+- [x] Search on Release too: remove `RegistrarQueue::isSearchable()` (REQ-16-25)
+- [x] Pest test for the changed REQ-16-25

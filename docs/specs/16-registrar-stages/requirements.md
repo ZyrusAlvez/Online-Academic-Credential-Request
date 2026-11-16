@@ -60,11 +60,23 @@ This replaces:
 - **REQ-16-05** THE Final Quality Check queue SHALL list the requests whose document is sent to, or
   held by, the Registrar for the final quality check, oldest first.
 - **REQ-16-06** THE Release queue SHALL list the credentials ready for release, oldest first.
-- **REQ-16-25** THE Initial Evaluation, Payment Validation, In Progress and Final Quality Check
-  queues SHALL have a search field that narrows the list shown (either tab, and with the office
-  filter) to the requests whose tracking number or requester name matches, as Records searches
-  them (REQ-16-07, which also matches the student number). Release keeps its plain list. *(User's
-  request, 2026-11-12.)*
+- **REQ-16-25** Every stage queue (Initial Evaluation, Payment Validation, In Progress, Final
+  Quality Check and Release) SHALL have a search field that narrows the list shown (either tab, and
+  with the office filter) to the requests whose tracking number or requester name matches, as
+  Records searches them (REQ-16-07, which also matches the student number). *(User's request,
+  2026-11-12; Release added 2026-11-15.)*
+- **REQ-16-26** A request's working page SHALL live under the queue it is in:
+  `/registrar/evaluation/{tracking no.}`, `/registrar/payments/…`,
+  `/registrar/final-check/…` and `/registrar/release/…`, and that queue's sidebar item SHALL be
+  shown as the current one, with the queue as the breadcrumb. In Progress has no working page
+  (REQ-17-13): `/registrar/in-progress/{tracking no.}` SHALL respond 404, and a request in progress
+  SHALL lead to the In Progress list searched by its tracking number. WHEN a working page is opened under
+  another queue than the request's, or at the former `/registrar/requests/{tracking no.}` (in
+  notifications and emails), THE SYSTEM SHALL redirect to the request's current queue, or to its
+  Records page once it is released, declined or cancelled. WHEN a decision or action moves the
+  request to another queue THE SYSTEM SHALL follow it there. *(User's report, 2026-11-16: every
+  request page was `/registrar/requests/…`, so no sidebar item was highlighted. In Progress page
+  removed 2026-11-15, user's decision.)*
 - **REQ-16-07** THE Records list SHALL show every request, searchable by tracking number, student
   number or name, and filterable by status (including "Overdue"), credential type and the office
   holding it. A record SHALL open a read-only page with the request's details, route, office visits
@@ -98,8 +110,8 @@ This replaces:
   changeable until the decision. THE SYSTEM SHALL NOT let the registrar change anything the
   requester entered. *Since spec 21 (2026-11-11):* User identity and Academic record start
   confirmed when the requester's details were verified on an earlier request (REQ-21-04, 05).
-- **REQ-16-24** WHERE a checklist part shows the request's data (Credential request, User
-  identity, Academic record, Amount and reference, Credential document) THE SYSTEM SHALL show it
+- **REQ-16-24** WHERE a checklist part or a read-only section shows the request's data (Credential
+  request, User identity, Academic record, Payment details, Credential document) THE SYSTEM SHALL show it
   as summary rows, one per entry, label on the left and value on the right, stacked on narrow
   screens, like the requester's summary (REQ-15-17).
 - **REQ-16-11** BELOW the checklist THE SYSTEM SHALL show a Remarks field and the buttons Approve,
@@ -123,15 +135,25 @@ This replaces:
   registrar marks the required items received and confirms compliance.
 
 ### Payment Validation
-- **REQ-16-17** WHILE a request's proof of payment awaits verification THE SYSTEM SHALL show the
-  checklist parts Proof of payment (the uploaded file, an image shown as a picture) and Amount and
-  reference (amount due, amount paid, reference and date paid), the official receipt number field,
-  Remarks, and the buttons Approve, Return and Decline:
-  - Approve SHALL require both parts confirmed and the official receipt number; it verifies the
-    payment and accepts the request (REQ-04-14).
-  - Return SHALL require remarks; it rejects the proof and sends the request back to
+- **REQ-16-17** WHILE a request's proof of payment awaits verification THE SYSTEM SHALL show,
+  read-only and with no checklist, the proof of payment (an image shown as a picture, another file
+  as a link to the file viewer), the payment details as summary rows (amount due, amount paid,
+  reference, date paid) and the requester's note (REQ-04-20); then Remarks and the buttons Decline,
+  Return to Requester and Approve, Approve on the right:
+  - Approve verifies the payment and accepts the request (REQ-04-14); remarks are optional.
+  - Return to Requester SHALL require remarks; it rejects the proof and sends the request back to
     `awaiting_payment`.
   - Decline SHALL require remarks; it declines the request.
+
+  *(User's request, 2026-11-16: the page had Initial Evaluation's checklist, with Confirm and
+  Reject on two parts, and an official receipt number required to approve. The BRD asks only that
+  authorized personnel confirm the payment against the official payment record (V, step 3), so
+  both are removed, like the final check's checklist (REQ-16-19).)* The request's record below
+  SHALL NOT list the proofs of payment again *(user's request, 2026-11-16: it repeated the proof)*.
+- **REQ-16-27** WHERE a stage has a decision (Initial Evaluation, Payment Validation, Final Quality
+  Check) THE SYSTEM SHALL show the Decision section last on the working page, after the request's
+  record, with the requester's resubmit note just above it (REQ-20-14). *(User's request,
+  2026-11-16.)*
 
 ### In progress
 - **REQ-16-18** THE SYSTEM SHALL keep an accepted request `accepted_for_processing` while the
@@ -166,4 +188,5 @@ This replaces:
 ### Checklist record
 - **REQ-16-22** THE SYSTEM SHALL store each checklist part's result per request, with the staff
   member and the time, and SHALL write every decision, with the rejected parts and the remarks,
-  to the request's ledger.
+  to the request's ledger. *Since 2026-11-16 (REQ-16-17):* only Initial Evaluation has a
+  checklist; the payment parts saved before are deleted.

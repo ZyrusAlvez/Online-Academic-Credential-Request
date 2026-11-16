@@ -5,7 +5,7 @@
 | Folder | Holds | Runs | Same everywhere? |
 |---|---|---|---|
 | `database/migrations` | The structure: tables, columns, keys, and the fixed request statuses | Every deploy (`php artisan migrate`), each file once per database | Yes |
-| `database/seeders` | The starting content: base lists and the first Admin; `DemoSeeder` adds demo data | Only on a new or reset database | Base data yes; demo data local and staging only |
+| `database/seeders` | The starting content: base lists and the first Admin; `DemoSeeder` adds the demo accounts, `DemoRequestSeeder` sample requests | Only on a new or reset database | Base data yes; demo data local and staging only |
 | `database/factories` | Fake rows for the automated tests | Tests only | Not used on servers |
 
 ## Migrations: 38 files to 16
@@ -65,7 +65,9 @@ types, defaults, column order, indexes and foreign keys are identical.
      `RequestWorkflow::proofDisk()` (that disk is foldered per environment);
   4. calls `migrate:fresh --seed --force`.
 - `App\Console\Commands\ResetDemo` (`app:reset-demo`): local and staging only; calls `app:reset`,
-  then seeds `DemoSeeder`.
+  then seeds `DemoSeeder` (the demo accounts only). With `--requests` it seeds `DemoRequestSeeder`
+  instead, which runs `DemoSeeder` first and then saves each demo requester's valid ID and builds
+  the sample requests through `RequestWorkflow`.
 
 A reset deletes every account. The first Admin is recreated from `.env`; the Admin then creates the
 registrar and department staff accounts again.

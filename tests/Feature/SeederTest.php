@@ -36,6 +36,25 @@ test('REQ-23-02 normal seeding loads the base data every environment needs and n
         ->and(CredentialRequest::count())->toBe(0);
 });
 
+test('REQ-12-02 the seeded program list has 34 programs, Senior High School Department and the 7 added ones', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $programs = fn (string $code): array => Program::whereHas('college', fn ($query) => $query->where('code', $code))->orderBy('name')->pluck('name')->all();
+
+    expect(Program::count())->toBe(34)
+        ->and(Program::where('name', 'Basic Education')->exists())->toBeFalse()
+        ->and($programs('BED'))->toBe(['Senior High School Department'])
+        ->and($programs('CBAA'))->toContain('Bachelor of Science in Management Accounting')
+        ->and($programs('CCS'))->toContain('Bachelor of Science in Information Technology, Specialization in Game Development')
+        ->and($programs('CTE'))->toContain('Bachelor of Special Needs Education')
+        ->and($programs('CEA'))->toContain(
+            'Bachelor of Science in Electrical Engineering',
+            'Bachelor of Science in Electronics Engineering',
+            'Bachelor of Science in Mechanical Engineering',
+        )
+        ->and($programs('CME'))->toContain('Bachelor of Science in Marine Engineering');
+});
+
 test('REQ-23-03 seeding the base data again adds nothing and keeps what the admin changed', function () {
     $this->seed(DatabaseSeeder::class);
 

@@ -10,6 +10,7 @@ use App\Models\CredentialRequest;
 use App\Models\IdentityDocument;
 use App\Models\User;
 use App\Services\RequestWorkflow;
+use App\Support\RegistrarLink;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -77,12 +78,13 @@ test('REQ-15-02 there is no My Profile page; the old address goes to Settings â†
         ->assertSeeInOrder(['New Request', 'Request Tracker']);
 });
 
-test('REQ-15-03 New Request has numbered sections for the request, its requirements, personal and academic information, the ID and who transacts', function () {
+test('REQ-15-03 New Request has numbered sections for the request, personal and academic information, the ID and who transacts', function () {
     Livewire::actingAs($this->newcomer)->test(Create::class)
         ->assertSeeInOrder([
-            '1. What Do You Need?', '2. Documentary Requirements', '3. Personal Information', '4. Academic Information',
-            '5. Valid ID', '6. Who Will Transact?', 'Important notice: incomplete requirements', 'Review request',
+            '1. What Do You Need?', '2. Personal Information', '3. Academic Information',
+            '4. Valid ID', '5. Who Will Transact?', 'Important notice: incomplete requirements', 'Review request',
         ])
+        ->assertDontSee('Documentary Requirements')
         ->assertDontSee('Verify your profile before making a request');
 });
 
@@ -154,7 +156,7 @@ test('REQ-15-18 New Request removes the saved ID once confirmed; then an ID is r
         ->assertHasErrors(['profile.id_type' => 'required', 'profile.id_file' => 'required']);
 
     reviewRequest($owner, ['profile.id_type' => 'UMID', 'profile.id_file' => UploadedFile::fake()->image('umid.jpg')])
-        ->assertSeeInOrder(['5. Valid ID', 'UMID', 'umid.jpg'])
+        ->assertSeeInOrder(['4. Valid ID', 'UMID', 'umid.jpg'])
         ->call('submit')
         ->assertHasNoErrors();
 
@@ -214,20 +216,20 @@ test('REQ-15-05 the summary shows the request, the details, the ID and the priva
 });
 
 test('REQ-15-05 the summary\'s valid ID is one row: the type of ID, then the file name linking to the viewer and its size', function () {
-    $id = Str::after(Str::after(reviewRequest($this->newcomer)->html(), 'data-summary-title'), '5. Valid ID</h2>');
+    $id = Str::after(Str::after(reviewRequest($this->newcomer)->html(), 'data-summary-title'), '4. Valid ID</h2>');
 
     expect($id)->toMatch('#<div class="py-3 [^"]*" data-id-summary-preview[^>]*>\s*<dt class="text-zinc-600">Passport</dt>\s*<dd[^>]*>\s*<span class="break-all"><a\s+href="[^"]*preview-file[^"]*"[^>]*data-file-link[^>]*>passport\.jpg</a>\s*\([\d.]+ [KM]?B\)</span>#')
-        ->and(Str::before($id, '6. Who Will Transact?'))->not->toContain('Type of ID')->not->toContain('New upload');
+        ->and(Str::before($id, '5. Who Will Transact?'))->not->toContain('Type of ID')->not->toContain('New upload');
 
     // A saved ID: the same row, linking to the stored file.
     $owner = User::factory()->withProfile($this->org->ccs)->create(['program' => 'BS Computer Science']);
     $saved = $owner->latestIdentityDocument()->firstOrFail();
-    $id = Str::after(Str::after(reviewRequest($owner)->html(), 'data-summary-title'), '5. Valid ID</h2>');
+    $id = Str::after(Str::after(reviewRequest($owner)->html(), 'data-summary-title'), '4. Valid ID</h2>');
 
     expect($id)->toMatch('#<dt class="text-zinc-600">'.preg_quote(e($saved->id_type), '#').'</dt>\s*<dd[^>]*>\s*<span class="break-all"><a\s+href="'.preg_quote(route('identity-documents.show', $saved), '#').'"[^>]*data-file-link[^>]*>'.preg_quote(e($saved->original_name), '#').'</a>\s*\(#');
 });
 
-test('REQ-15-17 the summary repeats the form\'s six numbered sections, each entry a label/value row', function () {
+test('REQ-15-17 the summary repeats the form\'s five numbered sections, each entry a label/value row', function () {
     $html = reviewRequest($this->newcomer, ['form.receiving_institution' => 'Acme Corp'])->html();
     $summary = Str::after($html, 'data-summary-title');
 
@@ -237,7 +239,9 @@ test('REQ-15-17 the summary repeats the form\'s six numbered sections, each entr
         ->and($html)->not->toContain('Check that everything is correct.');
 
     $previous = 0;
-    foreach (['1. What Do You Need?', '2. Documentary Requirements', '3. Personal Information', '4. Academic Information', '5. Valid ID', '6. Who Will Transact?', 'Data Privacy'] as $heading) {
+    expect($summary)->not->toContain('Documentary Requirements');
+
+    foreach (['1. What Do You Need?', '2. Personal Information', '3. Academic Information', '4. Valid ID', '5. Who Will Transact?', 'Data Privacy'] as $heading) {
         $position = strpos($summary, '>'.$heading.'</h2>');
         expect($position)->not->toBeFalse()->toBeGreaterThan($previous);
         $previous = $position;
@@ -250,24 +254,23 @@ test('REQ-15-17 the summary repeats the form\'s six numbered sections, each entr
 test('REQ-15-19 empty summary values are grey italics, and a typed "Not provided" stays plain', function () {
     $empty = fn (string $text): string => '<span class="font-normal text-zinc-600 italic" data-empty-value>'.$text.'</span>';
 
-    // Nothing typed for the receiving school, and no files chosen for the TOR's requirements.
+    // Nothing typed for the receiving school.
     $summary = Str::after(reviewRequest($this->newcomer)->html(), 'data-summary-title');
-    expect($summary)->toMatch('#Receiving school[^<]*</dt>\s*<dd[^>]*>(<!--\[if BLOCK\]><!\[endif\]-->)?\s*'.preg_quote($empty('Not provided'), '#').'#')
-        ->and($summary)->toContain($empty('No files'));
+    expect($summary)->toMatch('#Receiving school[^<]*</dt>\s*<dd[^>]*>(<!--\[if BLOCK\]><!\[endif\]-->)?\s*'.preg_quote($empty('Not provided'), '#').'#');
 
     // The requester typed the words themselves: an entry, shown like any other.
     $summary = Str::after(reviewRequest($this->newcomer, ['form.receiving_institution' => 'Not provided'])->html(), 'data-summary-title');
     expect($summary)->toMatch('#Receiving school[^<]*</dt>\s*<dd[^>]*>(<!--\[if BLOCK\]><!\[endif\]-->)?\s*Not provided#');
 });
 
-test('REQ-15-17 section 6 of the summary shows the representative and their files, each linking to the viewer', function () {
+test('REQ-15-17 section 5 of the summary shows the representative and their files, each linking to the viewer', function () {
     $summary = Str::after(Str::after(reviewRequest($this->newcomer, [
         'form.requester_mode' => 'representative',
         'form.representative_name' => 'Maria Dela Cruz',
         'form.representative_relationship' => 'Mother',
         'spa' => UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'),
         'representativeId' => UploadedFile::fake()->image('maria-id.jpg'),
-    ])->assertHasNoErrors()->html(), 'data-summary-title'), '6. Who Will Transact?</h2>');
+    ])->assertHasNoErrors()->html(), 'data-summary-title'), '5. Who Will Transact?</h2>');
 
     expect($summary)->toContain('Through an authorized representative')
         ->toContain('Maria Dela Cruz')->toContain('Mother')
@@ -437,7 +440,7 @@ test('REQ-15-08 request pages and lists show the request\'s copy of the name', f
 
     $this->actingAs($this->registrar)->get(route('records'))->assertSee('Copied Name On Request')->assertDontSee('Renamed');
     $this->actingAs($this->registrar)->get(route('registrar.evaluation'))->assertSee('Copied Name On Request')->assertDontSee('Renamed');
-    $this->actingAs($this->registrar)->get(route('registrar.requests.show', $request))->assertSee('Copied Name On Request');
+    $this->actingAs($this->registrar)->get(RegistrarLink::to($request))->assertSee('Copied Name On Request');
     $this->actingAs($owner)->get(route('student.requests.show', $request))->assertSee('Copied Name On Request');
 });
 

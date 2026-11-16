@@ -54,8 +54,9 @@ and `CorrectRequesterName` are removed; activity logs get the review through the
   Blade partial, `partials/requester-profile-fields`, and the summary another,
   `partials/requester-profile-summary`. Every summary section is the `x-summary-section`
   component: a heading and a list of label/value rows (label left, value right from `sm`). New
-  Request numbers them like the form (REQ-15-17): `Create::summarySections()` gives sections 1, 2
-  and 6, the profile partial 3 to 5. A row's value may list files as `{name, size, href, type}`:
+  Request numbers them like the form (REQ-15-17): `Create::requestSummary()` gives section 1 and
+  `transactSummary()` section 5, the profile partial 2 to 4 (no documentary requirements since
+  2026-11-15, REQ-04-23). A row's value may list files as `{name, size, href, type}`:
   the section shows each name as an `x-file-link` to the file viewer, then its size. A chosen file
   links to Livewire's signed `temporaryUrl()`, a saved ID to `identity-documents.show`.
 - `Student\Requests\Create`: form → summary (`reviewing`) → submit. `submit()` runs one transaction:

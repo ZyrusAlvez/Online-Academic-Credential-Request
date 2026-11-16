@@ -28,7 +28,7 @@ beforeEach(function () {
 /** The Admin's pages (REQ-18-04). */
 const ADMIN_PAGES = [
     'admin.dashboard', 'admin.reports', 'admin.credential-types', 'admin.departments', 'admin.programs',
-    'admin.purposes', 'admin.users', 'admin.calendar', 'admin.logs',
+    'admin.purposes', 'admin.accounts', 'admin.calendar', 'admin.logs',
 ];
 
 /** The Registrar's stage pages (REQ-18-05). */
@@ -60,7 +60,7 @@ test('REQ-18-03 the registrar has the five stages and Records in the sidebar and
         ->assertSee(route('records'))
         ->assertDontSee(route('admin.reports'))
         ->assertDontSee(route('admin.credential-types'))
-        ->assertDontSee(route('admin.users'));
+        ->assertDontSee(route('admin.accounts'));
 });
 
 test('REQ-18-04 only the admin opens the dashboard, reports and administration pages', function (string $state) {
@@ -209,15 +209,9 @@ test('REQ-18-11 once the admin exists the seeder no longer needs the password', 
     expect(User::where('email', config('uphsl.initial_admin.email'))->count())->toBe(1);
 });
 
-test('REQ-18-12 the demo data includes the admin@example.com admin and registrar@example.com registrar', function () {
-    DemoSeeder::adminAccount();
-    DemoSeeder::adminAccount();   // the demo reset runs it again
+test('REQ-18-12 the demo data includes the registrar@example.com registrar (the demo admin was removed; the first admin comes from INITIAL_ADMIN_*)', function () {
     DemoSeeder::registrarAccount();
-    DemoSeeder::registrarAccount();
-
-    $demo = User::where('email', 'admin@example.com')->sole();
-    expect($demo)->role->toBe(Role::Admin)->is_active->toBeTrue()
-        ->and(Hash::check('@Test123', $demo->password))->toBeTrue();
+    DemoSeeder::registrarAccount();   // the demo reset runs it again
 
     $registrar = User::where('email', 'registrar@example.com')->sole();
     expect($registrar)->role->toBe(Role::Registrar)->is_active->toBeTrue()

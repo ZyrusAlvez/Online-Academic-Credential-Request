@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\CheckStage;
 use App\Enums\PaymentStatus;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
@@ -107,27 +106,26 @@ test('REQ-04-13 a rejection that fails keeps the remarks typed', function () {
     $page = Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request]);
 
     // Meanwhile another registrar verified the payment in another tab.
-    checkAll($this->request, $this->registrar, CheckStage::Payment);
-    workflow()->verifyPaymentAndAccept($this->request, User::factory()->registrar()->create(), 'OR-0001');
+    workflow()->verifyPaymentAndAccept($this->request, User::factory()->registrar()->create());
 
     $page->set('remarks', 'No matching transaction')->call('returnRequest')
         ->assertDispatched('notify')
         ->assertSet('remarks', 'No matching transaction');
 });
 
-test('REQ-04-13 verification needs the official receipt number; a proof alone is not paid', function () {
+test('REQ-04-13 a proof alone is not paid; the registrar verifies it, with no receipt number', function () {
     uploadPayment($this->request);
     expect($this->request->fresh()->accepted_at)->toBeNull();
-    checkAll($this->request, $this->registrar, CheckStage::Payment);
 
     Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $this->request])
-        ->call('approve')->assertHasErrors('officialReceiptNo')
-        ->set('officialReceiptNo', 'OR-778899')->call('approve')->assertHasNoErrors();
+        ->call('approve')->assertHasNoErrors();
 
     expect($this->request->paymentProofs()->sole())
         ->status->toBe(PaymentStatus::Verified)
-        ->official_receipt_no->toBe('OR-778899')
-        ->reviewed_by->toBe($this->registrar->id);
+        ->official_receipt_no->toBeNull()
+        ->reviewed_by->toBe($this->registrar->id)
+        ->and($this->request->fresh()->accepted_at)->not->toBeNull()
+        ->and($this->request->events()->where('type', RequestEventType::PaymentVerified)->value('remarks'))->toBeNull();
 });
 
 /** The requester's page with a new proof filled in, ready to upload. */
@@ -190,9 +188,8 @@ test('REQ-04-20 the registrar sees the note on Payment Validation, in the notifi
 
 test('REQ-04-14 acceptance starts the clock: due date, route and first hand-off', function () {
     uploadPayment($this->request);
-    checkAll($this->request, $this->registrar, CheckStage::Payment);
     Carbon::setTestNow('2026-10-09 10:00:00');   // a Friday
-    workflow()->verifyPaymentAndAccept($this->request, $this->registrar, 'OR-1');
+    workflow()->verifyPaymentAndAccept($this->request, $this->registrar);
 
     $request = $this->request->fresh();
     $steps = $request->steps()->with('department')->get();

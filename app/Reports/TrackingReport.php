@@ -23,7 +23,7 @@ final class TrackingReport implements Report
 
     public function columns(): array
     {
-        return ['Tracking no.', 'Credential', 'Office', 'Visit', 'Forwarded', 'Received', 'Released', 'Working days', 'Status', 'Return reason'];
+        return ['Tracking no.', 'Credential', 'Office', 'Pass', 'Forwarded', 'Received', 'Released', 'Working days', 'Status', 'Return reason'];
     }
 
     public function rows(ReportFilter $filter): iterable

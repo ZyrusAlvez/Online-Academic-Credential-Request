@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Concerns;
 
-use App\Enums\DelayCategory;
 use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\Department;
@@ -13,7 +12,7 @@ use Illuminate\Validation\Rule;
 
 /**
  * Office actions on a request's open visit: accept receipt, mark done, forward, return for
- * correction, record a delay (specs 05, 17). Registrars forward from In Progress (REQ-17-16). The using component must expose a
+ * correction (specs 05, 17). No delay reasons (REQ-24-09). Registrars forward from In Progress (REQ-17-16). The using component must expose a
  * `CredentialRequest $credentialRequest` property.
  *
  * @property CredentialRequest $credentialRequest
@@ -29,12 +28,6 @@ trait ActsOnVisits
     public string $returnReason = '';
 
     public string $correctiveAction = '';
-
-    public string $delayCategory = '';
-
-    public string $delayReason = '';
-
-    public string $delayCorrectiveAction = '';
 
     public function acceptReceipt(RequestWorkflow $workflow): void
     {
@@ -75,7 +68,7 @@ trait ActsOnVisits
         $this->validate([
             'returnTo' => ['required', 'integer', Rule::exists('departments', 'id')],
             'returnReason' => ['required', 'string', 'max:500'],
-            'correctiveAction' => ['required', 'string', 'max:500'],
+            'correctiveAction' => ['nullable', 'string', 'max:500'],
         ], attributes: ['returnTo' => 'office', 'returnReason' => 'reason']);
 
         $returned = $this->attempt(
@@ -86,31 +79,6 @@ trait ActsOnVisits
         if ($returned) {
             Flux::modal('return-visit')->close();
             $this->reset('returnTo', 'returnReason', 'correctiveAction');
-        }
-    }
-
-    public function recordDelay(RequestWorkflow $workflow): void
-    {
-        $visit = $this->credentialRequest->openVisit()->with(['department', 'step', 'credentialRequest'])->first();
-
-        // Department offices only; the registrar does not record delay reasons (REQ-16-21).
-        abort_if($visit === null || $this->actor()->hasRole(Role::Registrar), 403);
-        $this->authorize('act', $visit);
-
-        $this->validate([
-            'delayCategory' => ['required', Rule::enum(DelayCategory::class)],
-            'delayReason' => ['required', 'string', 'max:500'],
-            'delayCorrectiveAction' => ['nullable', 'string', 'max:500'],
-        ], attributes: ['delayCategory' => 'category', 'delayReason' => 'reason']);
-
-        $recorded = $this->attempt(
-            fn () => $workflow->recordDelay($this->credentialRequest, $this->actor(), DelayCategory::from($this->delayCategory), $this->delayReason, $this->delayCorrectiveAction),
-            'Delay reason recorded.',
-        );
-
-        if ($recorded) {
-            Flux::modal('record-delay')->close();
-            $this->reset('delayCategory', 'delayReason', 'delayCorrectiveAction');
         }
     }
 

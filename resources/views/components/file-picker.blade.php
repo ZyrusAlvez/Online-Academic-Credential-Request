@@ -4,7 +4,7 @@
     One file field: a Choose file / Change file button, then the chosen file's name, a link that
     opens it in the file viewer from the browser's own copy (nothing is sent to preview it). The
     browser's picker is hidden, so the name shows once; Livewire's upload events drive the progress
-    bar (REQ-15-04, REQ-11-01, REQ-04-18). The name clears when the component resets the field.
+    bar (REQ-15-04, REQ-11-01). The name clears when the component resets the field.
 --}}
 <div {{ $attributes->class('space-y-2') }}
     x-data="{ chosen: null, uploading: false, progress: 0,

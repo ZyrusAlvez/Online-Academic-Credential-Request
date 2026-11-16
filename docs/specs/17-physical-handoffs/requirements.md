@@ -6,7 +6,8 @@ that forwarding is not receipt and releasing is not approval) and VI-C (separate
 stage).
 
 Decided by the user on 2026-11-07. Each office forwards its own papers. The Office of the
-Registrar forwards its papers only from the In Progress page (also 2026-11-07). The system tracks the paper, not a digital file. Until now,
+Registrar forwards its papers only from the In Progress list (also 2026-11-07), which has no
+working page per request (2026-11-15). The system tracks the paper, not a digital file. Until now,
 an office's "Signed – release to next office" forwarded the document in the same click, so the
 system said the paper had left an office while it was still on a desk there. From now on, an
 office marking its task done keeps the paper in that office. The office then forwards it when
@@ -56,12 +57,11 @@ another criterion says "the office holding the document", REQ-07-07's office fil
   to receive, user's request 2026-11-13). WHEN the registrar clicks Approve,
   Return or Decline and the action's conditions (spec 16) are not met THE SYSTEM SHALL change
   nothing, keep what was typed and checked, and open a dialog that says why:
-  - Approve: the rule "Approve needs every part of the checklist confirmed" (at Payment
-    Validation, "… and the official receipt number"), then each part that blocks it with its
-    state, rejected first and then not checked yet (and the official receipt number, not entered
-    yet), then how to approve: "To approve, change these to Confirm" (or "it", or "enter the
-    official receipt number"). It SHALL NOT suggest Return or Decline, because the registrar's
-    goal is to approve.
+  - Approve at the Initial Evaluation: the rule "Approve needs every part of the checklist
+    confirmed", then each part that blocks it with its state, rejected first and then not checked
+    yet, then how to approve: "To approve, change these to Confirm" (or "it"). It SHALL NOT
+    suggest Return or Decline, because the registrar's goal is to approve. *(Payment Validation's
+    checklist and receipt number were removed on 2026-11-16, REQ-16-17.)*
   - Return at the Initial Evaluation: no rejected part.
   - Return and Decline: no remarks.
 
@@ -69,7 +69,7 @@ another criterion says "the office holding the document", REQ-07-07's office fil
   disabled buttons did not say why. Approve wording revised the same day: the first version
   read "Rejected: …. Confirm it to approve, or return or decline the request.", which was
   unclear.)*
-- **REQ-17-04** THE registrar's working page (`/registrar/requests/{id}`) SHALL NOT show the
+- **REQ-17-04** THE registrar's working page (`/registrar/<queue>/{id}`, REQ-16-26) SHALL NOT show the
   ledger. The Records page (`/registrar/records/{id}`) SHALL keep it.
 
 REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16.
@@ -86,8 +86,8 @@ REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16
   forwarded". It SHALL NOT forward the document or notify the next office.
 - **REQ-17-07** WHILE a document is done and still in an office THE SYSTEM SHALL let staff of that
   office forward it to the next office: the next office on the route, or, for a corrected
-  document, the office that returned it. Department staff forward from their request page, and
-  registrars, for the Office of the Registrar, from the In Progress page (REQ-17-12). Forwarding
+  document, the office that returned it. Department staff forward from their To Forward list, and
+  registrars, for the Office of the Registrar, from the In Progress list (REQ-17-12). Forwarding
   SHALL record the time and staff member as
   the time the document left. It SHALL count the working days from receipt to leaving as the
   visit's time spent, open a visit at the next office awaiting receipt, and notify that office.
@@ -113,26 +113,37 @@ REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16
   applies when the Registrar's task there is done, or while the paper is received there for the
   Registrar's own route task (preparation, or a correction). In the second case the button marks
   the task done and forwards the paper in one step. The button takes the place of the next
-  office's name in the row, since it names that office. Rows where the Office of the Registrar
-  acts next (it holds the paper there, or is to accept its receipt) SHALL open the registrar's
-  working page. The other rows SHALL open the read-only record, with no Forward.
-- **REQ-17-13** THE registrar's working page SHALL show, for a paper the Office of the Registrar
-  holds or is to receive, the office holding it (REQ-17-18), its state there and the next office,
-  with Accept receipt or Done as the state allows. It SHALL NOT offer Forward.
+  office's name in the row, since it names that office. Every row SHALL open the request's
+  read-only record. *(Changed 2026-11-15, user's decision: rows where the Registrar acted opened a
+  working page, removed by REQ-17-13.)*
+- **REQ-17-13** In Progress SHALL be a list only, with no working page per request. WHERE a paper
+  is forwarded to the Office of the Registrar and not yet received, its In Progress row SHALL show
+  an "Accept receipt" button in place of the next office's name, which receives it there
+  (REQ-05-03). The Registrar's own route task SHALL be marked done only through Forward
+  (REQ-17-12), with no remarks. *(Changed 2026-11-15, user's decision: the working page showed
+  where the paper was, the step's instructions, optional remarks and a Done button, which the
+  row's Forward already covers.)*
 - **REQ-17-16** THE SYSTEM SHALL let department office staff forward only the done documents their
-  own office holds, from their request page. Registrars SHALL forward only the documents the
-  Office of the Registrar holds, and only from the In Progress page. Any other forward SHALL be
+  own office holds, from their To Forward list (REQ-24-10; their request page until 2026-11-15).
+  Registrars SHALL forward only the documents the
+  Office of the Registrar holds, and only from the In Progress list. Any other forward SHALL be
   refused (403).
 
 ### Records and queues
 - **REQ-17-14** THE office visits table SHALL show for each visit when the paper was forwarded to
   the office, received (delivered), done and forwarded on (left), with the staff member for each,
-  the time spent and the status.
+  the time spent and the status. On screen it SHALL be headed "Time in Each Office" (Proposed
+  Workflow VI-C), and no screen or report SHALL call the paper's stops "office visits": "Office
+  Visit" means only the requester's visit to the Registrar's office (REQ-20-04). The admin
+  dashboard says "Average time per office" and "% of office steps"; the department report "Avg
+  working days per document"; the tracking report's visit number is "Pass". *(User's request,
+  2026-11-15.)*
 - **REQ-17-15** THE office queue's "In office" tab, the registrar dashboard's office counts and
   the office reports SHALL count a done document still in the office as held by that office.
   The "In office" tab SHALL mark it "Done, not yet forwarded". The dashboard's office counts and
   the office reports SHALL count a forwarded document not yet received at the office that
-  forwarded it (REQ-17-18).
+  forwarded it (REQ-17-18). *(Since REQ-24-02, 10 the "In office" tab is two lists: To Validate,
+  and To Forward for the done documents not yet forwarded.)*
 
 ### Who holds the paper
 - **REQ-17-18** WHILE a forwarded document is not yet received THE SYSTEM SHALL treat it as held

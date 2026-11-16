@@ -25,10 +25,8 @@
                     —
                 @endif
             </x-summary-row>
-            <x-requirement-document-list :request="$request" />
             @if ($request->accepted_at)
                 <x-summary-row :label="__('Due date')">{{ $request->due_at->format('M j, Y') }}</x-summary-row>
-                <x-summary-row :label="__('Adjusted due date')">{{ $request->adjusted_due_at?->format('M j, Y') ?? '—' }}</x-summary-row>
                 <x-summary-row :label="__('Processing time')">{{ $request->processing_working_days !== null ? trans_choice(':count working day|:count working days', $request->processing_working_days) : '—' }}</x-summary-row>
             @endif
         </x-request-details>
@@ -88,7 +86,7 @@
 
 @if ($request->visits->isNotEmpty())
     <section aria-labelledby="visits-heading" class="space-y-4 rounded-xl border border-secondary/50 p-5 sm:p-6">
-        <h2 id="visits-heading" class="text-lg font-semibold text-primary">{{ __('Office Visits') }}</h2>
+        <h2 id="visits-heading" class="text-lg font-semibold text-primary">{{ __('Time in Each Office') }}</h2>
         <x-office-visits :visits="$request->visits" show-actors />
     </section>
 @endif

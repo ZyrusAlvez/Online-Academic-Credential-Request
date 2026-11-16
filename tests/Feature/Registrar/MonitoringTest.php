@@ -4,7 +4,7 @@ use App\Enums\RequestStatus;
 use App\Livewire\Registrar\Records\Index;
 use App\Models\CredentialRequest;
 use App\Models\User;
-use Database\Seeders\DemoSeeder;
+use Database\Seeders\DemoRequestSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -41,7 +41,8 @@ test('REQ-07-02 requests being processed past their due date are overdue and fil
         ->assertDontSee($onTime->reference_no)
         ->assertSee('Overdue');
 
-    $this->actingAs($this->registrar)->get(route('registrar.requests.show', $late))->assertSee('Overdue since');
+    // In progress: its row opens the record (REQ-17-12).
+    $this->actingAs($this->registrar)->get(route('records.show', $late))->assertSee('Overdue since');
 });
 
 test('REQ-07-03 the dashboard shows the work-queue counts', function () {
@@ -90,7 +91,7 @@ test('REQ-07-07 the request list can be filtered by the office holding the docum
 test('REQ-07-09 the demo seeder creates accounts and requests in every status still in use', function () {
     CredentialRequest::query()->delete();
 
-    $this->seed(DemoSeeder::class);
+    $this->seed(DemoRequestSeeder::class);
 
     expect(User::where('email', 'student@example.com')->exists())->toBeTrue()
         ->and(User::where('email', 'vpf@example.com')->value('department_id'))->not->toBeNull()

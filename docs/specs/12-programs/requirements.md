@@ -16,12 +16,12 @@ registrar" as "the Admin" in REQ-12-03..06 (REQ-18-04).*
 - **REQ-12-01** THE SYSTEM SHALL keep programs and strands in the database, each belonging to one
   college, with a name that is unique within that college.
 - **REQ-12-02** WHEN the base data is seeded THE SYSTEM SHALL install the university's published
-  programs (the 27 programs of the 2026-11-06 list, see design) without duplicating or overwriting
+  programs (the 34 programs of the list, see design) without duplicating or overwriting
   what the registrar has changed. *(Reworded 2026-11-15: the list is seeded, not installed by a
-  migration on deploy, REQ-23-02.)*
+  migration on deploy, REQ-23-02. Corrected the same day: the Basic Education program is named
+  "Senior High School Department", and 7 programs were added, 27 → 34.)*
 - ~~REQ-12-12~~ *Superseded by REQ-23-01 and 02 (2026-11-15):* the one-time replacement of the
-  earlier program list on existing databases is gone; the 27 programs are the seeded list
-  (REQ-12-02).
+  earlier program list on existing databases is gone; the seeded list is the list (REQ-12-02).
 - ~~REQ-12-11~~ *Superseded by REQ-18-11 and REQ-23-02 (2026-11-15):* no staff account is created
   automatically. The Admin creates every staff account, the Basic Education Department's included.
 

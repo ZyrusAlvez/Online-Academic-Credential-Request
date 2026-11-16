@@ -8,13 +8,8 @@
     $idDocument = $request->identityDocument;
     $visit = $request->openVisit;
 
-    [$queueLabel, $queueRoute] = match ($panel) {
-        Page::PANEL_LOCKED, Page::PANEL_START, Page::PANEL_EVALUATION, Page::PANEL_CLARIFICATION, Page::PANEL_COMPLIANCE => [__('Initial Evaluation'), 'registrar.evaluation'],
-        Page::PANEL_PAYMENT => [__('Payment Validation'), 'registrar.payments'],
-        Page::PANEL_FINAL_CHECK => [__('Final Quality Check'), 'registrar.final-check'],
-        Page::PANEL_RELEASE => [__('Release'), 'registrar.release'],
-        default => [__('Records'), 'records'],
-    };
+    // The queue the page is under is the breadcrumb (REQ-16-26).
+    [$queueLabel, $queueRoute] = $currentQueue !== null ? [__($currentQueue->label()), $currentQueue->routeName()] : [__('Records'), 'records'];
 
     // The decision applies only when every part shown is confirmed (REQ-16-12, 17).
     $allConfirmed = collect($items)->every(fn ($item) => ($results[$item->value] ?? null) === CheckResult::Confirmed);
@@ -86,7 +81,8 @@
                         <li wire:key="required-{{ $deficiency->id }}" class="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
                             <span class="font-medium text-ink">{{ $deficiency->description }}</span>
                             @if ($deficiency->resolved_at)
-                                <span class="inline-flex items-center gap-1 text-green-800" data-received>
+                                {{-- Always on its own line at the lower right, however long the name (REQ-20-09). --}}
+                                <span class="flex w-full items-center justify-end gap-1 text-green-800" data-received>
                                     <flux:icon.check-circle variant="mini" aria-hidden="true" />
                                     {{ __('Received :date · :name', ['date' => $deficiency->resolved_at->format('M j, Y g:i A'), 'name' => $deficiency->resolver?->name]) }}
                                 </span>
@@ -96,7 +92,7 @@
                         </li>
                     @endforeach
                 </ul>
-                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
+                <flux:textarea wire:model="remarks" :label="__('Remarks')" badge="Optional" rows="3" data-compliance-remarks />
                 <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
                     <flux:button wire:click="decline" variant="danger" icon="no-symbol" data-decline-button data-confirm-title="{{ __('Decline request') }}" data-confirm-label="{{ __('Decline') }}" :wire:confirm="__('Decline :ref? The requester is notified with your remarks. This cannot be undone.', ['ref' => $request->reference_no])">{{ __('Decline') }}</flux:button>
                     {{-- Not until every item is received; the server refuses it too (REQ-20-09). --}}
@@ -123,8 +119,6 @@
                                 <x-summary-row :label="__('Amount due')">{{ $request->requires_payment ? '₱'.number_format((float) $request->amount_due, 2) : __('None required') }}</x-summary-row>
                                 <x-summary-row :label="__('Transacting')">{{ $request->requester_mode->label() }}</x-summary-row>
                                 <x-summary-row :label="__('Submitted')">{{ $request->submitted_at?->format('M j, Y g:i A') }}</x-summary-row>
-                                {{-- Each requirement and the copies the requester sent, as rows (REQ-04-19, REQ-09-22). --}}
-                                <x-requirement-document-list :request="$request" />
                             </dl>
                             @break
 
@@ -172,33 +166,32 @@
             @if ($paymentNote !== '')
                 <p class="rounded-md border border-secondary/50 bg-white p-3 text-sm whitespace-pre-line text-ink" data-payment-note><span class="font-semibold">{{ __('Requester\'s note:') }}</span> {{ $paymentNote }}</p>
             @endif
-            {{-- The payment validation checklist (REQ-16-17). --}}
-            @foreach ($items as $item)
-                <x-check-card :item="$item" :result="$results[$item->value] ?? null" wire:key="check-{{ $item->value }}">
-                    @if ($item === Item::PaymentProof)
-                        @if ($pendingProof)
-                            @if ($pendingProof->isImage())
-                                <x-file-link :href="route('payment-proofs.show', $pendingProof)" :name="__('Proof of payment: :file', ['file' => $pendingProof->original_name])" :type="$pendingProof->mime_type" class="block w-fit cursor-zoom-in">
-                                    <x-loading-image :src="route('payment-proofs.show', $pendingProof)" :alt="__('Proof of payment uploaded by the requester (open larger)')" class="max-h-96 w-auto rounded-lg border border-secondary/50" />
-                                </x-file-link>
-                            @else
-                                <x-file-link :href="route('payment-proofs.show', $pendingProof)" :name="__('Proof of payment: :file', ['file' => $pendingProof->original_name])" :type="$pendingProof->mime_type" class="text-sm font-medium">
-                                    {{ $pendingProof->original_name }}
-                                </x-file-link>
-                            @endif
-                        @else
-                            <p class="text-sm text-zinc-600">{{ __('No proof of payment uploaded yet.') }}</p>
-                        @endif
+            {{-- The proof and its details, read-only: no checklist (REQ-16-17). --}}
+            <section aria-labelledby="proof-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-payment-proof>
+                <h2 id="proof-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Proof of Payment') }}</h2>
+                @if ($pendingProof)
+                    @if ($pendingProof->isImage())
+                        <x-file-link :href="route('payment-proofs.show', $pendingProof)" :name="__('Proof of payment: :file', ['file' => $pendingProof->original_name])" :type="$pendingProof->mime_type" class="block w-fit cursor-zoom-in">
+                            <x-loading-image :src="route('payment-proofs.show', $pendingProof)" :alt="__('Proof of payment uploaded by the requester (open larger)')" class="max-h-96 w-auto rounded-lg border border-secondary/50" />
+                        </x-file-link>
                     @else
-                        <dl class="divide-y divide-zinc-200 text-sm">
-                            <x-summary-row :label="__('Amount due')">₱{{ number_format((float) $request->amount_due, 2) }}</x-summary-row>
-                            <x-summary-row :label="__('Amount paid')">{{ $pendingProof?->amount !== null ? '₱'.number_format((float) $pendingProof->amount, 2) : '—' }}</x-summary-row>
-                            <x-summary-row :label="__('Reference')" class="[&_dd]:break-all">{{ $pendingProof?->reference_no ?? '—' }}</x-summary-row>
-                            <x-summary-row :label="__('Date paid')">{{ $pendingProof?->paid_on?->format('M j, Y') ?? '—' }}</x-summary-row>
-                        </dl>
+                        <x-file-link :href="route('payment-proofs.show', $pendingProof)" :name="__('Proof of payment: :file', ['file' => $pendingProof->original_name])" :type="$pendingProof->mime_type" class="text-sm font-medium">
+                            {{ $pendingProof->original_name }}
+                        </x-file-link>
                     @endif
-                </x-check-card>
-            @endforeach
+                @else
+                    <p class="text-sm text-zinc-600">{{ __('No proof of payment uploaded yet.') }}</p>
+                @endif
+            </section>
+            <section aria-labelledby="payment-details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-payment-details>
+                <h2 id="payment-details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Payment Details') }}</h2>
+                <dl class="divide-y divide-zinc-200 text-sm">
+                    <x-summary-row :label="__('Amount due')">₱{{ number_format((float) $request->amount_due, 2) }}</x-summary-row>
+                    <x-summary-row :label="__('Amount paid')">{{ $pendingProof?->amount !== null ? '₱'.number_format((float) $pendingProof->amount, 2) : '—' }}</x-summary-row>
+                    <x-summary-row :label="__('Reference')" class="[&_dd]:break-all">{{ $pendingProof?->reference_no ?? '—' }}</x-summary-row>
+                    <x-summary-row :label="__('Date paid')">{{ $pendingProof?->paid_on?->format('M j, Y') ?? '—' }}</x-summary-row>
+                </dl>
+            </section>
         @endif
 
         @if ($panel === Page::PANEL_FINAL_CHECK)
@@ -230,49 +223,6 @@
             @endif
         @endif
 
-        @if (in_array($panel, [Page::PANEL_EVALUATION, Page::PANEL_PAYMENT], true) || ($panel === Page::PANEL_FINAL_CHECK && $visit->status !== \App\Enums\VisitStatus::InTransit))
-            {{-- The stage's decision (REQ-16-11). --}}
-            <section aria-labelledby="decision-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-decision>
-                <div>
-                    <h2 id="decision-heading" class="text-lg font-semibold text-primary">{{ __('Decision') }}</h2>
-                    @unless ($panel === Page::PANEL_FINAL_CHECK)
-                        <p class="text-sm text-zinc-700">
-                            @if ($allConfirmed)
-                                {{ __('Every part is confirmed.') }}
-                            @elseif ($anyRejected)
-                                {{ __('Some parts are rejected.') }}
-                            @else
-                                {{ __('Confirm every part to approve.') }}
-                            @endif
-                        </p>
-                    @endunless
-                    @if ($panel === Page::PANEL_EVALUATION)
-                        <p class="text-xs text-zinc-600">{{ __('Evaluator: :name', ['name' => $request->evaluator?->name]) }}</p>
-                    @endif
-                </div>
-
-                @if ($panel === Page::PANEL_PAYMENT)
-                    <flux:input wire:model="officialReceiptNo" :label="__('Official receipt no.')" :description="__('Needed to approve.')" />
-                @endif
-                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
-
-                {{-- Always enabled; a decision that can't run says why (REQ-17-17). The approving one is on the right (REQ-17-02). --}}
-                <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
-                    <flux:button wire:click="decline" variant="danger" icon="no-symbol" data-decline-button data-confirm-title="{{ __('Decline request') }}" data-confirm-label="{{ __('Decline') }}" :wire:confirm="__('Decline :ref? The requester is notified with your remarks. This cannot be undone.', ['ref' => $request->reference_no])">{{ __('Decline') }}</flux:button>
-                    @if ($panel === Page::PANEL_EVALUATION)
-                        {{-- The four evaluation decisions (REQ-20-02). --}}
-                        <flux:modal.trigger name="office-visit">
-                            <flux:button icon="building-office" data-office-visit-button>{{ __('Require Office Visit') }}</flux:button>
-                        </flux:modal.trigger>
-                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return for Clarification') }}</flux:button>
-                    @elseif ($panel === Page::PANEL_PAYMENT)
-                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return') }}</flux:button>
-                    @endif
-                    <flux:button wire:click="approve" variant="primary" icon="check" data-approve-button>{{ __('Approve') }}</flux:button>
-                </div>
-            </section>
-        @endif
-
         @if ($panel === Page::PANEL_RELEASE)
             @if ($request->representatives->contains(fn ($r) => $r->status === \App\Enums\ReviewStatus::Pending))
                 {{-- A representative declared after the evaluation (REQ-16-20). --}}
@@ -302,40 +252,59 @@
             </section>
         @endif
 
-        @if ($panel === Page::PANEL_OFFICE)
-            {{-- The Office of the Registrar's own route step: preparation or a correction (spec 05). --}}
-            @php($nextOffice = $request->nextOffice())
-            <section aria-labelledby="current-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-office-panel>
-                {{-- Where the paper is and where it goes next (REQ-17-13). --}}
-                <dl class="grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <dt id="current-heading" class="text-sm font-medium text-zinc-600">{{ __('Currently at') }}</dt>
-                        {{-- A forwarded paper stays with its sender until it is received (REQ-17-18). --}}
-                        <dd class="text-lg font-semibold text-primary" data-holder>{{ $visit->holder()->name }}</dd>
-                        <dd class="text-xs text-zinc-600">
-                            @if ($visit->status === \App\Enums\VisitStatus::InTransit)
-                                {{ __('Forwarded :time to :office, not yet received', ['time' => $visit->forwarded_at->diffForHumans(), 'office' => $visit->department->name]) }}
-                            @else
-                                {{ __($visit->status->label()) }} · {{ ($visit->done_at ?? $visit->received_at)->diffForHumans() }}
-                            @endif
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm font-medium text-zinc-600">{{ __('Next') }}</dt>
-                        <dd class="text-lg font-semibold text-ink" data-next-office>{{ $nextOffice?->name ?? __('Release') }}</dd>
-                    </div>
-                </dl>
-                @include('partials.visit-actions', ['visit' => $visit, 'returnOffices' => $returnOffices])
-            </section>
-        @endif
-
         {{-- The ledger is on the Records page only (REQ-17-04). --}}
         @include('partials.request-record', ['hide' => ['ledger', ...match ($panel) {
             Page::PANEL_EVALUATION => ['details', 'representatives'],
             Page::PANEL_COMPLIANCE => ['deficiencies'],
+            // The proof under review is shown above; the list would repeat it (REQ-16-17).
+            Page::PANEL_PAYMENT => ['proofs'],
             Page::PANEL_FINAL_CHECK => $visit->status === \App\Enums\VisitStatus::InTransit ? [] : ['route'],
             default => [],
         }]])
+
+        @if (in_array($panel, [Page::PANEL_EVALUATION, Page::PANEL_PAYMENT], true) || ($panel === Page::PANEL_FINAL_CHECK && $visit->status !== \App\Enums\VisitStatus::InTransit))
+            {{-- What the requester wrote when resubmitting, just above the Decision (REQ-20-14). --}}
+            @if ($resubmitNote !== '')
+                <p class="rounded-md border border-secondary/50 bg-white p-3 text-sm whitespace-pre-line text-ink" data-resubmit-note><span class="font-semibold">{{ __('Requester\'s note:') }}</span> {{ $resubmitNote }}</p>
+            @endif
+
+            {{-- The stage's decision (REQ-16-11), last on the page (REQ-16-27). --}}
+            <section aria-labelledby="decision-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-decision>
+                <div>
+                    <h2 id="decision-heading" class="text-lg font-semibold text-primary">{{ __('Decision') }}</h2>
+                    @if ($panel === Page::PANEL_EVALUATION)
+                        <p class="text-sm text-zinc-700">
+                            @if ($allConfirmed)
+                                {{ __('Every part is confirmed.') }}
+                            @elseif ($anyRejected)
+                                {{ __('Some parts are rejected.') }}
+                            @else
+                                {{ __('Confirm every part to approve.') }}
+                            @endif
+                        </p>
+                        <p class="text-xs text-zinc-600">{{ __('Evaluator: :name', ['name' => $request->evaluator?->name]) }}</p>
+                    @endif
+                </div>
+
+                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
+
+                {{-- Always enabled; a decision that can't run says why (REQ-17-17). The approving one is on the right (REQ-17-02). --}}
+                <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
+                    <flux:button wire:click="decline" variant="danger" icon="no-symbol" data-decline-button data-confirm-title="{{ __('Decline request') }}" data-confirm-label="{{ __('Decline') }}" :wire:confirm="__('Decline :ref? The requester is notified with your remarks. This cannot be undone.', ['ref' => $request->reference_no])">{{ __('Decline') }}</flux:button>
+                    @if ($panel === Page::PANEL_EVALUATION)
+                        {{-- The four evaluation decisions (REQ-20-02). --}}
+                        <flux:modal.trigger name="office-visit">
+                            <flux:button icon="building-office" data-office-visit-button>{{ __('Require Office Visit') }}</flux:button>
+                        </flux:modal.trigger>
+                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return for Clarification') }}</flux:button>
+                    @elseif ($panel === Page::PANEL_PAYMENT)
+                        {{-- Payment Validation: Decline, Return to Requester, Approve (REQ-16-17). --}}
+                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return to Requester') }}</flux:button>
+                    @endif
+                    <flux:button wire:click="approve" variant="primary" icon="check" data-approve-button>{{ __('Approve') }}</flux:button>
+                </div>
+            </section>
+        @endif
     @endif
 
     {{-- Why a decision could not run (REQ-17-17). --}}
@@ -344,7 +313,7 @@
             <flux:heading size="lg">
                 {{ match ($blockedAction) {
                     'approve' => __("Can't approve yet"),
-                    'return' => $panel === Page::PANEL_EVALUATION ? __("Can't return for clarification yet") : __("Can't return yet"),
+                    'return' => $panel === Page::PANEL_EVALUATION ? __("Can't return for clarification yet") : __("Can't return to the requester yet"),
                     'confirm' => __("Can't confirm compliance yet"),
                     'decline' => __("Can't decline yet"),
                     default => __("Can't do that yet"),
@@ -361,15 +330,9 @@
                 </ul>
                 <p class="text-sm text-ink" data-blocked-hint>{{ __('Mark each one received when the original is submitted.') }}</p>
             @elseif ($blockedParts !== [])
-                {{-- Approve: the rule, what blocks it, and how to approve; never Return or Decline. --}}
-                {{-- One-line PHP directives only: a PHP block here would pair with the one-line directive above and swallow the page. --}}
-                @php($toConfirm = collect($blockedParts)->where('state', '!==', 'not_entered')->count())
-                @php($receiptNotEntered = collect($blockedParts)->contains('state', 'not_entered'))
-                <p class="text-sm text-ink">
-                    {{ $panel === Page::PANEL_PAYMENT
-                        ? __('Approve needs every part of the checklist confirmed and the official receipt number.')
-                        : __('Approve needs every part of the checklist confirmed.') }}
-                </p>
+                {{-- Approve at the Initial Evaluation: the rule, what blocks it, and how to approve;
+                     never Return or Decline. --}}
+                <p class="text-sm text-ink">{{ __('Approve needs every part of the checklist confirmed.') }}</p>
                 <ul class="space-y-2 text-sm text-ink" data-blocked-parts>
                     @foreach ($blockedParts as $part)
                         <li class="flex items-start gap-2" data-part-state="{{ $part['state'] }}">
@@ -380,23 +343,13 @@
                             @endif
                             <span>
                                 <span class="font-medium">{{ __($part['label']) }}</span>
-                                — {{ match ($part['state']) {
-                                    'rejected' => __('rejected'),
-                                    'not_entered' => __('not entered yet'),
-                                    default => __('not checked yet'),
-                                } }}
+                                — {{ $part['state'] === 'rejected' ? __('rejected') : __('not checked yet') }}
                             </span>
                         </li>
                     @endforeach
                 </ul>
                 <p class="text-sm text-ink" data-blocked-hint>
-                    @if ($toConfirm > 0 && $receiptNotEntered)
-                        {{ __('To approve, change the checklist parts to Confirm and enter the official receipt number.') }}
-                    @elseif ($toConfirm > 0)
-                        {{ $toConfirm === 1 ? __('To approve, change it to Confirm.') : __('To approve, change these to Confirm.') }}
-                    @else
-                        {{ __('To approve, enter the official receipt number.') }}
-                    @endif
+                    {{ count($blockedParts) === 1 ? __('To approve, change it to Confirm.') : __('To approve, change these to Confirm.') }}
                 </p>
             @endif
 
@@ -422,15 +375,17 @@
                     <flux:heading size="lg">{{ __('Require Office Visit') }}</flux:heading>
                     <flux:text class="mt-2">{{ __('Tick what the requester must bring or complete at the office.') }}</flux:text>
                 </div>
-                @if ($request->credentialType->requirements)
-                    <flux:checkbox.group wire:model="requiredItems" :label="__('Requirements')">
-                        @foreach ($request->credentialType->requirements as $requirement)
-                            <flux:checkbox :value="$requirement" :label="$requirement" />
-                        @endforeach
-                    </flux:checkbox.group>
-                @endif
-                <flux:input wire:model="otherRequirement" :label="__('Other')" :badge="$request->credentialType->requirements ? __('Optional') : null" :placeholder="__('e.g. Completed clearance form')" maxlength="250" />
-                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
+                {{-- The credential's list, then "Other", whose field shows once it is ticked (REQ-20-04). --}}
+                <flux:checkbox.group wire:model="requiredItems" :label="__('Requirements')">
+                    @foreach ($request->credentialType->requirements ?? [] as $requirement)
+                        <flux:checkbox :value="$requirement" :label="$requirement" />
+                    @endforeach
+                    <flux:checkbox :value="Page::OTHER_ITEM" :label="__('Other')" data-other-checkbox />
+                </flux:checkbox.group>
+                <div x-show="($wire.requiredItems ?? []).includes(@js(Page::OTHER_ITEM))" @unless (in_array(Page::OTHER_ITEM, $requiredItems, true)) x-cloak style="display: none" @endunless data-other-field>
+                    <flux:input wire:model="otherRequirement" :label="__('Please specify')" :placeholder="__('e.g. Completed clearance form')" maxlength="250" />
+                </div>
+                <flux:textarea wire:model="remarks" :label="__('Remarks')" badge="Optional" rows="3" data-office-visit-remarks />
                 <div class="flex justify-end gap-2">
                     <flux:modal.close><flux:button variant="ghost">{{ __('Back') }}</flux:button></flux:modal.close>
                     <flux:button type="submit" variant="primary" icon="building-office">{{ __('Require Office Visit') }}</flux:button>

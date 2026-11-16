@@ -34,7 +34,9 @@
                 <flux:table.row :key="$account->id">
                     <flux:table.cell class="whitespace-normal">
                         <div class="font-medium text-ink">{{ $account->name }}</div>
-                        <div class="text-xs text-zinc-500">{{ $account->email }}</div>
+                        @if ($account->name !== $account->email)
+                            <div class="text-xs text-zinc-500">{{ $account->email }}</div>
+                        @endif
                     </flux:table.cell>
                     <flux:table.cell class="max-sm:hidden">{{ $account->role->label() }}</flux:table.cell>
                     <flux:table.cell class="max-md:hidden whitespace-normal">{{ $account->department?->name ?? '—' }}</flux:table.cell>

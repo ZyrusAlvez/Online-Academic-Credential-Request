@@ -5,15 +5,15 @@ namespace App\Models;
 use App\Enums\AcademicStatus;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
-use App\Enums\DocumentKind;
 use App\Enums\RequesterMode;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
+use App\Enums\RouteTask;
+use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use Carbon\CarbonInterface;
 use Database\Factories\CredentialRequestFactory;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -198,10 +198,12 @@ class CredentialRequest extends Model
      */
     public function checkResults(CheckStage $stage): array
     {
-        return $this->checks
-            ->filter(fn (RequestCheck $check): bool => $check->item->stage() === $stage)
-            ->mapWithKeys(fn (RequestCheck $check): array => [$check->item->value => $check->result])
-            ->all();
+        // Every stored part is Initial Evaluation's, the only checklist (REQ-16-17, 19).
+        $checks = match ($stage) {
+            CheckStage::Evaluation => $this->checks,
+        };
+
+        return $checks->mapWithKeys(fn (RequestCheck $check): array => [$check->item->value => $check->result])->all();
     }
 
     /**
@@ -249,6 +251,17 @@ class CredentialRequest extends Model
         return $this->hasOne(OfficeVisit::class)
             ->whereIn('status', VisitStatus::open())
             ->latestOfMany();
+    }
+
+    /**
+     * The document is with the Registrar for the final quality check, not a correction sent from
+     * it (REQ-16-05, 19).
+     */
+    public function isAtFinalCheck(): bool
+    {
+        $visit = $this->loadMissing('openVisit.step')->openVisit;
+
+        return $visit !== null && $visit->step->task === RouteTask::FinalCheck && $visit->purpose !== VisitPurpose::Correction;
     }
 
     /**
@@ -315,36 +328,6 @@ class CredentialRequest extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(RequestDocument::class)->orderBy('id');
-    }
-
-    /**
-     * The requester's copies of the credential's documentary requirements (REQ-04-19).
-     *
-     * @return HasMany<RequestDocument, $this>
-     */
-    public function requirementDocuments(): HasMany
-    {
-        return $this->documents()->where('kind', DocumentKind::Requirement);
-    }
-
-    /**
-     * Each documentary requirement with its files: the credential's current list, then any
-     * requirement a file was sent for that the list no longer has. Expects `credentialType` and
-     * `requirementDocuments` to be loaded.
-     *
-     * @return array<string, Collection<int, RequestDocument>>
-     */
-    public function requirementFiles(): array
-    {
-        $documents = $this->requirementDocuments;
-        $sent = $documents->pluck('requirement')->filter()->map(fn ($requirement): string => (string) $requirement)->all();
-        $files = [];
-
-        foreach (array_unique([...($this->credentialType->requirements ?? []), ...$sent]) as $requirement) {
-            $files[$requirement] = $documents->where('requirement', $requirement)->values();
-        }
-
-        return $files;
     }
 
     /**

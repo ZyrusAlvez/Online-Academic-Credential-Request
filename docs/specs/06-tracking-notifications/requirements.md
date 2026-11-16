@@ -37,8 +37,8 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
 - **REQ-06-03** THE SYSTEM SHALL show the registrar the full ledger of a request, including who
   performed each action, and the office visits with the date received, date released, working days
   spent and status.
-- **REQ-06-04** THE SYSTEM SHALL show office staff the request's office visits and history on their
-  request page.
+- ~~REQ-06-04~~ *Superseded by REQ-24-07:* the office's request page shows the details, the
+  verified proof of payment and the route, not the office visits or the tracking history.
 
 ### Requester notifications
 - **REQ-06-05** THE SYSTEM SHALL notify the requester in-app and by email when the request is

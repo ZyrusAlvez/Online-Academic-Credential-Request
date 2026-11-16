@@ -6,7 +6,6 @@ use App\Actions\Audit\RecordRequestEvent;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
-use App\Enums\DelayCategory;
 use App\Enums\DocumentKind;
 use App\Enums\PaymentStatus;
 use App\Enums\RecipientType;
@@ -28,7 +27,6 @@ use App\Models\OfficeVisit;
 use App\Models\PaymentProof;
 use App\Models\RequestCheck;
 use App\Models\RequestDeficiency;
-use App\Models\RequestDocument;
 use App\Models\RequesterVerification;
 use App\Models\RequestEvent;
 use App\Models\RequestRepresentative;
@@ -246,10 +244,6 @@ class RequestWorkflow
             throw new InvalidTransition('Tick at least one requirement, so the requester knows what to bring.');
         }
 
-        if (blank($remarks)) {
-            throw new InvalidTransition('Tell the requester what to bring.');
-        }
-
         DB::transaction(function () use ($request, $registrar, $items, $remarks): void {
             $locked = $this->lock($request, [RequestStatus::UnderEvaluation], 'Only a request under evaluation can require an office visit.');
             $this->assertEvaluator($locked, $registrar);
@@ -261,8 +255,8 @@ class RequestWorkflow
             }
 
             $this->transition($locked, $request, RequestStatus::PendingCompliance, $registrar, RequestEventType::ComplianceRequested,
-                // "Required": a copy may already be uploaded; the office needs the original.
-                'Required: '.implode('; ', $items)."\n{$remarks}");
+                // "Required", never "missing": the office needs the original. Remarks are optional.
+                'Required: '.implode('; ', $items).(filled($remarks) ? "\n".trim($remarks) : ''));
         });
     }
 
@@ -320,7 +314,7 @@ class RequestWorkflow
      *
      * @param  ?array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $changes
      */
-    public function resubmit(CredentialRequest $request, User $owner, ?string $note = null, ?array $changes = null, ?IdentityDocument $identity = null, bool $newRequirementCopies = false): void
+    public function resubmit(CredentialRequest $request, User $owner, ?string $note = null, ?array $changes = null, ?IdentityDocument $identity = null): void
     {
         if ($request->user_id !== $owner->id) {
             throw new InvalidTransition('Only the requester can resubmit this request.');
@@ -330,7 +324,7 @@ class RequestWorkflow
             throw new InvalidTransition('Upload your own valid ID.');
         }
 
-        DB::transaction(function () use ($request, $owner, $note, $changes, $identity, $newRequirementCopies): void {
+        DB::transaction(function () use ($request, $owner, $note, $changes, $identity): void {
             $locked = $this->lock($request, [RequestStatus::ReturnedForClarification], 'Only a request returned to you for clarification can be resubmitted.');
 
             if ($locked->identity_status === ReviewStatus::Rejected && $identity === null) {
@@ -341,10 +335,6 @@ class RequestWorkflow
 
             if ($changes !== null) {
                 $recheck = $this->applyChanges($locked, $owner, $changes);
-            }
-
-            if ($newRequirementCopies) {
-                $recheck[] = CheckItem::CredentialRequest;
             }
 
             if ($identity !== null) {
@@ -453,26 +443,21 @@ class RequestWorkflow
             $locked = $this->lock($request, [RequestStatus::PaymentVerification], 'Only payments awaiting verification can be rejected.');
 
             $this->reviewLatestProof($locked, $registrar, PaymentStatus::Rejected, remarks: $remarks);
-            $locked->checks()->whereIn('item', array_map(fn (CheckItem $item) => $item->value, CheckItem::for(CheckStage::Payment, $locked)))->delete();   // the next proof is checked anew
             $this->transition($locked, $request, RequestStatus::AwaitingPayment, $registrar, RequestEventType::PaymentRejected, $remarks);
         });
     }
 
     /**
-     * The payment matches the official record: accept the request for processing (REQ-04-13, 14).
+     * The registrar confirmed the payment against the official payment record: accept the request
+     * for processing (REQ-04-13, 14). No checklist and no receipt number (REQ-16-17).
      */
-    public function verifyPaymentAndAccept(CredentialRequest $request, User $registrar, string $officialReceiptNo, ?string $remarks = null): void
+    public function verifyPaymentAndAccept(CredentialRequest $request, User $registrar, ?string $remarks = null): void
     {
-        if (blank($officialReceiptNo)) {
-            throw new InvalidTransition('Enter the official receipt number from the payment record.');
-        }
-
-        DB::transaction(function () use ($request, $registrar, $officialReceiptNo, $remarks): void {
+        DB::transaction(function () use ($request, $registrar, $remarks): void {
             $locked = $this->lock($request, [RequestStatus::PaymentVerification], 'Only payments awaiting verification can be verified.');
-            $this->assertAllConfirmed($locked, CheckStage::Payment);
 
-            $this->reviewLatestProof($locked, $registrar, PaymentStatus::Verified, $officialReceiptNo, $remarks);
-            $this->record($locked, $registrar, RequestEventType::PaymentVerified, null, null, "Official receipt {$officialReceiptNo}");
+            $this->reviewLatestProof($locked, $registrar, PaymentStatus::Verified, remarks: $remarks);
+            $this->record($locked, $registrar, RequestEventType::PaymentVerified, null, null);
             $this->accept($locked, $request, $registrar, $remarks);
         });
     }
@@ -573,13 +558,16 @@ class RequestWorkflow
     }
 
     /**
-     * Return the document to an earlier office for correction (REQ-05-06).
+     * Return the document to an earlier office for correction, with the reason and, optionally,
+     * the corrective action needed (REQ-05-06).
      */
-    public function returnVisit(OfficeVisit $visit, User $actor, Department $to, string $reason, string $correctiveAction, ?string $remarks = null): void
+    public function returnVisit(OfficeVisit $visit, User $actor, Department $to, string $reason, ?string $correctiveAction = null, ?string $remarks = null): void
     {
-        if (blank($reason) || blank($correctiveAction)) {
-            throw new InvalidTransition('Give the reason for the return and the corrective action needed.');
+        if (blank($reason)) {
+            throw new InvalidTransition('Give the reason for the return.');
         }
+
+        $correctiveAction = filled($correctiveAction) ? $correctiveAction : null;
 
         DB::transaction(function () use ($visit, $actor, $to, $reason, $correctiveAction, $remarks): void {
             [$locked, $current] = $this->lockVisit($visit, [VisitStatus::Received]);
@@ -605,99 +593,9 @@ class RequestWorkflow
 
             $office = $current->department()->firstOrFail();
             $this->transition($locked, $locked, RequestStatus::ReturnedForCorrection, $actor, RequestEventType::DocumentReturned,
-                "Returned to {$to->name}: {$reason}\nCorrective action: {$correctiveAction}", visit: $current);
+                "Returned to {$to->name}: {$reason}".($correctiveAction !== null ? "\nCorrective action: {$correctiveAction}" : ''), visit: $current);
             $this->forward($locked, $step, $to, VisitPurpose::Correction, $office, $actor);
         });
-    }
-
-    /**
-     * Record why a request is delayed without changing its status (REQ-05-09).
-     */
-    public function recordDelay(CredentialRequest $request, User $actor, DelayCategory $category, string $reason, ?string $correctiveAction = null): void
-    {
-        if (blank($reason)) {
-            throw new InvalidTransition('Explain the reason for the delay.');
-        }
-
-        DB::transaction(function () use ($request, $actor, $category, $reason, $correctiveAction): void {
-            $locked = $this->lock($request, RequestStatus::open(), 'This request is already closed.');
-            $visit = $locked->openVisit()->first();
-
-            $locked->delayNotes()->create([
-                'office_visit_id' => $visit?->id,
-                'department_id' => $visit?->department_id,
-                'category' => $category,
-                'reason' => $reason,
-                'corrective_action' => filled($correctiveAction) ? $correctiveAction : null,
-                'recorded_by' => $actor->id,
-            ]);
-
-            $this->record($locked, $actor, RequestEventType::DelayRecorded, null, null,
-                "{$category->label()}: {$reason}".(filled($correctiveAction) ? "\nCorrective action: {$correctiveAction}" : ''), visit: $visit);
-        });
-    }
-
-    /**
-     * The owner's copies of the credential's documentary requirements, sent with a new request
-     * (REQ-04-18, 19): only for requirements the credential lists, at most
-     * RequestDocument::MAX_PER_REQUIREMENT each. No ledger entry of its own: the files arrive with
-     * the Submitted entry. Returns the rows so a caller whose own transaction fails can delete the
-     * stored files.
-     *
-     * @param  array<string, list<UploadedFile>>  $files  requirement => its files
-     * @return list<RequestDocument>
-     */
-    public function attachRequirementDocuments(CredentialRequest $request, User $owner, array $files): array
-    {
-        if ($request->user_id !== $owner->id) {
-            throw new InvalidTransition('Only the requester can send copies of the requirements.');
-        }
-
-        $listed = $request->credentialType->requirements ?? [];
-
-        foreach ($files as $requirement => $list) {
-            if (! in_array($requirement, $listed, true)) {
-                throw new InvalidTransition('This credential does not list that requirement.');
-            }
-
-            if (count($list) > RequestDocument::MAX_PER_REQUIREMENT) {
-                throw new InvalidTransition('Upload at most '.RequestDocument::MAX_PER_REQUIREMENT.' files for each requirement.');
-            }
-        }
-
-        /** @var list<array{string, UploadedFile, string}> $stored requirement, file, path */
-        $stored = [];
-
-        try {
-            foreach ($files as $requirement => $list) {
-                foreach ($list as $file) {
-                    $stored[] = [$requirement, $file, $this->store($file, "request-documents/{$request->id}")];
-                }
-            }
-
-            return DB::transaction(function () use ($request, $owner, $stored): array {
-                $locked = $this->lock($request, [RequestStatus::Submitted], 'Copies of the requirements are sent with a new request only.');
-                $documents = [];
-
-                foreach ($stored as [$requirement, $file, $path]) {
-                    $documents[] = $locked->documents()->create([
-                        'kind' => DocumentKind::Requirement,
-                        'requirement' => $requirement,
-                        'path' => $path,
-                        'original_name' => Str::limit($file->getClientOriginalName(), 250, ''),
-                        'mime_type' => (string) $file->getMimeType(),
-                        'size' => (int) $file->getSize(),
-                        'uploaded_by' => $owner->id,
-                    ]);
-                }
-
-                return $documents;
-            });
-        } catch (Throwable $e) {
-            Storage::disk(self::proofDisk())->delete(array_column($stored, 2));
-
-            throw $e;
-        }
     }
 
     // ── Representatives and release (spec 11) ──────────────────────────────────────────────
@@ -829,7 +727,6 @@ class RequestWorkflow
     /** The status in which each stage's checklist is filled in. */
     private const STAGE_STATUS = [
         'evaluation' => RequestStatus::UnderEvaluation,
-        'payment' => RequestStatus::PaymentVerification,
     ];
 
     /**
@@ -1335,7 +1232,8 @@ class RequestWorkflow
         return $event;
     }
 
-    private function reviewLatestProof(CredentialRequest $request, User $registrar, PaymentStatus $status, ?string $officialReceiptNo = null, ?string $remarks = null): void
+    /** The proof under review is verified or rejected; no receipt number is kept (REQ-16-17). */
+    private function reviewLatestProof(CredentialRequest $request, User $registrar, PaymentStatus $status, ?string $remarks = null): void
     {
         $proof = $request->paymentProofs()->where('status', PaymentStatus::Submitted)->first();
 
@@ -1345,7 +1243,6 @@ class RequestWorkflow
 
         $proof->forceFill([
             'status' => $status,
-            'official_receipt_no' => $officialReceiptNo,
             'reviewed_by' => $registrar->id,
             'reviewed_at' => now(),
             'remarks' => filled($remarks) ? $remarks : null,

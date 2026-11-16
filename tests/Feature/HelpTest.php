@@ -2,7 +2,6 @@
 
 use App\Enums\HelpTopic;
 use App\Models\IdentityDocument;
-use App\Models\RequestDocument;
 use App\Models\User;
 use Illuminate\Support\Str;
 
@@ -108,13 +107,13 @@ test('REQ-22-03 each topic answers its questions', function (HelpTopic $topic, a
         'Who can see my ID and the files I upload?', 'Why do I tick the data privacy box every time?',
     ]],
     'requesting' => [HelpTopic::Requesting, [
-        'How do I request a credential?', "Where do I see a credential's fee, processing time and requirements?", "My purpose isn't in the list.",
-        'Why does it ask for a receiving school?', 'Do I have to upload the documentary requirements?', 'How do I request more than one copy?',
+        'How do I request a credential?', "Where do I see a credential's fee and processing time?", "My purpose isn't in the list.",
+        'Why does it ask for a receiving school?', 'Do I need to submit documents?', 'How do I request more than one copy?',
         'What happens after I submit?', 'It says “Visit the Office of the Registrar”. What do I do?', 'Can I change a request after submitting it?', 'Can I cancel a request?',
     ]],
     'payment' => [HelpTopic::Payment, [
         'When do I pay?', 'How do I pay?', 'How much do I pay?', 'What happens after I upload my proof of payment?',
-        'My proof of payment was not accepted.', 'My credential is free. Do I need to do anything?',
+        'My proof of payment was not accepted.',
     ]],
     'tracking' => [HelpTopic::Tracking, [
         'Where do I see my requests?', 'What does each status mean?', 'When does the processing period start? When will my credential be ready?',
@@ -135,6 +134,14 @@ test('REQ-22-03 the details topic explains giving and verifying details once, an
         ->toContain('loses its <strong>Verified</strong> badge and is checked again on your next request');
 });
 
+test('REQ-22-03 no help page mentions a free credential: every request is paid', function () {
+    foreach (HelpTopic::cases() as $topic) {
+        $html = $this->actingAs($this->owner)->get(route('student.help', $topic->value))->assertOk()->getContent();
+
+        expect(Str::lower(strip_tags($html)))->not->toContain('free credential')->not->toContain('is free');
+    }
+});
+
 test('REQ-22-04 answers link to the pages they name and read the same settings as the forms', function () {
     $get = fn (HelpTopic $topic): string => $this->actingAs($this->owner)->get(route('student.help', $topic->value))->getContent();
 
@@ -153,7 +160,10 @@ test('REQ-22-04 answers link to the pages they name and read the same settings a
     expect($tracking)->toContain('href="'.route('student.dashboard').'"')
         ->toContain('href="'.route('settings.notifications').'"');
 
-    expect($get(HelpTopic::Requesting))->toContain('up to '.RequestDocument::MAX_PER_REQUIREMENT.' files per requirement');
+    // Documents are submitted in person when an office visit asks for them; no list, no upload (REQ-04-23).
+    expect($get(HelpTopic::Requesting))->toContain('Submit the originals in person at the Office of the Registrar')
+        ->not->toContain('Documentary Requirements')
+        ->not->toContain('files per requirement');
 });
 
 test('REQ-22-05 every help page ends with where to ask anything else', function () {

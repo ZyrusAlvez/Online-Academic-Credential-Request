@@ -12,6 +12,7 @@ use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\User;
+use App\Support\RegistrarLink;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -129,11 +130,12 @@ test('REQ-09-05 request pages offer a copy-tracking-number button', function () 
     $this->actingAs($owner)->get(route('student.requests.show', $request))
         ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 
-    $this->actingAs($registrar)->get(route('registrar.requests.show', $request))
+    // In progress: its row opens the record (REQ-17-12).
+    $this->actingAs($registrar)->get(route('records.show', $request))
         ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 
     $this->actingAs(User::factory()->departmentStaff($org->ccs)->create())
-        ->get(route('department.requests.show', $request))
+        ->followingRedirects()->get(route('department.requests.show', $request))
         ->assertOk()->assertSee('Copy tracking number')->assertSee($copy, false);
 });
 
@@ -251,7 +253,7 @@ test('REQ-09-21 the list is "Request Tracker", request pages live under /student
     $this->get(route('student.requests.create'))->assertOk()->assertDontSeeHtml('data-flux-breadcrumbs')->assertDontSee('My Requests');
 });
 
-test('REQ-09-22 the request page lists details as label/value rows, the ID and requirement files included, with Tracking History last', function () {
+test('REQ-09-22 the request page lists details as label/value rows, the ID included, with Tracking History last', function () {
     $org = organisation();
     $owner = requester($org->ccs);
     $request = submitRequest($owner, $org->tor);
@@ -261,8 +263,8 @@ test('REQ-09-22 the request page lists details as label/value rows, the ID and r
 
     expect($details)->toMatch('#<dt class="text-zinc-600">Credential</dt>\s*<dd[^>]*>\s*Transcript of Records#')
         ->toMatch('#<dt class="text-zinc-600">Valid ID</dt>#')
-        // A requirement with no file is a row whose value is a grey "No file uploaded".
-        ->toMatch('#<dt class="text-zinc-600">Completed clearance</dt>\s*<dd[^>]*>\s*(<!--\[if BLOCK\]><!\[endif\]-->)?\s*<span class="font-normal text-zinc-600 italic" data-empty-value>No file uploaded</span>#');
+        // No documentary requirements row (REQ-04-23).
+        ->not->toContain('Documentary requirements');
 
     // Tracking History is the page's last section.
     preg_match_all('/<h2 id="([a-z-]+)-heading"/', $html, $headings);
@@ -275,7 +277,7 @@ test('REQ-09-10 the incomplete-requirements notice is collapsed between "Who Wil
     $heading = 'Important notice: incomplete requirements';
 
     $html = $this->actingAs(requester($org->ccs))->get(route('student.requests.create'))->assertOk()
-        ->assertSeeInOrder(['6. Who Will Transact?', $heading, 'Review request'])
+        ->assertSeeInOrder(['5. Who Will Transact?', $heading, 'Review request'])
         ->getContent();
 
     $notice = Str::between($html, '<details', '</details>');
@@ -309,9 +311,8 @@ test('REQ-09-11 the chosen credential shows its offices as a numbered list endin
         '5 '.$org->registrarOffice->name.' (final quality check)',
     ]);
 
-    // The requirements are section 2, not part of the card (REQ-15-03).
-    expect($html)->not->toContain('PSA-authenticated birth certificate')
-        ->and(requirementBlock($page, $org->tor))->toContain('PSA-authenticated birth certificate');
+    // The requirements are not shown, in the card or elsewhere (REQ-04-23).
+    expect($page)->not->toContain('Completed clearance')->not->toContain('Documentary Requirements');
 });
 
 test('REQ-09-18 signed-in pages stop at 96rem on wide screens and detail grids can shrink on phones', function () {
@@ -325,7 +326,7 @@ test('REQ-09-18 signed-in pages stop at 96rem on wide screens and detail grids c
     $this->actingAs($registrar);
     // The request page is one column of checklist cards (spec 16) whose detail rows stack on phones
     // and sit side by side from the sm breakpoint (REQ-09-22).
-    expect($this->get(route('registrar.requests.show', $request))->assertOk()->getContent())->toContain('class="mx-auto max-w-4xl space-y-6"')->toContain('data-request-details')->toContain('sm:grid sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]');
+    expect($this->get(RegistrarLink::to($request))->assertOk()->getContent())->toContain('class="mx-auto max-w-4xl space-y-6"')->toContain('data-request-details')->toContain('sm:grid sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]');
 });
 
 test('REQ-09-12 New Request and Request Tracker share one column and one section style', function () {
@@ -458,7 +459,7 @@ test('REQ-09-19 every section heading and report name is in Title Case', functio
     }
 });
 
-test('REQ-09-19 the requester, office and Records pages head the ledger "Tracking History"', function () {
+test('REQ-09-19 the requester and Records pages head the ledger "Tracking History"; the office page has none', function () {
     $org = organisation();
     $owner = requester($org->ccs);
     $registrar = User::factory()->registrar()->create();
@@ -469,7 +470,25 @@ test('REQ-09-19 the requester, office and Records pages head the ledger "Trackin
     Livewire::actingAs($owner)->test(RequesterShow::class, ['credentialRequest' => $request])
         ->assertSee('Tracking History')->assertSee('Request Details');
     Livewire::actingAs($dean)->test(OfficeShow::class, ['credentialRequest' => $request])
-        ->assertSee('Tracking History')->assertSee('Office Visits');
+        ->assertSee('Request Details')->assertDontSee('Tracking History');   // REQ-24-07
     Livewire::actingAs($registrar)->test(RecordShow::class, ['credentialRequest' => $request])
-        ->assertSee('Tracking History')->assertDontSee('Ledger')->assertSee('Office Visits');
+        ->assertSee('Tracking History')->assertDontSee('Ledger')->assertSee('Time in Each Office');
+});
+
+test('REQ-09-23 Request Details shows the Fee, marked Paid once verified, and no Adjusted due date', function () {
+    Storage::fake('local');
+    $org = organisation();
+    $owner = requester($org->ccs);
+    $registrar = User::factory()->registrar()->create();
+    $details = fn ($request) => Str::between(Livewire::actingAs($registrar)->test(RecordShow::class, ['credentialRequest' => $request->fresh()])->html(), 'data-request-details', '</dl>');
+
+    $unpaid = submitRequest($owner, $org->tor);
+    expect($details($unpaid))->toContain('Fee')->toContain('₱530.00')->not->toContain('data-paid')->not->toContain('Amount due');
+
+    $paid = acceptRequest(submitRequest($owner, $org->tor), $registrar);
+    expect($details($paid))->toContain('Fee')->toContain('₱530.00')->toContain('data-paid')->toContain('Paid')
+        ->toContain('Due date')->toContain('Processing time')->not->toContain('Adjusted due date');
+
+    $free = acceptRequest(submitRequest($owner, $org->free), $registrar);
+    expect($details($free))->toContain('None required')->not->toContain('data-paid');
 });

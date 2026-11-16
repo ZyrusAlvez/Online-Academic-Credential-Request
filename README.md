@@ -51,19 +51,19 @@ Any other value stops the app at startup.
 | Purpose | Development on your own computer | Testing changes and demos on the server | Real use |
 | Runs | `composer dev` → http://localhost:8000 | Server folder `/var/www/uphsl-staging` | Server folder `/var/www/uphsl-production` |
 | Database | `uphsl_credential_tracker_local` | `uphsl_credential_tracker_staging` | `uphsl_credential_tracker` |
-| Data | Base data plus demo accounts and sample requests | Base data plus demo accounts and sample requests | Base data and real data only |
+| Data | Base data plus demo accounts | Base data plus demo accounts | Base data and real data only |
 | Email | Sent through Gmail, all redirected to your own inbox | Sent through Gmail | Sent through Gmail |
 | Receipts | `local/` folder | `staging/` folder | `production/` folder |
 | Error details (debug mode) | Shown | Shown | Never shown |
 
 Base data means the 15 offices, the 17 credential types of the master list with their routes,
-the 2026–2027 holiday calendar, and the first registrar account.
+the 2026–2027 holiday calendar, and the first admin account (from `.env`).
 
 The `.env` file is small: the environment name, the address, the database login, and the
 secrets for email and receipt storage (see `.env.example`). Everything that follows from the
 environment, such as the database name and debug mode, is set automatically in `config/`.
 
-Staging works exactly like production, including email and the first registrar account. The only
+Staging works exactly like production, including email and the first admin account. The only
 differences are its separate database, the demo data, and visible error details. Without Gmail
 settings, any environment writes its emails to `storage/logs/laravel.log` instead.
 
@@ -80,7 +80,7 @@ by hand if GitHub Actions is unavailable. Details:
 
 - Automated tests run on their own database, `uphsl_credential_tracker_testing`, and refuse to
   start on any database whose name does not end in `_testing`.
-- Demo data and `php artisan app:reset-demo` (reload the demo data) work only in local and staging.
+- Demo data and `php artisan app:reset-demo` (reload the demo accounts; `--requests` adds sample requests) work only in local and staging.
 - Each environment has its own database and its own receipts folder, so nothing done in
   local or staging can change production.
 

@@ -21,6 +21,7 @@ the TOR routing example, and section X (return and reprocessing control, deadlin
   paper starts at the Office of the Registrar, received there at once when the route starts there.
 - **REQ-05-02** THE SYSTEM SHALL show office staff, in their queue, the documents forwarded to
   their office and not yet received, the documents in their office, and their office's history.
+  *Changed by REQ-24-01..05:* three sidebar lists, Incoming, To Validate and History.
 
 ### Office actions
 - **REQ-05-03** THE SYSTEM SHALL let staff of the office a document was forwarded to accept its
@@ -35,7 +36,8 @@ the TOR routing example, and section X (return and reprocessing control, deadlin
   request `ready_for_release`.
 - **REQ-05-06** THE SYSTEM SHALL let staff of the office holding a received document return it for
   correction to an earlier office on its route (the previous office by default), with the reason
-  and the corrective action required (status `returned_for_correction`), and notify that office.
+  and, optionally, the corrective action required (status `returned_for_correction`), and notify
+  that office. *(User's request, 2026-11-16: "Corrective action needed" is optional.)*
 - **REQ-05-07** WHEN the office a document was returned to has received and corrected it THE
   SYSTEM SHALL let it forward the document back to the office that returned it, which receives it
   again before the route continues. *Changed by REQ-17-07:* the corrected document is marked done,
@@ -43,10 +45,8 @@ the TOR routing example, and section X (return and reprocessing control, deadlin
 - **REQ-05-08** THE SYSTEM SHALL record every office visit (forwarded, received, completed or
   returned, with times, staff and office) as a separate record and SHALL never overwrite an
   earlier visit; the time spent per visit is counted in working days (spec 10).
-- **REQ-05-09** THE SYSTEM SHALL let staff of the department office holding a document record a
-  delay reason (one of the client's delay categories, an explanation and the corrective action)
-  without changing the request's status. *(The registrar's delay reasons were removed by
-  REQ-16-21.)*
+- ~~REQ-05-09~~ *Superseded by REQ-24-09:* no one records delay reasons (user's decision,
+  2026-11-15). The registrar's were removed earlier by REQ-16-21.
 - ~~REQ-05-10~~ *Superseded by REQ-16-21:* the registrar does not bypass offices.
 - **REQ-05-11** THE SYSTEM SHALL let only the staff of the office concerned act on a visit, and
   registrar accounts on the Office of the Registrar's visits; the first action wins when two people

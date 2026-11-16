@@ -2,7 +2,6 @@
 
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
-use App\Enums\CheckStage;
 use App\Enums\RequestEventType;
 use App\Livewire\NotificationBell;
 use App\Livewire\Notifications\Index;
@@ -54,8 +53,7 @@ test('REQ-06-05 the requester is emailed at the client\'s key moments', function
     uploadPayment($request);
     workflow()->rejectPayment($request, $this->registrar, 'No matching transaction');
     uploadPayment($request);
-    checkAll($request, $this->registrar, CheckStage::Payment);
-    workflow()->verifyPaymentAndAccept($request, $this->registrar, 'OR-1');
+    workflow()->verifyPaymentAndAccept($request, $this->registrar);
 
     expect(mailedTypes())->toContain(
         RequestEventType::Submitted,

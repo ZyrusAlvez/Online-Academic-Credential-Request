@@ -128,117 +128,13 @@
             </div>
         </section>
 
-        {{-- The chosen credential's requirements, shown in the browser like its card (REQ-15-03, 15). --}}
-        @php($chosenId = (string) ($form->credential_type_id ?? ''))
-        <section aria-labelledby="requirements-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6" data-requirements-section>
-            <h2 id="requirements-heading" class="text-lg font-semibold text-primary">{{ __('2. Documentary Requirements') }}</h2>
-
-            <div aria-live="polite" class="text-sm">
-                <p x-show="String($wire.form.credential_type_id ?? '') === ''" @if ($chosenId !== '') style="display: none" @endif class="text-zinc-600" data-requirements-placeholder>
-                    {{ __('Choose a credential first.') }}
-                </p>
-
-                @foreach ($types as $type)
-                    <div wire:key="requirements-{{ $type->id }}" data-requirement-block="{{ $type->id }}"
-                        x-show="String($wire.form.credential_type_id ?? '') === '{{ $type->id }}'" @if ($chosenId !== (string) $type->id) x-cloak style="display: none" @endif>
-                        @if ($type->requirements)
-                            {{-- One file field per requirement; all optional, so none is marked (REQ-04-18). --}}
-                            <div data-requirement-uploads>
-                                <p class="text-zinc-600">{{ __('Upload copies if you have them: up to :max files each, JPG, PNG, WebP or PDF, 5 MB per file.', ['max' => \App\Models\RequestDocument::MAX_PER_REQUIREMENT]) }}
-                                    @if ($editing)
-                                        {{ __('Files you already sent are kept.') }}
-                                    @endif
-                                </p>
-                                {{-- Each requirement lists every file chosen for it, by name, with its own Remove:
-                                     choosing files again adds to them, which the browser's picker does not show. --}}
-                                @php($max = \App\Models\RequestDocument::MAX_PER_REQUIREMENT)
-                                <ul role="list" class="mt-5 space-y-4">
-                                    @foreach ($type->requirements as $index => $requirement)
-                                        @php($field = "requirementFiles.{$type->id}.{$index}")
-                                        @php($files = array_values(array_filter((array) ($requirementFiles[$type->id][$index] ?? []), fn ($file): bool => $file instanceof \Illuminate\Http\UploadedFile)))
-                                        {{-- Livewire's upload events bubble up from the picker and drive the progress bar. --}}
-                                        <li class="rounded-lg border border-zinc-200 p-4" wire:key="requirement-{{ $type->id }}-{{ $index }}" data-requirement-field="{{ $index }}"
-                                            x-data="{ uploading: false, progress: 0 }"
-                                            x-on:livewire-upload-start="uploading = true; progress = 0"
-                                            x-on:livewire-upload-progress="progress = $event.detail.progress"
-                                            x-on:livewire-upload-finish="uploading = false"
-                                            x-on:livewire-upload-error="uploading = false"
-                                            x-on:livewire-upload-cancel="uploading = false">
-                                            {{-- The count stays at the right, however long the requirement's name (REQ-04-18). --}}
-                                            <div class="flex items-start justify-between gap-4">
-                                                <h3 class="min-w-0 flex-1 font-medium text-ink">{{ $requirement }}</h3>
-                                                <span class="shrink-0 whitespace-nowrap text-zinc-600" data-file-count>{{ $files === [] ? __('No files yet') : __(':count of :max files', ['count' => count($files), 'max' => $max]) }}</span>
-                                            </div>
-
-                                            @if ($files !== [])
-                                                <ul role="list" class="mt-3 divide-y divide-zinc-200 rounded-md border border-zinc-200" data-chosen-files>
-                                                    @foreach ($files as $position => $file)
-                                                        @php($name = $file->getClientOriginalName())
-                                                        <li class="flex items-center gap-3 py-1.5 ps-3 pe-1.5" wire:key="requirement-{{ $type->id }}-{{ $index }}-file-{{ $file->getFilename() }}">
-                                                            <flux:icon.document variant="mini" class="shrink-0 text-zinc-500" />
-                                                            {{-- The name opens the file in the file viewer, as on the summary;
-                                                                 a file Livewire cannot preview stays plain text (REQ-04-18). --}}
-                                                            <span class="min-w-0 flex-1 truncate text-ink" title="{{ $name }}">
-                                                                @if ($file instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile && $file->isPreviewable())
-                                                                    @php($preview = $file->temporaryUrl())
-                                                                    <x-file-link :href="$preview" :download="$preview" :name="$name" :type="(string) $file->getMimeType()">{{ $name }}</x-file-link>
-                                                                @else
-                                                                    {{ $name }}
-                                                                @endif
-                                                            </span>
-                                                            <span class="shrink-0 text-zinc-500">{{ \Illuminate\Support\Number::fileSize((int) $file->getSize(), maxPrecision: 1) }}</span>
-                                                            <flux:button size="xs" variant="ghost" icon="x-mark" wire:click="removeRequirementFile({{ $type->id }}, {{ $index }}, {{ $position }})" :aria-label="__('Remove :file', ['file' => $name])">{{ __('Remove') }}</flux:button>
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            @endif
-
-                                            {{-- While files upload, a progress bar takes the button's place (REQ-04-18). --}}
-                                            <div x-show="uploading" x-cloak style="display: none" role="status" class="mt-3 rounded-md border border-secondary/50 bg-primary-50 px-3 py-2.5" data-upload-progress>
-                                                <div class="flex items-center justify-between gap-3">
-                                                    <span class="flex items-center gap-2 font-medium text-primary">
-                                                        <flux:icon.loading variant="mini" />
-                                                        {{ __('Uploading…') }}
-                                                    </span>
-                                                    <span class="tabular-nums text-zinc-600" x-text="progress + '%'">0%</span>
-                                                </div>
-                                                <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary/40" aria-hidden="true">
-                                                    <div class="h-full rounded-full bg-primary transition-[width] duration-200" x-bind:style="{ width: progress + '%' }" style="width: 0%"></div>
-                                                </div>
-                                            </div>
-
-                                            @if (count($files) < $max)
-                                                {{-- The picker itself is hidden: its "No file chosen" or last name is misleading.
-                                                     The ring shows for keyboard focus only, not after a click. --}}
-                                                <div x-show="! uploading" class="mt-3 flex justify-end">
-                                                    <label wire:key="requirement-{{ $type->id }}-{{ $index }}-picker-{{ $requirementResets[$field] ?? 0 }}"
-                                                        class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 font-medium text-ink shadow-xs hover:bg-zinc-50 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-highlight">
-                                                        <flux:icon.plus variant="mini" class="text-zinc-500" />
-                                                        {{ $files === [] ? __('Choose files') : __('Add more files') }}
-                                                        <span class="sr-only">{{ __('for :requirement', ['requirement' => $requirement]) }}</span>
-                                                        <input type="file" wire:model="{{ $field }}" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" class="sr-only" />
-                                                    </label>
-                                                </div>
-                                            @endif
-                                            <flux:error :name="$field" />
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @else
-                            <p class="text-zinc-600">{{ __('No documentary requirements.') }}</p>
-                        @endif
-                    </div>
-                @endforeach
-            </div>
-        </section>
-
-        {{-- Sections 3 to 5, filled in from the saved profile (REQ-15-03, 04). --}}
-        @include('partials.requester-profile-fields', ['prefix' => 'profile', 'fields' => $profile, 'number' => 3])
+        {{-- Sections 2 to 4, filled in from the saved profile (REQ-15-03, 04). No documentary
+             requirements are listed (REQ-04-23). --}}
+        @include('partials.requester-profile-fields', ['prefix' => 'profile', 'fields' => $profile, 'number' => 2])
 
         @unless ($editing)
         <section aria-labelledby="rep-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
-            <h2 id="rep-heading" class="text-lg font-semibold text-primary">{{ __('6. Who Will Transact?') }}</h2>
+            <h2 id="rep-heading" class="text-lg font-semibold text-primary">{{ __('5. Who Will Transact?') }}</h2>
 
             {{-- Deferred: the choice shows or hides the representative's fields in the browser at once,
                  without a trip to the server (REQ-11-11). --}}
@@ -296,10 +192,10 @@
                 <x-summary-section :heading="$heading" :rows="$rows" :level="2" />
             @endforeach
 
-            @include('partials.requester-profile-summary', ['fields' => $profile, 'number' => 3, 'level' => 2])
+            @include('partials.requester-profile-summary', ['fields' => $profile, 'number' => 2, 'level' => 2])
 
             @if ($transactSummary !== [])
-                <x-summary-section :heading="__('6. Who Will Transact?')" :rows="$transactSummary" :level="2" />
+                <x-summary-section :heading="__('5. Who Will Transact?')" :rows="$transactSummary" :level="2" />
             @endif
 
             @include('partials.privacy-consent', ['prefix' => 'profile', 'level' => 2])

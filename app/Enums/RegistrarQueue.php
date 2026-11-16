@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use App\Models\CredentialRequest;
+
 /**
  * The registrar's stage queues (REQ-16-01..06).
  */
@@ -41,12 +43,6 @@ enum RegistrarQueue: string
         return $this === self::Evaluation || $this === self::Payment;
     }
 
-    /** Queues with a search by tracking number or name (REQ-16-25). */
-    public function isSearchable(): bool
-    {
-        return $this !== self::Release;
-    }
-
     /** The first tab's name, beside "Waiting for the requester". */
     public function activeTabLabel(): string
     {
@@ -61,6 +57,35 @@ enum RegistrarQueue: string
             self::InProgress => 'registrar.in-progress',
             self::FinalCheck => 'registrar.final-check',
             self::Release => 'registrar.release',
+        };
+    }
+
+    /** In Progress is a list only; its rows act in place (REQ-17-13). */
+    public function hasWorkingPage(): bool
+    {
+        return $this !== self::InProgress;
+    }
+
+    /** The request's working page under this queue (REQ-16-26); see hasWorkingPage(). */
+    public function showRouteName(): string
+    {
+        return $this->routeName().'.show';
+    }
+
+    /**
+     * The queue a request is in now, as `StageQueue::for()` lists them, or null once it is closed
+     * (released, declined, cancelled) (REQ-16-26).
+     */
+    public static function forRequest(CredentialRequest $request): ?self
+    {
+        $status = $request->status;
+
+        return match (true) {
+            in_array($status, [RequestStatus::Submitted, RequestStatus::UnderEvaluation, RequestStatus::ReturnedForCustomerAction, ...RequestStatus::waitingForRequester()], true) => self::Evaluation,
+            in_array($status, [RequestStatus::AwaitingPayment, RequestStatus::PaymentVerification], true) => self::Payment,
+            in_array($status, RequestStatus::processing(), true) => $request->isAtFinalCheck() ? self::FinalCheck : self::InProgress,
+            $status === RequestStatus::ReadyForRelease => self::Release,
+            default => null,
         };
     }
 

@@ -15,11 +15,8 @@ use Throwable;
  */
 final class ActivityLogFilter
 {
-    /** Entries with no actor: failed sign-ins and scheduled jobs. */
-    public const SYSTEM = 'system';
-
     /**
-     * @param  string  $role  a Role value, 'system' or '' (anyone)
+     * @param  string  $role  a Role value or '' (anyone)
      * @param  string  $from  Y-m-d, a whole day in the app timezone
      * @param  string  $to  Y-m-d, a whole day in the app timezone
      */
@@ -51,7 +48,6 @@ final class ActivityLogFilter
                         ->where('first_name', 'like', "%{$term}%")
                         ->orWhere('last_name', 'like', "%{$term}%")
                         ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$term}%"])))))
-            ->when($this->role === self::SYSTEM, fn (Builder $q) => $q->whereNull('actor_id'))
             ->when(Role::tryFrom($this->role), fn (Builder $q, Role $role) => $q->where('actor_role', $role))
             ->when(ActivityCategory::tryFrom($this->category), fn (Builder $q, ActivityCategory $category) => $q->where('category', $category))
             ->when($this->office !== '', fn (Builder $q) => $q->where('department_id', (int) $this->office))

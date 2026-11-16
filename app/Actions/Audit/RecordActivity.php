@@ -16,7 +16,9 @@ use Illuminate\Support\Str;
 final class RecordActivity
 {
     /**
-     * @param  ?User  $actor  who did it; null for a failed sign-in or a scheduled job
+     * @param  ?User  $actor  who did it, or the account it concerns when nobody is signed in (REQ-14-15);
+     *                        null only for a failed sign-in on an email with no account
+     * @param  ?string  $actorName  shown as who when there is no actor: the email that was typed
      * @param  ?array<string, array{0: ?string, 1: ?string}>  $changes  field => [old, new]
      */
     public function handle(
@@ -29,10 +31,11 @@ final class RecordActivity
         ?int $departmentId = null,
         ?array $changes = null,
         ?CarbonInterface $at = null,
+        ?string $actorName = null,
     ): ActivityLog {
         return ActivityLog::create([
             'actor_id' => $actor?->id,
-            'actor_name' => $actor?->name,
+            'actor_name' => $actor->name ?? $actorName,
             'actor_role' => $actor?->role,
             'category' => $category,
             'action' => Str::limit($action, 60, ''),

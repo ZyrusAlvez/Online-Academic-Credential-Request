@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\DepartmentQueue;
 use App\Enums\HelpTopic;
 use App\Enums\RegistrarQueue;
 use App\Enums\Role;
@@ -11,7 +12,12 @@ use App\Livewire\Department;
 use App\Livewire\Notifications;
 use App\Livewire\Registrar;
 use App\Livewire\Student;
+use App\Models\CredentialRequest;
+use App\Support\DepartmentLink;
+use App\Support\RegistrarLink;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Livewire\Volt\Volt;
 
 // Guests only: the guest middleware sends a logged-in user to /dashboard, their role's home (REQ-01-32).
@@ -47,7 +53,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('in-progress', Registrar\Queue::class)->defaults('queue', RegistrarQueue::InProgress->value)->name('in-progress');
         Route::get('final-check', Registrar\Queue::class)->defaults('queue', RegistrarQueue::FinalCheck->value)->name('final-check');
         Route::get('release', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Release->value)->name('release');
-        Route::get('requests/{credentialRequest}', Registrar\Requests\Show::class)->name('requests.show');
+        // A request's working page lives under the queue it is in, e.g. payments/cr26-00042 (REQ-16-26).
+        // In Progress has none: its rows forward and accept receipt in place (REQ-17-13).
+        Route::get('evaluation/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::Evaluation->value)->name('evaluation.show');
+        Route::get('payments/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::Payment->value)->name('payments.show');
+        Route::get('final-check/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::FinalCheck->value)->name('final-check.show');
+        Route::get('release/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::Release->value)->name('release.show');
+        // The former address, in notifications and emails: to wherever the request is now.
+        Route::get('requests/{credentialRequest}', fn (CredentialRequest $credentialRequest) => redirect(RegistrarLink::to($credentialRequest)))
+            ->name('requests.show');
     });
 
     // Records, shared by the Registrar and the Admin (REQ-16-07, REQ-18-06).
@@ -65,14 +79,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('departments', Admin\Departments\Index::class)->name('departments');
         Route::get('programs', Admin\Programs\Index::class)->name('programs');
         Route::get('purposes', Admin\Purposes\Index::class)->name('purposes');
-        Route::get('users', Admin\Users\Index::class)->name('users');
+        Route::get('accounts', Admin\Users\Index::class)->name('accounts');
         Route::get('calendar', Admin\Calendar\Index::class)->name('calendar');
         Route::get('logs', Admin\Logs\Index::class)->name('logs');
     });
 
+    // A department office's lists, and a request under the list it is in (REQ-24-01, 06).
     Route::prefix('department')->name('department.')->middleware('role:department')->group(function () {
-        Route::get('/', Department\Dashboard::class)->name('dashboard');
-        Route::get('requests/{credentialRequest}', Department\Requests\Show::class)->name('requests.show');
+        Route::redirect('/', '/department/incoming')->name('dashboard');
+        foreach (DepartmentQueue::cases() as $queue) {
+            $path = str_replace('_', '-', $queue->value);
+            Route::get($path, Department\Queue::class)->defaults('queue', $queue->value)->name(Str::after($queue->routeName(), 'department.'));
+            Route::get($path.'/{credentialRequest}', Department\Requests\Show::class)->defaults('queue', $queue->value)->name(Str::after($queue->showRouteName(), 'department.'));
+        }
+        // The former address, in notifications and emails: to the list the request is in now.
+        Route::get('requests/{credentialRequest}', function (CredentialRequest $credentialRequest) {
+            Gate::authorize('view', $credentialRequest);
+
+            return redirect(DepartmentLink::to($credentialRequest, (int) auth()->user()->department_id));
+        })->name('requests.show');
     });
 });
 

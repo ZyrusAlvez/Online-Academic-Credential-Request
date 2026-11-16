@@ -23,30 +23,28 @@ period starts only at acceptance.
 - **REQ-04-01** THE SYSTEM SHALL let a requester (giving their details and ID on the same form,
   REQ-15-03) submit a request for an active credential type that has a route, with the purpose (chosen from the registrar's list, spec 13), and — when the credential type requires it — the complete name of the receiving school.
 - **REQ-04-02** BEFORE a request is submitted THE SYSTEM SHALL let the requester choose the
-  credential from a dropdown and, once one is chosen, show its description, documentary
-  requirements, fee, processing period, offices on its route and special
-  conditions; THE SYSTEM SHALL also show the *Incomplete requirements* notice of the client's
-  workflow.
-- **REQ-04-18** WHERE the chosen credential lists documentary requirements THE SYSTEM SHALL offer,
-  on New Request, one file field per requirement, labelled with the requirement, taking up to 5
-  files of JPG, PNG, WebP or PDF, 5 MB each. Every field is optional and SHALL NOT be marked
-  "Optional"; each file is checked as soon as it is chosen. Each field SHALL list every file
-  chosen for it by name and size, each with its own Remove, and count them ("2 of 5 files");
-  choosing files again adds to them, so the button then reads "Add more files" and is gone at
-  5. *(User's report, 2026-11-10: the browser's own picker showed only the last file's name.)*
-  The count SHALL stay at the right of the requirement's name, however long the name, and the
-  button at the right of the field; while files upload, the field SHALL show a progress bar with
-  the percentage in place of the button. *(User's request, 2026-11-10.)* Each listed file's name
-  SHALL be a link that opens it in the file viewer, as on the summary (REQ-15-17). *(User's
-  request, 2026-11-11.)*
-  Files chosen for another credential SHALL NOT be sent. *(User's decision, 2026-11-10: copies help the evaluator; the originals are
-  still checked at the Registrar's Office, REQ-16-15.)*
-- **REQ-04-19** THE SYSTEM SHALL store the requirement files privately with the request, each
-  under its requirement, and SHALL let only the owner, registrars and admins open them; the
-  evaluator sees them under *Credential Request Verification*, and they appear on the Records
-  page and the owner's request page. *(User's decision, 2026-11-11: the requirements are checked
-  on every request, like the credential itself, whereas a verified identity and academic record
-  carry over to later requests, REQ-21-04.)*
+  credential from a dropdown and, once one is chosen, show its description, fee, processing
+  period, offices on its route and special conditions; THE SYSTEM SHALL also show the *Incomplete
+  requirements* notice of the client's workflow. *(Documentary requirements no longer shown since
+  2026-11-15, REQ-04-23.)*
+- ~~REQ-04-18, REQ-04-19~~ *Superseded by REQ-04-22 (user's decision, 2026-11-15):* the optional
+  upload of copies of the documentary requirements on New Request, and their listing for the
+  evaluator, Records and the owner, are removed. The client's workflow never asks the requester to
+  send these documents online: the evaluator checks them against the university's records (III-B),
+  and the originals are submitted in person (III-C).
+- ~~REQ-04-22~~ *Superseded by REQ-04-23 (user's decision, 2026-11-15, the same day):* New
+  Request's section "2. Documentary Requirements", its summary row, and the requirement row on the
+  evaluator's *Credential Request Verification*, the Records page and the owner's request page are
+  removed.
+- **REQ-04-23** THE SYSTEM SHALL NOT list a credential's documentary requirements on New Request,
+  Edit Request, their summary, the evaluator's *Credential Request Verification*, the Records page
+  or the requester's request page, and SHALL NOT take a file for them; no file of a documentary
+  requirement is stored. A credential's list (credential master list, spec 03) SHALL be used only
+  as the checkboxes of Require Office Visit (REQ-20-04): when the evaluator finds something
+  required, the requester is asked to visit the office. *(User's decision, 2026-11-15. This departs
+  on purpose from Proposed Workflow III-A step 6, where the customer sees the applicable documentary
+  requirements before submitting: the user chose to show only what the evaluator requires at the
+  office visit.)*
 - **REQ-04-03** WHEN a request is submitted THE SYSTEM SHALL give it the status `submitted`, a
   unique tracking number `cr<2-digit year>-<id>` in lowercase, the id padded with zeros to at
   least 5 digits (`cr26-00042`) and growing past 99999 without a cap (`cr26-100000`); requests
@@ -76,8 +74,9 @@ period starts only at acceptance.
   (status `payment_verification`). The proof field SHALL be the valid ID's picker (REQ-15-04): the
   chosen file's name is a link that opens it in the file viewer. *(User's request, 2026-11-13.)*
 - **REQ-04-13** THE SYSTEM SHALL let the registrar reject a proof with remarks (back to
-  `awaiting_payment`) or verify it against the official record, recording the official receipt
-  number; an uploaded proof alone SHALL NOT mark a request as paid.
+  `awaiting_payment`) or verify it against the official record; an uploaded proof alone SHALL NOT
+  mark a request as paid. *(Since 2026-11-16 no official receipt number is recorded; it is not in
+  the BRD, REQ-16-17.)*
 - **REQ-04-20** WHEN the requester uploads a new proof of payment after one was returned (REQ-04-13,
   the Proposed Workflow's "request clarification or valid proof → customer uploads proof again")
   THE SYSTEM SHALL offer an optional note to the Office of the Registrar (at most 500 characters),

@@ -5,27 +5,19 @@ namespace App\Enums;
 use App\Models\CredentialRequest;
 
 /**
- * One part of a Registrar stage's checklist (REQ-16-10, 17). The final quality check has none
- * (REQ-16-19).
+ * One part of Initial Evaluation's checklist (REQ-16-10). The final quality check (REQ-16-19) and
+ * Payment Validation (REQ-16-17) have none.
  */
 enum CheckItem: string
 {
-    // Initial Evaluation
     case CredentialRequest = 'credential_request';
     case Identity = 'identity';
     case AcademicRecord = 'academic_record';
     case Representative = 'representative';
 
-    // Payment Validation
-    case PaymentProof = 'payment_proof';
-    case PaymentAmount = 'payment_amount';
-
     public function stage(): CheckStage
     {
-        return match ($this) {
-            self::CredentialRequest, self::Identity, self::AcademicRecord, self::Representative => CheckStage::Evaluation,
-            self::PaymentProof, self::PaymentAmount => CheckStage::Payment,
-        };
+        return CheckStage::Evaluation;
     }
 
     public function label(): string
@@ -35,8 +27,6 @@ enum CheckItem: string
             self::Identity => 'User Identity Verification',
             self::AcademicRecord => 'Academic Record Verification',
             self::Representative => 'Representative Verification',
-            self::PaymentProof => 'Proof of Payment',
-            self::PaymentAmount => 'Amount and Reference',
         };
     }
 
@@ -44,12 +34,10 @@ enum CheckItem: string
     public function hint(): string
     {
         return match ($this) {
-            self::CredentialRequest => 'The credential, purpose and receiving school are right for this requester, with its documentary requirements complete.',
+            self::CredentialRequest => 'The credential, purpose and receiving school are right for this requester.',
             self::Identity => 'The valid ID is authentic and matches the requester.',
             self::AcademicRecord => "The requester's status, student number, college, program and years match the university's records.",
             self::Representative => 'The SPA and the IDs of the owner and the representative are valid.',
-            self::PaymentProof => 'The proof matches a payment in the official payment record.',
-            self::PaymentAmount => 'The amount paid covers the amount due, and the reference and date match.',
         };
     }
 
@@ -61,10 +49,10 @@ enum CheckItem: string
      */
     public static function for(CheckStage $stage, CredentialRequest $request): array
     {
-        return array_values(array_filter(
-            self::cases(),
-            fn (self $item): bool => $item->stage() === $stage
-                && ($item !== self::Representative || $request->requester_mode === RequesterMode::Representative),
-        ));
+        return match ($stage) {
+            CheckStage::Evaluation => $request->requester_mode === RequesterMode::Representative
+                ? self::cases()
+                : [self::CredentialRequest, self::Identity, self::AcademicRecord],
+        };
     }
 }

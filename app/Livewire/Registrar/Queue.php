@@ -33,7 +33,7 @@ class Queue extends Component
     #[Url(except: '')]
     public string $office = '';
 
-    /** Every queue but Release: tracking number or requester name (REQ-16-25). */
+    /** Every queue: tracking number or requester name (REQ-16-25). */
     #[Url(except: '')]
     public string $search = '';
 
@@ -69,22 +69,36 @@ class Queue extends Component
         $this->attempt(fn () => $workflow->forwardDocument($visit, $this->actor()), 'Forwarded. The next office confirms when it arrives.');
     }
 
+    /**
+     * In Progress: a paper sent to the Office of the Registrar arrived there (REQ-17-13).
+     */
+    public function acceptReceipt(int $requestId, RequestWorkflow $workflow): void
+    {
+        abort_unless($this->stage === RegistrarQueue::InProgress, 404);
+
+        $visit = CredentialRequest::findOrFail($requestId)->openVisit()->with(['department', 'step', 'credentialRequest'])->first();
+        abort_if($visit === null, 404);
+        $this->authorize('act', $visit);
+
+        $this->attempt(fn () => $workflow->acceptReceipt($visit, $this->actor()), "Receipt confirmed at {$visit->department->name}.");
+    }
+
     public function render(): View
     {
         $stage = $this->stage;
         $hasWaitingTab = $stage->hasWaitingTab();
         $waiting = $hasWaitingTab && $this->waiting;
         $office = $stage === RegistrarQueue::InProgress ? $this->office : '';
-        $search = $stage->isSearchable() ? $this->search : '';
 
         return view('livewire.registrar.queue', [
             'queue' => $stage,
-            'requests' => StageQueue::for($stage, $waiting, $office, $search)->paginate(20),
+            'requests' => StageQueue::for($stage, $waiting, $office, $this->search)->paginate(20),
             'hasWaitingTab' => $hasWaitingTab,
             'showWaiting' => $waiting,
             'waitingCount' => $hasWaitingTab ? StageQueue::for($stage, true)->count() : 0,
             'offices' => $stage === RegistrarQueue::InProgress ? Department::active()->orderBy('name')->get(['id', 'name']) : collect(),
-            'linkRoute' => 'registrar.requests.show',
+            // The working page under this queue, so the sidebar keeps it current (REQ-16-26).
+            'linkRoute' => $stage->showRouteName(),
         ])->title(__($stage->label()));
     }
 }

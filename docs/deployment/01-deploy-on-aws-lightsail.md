@@ -14,7 +14,7 @@ environments running side by side:
 | Error details | Shown | Never shown |
 | Receipts | R2 folder `staging/` | R2 folder `production/` |
 
-Staging works like production in everything else: real email, the same first registrar, the same
+Staging works like production in everything else: real email, the same first admin, the same
 installed packages. That's what makes it a trustworthy place to test a change.
 
 It explains *why* each step is done, not only what to type, so you can fix things when they
@@ -560,7 +560,7 @@ Don't save that empty screen.
 | `npm ci && npm run build` | Installs the exact build tools from the lock file, then Vite compiles Tailwind and JS into `public/build/` with hashed file names (so browsers fetch new versions after each change) |
 | `php artisan migrate --seed --force` | **Migrations** create the tables from `database/migrations/`. **Seeders** fill in the starter rows. `--force` confirms, since production asks "are you sure?" |
 | `php artisan app:reset` | Empties the environment and starts it clean: deletes every row and uploaded file, rebuilds all tables and loads the base data and the first admin (no demo data). In production it asks you to type `reset production`. Refuses to start without the `INITIAL_ADMIN_*` settings |
-| `php artisan app:reset-demo` | Staging (and local) only: the same reset, then the demo data. It refuses to run in production |
+| `php artisan app:reset-demo` | Staging (and local) only: the same reset, then the demo accounts and no requests (`--requests` adds sample requests). It refuses to run in production |
 | `php artisan optimize` | Caches config, routes and views |
 
 Both environments install with `--no-dev`, so staging runs exactly the packages production runs.
@@ -594,7 +594,7 @@ their own JavaScript.
 | `CredentialTypeSeeder` | The 17 credential types and their signing order (`workflow_steps`) |
 | `NonWorkingDaySeeder` | Philippine holidays, for the working-day due dates |
 | `AdminSeeder` | The first admin account, from `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`. It is the only account seeding creates |
-| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff, a demo admin (`admin@example.com`), a demo registrar (`registrar@example.com`) and requests in every status, all at `@example.com` with the password `@Test123`. The demo requests are worked by the demo registrar |
+| `DemoSeeder` (staging only, via `app:reset-demo`) | Demo students, department staff and a demo registrar (`registrar@example.com`), all at `@example.com` with the password `@Test123`. With `--requests` (`DemoRequestSeeder`) it also adds requests in every status, worked by the demo registrar |
 
 ### Migrations and seeders: who does what
 

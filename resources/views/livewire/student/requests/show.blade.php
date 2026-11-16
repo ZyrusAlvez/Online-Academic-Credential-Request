@@ -36,7 +36,7 @@
     @if ($request->status === \App\Enums\RequestStatus::ReturnedForClarification)
         <section aria-labelledby="clarification-heading" class="space-y-4 rounded-xl border border-amber-500 bg-amber-50 p-5 sm:p-6" data-clarification-panel>
             {{-- Returned for clarification: what was rejected, why, and Edit Request (REQ-20-05). --}}
-            <h2 id="clarification-heading" class="text-lg font-semibold text-amber-900">{{ __('Please Correct Your Request') }}</h2>
+            <h2 id="clarification-heading" class="text-lg font-semibold text-amber-900">{{ __('Please Correct and Clarify Your Request') }}</h2>
             @if ($rejectedParts !== [])
                 <div>
                     <p class="text-sm text-amber-950">{{ __('The Office of the Registrar could not confirm:') }}</p>
@@ -196,7 +196,7 @@
 
     <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
-        {{-- Field left, value right; the ID and the requirement files are rows too (REQ-09-22). --}}
+        {{-- Field left, value right; the ID is a row too (REQ-09-22). --}}
         <x-request-details :request="$request">
             @if ($request->identityDocument)
                 {{-- The ID sent with this request, without a verification badge: "Verified" shows on
@@ -207,8 +207,6 @@
                     </x-file-link>
                 </x-summary-row>
             @endif
-            {{-- The copies of the requirements sent with this request (REQ-04-19). --}}
-            <x-requirement-document-list :request="$request" />
         </x-request-details>
     </section>
 

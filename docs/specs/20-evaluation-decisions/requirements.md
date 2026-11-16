@@ -54,7 +54,8 @@ This replaces:
 ### The decision
 - **REQ-20-02** BELOW the evaluation checklist THE SYSTEM SHALL show Remarks and the buttons
   Decline, Require Office Visit, Return for Clarification and Approve, in that order, Approve on
-  the right. Remarks SHALL be optional to approve and required for the other three.
+  the right. Remarks SHALL be optional to approve and to require an office visit (REQ-20-04, since
+  2026-11-15), and required to decline and to return for clarification.
 - **REQ-20-03** WHEN the evaluator chooses Return for Clarification THE SYSTEM SHALL require at least
   one rejected part and remarks. It SHALL then set the status `returned_for_clarification` and
   record the rejected parts and the remarks. If the identity part was rejected, the request's ID
@@ -62,34 +63,43 @@ This replaces:
   marked not accepted. The requester SHALL be notified, and the evaluation lock ends.
 - **REQ-20-04** WHEN the evaluator chooses Require Office Visit THE SYSTEM SHALL ask what is
   required at the office: each documentary requirement of the credential as a checkbox under
-  "Requirements", plus an optional "Other" item. It SHALL require at least one item and remarks.
-  It SHALL then record each item with the evaluator, set the status `pending_compliance`, write
-  the items ("Required: …") and the remarks to the ledger and notify the requester. No screen,
-  email, message or report SHALL call the items "missing": the requester may already have uploaded
-  a copy, and the office still needs the original (Proposed Workflow III-C). Ledger entries written
+  "Requirements", then an "Other" checkbox; ticking "Other" shows a text field for it, which is
+  then required. It SHALL require at least one ticked item. Remarks SHALL be optional, and the
+  field marked "Optional". *(User's request, 2026-11-15: remarks were required, and "Other" was a
+  text field always shown.)* It SHALL then record each item with the evaluator, set the status
+  `pending_compliance`, write the items ("Required: …") and any remarks to the ledger and notify
+  the requester. No screen,
+  email, message or report SHALL call the items "missing": the office needs the original
+  (Proposed Workflow III-C). Ledger entries written
   before this change ("Missing: …") are shown as "Required: …"; the stored rows are not edited.
   *(User's request, 2026-11-13: "let's not tag it as missing", project-wide.)*
 
 ### Returned for clarification
 - **REQ-20-05** WHILE a request is returned for clarification THE SYSTEM SHALL show its requester
-  the rejected parts, the remarks and an **Edit Request** button. Nobody else SHALL be able to edit
-  it, and it SHALL NOT be editable in any other status.
+  the rejected parts, the remarks and an **Edit Request** button, under the heading "Please Correct
+  and Clarify Your Request" *(user's request, 2026-11-15, in the Title Case of REQ-09-19; was
+  "Please Correct Your Request")*.
+  Nobody else SHALL be able to edit it, and it SHALL NOT be editable in any other status.
 - **REQ-20-06** THE Edit Request page SHALL be the New Request form filled in with the request's
   credential, purpose and receiving school, and the requester's saved details. The requester SHALL
   be able to change the credential, purpose, receiving school, their name, contact number and
-  academic information, and add copies of the requirements. WHEN the request's ID was rejected THE
+  academic information. WHEN the request's ID was rejected THE
   SYSTEM SHALL require another valid ID; the reason is shown on the request page only (REQ-20-05),
   not repeated on Edit Request *(user's request, 2026-11-11)*. A summary SHALL follow, with an
   optional note to the Office of the Registrar, the privacy consent and the button
   **Resubmit Request**.
 - **REQ-20-07** WHEN the requester resubmits THE SYSTEM SHALL, all or nothing: save their details to
   their profile; update the request's credential, purpose, receiving school, fee, amount due and
-  copy of their details; attach a new ID (it becomes their saved ID and awaits verification) and
-  any new requirement copies; set the status `submitted`, so the request is back in the Initial
+  copy of their details; attach a new ID (it becomes their saved ID and awaits verification); set the status `submitted`, so the request is back in the Initial
   Evaluation queue; write the note to the ledger and notify the registrars. Rejected parts SHALL be
-  cleared, and so SHALL each part whose data changed: Credential request (credential, purpose,
-  receiving school or new requirement copies), User identity (name, contact number or ID) and
+  cleared, and so SHALL each part whose data changed: Credential request (credential, purpose or
+  receiving school), User identity (name, contact number or ID) and
   Academic record (academic information). Other confirmed parts SHALL stay confirmed.
+- **REQ-20-14** WHILE a resubmitted request is under evaluation and its requester wrote a note when
+  resubmitting THE SYSTEM SHALL show the evaluator that note ("Requester's note:") below the
+  evaluation checklist, after *Academic Record Verification* (and *Representative Verification*
+  when there is one), just above the Decision. *(User's request, 2026-11-15: the note was only in
+  the ledger, which the evaluation page does not show.)*
 
 ### Office visit
 - **REQ-20-08** WHILE a request is pending compliance THE SYSTEM SHALL show its requester "Visit the
@@ -104,7 +114,11 @@ This replaces:
   box repeated the items, and Confirm Compliance looked available.)* It SHALL then confirm the evaluation's parts, mark
   the request's ID and its representatives verified, and move a paid request to `awaiting_payment`
   with payment instructions, or accept a free request directly. The registrar SHALL also be able to
-  decline the request, with remarks.
+  decline the request, with remarks. Each received item's "Received <date> · <registrar>" SHALL
+  sit at the item's lower right, below its name, however long the name; the Remarks field SHALL be
+  marked "Optional" (Confirm Compliance needs none; Decline still asks for them, REQ-20-02).
+  *(User's request, 2026-11-15: a short name put the mark beside it, a long one below it on the
+  left.)*
 
 ### Queues, wording and reports
 - **REQ-20-10** THE Initial Evaluation queue's "Waiting for the requester" view SHALL list the

@@ -81,8 +81,8 @@
   (REQ-04-02) as a card: the fee and the processing period side by side, then the offices of its
   route as a numbered list, one office per line with its task (the Dean step names the requester's
   college), ending with the Office of the Registrar's final quality check, then the special
-  conditions as a note. *(Changed by REQ-15-03, 2026-11-10: the documentary requirements are
-  section 2 of New Request, no longer in the card.)*
+  conditions as a note. *(Changed by REQ-15-03, 2026-11-10: the documentary requirements left the
+  card; since 2026-11-15 they are not shown at all, REQ-04-23.)*
 - **REQ-09-12** THE SYSTEM SHALL lay out New Request and Request Tracker alike: one centred
   column of the same width, with the content in bordered sections that share their padding and
   heading style; Request Tracker lists the requests inside one section, with no heading of its own
@@ -113,11 +113,14 @@
 - **REQ-09-22** THE requester's request page SHALL show "Tracking History" as its last section,
   after "Request Details". "Request Details" SHALL list each entry as a row, the field's name on
   the left and its value on the right (stacked on narrow screens, like the summary rows of
-  REQ-15-17), the valid ID and each documentary requirement with its uploaded files included as
-  rows of the same list; a requirement without a file reads "No file uploaded" in grey italics
-  (REQ-15-19). The same rows SHALL be used wherever Request Details appears (office and Records
-  pages) and for the documentary requirements on the Initial Evaluation checklist.
-  *(User's request, 2026-11-11.)*
+  REQ-15-17), the valid ID included as a row of the same list. The same rows SHALL be used
+  wherever Request Details appears (office and Records pages). *(User's request, 2026-11-11; the
+  documentary requirements row was removed on 2026-11-15, REQ-04-23.)*
+- **REQ-09-23** Request Details SHALL show the credential's fee as "Fee" (not "Amount due"), with
+  a "Paid" badge once the payment is verified (the request accepted), or "None required" for a
+  free credential. The Records page SHALL NOT show an "Adjusted due date" row: nothing pauses the
+  processing period since REQ-16-21. "Processing time" stays, empty until the release.
+  *(User's request, 2026-11-15: "Amount due" read as unpaid on a paid request.)*
 
 ### Email verification
 - **REQ-09-07** THE SYSTEM SHALL show the verify-email page with the same heading style as the
@@ -137,7 +140,8 @@
 
 ### Section headings
 - **REQ-09-19** THE SYSTEM SHALL write every section heading on a page in Title Case (e.g.
-  "Request Details", "Office Visits", "Proofs of Payment"; short articles, conjunctions and
+  "Request Details", "Time in Each Office", "Proofs of Payment"; short articles, conjunctions and
   prepositions stay lower case unless first), including the report names. Dialog titles, field
   labels and buttons keep sentence case. The request's event ledger is headed "Tracking History"
-  on every request page (requester, office and Records), not "Ledger" or "History".
+  on every request page that shows it (requester and Records; the office page has none since
+  REQ-24-07), not "Ledger" or "History".
