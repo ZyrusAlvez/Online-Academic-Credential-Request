@@ -50,7 +50,7 @@
                 <ol class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     @foreach ([
                         ['Request', 'Choose the credential you need and tell us your college and purpose.'],
-                        ['Pay If Required', 'For paid credentials such as the TOR, pay online and upload your receipt.'],
+                        ['Pay', 'Pay the fee online and upload your receipt.'],
                         ['Track', 'See which office has your document and when each one signs it.'],
                         ['Claim', 'Get notified when it is ready for release at the Registrar.'],
                     ] as $i => [$step, $text])
