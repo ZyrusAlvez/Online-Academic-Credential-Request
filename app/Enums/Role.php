@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * The four account types (REQ-18-01).
+ * The five account types (REQ-18-01, REQ-25-01).
  */
 enum Role: string
 {
@@ -11,6 +11,7 @@ enum Role: string
     case Registrar = 'registrar';
     case Department = 'department';
     case Admin = 'admin';
+    case Cashier = 'cashier';
 
     public function label(): string
     {
@@ -19,12 +20,14 @@ enum Role: string
             self::Registrar => 'Registrar',
             self::Department => 'Department Staff',
             self::Admin => 'Admin',
+            self::Cashier => 'Cashier',
         };
     }
 
     /**
      * Where `/dashboard` and logging in lead: requesters start on the new-request form, the
-     * Registrar on Initial Evaluation, the Admin on the dashboard (REQ-18-02, 03).
+     * Registrar on Initial Evaluation, the Admin on the dashboard, the Cashier on Payment
+     * Validation (REQ-18-02, 03, REQ-25-01).
      */
     public function homeRoute(): string
     {
@@ -33,6 +36,7 @@ enum Role: string
             self::Registrar => 'registrar.evaluation',
             self::Department => 'department.incoming',
             self::Admin => 'admin.dashboard',
+            self::Cashier => 'cashier.payments',
         };
     }
 }

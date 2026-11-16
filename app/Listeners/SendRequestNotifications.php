@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\Notification;
 
 /**
  * Decides who hears about a ledger event (spec 06): the requester, the office a document was
- * just forwarded or returned to, and registrars when something needs them.
+ * just forwarded or returned to, and registrars (cashiers for a proof of payment) when something
+ * needs them.
  */
 class SendRequestNotifications
 {
@@ -89,7 +90,10 @@ class SendRequestNotifications
             default => "Representative to verify for {$request->reference_no}",
         };
 
-        $this->send(User::where('role', Role::Registrar)->where('is_active', true)->get(), $event, $title);
+        // A proof of payment is the cashier's to validate (REQ-25-08).
+        $role = $event->type === RequestEventType::PaymentSubmitted ? Role::Cashier : Role::Registrar;
+
+        $this->send(User::where('role', $role)->where('is_active', true)->get(), $event, $title);
     }
 
     /**

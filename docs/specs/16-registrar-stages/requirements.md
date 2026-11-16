@@ -51,6 +51,8 @@ This replaces:
   requester" tab, like Initial Evaluation's (REQ-16-02), SHALL list the requests awaiting payment
   (approved, no proof sent yet), oldest first, and show their count. *(User's requests,
   2026-11-11: the requests awaiting payment are added, then moved to their own tab.)*
+  *Changed by REQ-25-04 and REQ-25-07 (2026-11-17):* this list, for online requests, is now the
+  Cashier's; the Registrar's Payment Validation lists walk-in requests only.
 - **REQ-16-04** THE In Progress queue SHALL list the requests in progress or returned for correction
   between offices (not those sent for the final check), with the office holding the document now,
   whether it has been received there, since when, the due date and an overdue mark, and SHALL let
@@ -150,6 +152,7 @@ This replaces:
   authorized personnel confirm the payment against the official payment record (V, step 3), so
   both are removed, like the final check's checklist (REQ-16-19).)* The request's record below
   SHALL NOT list the proofs of payment again *(user's request, 2026-11-16: it repeated the proof)*.
+  *Changed by REQ-25-05 (2026-11-17):* the Cashier makes this decision for online requests.
 - **REQ-16-27** WHERE a stage has a decision (Initial Evaluation, Payment Validation, Final Quality
   Check) THE SYSTEM SHALL show the Decision section last on the working page, after the request's
   record, with the requester's resubmit note just above it (REQ-20-14). *(User's request,

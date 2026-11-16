@@ -2,6 +2,7 @@
 
 use App\Enums\CheckStage;
 use App\Enums\RegistrarQueue;
+use App\Enums\RequestChannel;
 use App\Enums\RequestStatus;
 use App\Livewire\Registrar\Queue;
 use App\Livewire\Registrar\Requests\Show;
@@ -49,7 +50,7 @@ function oneInEachQueue(): array
 {
     $registrar = test()->registrar;
     $evaluation = submitRequest(test()->owner, test()->org->tor);
-    $payment = evaluate(submitRequest(test()->owner, test()->org->tor), $registrar);
+    $payment = walkIn(evaluate(submitRequest(test()->owner, test()->org->tor), $registrar));
     uploadPayment($payment);
     $inProgress = acceptRequest(submitRequest(test()->owner, test()->org->tor), $registrar);
     $finalCheck = throughEveryOffice(submitRequest(test()->owner, test()->org->tor));
@@ -92,7 +93,7 @@ test('REQ-16-26 each request opens under its queue, with that queue current in t
 });
 
 test('REQ-16-26 the queues link their rows to the working page under them', function () {
-    $payment = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    $payment = walkIn(evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar));
     uploadPayment($payment);
     $submitted = submitRequest($this->owner, $this->org->tor);
 
@@ -103,7 +104,7 @@ test('REQ-16-26 the queues link their rows to the working page under them', func
 });
 
 test('REQ-16-26 a page under the wrong queue, or at the former address, goes to the request\'s queue; a closed one to Records', function () {
-    $payment = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    $payment = walkIn(evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar));
     uploadPayment($payment);
 
     $this->actingAs($this->registrar)->get(route('registrar.evaluation.show', $payment))
@@ -130,10 +131,11 @@ test('REQ-16-26 after a decision moves the request, the page follows it to its n
     workflow()->startEvaluation($request, $this->registrar);
     checkAll($request, $this->registrar, CheckStage::Evaluation);
 
+    // An online request's payment is the cashier's: the registrar's page for it is its record (REQ-25-07).
     Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request->fresh(), 'queue' => RegistrarQueue::Evaluation->value])
         ->call('approve')
         ->assertHasNoErrors()
-        ->assertRedirect(route('registrar.payments.show', $request));
+        ->assertRedirect(route('records.show', $request));
 
     // Within the same queue the page stays.
     $other = submitRequest($this->owner, $this->org->tor);
@@ -143,7 +145,7 @@ test('REQ-16-26 after a decision moves the request, the page follows it to its n
 });
 
 test('REQ-16-26 a payment approved at Payment Validation moves to In Progress', function () {
-    $request = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    $request = walkIn(evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar));
     uploadPayment($request);
 
     Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request->fresh(), 'queue' => RegistrarQueue::Payment->value])
@@ -161,6 +163,9 @@ test('REQ-16-26 the former address in notifications always lands where the reque
     $this->actingAs($this->registrar)->get($link)->assertRedirect(route('registrar.evaluation.show', $request));
 
     evaluate($request, $this->registrar);
+    // Awaiting an online payment: the cashier's, so the registrar sees the record (REQ-25-07).
+    $this->actingAs($this->registrar)->get($link)->assertRedirect(route('records.show', $request));
+    walkIn($request);
     $this->actingAs($this->registrar)->get($link)->assertRedirect(route('registrar.payments.show', $request));
 
     // In progress: the In Progress list, searched by its tracking number.
@@ -181,6 +186,11 @@ test('REQ-16-26 a request\'s queue follows its status', function () {
         'released' => null, 'declined' => null, 'cancelled' => null,
     ] as $status => $queue) {
         $request->status = RequestStatus::from($status);
+        $request->channel = RequestChannel::WalkIn;
         expect(RegistrarQueue::forRequest($request))->toBe($queue, $status);
+
+        // An online payment is the cashier's, in no registrar queue (REQ-25-07).
+        $request->channel = RequestChannel::Online;
+        expect(RegistrarQueue::forRequest($request))->toBe($queue === RegistrarQueue::Payment ? null : $queue, $status);
     }
 });

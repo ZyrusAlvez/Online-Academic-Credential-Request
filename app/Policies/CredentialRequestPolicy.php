@@ -35,6 +35,8 @@ class CredentialRequestPolicy
             Role::Student => $request->user_id === $user->id,
             Role::Department => $user->department_id !== null
                 && $request->visits()->where('department_id', $user->department_id)->exists(),
+            // The online requests whose payment the cashier validates (REQ-25-04).
+            Role::Cashier => ! $request->isWalkIn(),
         };
 
         return $allowed ? Response::allow() : Response::denyAsNotFound();
@@ -86,6 +88,19 @@ class CredentialRequestPolicy
     public function review(User $user, CredentialRequest $request): bool
     {
         return $user->hasRole(Role::Registrar);
+    }
+
+    /**
+     * Approve, return or decline a payment awaiting validation: the Cashier for an online request,
+     * the Registrar for a walk-in one (REQ-25-05, 07).
+     */
+    public function validatePayment(User $user, CredentialRequest $request): bool
+    {
+        if ($request->status !== RequestStatus::PaymentVerification) {
+            return false;
+        }
+
+        return $request->isWalkIn() ? $user->hasRole(Role::Registrar) : $user->hasRole(Role::Cashier);
     }
 
     /**

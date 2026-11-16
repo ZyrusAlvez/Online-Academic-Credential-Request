@@ -175,7 +175,7 @@ class Show extends Component
      */
     public function approve(RequestWorkflow $workflow): void
     {
-        $this->authorize('evaluate', $this->credentialRequest);
+        $this->authorizeDecision();
         $request = $this->credentialRequest;
         $optional = ['remarks' => ['nullable', 'string', 'max:500']];
 
@@ -208,7 +208,7 @@ class Show extends Component
      */
     public function returnRequest(RequestWorkflow $workflow): void
     {
-        $this->authorize('evaluate', $this->credentialRequest);
+        $this->authorizeDecision();
         $request = $this->credentialRequest;
         $rules = ['remarks' => ['required', 'string', 'max:500']];
 
@@ -236,7 +236,7 @@ class Show extends Component
      */
     public function decline(RequestWorkflow $workflow): void
     {
-        $this->authorize('evaluate', $this->credentialRequest);
+        $this->authorizeDecision();
 
         $this->decide(
             'decline',
@@ -389,6 +389,19 @@ class Show extends Component
     }
 
     /**
+     * A stage decision; at Payment Validation only for a walk-in request, since online payments
+     * are the cashier's (REQ-25-07).
+     */
+    private function authorizeDecision(): void
+    {
+        $this->authorize('evaluate', $this->credentialRequest);
+
+        if ($this->credentialRequest->status === RequestStatus::PaymentVerification) {
+            $this->authorize('validatePayment', $this->credentialRequest);
+        }
+    }
+
+    /**
      * The stage panel for the request's current state (design of spec 16).
      */
     private function panel(CredentialRequest $request): string
@@ -402,7 +415,7 @@ class Show extends Component
             $request->status === RequestStatus::UnderEvaluation => self::PANEL_EVALUATION,
             $request->status === RequestStatus::ReturnedForClarification => self::PANEL_CLARIFICATION,
             $request->status === RequestStatus::PendingCompliance => self::PANEL_COMPLIANCE,
-            $request->status === RequestStatus::PaymentVerification => self::PANEL_PAYMENT,
+            $request->status === RequestStatus::PaymentVerification && $request->isWalkIn() => self::PANEL_PAYMENT,
             $atFinalCheck => self::PANEL_FINAL_CHECK,
             $request->status === RequestStatus::ReadyForRelease => self::PANEL_RELEASE,
             // In Progress has no working page: its rows act in place (REQ-17-13).

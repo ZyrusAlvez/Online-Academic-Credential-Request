@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AcademicStatus;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
+use App\Enums\RequestChannel;
 use App\Enums\RequesterMode;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
@@ -35,6 +36,7 @@ use Illuminate\Support\Carbon;
  * @property int $college_id
  * @property AcademicStatus $academic_status
  * @property RequesterMode $requester_mode
+ * @property RequestChannel $channel
  * @property bool $requires_payment
  * @property ?string $fee
  * @property ?string $amount_due
@@ -61,6 +63,16 @@ class CredentialRequest extends Model
         'receiving_institution',
     ];
 
+    /** Requests are made online unless the Registrar records a walk-in (spec 25). */
+    protected $attributes = [
+        'channel' => 'online',
+    ];
+
+    public function isWalkIn(): bool
+    {
+        return $this->channel === RequestChannel::WalkIn;
+    }
+
     /**
      * @return array<string, string>
      */
@@ -70,6 +82,7 @@ class CredentialRequest extends Model
             'status' => RequestStatus::class,
             'academic_status' => AcademicStatus::class,
             'requester_mode' => RequesterMode::class,
+            'channel' => RequestChannel::class,
             'identity_status' => ReviewStatus::class,
             'identity_reviewed_at' => 'datetime',
             'requires_payment' => 'boolean',

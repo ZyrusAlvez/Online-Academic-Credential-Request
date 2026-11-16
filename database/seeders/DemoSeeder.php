@@ -10,8 +10,8 @@ use Illuminate\Database\Seeder;
 use RuntimeException;
 
 /**
- * Local and staging only. The base data and the demo accounts: a registrar, one staff account per
- * office and four requesters, with no requests (REQ-23-07). Sample requests are DemoRequestSeeder's.
+ * Local and staging only. The base data and the demo accounts: a registrar, a cashier, one staff
+ * account per office and four requesters, with no requests (REQ-23-07). Sample requests are DemoRequestSeeder's.
  * Password for every account: DemoSeeder::PASSWORD.
  *
  *   php artisan migrate:fresh --seed && php artisan db:seed --class=DemoSeeder
@@ -38,6 +38,7 @@ class DemoSeeder extends Seeder
         $this->call([DepartmentSeeder::class, ProgramSeeder::class, PurposeSeeder::class, CredentialTypeSeeder::class, AdminSeeder::class, NonWorkingDaySeeder::class]);
 
         self::registrarAccount();
+        self::cashierAccount();
 
         $departments = Department::active()->get()->keyBy('code');
         $departments->each(fn (Department $department) => self::staffAccount($department));
@@ -69,6 +70,19 @@ class DemoSeeder extends Seeder
         $user = User::firstOrNew(['email' => 'registrar@example.com']);
         $user->fill(['first_name' => 'Demo', 'middle_name' => null, 'last_name' => 'Registrar', 'password' => self::PASSWORD]);
         $user->forceFill(['role' => Role::Registrar, 'department_id' => null, 'is_active' => true, 'email_verified_at' => now()])->save();
+
+        return $user;
+    }
+
+    /**
+     * The demo cashier, `cashier@example.com` with the demo password, who validates the demo
+     * requests' online payments (REQ-25-10).
+     */
+    public static function cashierAccount(): User
+    {
+        $user = User::firstOrNew(['email' => 'cashier@example.com']);
+        $user->fill(['first_name' => 'Demo', 'middle_name' => null, 'last_name' => 'Cashier', 'password' => self::PASSWORD]);
+        $user->forceFill(['role' => Role::Cashier, 'department_id' => null, 'is_active' => true, 'email_verified_at' => now()])->save();
 
         return $user;
     }

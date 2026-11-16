@@ -9,6 +9,7 @@ use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
 use App\Exceptions\InvalidTransition;
+use App\Livewire\Cashier\Payments as CashierPayments;
 use App\Livewire\Registrar\Queue;
 use App\Livewire\Registrar\Records\Index as RecordsIndex;
 use App\Livewire\Registrar\Records\Show as RecordShow;
@@ -56,13 +57,13 @@ function underEvaluation(CredentialRequest $request, array $results = []): Crede
     return $request->fresh();
 }
 
-/** A paid request with its proof of payment awaiting validation. */
+/** A paid walk-in request with its payment awaiting the registrar's validation (REQ-25-07). */
 function awaitingValidation(CredentialRequest $request): CredentialRequest
 {
     evaluate($request, test()->registrar);
     uploadPayment($request);
 
-    return $request->fresh();
+    return walkIn($request);
 }
 
 /** An accepted request taken through every office to the received final quality check. */
@@ -117,24 +118,36 @@ test('REQ-16-02 an evaluator with no name yet shows by email in the queue', func
 });
 
 test('REQ-16-03 Payment Validation lists the proofs to verify; the requests awaiting payment wait in their own tab', function () {
+    // Now the cashier's list, for online requests (REQ-25-04).
+    $cashier = User::factory()->cashier()->create();
     $unpaid = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar)->fresh();
-    $paying = awaitingValidation(submitRequest($this->owner, $this->org->tor));
+    $paying = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    uploadPayment($paying);
+    $paying = $paying->fresh();
 
     expect($unpaid->status)->toBe(RequestStatus::AwaitingPayment)
         ->and($paying->status)->toBe(RequestStatus::PaymentVerification);
 
-    queuePage('payment')
-        ->assertSee('Proofs of payment to verify.')
+    Livewire::actingAs($cashier)->test(CashierPayments::class)
+        ->assertSee('Online payments to validate.')
         ->assertSeeHtml('data-queue-tabs')
         ->assertSeeInOrder(['To verify', 'Waiting for the requester (1)'])
         ->assertSeeInOrder([$paying->reference_no, RequestStatus::PaymentVerification->label(), '₱530.00'])
         ->assertDontSee($unpaid->reference_no)
         ->assertDontSee($this->request->reference_no);
 
-    queuePage('payment', ['waiting' => true])
+    Livewire::withQueryParams(['waiting' => true])->actingAs($cashier)->test(CashierPayments::class)
         ->assertSeeInOrder([$unpaid->reference_no, RequestStatus::AwaitingPayment->label(), '₱530.00'])
         ->assertDontSee($paying->reference_no)
         ->assertDontSee($this->request->reference_no);
+
+    // The registrar's Payment Validation: walk-in payments only, in a single list (REQ-25-07).
+    $walkIn = awaitingValidation(submitRequest($this->owner, $this->org->tor));
+    queuePage('payment')
+        ->assertSee('Walk-in payments to validate.')
+        ->assertDontSeeHtml('data-queue-tabs')
+        ->assertSee($walkIn->reference_no)
+        ->assertDontSee($paying->reference_no);
 
     // The other queues keep a single list.
     queuePage('release')->assertDontSeeHtml('data-queue-tabs');
@@ -209,9 +222,11 @@ test('REQ-16-25 every stage queue, Release included, searches by tracking number
 });
 
 test('REQ-16-25 on the queues with a waiting tab the search sits right of the tabs, on their line', function () {
-    foreach (['evaluation', 'payment'] as $queue) {
-        queuePage($queue)->assertSeeHtmlInOrder(['justify-between', 'data-queue-tabs', 'sm:ml-auto sm:w-72', 'data-queue-search']);
-    }
+    $order = ['justify-between', 'data-queue-tabs', 'sm:ml-auto sm:w-72', 'data-queue-search'];
+
+    queuePage('evaluation')->assertSeeHtmlInOrder($order);
+    // The cashier's Payment Validation has the waiting tab (REQ-25-04).
+    Livewire::actingAs(User::factory()->cashier()->create())->test(CashierPayments::class)->assertSeeHtmlInOrder($order);
 });
 
 test('REQ-16-07 Records lists every request, searchable and filterable, and a record is read-only', function () {

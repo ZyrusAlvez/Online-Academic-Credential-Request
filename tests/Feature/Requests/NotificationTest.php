@@ -132,8 +132,9 @@ test('REQ-06-07 offices are told in-app and by email when a document is forwarde
     Notification::assertSentTo($this->vpf, RequestActivity::class, fn ($n) => $n->title === "{$request->reference_no} was corrected and sent back to you");
 });
 
-test('REQ-06-08 registrars are told in-app and by email about new and resubmitted requests, payments and representatives', function () {
+test('REQ-06-08 registrars are told in-app and by email about new and resubmitted requests and representatives; cashiers about payments', function () {
     Notification::fake();
+    $cashier = User::factory()->cashier()->create();
 
     $request = submitRequest($this->owner, $this->org->tor);
     Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "New request {$request->reference_no} to evaluate"
@@ -141,7 +142,9 @@ test('REQ-06-08 registrars are told in-app and by email about new and resubmitte
 
     evaluate($request, $this->registrar);
     uploadPayment($request);
-    Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "Payment to verify for {$request->reference_no}");
+    // A proof of payment is the cashier's to validate (REQ-25-08).
+    Notification::assertSentTo($cashier, RequestActivity::class, fn ($n) => $n->title === "Payment to verify for {$request->reference_no}");
+    Notification::assertNotSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "Payment to verify for {$request->reference_no}");
 
     declareRepresentative($request, $this->owner, ['full_name' => 'Rosa']);
     Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "Representative to verify for {$request->reference_no}");

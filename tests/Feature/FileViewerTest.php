@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\DocumentKind;
+use App\Livewire\Cashier\Requests\Show as CashierShow;
 use App\Livewire\Registrar\Requests\Show;
 use App\Livewire\Student\Profile;
 use App\Livewire\Student\Requests\Create;
@@ -74,7 +75,8 @@ test('REQ-09-16 an image on a page shows a placeholder until it loads', function
     $request = requestWithFiles();
     $proof = $request->paymentProofs()->sole();
 
-    $html = Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])->html();
+    // The proof under review, on the cashier's Payment Validation (REQ-25-05).
+    $html = Livewire::actingAs(User::factory()->cashier()->create())->test(CashierShow::class, ['credentialRequest' => $request])->html();
 
     expect($html)->toMatch('/data-loading-image.*?x-show="! loaded".*?animate-pulse.*?Loading image….*?<img src="'.preg_quote(e(route('payment-proofs.show', $proof)), '/').'"/s')
         ->and($html)->toContain('x-init="if ($el.complete) loaded = true"')
@@ -89,12 +91,13 @@ test('REQ-09-14 every uploaded file opens in the viewer and stays a real link to
     $spa = $request->documents()->where('kind', DocumentKind::Spa)->sole();
 
     $requestPage = Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])->html();
+    $paymentPage = Livewire::actingAs(User::factory()->cashier()->create())->test(CashierShow::class, ['credentialRequest' => $request])->html();
     $ownRequestPage = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request])->html();
     $profile = Livewire::actingAs($this->owner)->test(Profile::class)->html();
 
     $links = [
         [$requestPage, route('identity-documents.show', $id), 'image/jpeg'],
-        [$requestPage, route('payment-proofs.show', $proof), $proof->mime_type],
+        [$paymentPage, route('payment-proofs.show', $proof), $proof->mime_type],
         [$requestPage, route('request-documents.show', $spa), 'application/pdf'],
         [$ownRequestPage, route('identity-documents.show', $id), 'image/jpeg'],
         [$profile, route('identity-documents.show', $id), 'image/jpeg'],
@@ -109,8 +112,8 @@ test('REQ-09-14 every uploaded file opens in the viewer and stays a real link to
     // Modified clicks are left to the browser, so they open a new tab.
     expect($profile)->toContain('if ($event.ctrlKey || $event.metaKey || $event.shiftKey || $event.altKey || $event.button !== 0) return;');
 
-    // The proof's thumbnail on the request page opens the viewer too.
-    expect($requestPage)->toMatch('/data-file-link[^>]*>\s*<span[^>]*data-loading-image.*?<img src="'.preg_quote(e(route('payment-proofs.show', $proof)), '/').'"/s');
+    // The proof's thumbnail on the payment page opens the viewer too.
+    expect($paymentPage)->toMatch('/data-file-link[^>]*>\s*<span[^>]*data-loading-image.*?<img src="'.preg_quote(e(route('payment-proofs.show', $proof)), '/').'"/s');
 });
 
 test('REQ-09-14 a PDF is shown from the browser\'s copy, so a preview served as a download still shows inline', function () {

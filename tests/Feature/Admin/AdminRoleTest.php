@@ -36,8 +36,9 @@ const STAGE_PAGES = ['registrar.evaluation', 'registrar.payments', 'registrar.in
 
 // ── Roles and pages ─────────────────────────────────────────────────────────────────────────
 
-test('REQ-18-01 there are four roles: Requester, Registrar, Department Staff and Admin', function () {
-    expect(collect(Role::cases())->map->value->all())->toBe(['student', 'registrar', 'department', 'admin'])
+test('REQ-18-01 REQ-25-01 there are five roles: Requester, Registrar, Department Staff, Admin and Cashier', function () {
+    expect(collect(Role::cases())->map->value->all())->toBe(['student', 'registrar', 'department', 'admin', 'cashier'])
+        ->and(Role::Cashier->label())->toBe('Cashier')
         ->and(Role::Admin->label())->toBe('Admin')
         ->and(Role::Department->label())->toBe('Department Staff');
 });

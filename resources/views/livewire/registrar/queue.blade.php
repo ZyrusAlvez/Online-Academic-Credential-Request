@@ -5,7 +5,8 @@
 @endphp
 
 <div class="space-y-6" data-queue="{{ $queue->value }}">
-    <x-page-header :title="__($queue->label())" :description="__($queue->description())" />
+    {{-- The cashier's Payment Validation uses this list too, with its own description (REQ-25-04). --}}
+    <x-page-header :title="__($queue->label())" :description="$description ?? __($queue->description())" />
 
     {{-- Tabs on the left, search on the right of the same line (wraps on small screens). --}}
     <div class="flex flex-wrap items-center justify-between gap-3">

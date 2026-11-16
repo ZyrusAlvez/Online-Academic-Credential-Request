@@ -8,6 +8,7 @@ use App\Http\Controllers\IdentityDocumentController;
 use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\RequestDocumentController;
 use App\Livewire\Admin;
+use App\Livewire\Cashier;
 use App\Livewire\Department;
 use App\Livewire\Notifications;
 use App\Livewire\Registrar;
@@ -64,6 +65,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('requests.show');
     });
 
+    // The Cashier validates the payments of online requests (REQ-25-01..05).
+    Route::prefix('cashier')->name('cashier.')->middleware('role:cashier')->group(function () {
+        Route::redirect('/', '/cashier/payments');
+        Route::get('payments', Cashier\Payments::class)->name('payments');
+        Route::get('payments/{credentialRequest}', Cashier\Requests\Show::class)->name('payments.show');
+    });
+
     // Records, shared by the Registrar and the Admin (REQ-16-07, REQ-18-06).
     Route::middleware('role:registrar,admin')->group(function () {
         Route::get('records', Registrar\Records\Index::class)->name('records');
@@ -118,7 +126,7 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['verified', 'role:student'])->name('settings.profile');
     Volt::route('settings/password', 'settings.password')->name('settings.password');
     Route::get('settings/notifications', Notifications\EmailSettings::class)
-        ->middleware('role:student,registrar,department')->name('settings.notifications');
+        ->middleware('role:student,registrar,department,cashier')->name('settings.notifications');
 });
 
 require __DIR__.'/auth.php';
