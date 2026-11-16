@@ -2,16 +2,21 @@
      on New Request and Settings → Profile.
      Expects: $prefix (the RequesterProfileForm property), $fields (that form), $number (first
      section number, or null), $statuses, $colleges, $programs, $idTypes, $savedId, $verified
-     (section → verified, REQ-21-06). --}}
+     (section → verified, REQ-21-06). The Registrar's Walk-in Request passes withId false and
+     withEmail true: no valid ID, and the client's email (REQ-26-02). --}}
 @php($sectionTitle = fn (string $text, int $offset): string => $number !== null ? ($number + $offset).'. '.__($text) : __($text))
 @php($verified ??= [])
+@php($withId ??= true)
+@php($withEmail ??= false)
 {{-- Each heading carries, at its right end, whether the saved details are verified; the fields stay
      editable, and Help explains re-verification (REQ-21-02, 06). --}}
 
 <section aria-labelledby="personal-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6" data-section-verification="personal">
     <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <h2 id="personal-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Personal Information', 0) }}</h2>
-        <x-verification-badge :verified="$verified['personal'] ?? false" />
+        @if ($withId)
+            <x-verification-badge :verified="$verified['personal'] ?? false" />
+        @endif
     </div>
 
     <div class="grid gap-6 sm:grid-cols-3">
@@ -22,13 +27,18 @@
 
     <div class="grid gap-6 sm:grid-cols-3">
         <flux:input wire:model.live.blur="{{ $prefix }}.contact_number" type="tel" :label="__('Contact number')" autocomplete="tel" inputmode="numeric" maxlength="11" x-mask="99999999999" placeholder="09171234567" required />
+        @if ($withEmail)
+            <flux:input wire:model.live.blur="{{ $prefix }}.email" type="email" :label="__('Email')" autocomplete="off" class="sm:col-span-2" required data-walk-in-email />
+        @endif
     </div>
 </section>
 
 <section aria-labelledby="academic-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6" data-section-verification="academic">
     <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <h2 id="academic-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Academic Information', 1) }}</h2>
-        <x-verification-badge :verified="$verified['academic'] ?? false" />
+        @if ($withId)
+            <x-verification-badge :verified="$verified['academic'] ?? false" />
+        @endif
     </div>
 
     <flux:radio.group wire:model.live="{{ $prefix }}.academic_status" :label="__('Status')">
@@ -64,6 +74,7 @@
     </div>
 </section>
 
+@if ($withId)
 <section aria-labelledby="identity-heading" class="space-y-5 rounded-xl border border-secondary/50 p-5 sm:p-6" data-section-verification="valid_id">
     <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <h2 id="identity-heading" class="text-lg font-semibold text-primary">{{ $sectionTitle('Valid ID', 2) }}</h2>
@@ -99,3 +110,4 @@
     </div>
     @endif
 </section>
+@endif

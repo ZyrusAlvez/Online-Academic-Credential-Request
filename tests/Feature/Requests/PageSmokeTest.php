@@ -20,7 +20,11 @@ test('every request page renders in every status for each role that can see it',
 
     foreach (CredentialRequest::with(['student', 'openVisit.department'])->get() as $request) {
         $this->actingAs($registrar)->get(RegistrarLink::to($request))->assertOk();
-        $this->actingAs($request->student)->get(route('student.requests.show', $request))->assertOk();
+
+        // A walk-in request not linked to an account has no owner's page (REQ-26-09).
+        if ($request->student !== null) {
+            $this->actingAs($request->student)->get(route('student.requests.show', $request))->assertOk();
+        }
 
         if ($request->openVisit && $request->openVisit->department->code !== 'REG') {
             $staff = User::where('department_id', $request->openVisit->department_id)->firstOrFail();
@@ -28,8 +32,16 @@ test('every request page renders in every status for each role that can see it',
         }
     }
 
-    foreach (['registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.final-check', 'registrar.release', 'records'] as $page) {
+    foreach (['registrar.walk-in', 'registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.final-check', 'registrar.release', 'records'] as $page) {
         $this->actingAs($registrar)->get(route($page))->assertOk();
+    }
+
+    // The cashier's list and each online payment awaiting validation (REQ-25-04, 05).
+    $cashier = User::where('role', Role::Cashier)->firstOrFail();
+    $this->actingAs($cashier)->get(route('cashier.payments'))->assertOk();
+    $this->actingAs($cashier)->get(route('cashier.payments', ['waiting' => 1]))->assertOk();
+    foreach (CredentialRequest::where('status', 'payment_verification')->where('channel', 'online')->get() as $request) {
+        $this->actingAs($cashier)->get(route('cashier.payments.show', $request))->assertOk();
     }
 
     // The first admin (INITIAL_ADMIN_*; there is no demo admin): its pages, and every record (REQ-18-06).

@@ -19,7 +19,7 @@
     <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
         <x-request-details :request="$request">
-            <x-summary-row :label="__('Email and contact number')" class="[&_dd]:break-all">{{ $request->student?->email ?? '—' }}@if ($request->contact_number) · {{ $request->contact_number }}@endif</x-summary-row>
+            <x-summary-row :label="__('Email and contact number')" class="[&_dd]:break-all">{{ $request->requesterEmail() ?? '—' }}@if ($request->contact_number) · {{ $request->contact_number }}@endif</x-summary-row>
         </x-request-details>
     </section>
 

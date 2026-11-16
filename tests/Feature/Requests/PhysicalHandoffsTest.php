@@ -180,19 +180,20 @@ test('REQ-17-17 one rejected part says to change it to Confirm', function () {
     expect(blockedDialog($page))->not->toContain('decline')->not->toContain('Decline');
 });
 
-test('REQ-17-17 at payment validation Approve is never blocked; Return to Requester without remarks says why', function () {
+test('REQ-17-17 at walk-in payment validation Decline without remarks says why; Validate Payment is never blocked', function () {
     $request = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
     uploadPayment($request);
-    walkIn($request);   // the registrar validates walk-in payments (REQ-25-07)
+    walkIn($request);   // the registrar validates walk-in payments (REQ-25-07, REQ-26-05)
 
-    handoffPage($request)->call('returnRequest')
+    handoffPage($request)->call('decline')
         ->assertHasErrors('remarks')
         ->assertDispatched('modal-show', name: 'decision-blocked')
         ->assertSet('blockedParts', [])
         ->assertSet('blockers', ['Write your remarks; the requester sees them.'])
-        ->assertSee("Can't return to the requester yet");
+        ->assertSee("Can't decline yet");
 
-    handoffPage($request)->call('approve')->assertHasNoErrors()->assertNotDispatched('modal-show');
+    handoffPage($request)->set('receiptNo', 'OR-1')->set('amountPaid', '530')
+        ->call('validatePayment')->assertHasNoErrors()->assertNotDispatched('modal-show');
     expect($request->fresh()->status)->toBe(RequestStatus::AcceptedForProcessing);
 });
 

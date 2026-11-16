@@ -49,6 +49,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // The Registrar works the requests, Initial Evaluation to Release (REQ-16-01..06, REQ-18-03, 05).
     Route::prefix('registrar')->name('registrar.')->middleware('role:registrar')->group(function () {
         Route::redirect('/', '/registrar/evaluation');
+        // A walk-in client's request, recorded by the Registrar (REQ-26-01).
+        Route::get('walk-in', Registrar\WalkIn::class)->name('walk-in');
         Route::get('evaluation', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Evaluation->value)->name('evaluation');
         Route::get('payments', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Payment->value)->name('payments');
         Route::get('in-progress', Registrar\Queue::class)->defaults('queue', RegistrarQueue::InProgress->value)->name('in-progress');

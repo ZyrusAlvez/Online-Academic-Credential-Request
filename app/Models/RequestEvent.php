@@ -97,6 +97,8 @@ class RequestEvent extends Model
             RequestEventType::RepresentativeRejected => 'Authorized representative not accepted',
             RequestEventType::Released => 'Released',
             RequestEventType::Cancelled => 'Request cancelled',
+            RequestEventType::WalkInRecorded => 'Walk-in request recorded at the Office of the Registrar',
+            RequestEventType::LinkedToAccount => 'Linked to the requester\'s account',
         };
     }
 

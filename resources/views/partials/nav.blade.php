@@ -20,6 +20,8 @@
         {{-- Initial Evaluation to Release, and Records (REQ-18-03); a queue is current on its list
              and on the working pages under it (REQ-16-26). --}}
         <flux:navlist.group :heading="__('Registrar')" class="grid">
+            {{-- First: a walk-in client's request (REQ-26-01). --}}
+            <flux:navlist.item icon="building-library" :href="route('registrar.walk-in')" :current="request()->routeIs('registrar.walk-in')" wire:navigate>{{ __('Walk-in Request') }}</flux:navlist.item>
             @foreach (\App\Enums\RegistrarQueue::cases() as $queue)
                 <flux:navlist.item :icon="$queue->icon()" :href="route($queue->routeName())" :current="request()->routeIs($queue->routeName(), $queue->showRouteName())" wire:navigate>{{ __($queue->label()) }}</flux:navlist.item>
             @endforeach

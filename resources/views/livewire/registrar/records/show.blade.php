@@ -9,6 +9,7 @@
             <x-copy-button :value="$request->reference_no" :label="__('Copy tracking number')" :copied="__('Tracking number copied.')" />
         </x-slot:afterTitle>
         <x-slot:actions>
+            <x-walk-in-badge :request="$request" class="self-center" />
             <x-request-status :status="$request->status" class="self-center" />
             @if ($request->isOverdue())
                 <flux:badge color="red" icon="clock" class="self-center">{{ __('Overdue since :date', ['date' => $request->effective_due_at->format('M j')]) }}</flux:badge>

@@ -4,7 +4,6 @@
     use App\Livewire\Registrar\Requests\Show as Page;
 
     $status = $request->status;
-    $owner = $request->student;
     $idDocument = $request->identityDocument;
     $visit = $request->openVisit;
 
@@ -35,6 +34,7 @@
                 <x-copy-button :value="$request->reference_no" :label="__('Copy tracking number')" :copied="__('Tracking number copied.')" />
             </x-slot:afterTitle>
             <x-slot:actions>
+                <x-walk-in-badge :request="$request" class="self-center" />
                 <x-request-status :status="$status" class="self-center" />
                 @if ($request->isOverdue())
                     <flux:badge color="red" icon="clock" class="self-center">{{ __('Overdue since :date', ['date' => $request->effective_due_at->format('M j')]) }}</flux:badge>
@@ -125,7 +125,7 @@
                         @case(Item::Identity)
                             <dl class="divide-y divide-zinc-200 text-sm">
                                 <x-summary-row :label="__('Name')">{{ $request->requester_name }}</x-summary-row>
-                                <x-summary-row :label="__('Email')" class="[&_dd]:break-all"><a href="mailto:{{ $owner->email }}" class="text-highlight underline underline-offset-2">{{ $owner->email }}</a></x-summary-row>
+                                <x-summary-row :label="__('Email')" class="[&_dd]:break-all"><a href="mailto:{{ $request->requesterEmail() }}" class="text-highlight underline underline-offset-2">{{ $request->requesterEmail() }}</a></x-summary-row>
                                 <x-summary-row :label="__('Contact number')">{{ $request->contact_number ?? '—' }}</x-summary-row>
                                 <x-summary-row :label="__('Valid ID')">
                                     @if ($idDocument)
@@ -159,11 +159,6 @@
                     @endswitch
                 </x-check-card>
             @endforeach
-        @endif
-
-        @if ($panel === Page::PANEL_PAYMENT)
-            {{-- The proof and its details, read-only: no checklist (REQ-16-17). --}}
-            @include('partials.payment-review')
         @endif
 
         @if ($panel === Page::PANEL_FINAL_CHECK)
@@ -258,7 +253,19 @@
                     @endif
                 </div>
 
-                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
+                @if ($panel === Page::PANEL_PAYMENT)
+                    {{-- A walk-in payment, made at the counter: its official receipt (REQ-26-05). --}}
+                    <dl class="divide-y divide-zinc-200 text-sm" data-walk-in-payment>
+                        <x-summary-row :label="__('Amount due')">₱{{ number_format((float) $request->amount_due, 2) }}</x-summary-row>
+                    </dl>
+                    <div class="grid gap-6 sm:grid-cols-2">
+                        <flux:input wire:model="receiptNo" :label="__('Official receipt no.')" maxlength="50" required data-receipt-no-input />
+                        <flux:input wire:model="amountPaid" type="number" step="0.01" min="0.01" inputmode="decimal" :label="__('Amount paid')" required data-amount-paid-input />
+                    </div>
+                    <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="2" />
+                @else
+                    <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
+                @endif
 
                 {{-- Always enabled; a decision that can't run says why (REQ-17-17). The approving one is on the right (REQ-17-02). --}}
                 <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
@@ -269,11 +276,12 @@
                             <flux:button icon="building-office" data-office-visit-button>{{ __('Require Office Visit') }}</flux:button>
                         </flux:modal.trigger>
                         <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return for Clarification') }}</flux:button>
-                    @elseif ($panel === Page::PANEL_PAYMENT)
-                        {{-- Payment Validation: Decline, Return to Requester, Approve (REQ-16-17). --}}
-                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return to Requester') }}</flux:button>
                     @endif
-                    <flux:button wire:click="approve" variant="primary" icon="check" data-approve-button>{{ __('Approve') }}</flux:button>
+                    @if ($panel === Page::PANEL_PAYMENT)
+                        <flux:button wire:click="validatePayment" variant="primary" icon="check" data-validate-payment-button>{{ __('Validate Payment') }}</flux:button>
+                    @else
+                        <flux:button wire:click="approve" variant="primary" icon="check" data-approve-button>{{ __('Approve') }}</flux:button>
+                    @endif
                 </div>
             </section>
         @endif

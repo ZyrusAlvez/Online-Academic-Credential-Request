@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Actions\Identity\SubmitIdentityDocument;
+use App\Enums\AcademicStatus;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
@@ -206,7 +207,47 @@ class DemoRequestSeeder extends Seeder
                 $request = $this->submit($jose, $type('Medium of Instruction'), 'Scholarship application');
                 $this->workflow->cancel($request, $jose, 'Requested the wrong document.');
             });
+
+            // Walk-in, recorded at the counter; the client has no account yet (REQ-26-11).
+            $this->at(0, fn () => $this->walkIn($type('Certification of Enrollment'), 'Scholarship application', [
+                'first_name' => 'Pedro', 'middle_name' => null, 'last_name' => 'Villanueva', 'email' => 'pedro.villanueva@example.com',
+                'college' => 'CCS', 'program' => 'Bachelor of Science in Information Technology, Specialization in Game Development',
+            ]));
+
+            // Walk-in by a demo requester: linked to Ana's account, paid at the counter and in progress.
+            $this->at(4, function () use ($ana, $tor): void {
+                $request = $this->walkIn($tor, 'Employment', [
+                    'first_name' => $ana->first_name, 'middle_name' => $ana->middle_name, 'last_name' => $ana->last_name, 'email' => $ana->email,
+                    'college' => 'CTE', 'program' => (string) $ana->program,
+                ]);
+                $this->later(1);
+                $this->workflow->verifyWalkInPayment($request, $this->registrar, 'OR-'.fake()->numerify('######'), (string) $request->amount_due);
+            });
         });
+    }
+
+    /**
+     * A walk-in request recorded by the demo registrar (spec 26).
+     *
+     * @param  array{first_name: string, middle_name: ?string, last_name: string, email: string, college: string, program: string}  $client
+     */
+    private function walkIn(CredentialType $type, string $purpose, array $client): CredentialRequest
+    {
+        $college = Department::where('code', $client['college'])->firstOrFail();
+
+        return $this->workflow->submitWalkIn($this->registrar, ['credential_type_id' => $type->id, 'purpose' => $purpose, 'receiving_institution' => null], [
+            'first_name' => $client['first_name'],
+            'middle_name' => $client['middle_name'],
+            'last_name' => $client['last_name'],
+            'email' => $client['email'],
+            'contact_number' => '0917'.fake()->numerify('#######'),
+            'academic_status' => AcademicStatus::Graduate->value,
+            'college_id' => $college->id,
+            'program' => $client['program'],
+            'student_number' => null,
+            'attended_from' => 2019,
+            'attended_to' => 2023,
+        ]);
     }
 
     private function submit(User $owner, CredentialType $type, string $purpose, ?string $receivingSchool = null): CredentialRequest

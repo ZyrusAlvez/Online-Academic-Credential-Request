@@ -5,7 +5,6 @@ namespace App\Livewire\Registrar\Requests;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
-use App\Enums\PaymentStatus;
 use App\Enums\RecipientType;
 use App\Enums\RegistrarQueue;
 use App\Enums\RequestEventType;
@@ -50,6 +49,7 @@ class Show extends Component
 
     public const PANEL_COMPLIANCE = 'compliance';
 
+    /** A walk-in payment, validated with its receipt number (REQ-26-05). */
     public const PANEL_PAYMENT = 'payment';
 
     public const PANEL_FINAL_CHECK = 'final_check';
@@ -69,6 +69,11 @@ class Show extends Component
     public ?RegistrarQueue $currentQueue = null;
 
     public string $remarks = '';
+
+    /** Walk-in Payment Validation: the official receipt number and the amount paid (REQ-26-05). */
+    public string $receiptNo = '';
+
+    public string $amountPaid = '';
 
     /**
      * Require Office Visit: the credential's requirements ticked as required at the office, and
@@ -183,10 +188,7 @@ class Show extends Component
             RequestStatus::UnderEvaluation => ['approve', $optional,
                 fn () => $workflow->approveEvaluation($request, $this->actor(), $this->remarks),
                 $request->requires_payment ? 'Approved. Payment instructions were sent to the requester.' : 'Approved and accepted for processing.'],
-            // No checklist and no receipt number: Approve is the confirmation (REQ-16-17).
-            RequestStatus::PaymentVerification => ['approve', $optional,
-                fn () => $workflow->verifyPaymentAndAccept($request, $this->actor(), $this->remarks),
-                'Payment verified and request accepted. The processing period has started.'],
+            // A walk-in payment is validated with its receipt number instead (REQ-26-05).
             RequestStatus::ForFinalApproval => ['approve', $optional,
                 fn () => $workflow->approveFinalCheck($request, $this->actor(), $this->remarks),
                 'Approved. The credential is ready for release and the requester was notified.'],
@@ -203,8 +205,8 @@ class Show extends Component
     }
 
     /**
-     * Return: for clarification at the evaluation, the proof of payment at the payment validation
-     * (REQ-20-03, REQ-16-17).
+     * Return for clarification at the evaluation (REQ-20-03). A walk-in payment is never returned:
+     * the client is at the counter (REQ-26-05).
      */
     public function returnRequest(RequestWorkflow $workflow): void
     {
@@ -216,9 +218,6 @@ class Show extends Component
             RequestStatus::UnderEvaluation => ['return', $rules,
                 fn () => $workflow->returnForClarification($request, $this->actor(), $this->remarks),
                 'Returned to the requester for clarification. They can edit the request and resubmit it.'],
-            RequestStatus::PaymentVerification => ['return', $rules,
-                fn () => $workflow->rejectPayment($request, $this->actor(), $this->remarks),
-                'Proof of payment returned. The requester was asked for a valid one.'],
             default => null,
         };
 
@@ -229,6 +228,25 @@ class Show extends Component
         }
 
         $this->decide(...$decision);
+    }
+
+    /**
+     * A walk-in client paid at the counter: the official receipt number and the amount paid, then
+     * the request is accepted (REQ-26-05).
+     */
+    public function validatePayment(RequestWorkflow $workflow): void
+    {
+        $this->authorize('validatePayment', $this->credentialRequest);
+
+        $this->validate([
+            'receiptNo' => ['required', 'string', 'max:50'],
+            'amountPaid' => ['required', 'numeric', 'gt:0', 'max:99999999'],
+        ], attributes: ['receiptNo' => 'official receipt number', 'amountPaid' => 'amount paid']);
+
+        if ($this->attempt(fn () => $workflow->verifyWalkInPayment($this->credentialRequest, $this->actor(), $this->receiptNo, (string) $this->amountPaid),
+            'Payment validated and request accepted. The processing period has started.')) {
+            $this->reset('receiptNo', 'amountPaid');
+        }
     }
 
     /**
@@ -374,13 +392,8 @@ class Show extends Component
             'results' => $stage !== null ? $request->checkResults($stage) : [],
             // Parts confirmed from an earlier verification, by item (REQ-21-05).
             'carried' => $request->checks->whereNotNull('carried_from_request_id')->keyBy(fn (RequestCheck $check): string => $check->item->value),
-            'pendingProof' => $request->paymentProofs->firstWhere('status', PaymentStatus::Submitted),
             'verifiedRepresentatives' => $request->representatives->where('status', ReviewStatus::Verified)->values(),
             'lastReturn' => $request->events->last(fn ($event) => in_array($event->type, [RequestEventType::CustomerActionRequested, RequestEventType::ComplianceRequested], true)),
-            // What the requester wrote with the proof under review (REQ-04-20).
-            'paymentNote' => $panel === self::PANEL_PAYMENT
-                ? (string) $request->events->last(fn ($event) => $event->type === RequestEventType::PaymentSubmitted)?->remarks
-                : '',
             // What the requester wrote when resubmitting, for the evaluation that follows (REQ-20-14).
             'resubmitNote' => $panel === self::PANEL_EVALUATION
                 ? (string) $request->events->last(fn ($event) => $event->type === RequestEventType::Resubmitted)?->remarks

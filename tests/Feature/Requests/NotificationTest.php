@@ -232,7 +232,7 @@ test('REQ-06-19 staff get their own copy and an email that names the request and
     $submitted = $request->events()->first();
     $mail = (new RequestActivity($submitted, "New request {$request->reference_no} to evaluate"))->toMail($this->registrar);
     expect($mail->subject)->toBe("{$request->reference_no}: New request {$request->reference_no} to evaluate")
-        ->and(implode(' ', $mail->introLines))->toContain($request->credentialType->name, $this->owner->fullName(), 'Request received for evaluation', 'Current location:')
+        ->and(implode(' ', $mail->introLines))->toContain($request->credentialType->name, $request->requester_name, 'Request received for evaluation', 'Current location:')
         ->and($mail->actionText)->toBe('Open request')
         ->and($mail->actionUrl)->toBe(route('registrar.requests.show', $request));
 

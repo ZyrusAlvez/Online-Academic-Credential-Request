@@ -45,6 +45,12 @@ class SendRequestNotifications
     private function notifyRequester(RequestEvent $event, CredentialRequest $request): void
     {
         $owner = $request->student;
+
+        // A walk-in request not linked to an account yet has no one to tell (REQ-26-09).
+        if ($owner === null) {
+            return;
+        }
+
         $ownAction = $event->actor_id === $owner->id && $event->type !== RequestEventType::Submitted;
 
         if ($event->type->isInternal() || $ownAction || ! $owner->is_active) {

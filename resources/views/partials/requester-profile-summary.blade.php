@@ -11,7 +11,9 @@
 @endforeach
 
 {{-- One row like a requirement's: the type of ID, then the file's name, a link that opens the image
-     or PDF in the file viewer, and its size; no picture (REQ-15-05). --}}
+     or PDF in the file viewer, and its size; no picture (REQ-15-05). None on Walk-in Request
+     (withId false, REQ-26-02). --}}
+@if ($withId ?? true)
 <x-summary-section :heading="$sectionTitle('Valid ID', count($summary))" :level="$level">
     @if ($fields->id_file)
         {{-- A signed, short-lived preview of the chosen file; it is only stored on the final save. --}}
@@ -25,3 +27,4 @@
         </x-summary-row>
     @endif
 </x-summary-section>
+@endif

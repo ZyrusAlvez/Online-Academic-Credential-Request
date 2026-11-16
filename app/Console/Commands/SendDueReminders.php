@@ -76,8 +76,11 @@ class SendDueReminders extends Command
             }
         }
 
-        if ($overdue && $request->student->is_active && $this->firstTime('requester_overdue', $request->id, $request)) {
-            $request->student->notify(new DueReminder($request, true));
+        // A walk-in request with no account yet has no one to remind (REQ-26-09).
+        $owner = $request->student;
+
+        if ($overdue && $owner?->is_active && $this->firstTime('requester_overdue', $request->id, $request)) {
+            $owner->notify(new DueReminder($request, true));
             $sent++;
         }
 

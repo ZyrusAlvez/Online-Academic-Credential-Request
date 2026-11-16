@@ -115,7 +115,8 @@ class RequestActivity extends Notification implements ShouldQueue
         $message = (new MailMessage)
             ->subject("{$request->reference_no}: {$this->title}")
             ->greeting($notifiable->greeting())
-            ->line("{$request->credentialType->name} requested by {$request->student->fullName()} ({$request->reference_no}):")
+            // The request's own copy of the name: a walk-in request may have no account (REQ-26-10).
+            ->line("{$request->credentialType->name} requested by {$request->requester_name} ({$request->reference_no}):")
             ->line("**{$this->event->summary()}**");
 
         if (filled($this->event->remarks)) {

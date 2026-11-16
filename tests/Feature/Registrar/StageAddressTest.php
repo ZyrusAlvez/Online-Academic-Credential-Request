@@ -148,11 +148,13 @@ test('REQ-16-26 a payment approved at Payment Validation moves to In Progress', 
     $request = walkIn(evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar));
     uploadPayment($request);
 
+    // A walk-in payment, validated with its receipt (REQ-26-05).
     Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request->fresh(), 'queue' => RegistrarQueue::Payment->value])
-        ->call('approve')
+        ->set('receiptNo', 'OR-1001')->set('amountPaid', '530')
+        ->call('validatePayment')
         ->assertRedirect(route('registrar.in-progress', ['search' => $request->reference_no]));
 
-    expect(session('notify'))->toBe('Payment verified and request accepted. The processing period has started.');
+    expect(session('notify'))->toBe('Payment validated and request accepted. The processing period has started.');
 });
 
 test('REQ-16-26 the former address in notifications always lands where the request is now', function () {
