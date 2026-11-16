@@ -36,12 +36,17 @@ in, so an entry still shows who acted under the name they had at the time.
     The demo data and the starter lists stay out of the log.
 - **Sign-ins (REQ-14-05):** `App\Listeners\RecordSignInActivity` handles the `Login`, `Logout` and
   `Failed` auth events. Google sign-in goes through `Auth::login`, so it is covered too.
+- **Nobody signed in (REQ-14-15):** the entry's actor is the account it concerns. A `Failed`
+  event carries the account when the typed email matched one; otherwise there is no actor and
+  `RecordActivity` stores the typed email as `actor_name` (shown with "No account").
+  `User::activityActor()` makes the account its own actor for any change made over the web with
+  nobody signed in (registering, a password reset, a Google sign-in that verifies the email).
 
 ## Reading
 
 - `App\Queries\ActivityLogFilter` follows `RegistrarRequestFilter`. It takes search, role,
   category, office, from and to, and returns entries newest first.
-  - Role `system` means no actor: a failed sign-in, or a scheduled job.
+  - Role is one of the `Role` values; there is no "System" role (REQ-14-15).
   - Dates are whole days in Asia/Manila.
 - `Registrar\Logs\Index` (`/registrar/logs`, "Logs" at the end of Administration):
   - The filters are `#[Url]` properties, as on the Accounts page.

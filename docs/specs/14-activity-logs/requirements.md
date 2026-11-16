@@ -48,10 +48,16 @@ reference no. links to the request's record (REQ-18-06).*
 - **REQ-14-10** THE SYSTEM SHALL let the registrar search the log by reference no., the person's
   name or email, or the action's description.
 - **REQ-14-11** THE SYSTEM SHALL let the registrar filter the log by role (Requester, Registrar,
-  Department Staff or System), kind of action (Requests, Accounts, Setup, Identity, Sign-ins),
-  office, and a date range.
+  Department Staff or Admin), kind of action (Requests, Accounts, Setup, Identity, Sign-ins),
+  office, and a date range. *(2026-11-16, user's decision: no "System" role. An entry made while
+  nobody is signed in belongs to the account it concerns, REQ-14-15.)*
 - **REQ-14-12** WHEN an entry belongs to a request THE SYSTEM SHALL link its reference no. to that
   request's page.
 - **REQ-14-13** IF anyone but a registrar opens the Logs page THEN THE SYSTEM SHALL respond 403.
 - **REQ-14-14** WHEN a deployment migrates THE SYSTEM SHALL copy the request actions already in
   the ledgers into the log, so the history from before this feature is searchable too.
+- **REQ-14-15** WHEN something is logged while nobody is signed in THE SYSTEM SHALL record it
+  under the account it concerns, with that account's name and role: a failed sign-in under the
+  account whose email was typed, and registering, resetting a forgotten password or a Google
+  sign-in that verifies an account under that account. A failed sign-in for an email that has no
+  account SHALL show the typed email as who, with "No account" as the role.
