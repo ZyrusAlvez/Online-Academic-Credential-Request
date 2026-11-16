@@ -68,7 +68,7 @@ trait ActsOnVisits
         $this->validate([
             'returnTo' => ['required', 'integer', Rule::exists('departments', 'id')],
             'returnReason' => ['required', 'string', 'max:500'],
-            'correctiveAction' => ['required', 'string', 'max:500'],
+            'correctiveAction' => ['nullable', 'string', 'max:500'],
         ], attributes: ['returnTo' => 'office', 'returnReason' => 'reason']);
 
         $returned = $this->attempt(
