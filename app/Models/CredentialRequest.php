@@ -26,9 +26,11 @@ use Illuminate\Support\Carbon;
  * A requester's request for a credential. Status changes only via App\Services\RequestWorkflow.
  *
  * @property string $reference_no
- * @property int $user_id
+ * @property ?int $user_id null for a walk-in request not linked to an account yet (spec 26)
  * @property string $requester_name
  * @property ?string $contact_number
+ * @property ?string $requester_email a walk-in client's email, to link the request (REQ-26-07)
+ * @property ?int $recorded_by the registrar who recorded a walk-in request
  * @property ?int $identity_document_id
  * @property ReviewStatus $identity_status
  * @property ?Carbon $identity_reviewed_at
@@ -143,13 +145,31 @@ class CredentialRequest extends Model
     }
 
     /**
-     * The document owner.
+     * The document owner's account; none for a walk-in request not linked yet (spec 26).
      *
      * @return BelongsTo<User, $this>
      */
     public function student(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * The registrar who recorded a walk-in request (REQ-26-04).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function recorder(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    /**
+     * Where to reach the requester: their account's email, else the walk-in client's (REQ-26-10).
+     */
+    public function requesterEmail(): ?string
+    {
+        return $this->student->email ?? $this->requester_email;
     }
 
     /**

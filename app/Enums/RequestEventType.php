@@ -57,6 +57,10 @@ enum RequestEventType: string
 
     case Cancelled = 'cancelled';
 
+    // Walk-in requests (spec 26)
+    case WalkInRecorded = 'walk_in_recorded';
+    case LinkedToAccount = 'linked_to_account';
+
     public function label(): string
     {
         return ucfirst(str_replace('_', ' ', $this->value));

@@ -12,7 +12,10 @@ use Illuminate\Support\Carbon;
  * @property ?string $amount
  * @property ?Carbon $paid_on
  * @property ?string $official_receipt_no
- * @property int $size
+ * @property ?string $path null for a walk-in payment, validated at the counter (REQ-26-05)
+ * @property ?string $original_name
+ * @property ?string $mime_type
+ * @property ?int $size
  * @property ?Carbon $reviewed_at
  * @property Carbon $created_at
  */
@@ -63,6 +66,12 @@ class PaymentProof extends Model
 
     public function isImage(): bool
     {
-        return str_starts_with($this->mime_type, 'image/');
+        return str_starts_with((string) $this->mime_type, 'image/');
+    }
+
+    /** An uploaded proof; a walk-in payment has its receipt number instead (REQ-26-06). */
+    public function hasFile(): bool
+    {
+        return $this->path !== null;
     }
 }

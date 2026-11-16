@@ -157,7 +157,7 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
 | reference_no | varchar(20) | Yes | UQ | | Tracking number `rcYY-NNNNN` (lowercase): the id with at least 5 digits (set right after insert); older requests keep their number |
-| user_id | bigint unsigned | No | FK → users, IX (with created_at) | | The document owner (requester) |
+| user_id | bigint unsigned | Yes | FK → users, IX (with created_at) | | The document owner (requester); null for a walk-in request not linked to an account yet (spec 26) |
 | credential_type_id | bigint unsigned | No | FK → credential_types | | |
 | purpose | varchar(500) | No | | | A copy of the chosen purpose's name (spec 13); older requests keep their free text |
 | receiving_institution | varchar(255) | Yes | | | Receiving school (required for transfer credentials) |
@@ -168,6 +168,7 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 | attended_from, attended_to | smallint unsigned | No | | | Snapshot: years attended |
 | requester_name | varchar(150) | No | | | Snapshot: "First Middle Last" with the full middle name, to compare with the ID (spec 15) |
 | contact_number | varchar(20) | Yes | | | Snapshot of the requester's contact number |
+| requester_email | varchar(255) | Yes | IX (with user_id) | | A walk-in client's email, used to link the request to their account (REQ-26-07) |
 | identity_document_id | bigint unsigned | Yes | FK → identity_documents | | The ID sent with this request (`RESTRICT`); a replacement after a rejection points here |
 | identity_status | varchar(20) | No | IX | pending | The request's identity check: `pending`, `verified`, `rejected` (see [ReviewStatus](#reviewstatus)) |
 | identity_reviewed_by | bigint unsigned | Yes | FK → users | | Registrar who verified or rejected the ID |
@@ -175,6 +176,7 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 | identity_remarks | varchar(500) | Yes | | | Reason for a rejection, shown to the requester |
 | requester_mode | varchar(20) | No | | personal | `personal` or `representative` (see [RequesterMode](#requestermode)) |
 | channel | varchar(20) | No | IX (with status) | online | `online` (made by the requester) or `walk_in` (recorded by the Registrar); the Cashier validates online payments, the Registrar walk-in ones (spec 25) |
+| recorded_by | bigint unsigned | Yes | FK → users | | The registrar who recorded a walk-in request (REQ-26-04) |
 | requires_payment | tinyint(1) | No | | 0 | Snapshot of the credential type |
 | fee | decimal(10,2) | Yes | | | Snapshot of the credential's fee |
 | amount_due | decimal(10,2) | Yes | | | The fee (one document per request) |
@@ -306,12 +308,12 @@ Proofs of payment uploaded by the requester (private files on the receipts disk)
 | id | bigint unsigned | No | PK | | |
 | credential_request_id | bigint unsigned | No | FK → credential_requests | | |
 | uploaded_by | bigint unsigned | No | FK → users | | |
-| path, original_name, mime_type, size | | No | | | File on the private disk |
+| path, original_name, mime_type, size | | Yes | | | File on the private disk; none for a walk-in payment, validated at the counter (spec 26) |
 | reference_no | varchar(100) | Yes | | | Payment reference given by the requester |
 | amount | decimal(10,2) | Yes | | | Amount paid, as given |
 | paid_on | date | Yes | | | Date paid, as given |
 | status | varchar(20) | No | IX | | See [PaymentStatus](#paymentstatus) |
-| official_receipt_no | varchar(50) | Yes | | | Recorded on verification until 2026-11-16; no longer written (REQ-16-17) |
+| official_receipt_no | varchar(50) | Yes | | | A walk-in payment's official receipt number (REQ-26-05); for online proofs, recorded on verification until 2026-11-16 only (REQ-16-17) |
 | reviewed_by, reviewed_at, remarks | | Yes | | | |
 | created_at, updated_at | timestamp | Yes | | | |
 

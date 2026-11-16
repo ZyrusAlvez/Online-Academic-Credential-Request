@@ -64,6 +64,7 @@
                 <flux:table.row :key="$request->id">
                     <flux:table.cell class="whitespace-normal">
                         <a href="{{ route($rowRoute, $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $request->reference_no }}</a>
+                        <x-walk-in-badge :request="$request" class="ms-1" />
                         <div class="text-xs text-zinc-600">{{ $request->credentialType->name }}</div>
                     </flux:table.cell>
                     <flux:table.cell class="max-md:hidden whitespace-normal">

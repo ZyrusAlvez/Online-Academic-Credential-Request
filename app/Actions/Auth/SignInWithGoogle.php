@@ -2,6 +2,7 @@
 
 namespace App\Actions\Auth;
 
+use App\Actions\Requests\ClaimWalkInRequests;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -26,7 +27,7 @@ class SignInWithGoogle
             throw ValidationException::withMessages(['email' => 'Your Google account has no verified email address.']);
         }
 
-        return DB::transaction(function () use ($google, $email, $claims): User {
+        $user = DB::transaction(function () use ($google, $email, $claims): User {
             $user = User::where('google_id', $google->getId())->first()
                 ?? User::where('email', $email)->lockForUpdate()->first();
 
@@ -53,6 +54,11 @@ class SignInWithGoogle
 
             return $user;
         });
+
+        // Google verified the email: walk-in requests made with it become the account's (REQ-26-07).
+        app(ClaimWalkInRequests::class)->handle($user);
+
+        return $user;
     }
 
     private static function name(mixed $value): ?string

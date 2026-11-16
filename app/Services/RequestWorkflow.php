@@ -9,10 +9,12 @@ use App\Enums\CheckStage;
 use App\Enums\DocumentKind;
 use App\Enums\PaymentStatus;
 use App\Enums\RecipientType;
+use App\Enums\RequestChannel;
 use App\Enums\RequesterMode;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
+use App\Enums\Role;
 use App\Enums\RouteTask;
 use App\Enums\StepStatus;
 use App\Enums\VisitPurpose;
@@ -381,7 +383,8 @@ class RequestWorkflow
             );
             $this->assertEvaluator($locked, $registrar);
 
-            if ($locked->status === RequestStatus::PaymentVerification) {
+            // An online proof under review is rejected with it; a walk-in payment has none (REQ-26-05).
+            if ($locked->status === RequestStatus::PaymentVerification && ! $locked->isWalkIn()) {
                 $this->reviewLatestProof($locked, $registrar, PaymentStatus::Rejected, remarks: $reason);
             }
 
@@ -460,6 +463,143 @@ class RequestWorkflow
             $this->record($locked, $registrar, RequestEventType::PaymentVerified, null, null);
             $this->accept($locked, $request, $registrar, $remarks);
         });
+    }
+
+    // ── Walk-in requests (spec 26) ─────────────────────────────────────────────────────────
+
+    /**
+     * Record a walk-in client's request: the registrar validated it at the counter, so it goes
+     * straight to Payment Validation, or is accepted when the credential is free. It belongs to the
+     * verified requester account with the client's email, if there is one (REQ-26-04, 08).
+     *
+     * @param  array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $data
+     * @param  array{first_name: string, middle_name: ?string, last_name: string, email: string, contact_number: string, academic_status: string, college_id: int, program: string, student_number: ?string, attended_from: int, attended_to: int}  $details
+     */
+    public function submitWalkIn(User $registrar, array $data, array $details): CredentialRequest
+    {
+        return DB::transaction(function () use ($registrar, $data, $details): CredentialRequest {
+            $type = CredentialType::requestable()->findOrFail($data['credential_type_id']);
+            $receivingInstitution = $data['receiving_institution'] ?? null;
+
+            if ($type->requires_receiving_institution && blank($receivingInstitution)) {
+                throw new InvalidTransition('Give the complete name of the receiving school.');
+            }
+
+            $email = Str::lower($details['email']);
+
+            $request = new CredentialRequest([
+                'credential_type_id' => $type->id,
+                'purpose' => $data['purpose'],
+                'receiving_institution' => $type->requires_receiving_institution ? $receivingInstitution : null,
+            ]);
+
+            $request->forceFill([
+                'user_id' => self::requesterAccount($email)?->id,
+                'channel' => RequestChannel::WalkIn,
+                'recorded_by' => $registrar->id,
+                'requester_name' => trim(implode(' ', array_filter([$details['first_name'], $details['middle_name'], $details['last_name']], filled(...)))),
+                'requester_email' => $email,
+                'contact_number' => $details['contact_number'],
+                'college_id' => $details['college_id'],
+                'academic_status' => $details['academic_status'],
+                'program' => $details['program'],
+                'student_number' => $details['student_number'],
+                'attended_from' => $details['attended_from'],
+                'attended_to' => $details['attended_to'],
+                // Seen in person and validated by the registrar who records it (REQ-26-03).
+                'identity_status' => ReviewStatus::Verified,
+                'identity_reviewed_by' => $registrar->id,
+                'identity_reviewed_at' => now(),
+                'requester_mode' => RequesterMode::Personal,
+                'requires_payment' => $type->requires_payment,
+                'fee' => $type->requires_payment ? $type->fee : null,
+                'amount_due' => $type->requires_payment ? $type->fee : null,
+                'status' => $type->requires_payment ? RequestStatus::PaymentVerification : RequestStatus::Submitted,
+                'submitted_at' => now(),
+                'evaluation_started_at' => now(),
+                'evaluated_by' => $registrar->id,
+                'requirements_completed_at' => now(),
+            ])->save();
+
+            $request->forceFill([
+                'reference_no' => CredentialRequest::trackingNumber($request->id, $request->created_at),
+            ])->save();
+
+            $this->record($request, $registrar, RequestEventType::WalkInRecorded, null, $request->status);
+
+            if (! $type->requires_payment) {
+                $this->accept($request, $request, $registrar);
+            }
+
+            return $request;
+        });
+    }
+
+    /**
+     * The walk-in client paid at the counter: record the payment, with its official receipt number
+     * and no file, and accept the request (REQ-26-05).
+     */
+    public function verifyWalkInPayment(CredentialRequest $request, User $registrar, string $receiptNo, string $amount): void
+    {
+        if (blank($receiptNo)) {
+            throw new InvalidTransition('Give the official receipt number.');
+        }
+
+        DB::transaction(function () use ($request, $registrar, $receiptNo, $amount): void {
+            $locked = $this->lock($request, [RequestStatus::PaymentVerification], 'Only payments awaiting validation can be validated.');
+
+            if (! $locked->isWalkIn()) {
+                throw new InvalidTransition('Online payments are validated by the cashier.');
+            }
+
+            $proof = $locked->paymentProofs()->make([
+                'uploaded_by' => $registrar->id,
+                'amount' => $amount,
+                'paid_on' => now()->toDateString(),
+                'status' => PaymentStatus::Verified,
+            ]);
+            $proof->forceFill([
+                'official_receipt_no' => $receiptNo,
+                'reviewed_by' => $registrar->id,
+                'reviewed_at' => now(),
+            ])->save();
+
+            $this->record($locked, $registrar, RequestEventType::PaymentVerified, null, null, "Official receipt no. {$receiptNo}");
+            $this->accept($locked, $request, $registrar);
+        });
+    }
+
+    /**
+     * Link a walk-in request to its client's account, once the account's email is verified
+     * (REQ-26-07). A linked request never moves to another account.
+     */
+    public function linkToAccount(CredentialRequest $request, User $owner): void
+    {
+        DB::transaction(function () use ($request, $owner): void {
+            /** @var CredentialRequest $locked */
+            $locked = CredentialRequest::whereKey($request->getKey())->lockForUpdate()->firstOrFail();
+
+            if (! $locked->isWalkIn() || $locked->user_id !== null) {
+                return;
+            }
+
+            $locked->forceFill(['user_id' => $owner->id])->save();
+            $request->setRawAttributes($locked->getAttributes(), sync: true);
+
+            $this->record($locked, $owner, RequestEventType::LinkedToAccount, null, null);
+        });
+    }
+
+    /**
+     * The verified requester account with this email, if any: never a staff account (REQ-26-08).
+     */
+    public static function requesterAccount(string $email): ?User
+    {
+        return User::query()
+            ->where('email', Str::lower($email))
+            ->where('role', Role::Student)
+            ->whereNotNull('email_verified_at')
+            ->first();
     }
 
     /**

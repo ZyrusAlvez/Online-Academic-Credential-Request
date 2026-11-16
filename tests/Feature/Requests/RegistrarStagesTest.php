@@ -10,6 +10,7 @@ use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Cashier\Payments as CashierPayments;
+use App\Livewire\Cashier\Requests\Show as CashierShow;
 use App\Livewire\Registrar\Queue;
 use App\Livewire\Registrar\Records\Index as RecordsIndex;
 use App\Livewire\Registrar\Records\Show as RecordShow;
@@ -64,6 +65,21 @@ function awaitingValidation(CredentialRequest $request): CredentialRequest
     uploadPayment($request);
 
     return walkIn($request);
+}
+
+/** A paid online request with its proof awaiting the cashier's validation (REQ-25-04). */
+function onlineProofToVerify(CredentialRequest $request): CredentialRequest
+{
+    evaluate($request, test()->registrar);
+    uploadPayment($request);
+
+    return $request->fresh();
+}
+
+/** The cashier's Payment Validation page for a request (REQ-25-05). */
+function cashierPage(CredentialRequest $request): Testable
+{
+    return Livewire::actingAs(User::factory()->cashier()->create())->test(CashierShow::class, ['credentialRequest' => $request->fresh()]);
 }
 
 /** An accepted request taken through every office to the received final quality check. */
@@ -342,8 +358,8 @@ test('REQ-16-24 each checklist part shows its data as summary rows, label left a
         ->toMatch($row('Name', $this->request->requester_name))
         ->toMatch($row('College', 'College of Computer Studies'));
 
-    $paid = awaitingValidation(submitRequest($this->owner, $this->org->tor));
-    expect(stagePage($paid)->html())->toMatch($row('Reference', 'REF-123'));
+    // An online proof, on the cashier's Payment Validation (REQ-25-05).
+    expect(cashierPage(onlineProofToVerify(submitRequest($this->owner, $this->org->tor)))->html())->toMatch($row('Reference', 'REF-123'));
 
     $final = atFinalCheck(submitRequest($this->owner, $this->org->tor));
     expect(stagePage($final)->html())->toMatch($row('Issued to', $final->requester_name));
@@ -396,34 +412,33 @@ test('REQ-16-14 declining ends the request with the remarks as the reason and te
 // ── Payment Validation ──────────────────────────────────────────────────────────────────────
 
 test('REQ-16-17 payment validation shows the proof and its details read-only, then Decline, Return to Requester and Approve', function () {
-    awaitingValidation($this->request);
+    // An online payment, now on the cashier's page (REQ-25-05).
+    onlineProofToVerify($this->request);
 
-    $html = stagePage()->html();
-    $decision = Str::after($html, 'data-decision>');
+    $html = cashierPage($this->request)->html();
 
     // No checklist and no receipt number: the proof and its details, read-only.
     expect($html)->toContain('data-payment-proof')->toContain('data-payment-details')->toContain('REF-123')
         ->not->toContain('data-check=')->not->toContain('data-confirm-button')
         ->not->toContain('Official receipt')
-        ->and(Str::between($html, 'data-payment-details', '</section>'))->toContain('Amount due')->toContain('Amount paid')->toContain('Date paid')
-        ->and($decision)->not->toContain('Every part is confirmed')->not->toContain('Confirm every part');
-    stagePage()->assertSeeInOrder(['Remarks', 'Decline', 'Return to Requester', 'Approve'])->assertDontSee('Require Office Visit');
+        ->and(Str::between($html, 'data-payment-details', '</section>'))->toContain('Amount due')->toContain('Amount paid')->toContain('Date paid');
+    cashierPage($this->request)->assertSeeInOrder(['Remarks', 'Decline', 'Return to Requester', 'Approve'])->assertDontSee('Require Office Visit');
 
     // Approve needs nothing else; remarks are optional.
-    stagePage()->call('approve')->assertHasNoErrors()->assertNotDispatched('modal-show');
+    cashierPage($this->request)->call('approve')->assertHasNoErrors();
     expect($this->request->fresh())->status->toBe(RequestStatus::AcceptedForProcessing)->due_at->not->toBeNull()
         ->and($this->request->paymentProofs()->first())->status->toBe(PaymentStatus::Verified)->official_receipt_no->toBeNull();
 
     // Return to Requester and Decline need remarks.
-    $returned = awaitingValidation(submitRequest($this->owner, $this->org->tor));
-    stagePage($returned)->call('returnRequest')->assertHasErrors('remarks');
-    stagePage($returned)->set('remarks', 'Amount does not match.')->call('returnRequest')->assertHasNoErrors();
+    $returned = onlineProofToVerify(submitRequest($this->owner, $this->org->tor));
+    cashierPage($returned)->call('returnRequest')->assertHasErrors('remarks');
+    cashierPage($returned)->set('remarks', 'Amount does not match.')->call('returnRequest')->assertHasNoErrors();
     expect($returned->fresh()->status)->toBe(RequestStatus::AwaitingPayment)
         ->and($returned->paymentProofs()->first()->status)->toBe(PaymentStatus::Rejected);
 
-    $declined = awaitingValidation(submitRequest($this->owner, $this->org->tor));
-    stagePage($declined)->call('decline')->assertHasErrors('remarks');
-    stagePage($declined)->set('remarks', 'No matching payment after three attempts.')->call('decline')->assertHasNoErrors();
+    $declined = onlineProofToVerify(submitRequest($this->owner, $this->org->tor));
+    cashierPage($declined)->call('decline')->assertHasErrors('remarks');
+    cashierPage($declined)->set('remarks', 'No matching payment after three attempts.')->call('decline')->assertHasNoErrors();
     expect($declined->fresh()->status)->toBe(RequestStatus::Declined);
 });
 
@@ -444,13 +459,15 @@ test('REQ-16-27 the Decision is the last section on every stage that has one; Pa
             ->and(strpos($html, 'id="visits-heading"') ?: 0)->toBeLessThan(strpos($html, 'data-decision>'));
     }
 
-    // Payment Validation: the proof under review, and no Proofs of Payment list repeating it.
-    $html = stagePage($payment)->html();
+    // The cashier's Payment Validation: the proof under review once, the Decision last (REQ-25-05).
+    $online = onlineProofToVerify(submitRequest($this->owner, $this->org->tor));
+    $html = cashierPage($online)->html();
     expect($html)->toContain('data-payment-proof')->not->toContain('id="proofs-heading"')->not->toContain('Proofs of Payment')
-        ->and(strpos($html, 'id="details-heading"'))->toBeLessThan(strpos($html, 'data-decision>'));
+        ->and(strpos($html, 'id="details-heading"'))->toBeLessThan(strpos($html, 'data-decision>'))
+        ->and(Str::after($html, 'data-decision>'))->not->toContain('<section');
 
     // Records still lists every proof.
-    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $payment])->assertSee('Proofs of Payment');
+    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $online])->assertSee('Proofs of Payment');
 });
 
 test('REQ-16-17 payment checklist results saved before are deleted by the migration', function () {
