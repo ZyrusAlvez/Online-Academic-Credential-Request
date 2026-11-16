@@ -111,7 +111,8 @@ test('REQ-15-15 the chosen credential\'s details show in the browser at once, wi
 
     // Alpine shows the card of the value chosen in the browser; the server only hears of it after
     // (to clear a fixed error, REQ-01-31).
-    expect(credentialCard($html, $this->org->tor))->toContain("x-show=\"String(\$wire.form.credential_type_id ?? '') === '{$this->org->tor->id}'\"")
+    // Read by its path, so each credential of the application has its own (REQ-27-10).
+    expect(credentialCard($html, $this->org->tor))->toContain("x-show=\"String(\$wire.get(&#039;form.credential_type_id&#039;) ?? '') === '{$this->org->tor->id}'\"")
         ->and(credentialCardShown($html, $this->org->tor))->toBeFalse();
 
     // A credential chosen on the server (Edit Request) starts with its card shown.
