@@ -44,8 +44,8 @@ Every route keeps the `role:department` middleware. The lists pass the list as t
   (`data-confirm-*`).
 - `Department\Requests\Show`: `mount($credentialRequest, $queue)` authorizes `view` (404 for a
   request never sent to the office) and redirects to `DepartmentLink::to()` when the list differs.
-  Its `attempt()` follows the request to its new list after an action, as the registrar's does
-  (REQ-16-26). The view: `x-request-details`, `x-payment-proof-list` with the verified proofs,
+  Its `attempt()` goes back to the list the page was opened under (`currentQueue`) once an action
+  moves the request out of it, flashing the message for the toast (REQ-24-06). The view: `x-request-details`, `x-payment-proof-list` with the verified proofs,
   `x-request-route`, then the action panel: Acknowledge receipt, or `partials.visit-actions`.
 - Sidebar: one item per list; Incoming and To Validate carry their count as the Flux navlist
   badge (`VisitQueue::for(...)->count()`).
