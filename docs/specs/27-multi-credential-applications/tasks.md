@@ -9,11 +9,11 @@
 - [x] Pest tests for REQ-27-01..05
 
 ## Pages
-- [ ] `x-application-credentials`: the credentials, purposes, fees and total (REQ-27-09)
-- [ ] Request Tracker: one row per application, search by any credential (REQ-27-06)
-- [ ] Requester's page: application part, then a tab per credential (REQ-27-07)
-- [ ] Records list and record with tabs (REQ-27-08)
-- [ ] Evaluation, payment validation and payment instructions list the credentials (REQ-27-09)
-- [ ] Pest tests for REQ-27-06..09
+- [x] `x-application-credentials`: the credentials, purposes, fees and total (REQ-27-09)
+- [x] Request Tracker: one row per application, search by any credential (REQ-27-06)
+- [x] Requester's page: application part, then a tab per credential (REQ-27-07)
+- [x] Records list and record with tabs (REQ-27-08)
+- [x] Evaluation, payment validation and payment instructions list the credentials (REQ-27-09)
+- [x] Pest tests for REQ-27-06..09
 
 ## Form (last branch)

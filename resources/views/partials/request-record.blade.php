@@ -117,6 +117,7 @@
 @unless (in_array('ledger', $hide, true))
     <section aria-labelledby="history-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-ledger>
         <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Tracking History') }}</h2>
-        <x-request-timeline :events="$request->events" show-actors />
+        {{-- $events, when given, is the credential's history within its application (REQ-27-08). --}}
+        <x-request-timeline :events="$events ?? $request->events" show-actors />
     </section>
 @endunless

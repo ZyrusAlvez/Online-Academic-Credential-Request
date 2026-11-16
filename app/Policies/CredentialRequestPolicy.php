@@ -96,7 +96,8 @@ class CredentialRequestPolicy
      */
     public function validatePayment(User $user, CredentialRequest $request): bool
     {
-        if ($request->status !== RequestStatus::PaymentVerification) {
+        // An application is paid once, on its first credential (REQ-27-03).
+        if ($request->status !== RequestStatus::PaymentVerification || ! $request->isLead()) {
             return false;
         }
 

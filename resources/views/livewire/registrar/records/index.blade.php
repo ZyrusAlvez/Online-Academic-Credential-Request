@@ -38,24 +38,38 @@
         </flux:table.columns>
 
         <flux:table.rows>
-            @forelse ($requests as $request)
+            @forelse ($requests as $lead)
+                {{-- One row per application; a line per credential (REQ-27-08). --}}
+                @php($credentials = $lead->application->credentialRequests)
+                @php($request = $credentials->first())
+                @php($several = $credentials->count() > 1)
                 <flux:table.row :key="$request->id">
                     <flux:table.cell class="whitespace-normal">
-                        <a href="{{ route('records.show', $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $request->reference_no }}</a>
+                        <a href="{{ route('records.show', $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $several ? $lead->application->reference_no : $request->reference_no }}</a>
                         <x-walk-in-badge :request="$request" class="ms-1" />
-                        <div class="text-xs text-zinc-600">{{ $request->credentialType->name }}</div>
+                        @foreach ($credentials as $credential)
+                            <div class="text-xs text-zinc-600">{{ $credential->credentialType->name }}</div>
+                        @endforeach
                     </flux:table.cell>
                     <flux:table.cell class="max-md:hidden whitespace-normal">
                         <div class="text-ink">{{ $request->requester_name }}</div>
                         <div class="text-xs text-zinc-500">{{ $request->student_number }}</div>
                     </flux:table.cell>
-                    <flux:table.cell class="max-lg:hidden whitespace-normal text-zinc-700" data-whereabouts>{{ $request->staffWhereabouts() }}</flux:table.cell>
+                    <flux:table.cell class="max-lg:hidden whitespace-normal text-zinc-700" data-whereabouts>
+                        @foreach ($credentials as $credential)
+                            <div>{{ $credential->staffWhereabouts() }}</div>
+                        @endforeach
+                    </flux:table.cell>
                     <flux:table.cell>
-                        <div class="flex flex-wrap gap-1">
-                            <x-request-status :status="$request->status" />
-                            @if ($request->isOverdue())
-                                <flux:badge size="sm" color="red" icon="clock">{{ __('Overdue') }}</flux:badge>
-                            @endif
+                        <div class="flex flex-col items-start gap-1">
+                            @foreach ($credentials as $credential)
+                                <div class="flex flex-wrap gap-1">
+                                    <x-request-status :status="$credential->status" />
+                                    @if ($credential->isOverdue())
+                                        <flux:badge size="sm" color="red" icon="clock">{{ __('Overdue') }}</flux:badge>
+                                    @endif
+                                </div>
+                            @endforeach
                         </div>
                     </flux:table.cell>
                     <flux:table.cell class="max-sm:hidden text-zinc-600">{{ $request->submitted_at?->format('M j, Y') }}</flux:table.cell>
