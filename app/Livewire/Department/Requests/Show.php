@@ -48,8 +48,8 @@ class Show extends Component
     }
 
     /**
-     * Run a transition; when it moves the request to another list, follow it there so the address
-     * and the sidebar stay right (REQ-24-06).
+     * Run a transition; when it moves the request out of this list, go back to the list
+     * (REQ-24-06).
      */
     protected function attempt(Closure $transition, string $success): bool
     {
@@ -59,9 +59,9 @@ class Show extends Component
 
         $request = $this->credentialRequest->fresh();
 
-        if ($request !== null && DepartmentQueue::forRequest($request, $this->departmentId()) !== $this->currentQueue) {
+        if ($request === null || DepartmentQueue::forRequest($request, $this->departmentId()) !== $this->currentQueue) {
             session()->flash('notify', $success);
-            $this->redirect(DepartmentLink::to($request, $this->departmentId()), navigate: true);
+            $this->redirect(route($this->currentQueue->routeName()), navigate: true);
         }
 
         return true;
