@@ -63,8 +63,9 @@ There is no other setup for walk-in requests.
 - **REQ-26-07** WHEN a requester account's email is verified (by the code, by signing in with Google,
   or after changing the email) THE SYSTEM SHALL link to that account every walk-in request with
   the same email (ignoring case) that has no account yet. Each link SHALL be in the ledger as
-  "Linked to the requester's account". IF the account has no name, contact number or academic
-  information yet, THEN THE SYSTEM SHALL fill them in from the newest linked request.
+  "Linked to the requester's account". IF the account has no contact number or academic
+  information yet, THEN THE SYSTEM SHALL fill them in from the newest linked request (the name is
+  kept as one line on the request, so the requester gives theirs on Settings → Profile).
 - **REQ-26-08** WHEN a walk-in request is recorded for an email that already belongs to a verified
   requester account THE SYSTEM SHALL link it to that account at once. A request is never linked to
   a staff account, and never moved from one account to another.
