@@ -26,7 +26,8 @@
     {{-- Hidden, not removed, on the summary: the file inputs keep the chosen files for "Back to edit".
          novalidate: the browser's popups would stop the submit before the errors modal (REQ-01-26). --}}
     <form wire:submit="review" novalidate @class(['space-y-8', 'hidden' => $reviewing])>
-        @include('partials.credential-choice')
+        {{-- Edit Request keeps the credentials the application has (REQ-27-10). --}}
+        @include('partials.credential-choice', ['several' => ! $editing])
 
         {{-- Sections 2 to 4, filled in from the saved profile (REQ-15-03, 04). No documentary
              requirements are listed (REQ-04-23). --}}

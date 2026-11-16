@@ -208,6 +208,18 @@ class DemoRequestSeeder extends Seeder
                 $this->workflow->cancel($request, $jose, 'Requested the wrong document.');
             });
 
+            // An application of two credentials: evaluated and paid once, then each on its own route (spec 27).
+            $this->at(6, function () use ($ana, $tor, $type): void {
+                $request = $this->workflow->submit($ana, [
+                    ['credential_type_id' => $tor->id, 'purpose' => 'Further studies', 'receiving_institution' => null],
+                    ['credential_type_id' => $type('Certification of Enrollment')->id, 'purpose' => 'Further studies', 'receiving_institution' => null],
+                ]);
+                $this->evaluate($request);
+                $this->pay($request);
+                $this->later(4);
+                $this->workflow->verifyPaymentAndAccept($request, $this->cashier);
+            });
+
             // Walk-in, recorded at the counter; the client has no account yet (REQ-26-11).
             $this->at(0, fn () => $this->walkIn($type('Certification of Enrollment'), 'Scholarship application', [
                 'first_name' => 'Pedro', 'middle_name' => null, 'last_name' => 'Villanueva', 'email' => 'pedro.villanueva@example.com',

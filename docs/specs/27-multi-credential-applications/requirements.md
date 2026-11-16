@@ -64,3 +64,12 @@ This changes REQ-04-03, the tracking number.
 - **REQ-27-09** Initial Evaluation, the Registrar's and the Cashier's Payment Validation and the
   requester's payment instructions SHALL list every credential of the application, with its
   purpose and fee, and the total due.
+
+### The form
+- **REQ-27-10** New Request and the Registrar's Walk-in Request SHALL let section 1 hold up to 10
+  credentials: **Add another credential** adds one, with its own credential, purpose and receiving
+  school, and **Remove** takes it out. Each is checked like the first, and a credential chosen
+  twice SHALL be refused ("Each credential can be requested only once."). The summary SHALL show
+  each credential and, when there are several, each fee and the total. Submitting SHALL create one
+  application with all of them. Edit Request keeps the application's credentials: only the first
+  can be changed there.

@@ -14,7 +14,6 @@ use App\Models\Department;
 use App\Models\Program;
 use App\Models\Purpose;
 use App\Models\User;
-use App\Support\EmptyValue;
 use App\Support\OfficeRoute;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -101,7 +100,8 @@ class WalkIn extends Component
         $this->validate(['attested' => ['accepted']], ['attested.accepted' => 'Confirm that you validated the request and the requester\'s information.']);
 
         try {
-            $request = $record->handle($this->registrar(), $this->form->validatedRequest(), $this->profile->details());
+            $items = $this->form->validatedItems();
+            $request = $record->handle($this->registrar(), $items, $this->profile->details());
         } catch (InvalidTransition $e) {
             $this->showStep(reviewing: false);
             $this->addError('form.credential_type_id', $e->getMessage());
@@ -110,7 +110,8 @@ class WalkIn extends Component
             return;
         }
 
-        session()->flash('notify', "Walk-in request {$request->reference_no} recorded.");
+        $number = count($items) > 1 ? $request->application()->value('reference_no') : $request->reference_no;
+        session()->flash('notify', "Walk-in request {$number} recorded.");
         $this->redirect($request->status->isBeforeAcceptance()
             ? route('registrar.payments.show', $request)
             : route('records.show', $request), navigate: true);
@@ -133,28 +134,21 @@ class WalkIn extends Component
             'programs' => $college !== null
                 ? Program::active()->where('department_id', $college->id)->orderBy('name')->pluck('name')
                 : collect(),
-            'requestSummary' => $this->reviewing ? $this->requestSummary($selectedType) : [],
+            // One section per credential, and the total when there are several (REQ-27-10).
+            'requestSummary' => $this->reviewing ? $this->form->summary() : [],
             'summary' => $this->reviewing ? $this->profile->summary() : [],
         ]);
     }
 
-    /**
-     * Section 1 of the summary, as on New Request (REQ-15-17).
-     *
-     * @return array<string, array<string, string|EmptyValue>>
-     */
-    private function requestSummary(?CredentialType $type): array
+    /** Another credential in the same application (REQ-27-10). */
+    public function addCredential(): void
     {
-        $purpose = $this->form->purpose === CredentialRequestForm::OTHER_PURPOSE ? $this->form->purpose_other : $this->form->purpose;
-        $receivingLabel = $type?->requires_receiving_institution ? __('Receiving school') : __('Receiving school, employer or agency');
+        $this->form->addCredential();
+    }
 
-        return [
-            __('1. What Do You Need?') => [
-                __('Credential') => (string) $type?->name,
-                __('Purpose') => $purpose,
-                $receivingLabel => filled($this->form->receiving_institution) ? $this->form->receiving_institution : EmptyValue::notProvided(),
-            ],
-        ];
+    public function removeCredential(int $index): void
+    {
+        $this->form->removeCredential($index);
     }
 
     private function showStep(bool $reviewing): void

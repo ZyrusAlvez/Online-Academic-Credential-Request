@@ -16,4 +16,8 @@
 - [x] Evaluation, payment validation and payment instructions list the credentials (REQ-27-09)
 - [x] Pest tests for REQ-27-06..09
 
-## Form (last branch)
+## Form
+- [x] `CredentialRequestForm::$more`, add/remove, per-credential rules, no duplicates, `validatedItems()`, `summary()` (REQ-27-10)
+- [x] `partials/credential-entry` repeated in section 1; Add another credential, Remove (REQ-27-10)
+- [x] New Request and Walk-in Request submit every credential; Edit Request keeps the first only (REQ-27-10)
+- [x] Pest tests for REQ-27-10
