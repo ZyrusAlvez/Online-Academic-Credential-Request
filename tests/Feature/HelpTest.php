@@ -113,7 +113,7 @@ test('REQ-22-03 each topic answers its questions', function (HelpTopic $topic, a
     ]],
     'payment' => [HelpTopic::Payment, [
         'When do I pay?', 'How do I pay?', 'How much do I pay?', 'What happens after I upload my proof of payment?',
-        'My proof of payment was not accepted.', 'My credential is free. Do I need to do anything?',
+        'My proof of payment was not accepted.',
     ]],
     'tracking' => [HelpTopic::Tracking, [
         'Where do I see my requests?', 'What does each status mean?', 'When does the processing period start? When will my credential be ready?',
@@ -132,6 +132,14 @@ test('REQ-22-03 the details topic explains giving and verifying details once, an
         ->toContain('verifies them only once')
         ->toContain('Verified')->not->toContain('For verification')
         ->toContain('loses its <strong>Verified</strong> badge and is checked again on your next request');
+});
+
+test('REQ-22-03 no help page mentions a free credential: every request is paid', function () {
+    foreach (HelpTopic::cases() as $topic) {
+        $html = $this->actingAs($this->owner)->get(route('student.help', $topic->value))->assertOk()->getContent();
+
+        expect(Str::lower(strip_tags($html)))->not->toContain('free credential')->not->toContain('is free');
+    }
 });
 
 test('REQ-22-04 answers link to the pages they name and read the same settings as the forms', function () {
