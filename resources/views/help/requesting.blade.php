@@ -33,7 +33,7 @@
 <x-faq-item question="What happens after I submit?">
     <p>The Office of the Registrar evaluates your request: your identity, your academic record and, if you named one, your representative. It then decides one of four things, and you are notified:</p>
     <ul>
-        <li><strong>Approved</strong>: you get payment instructions, or, for a free credential, your request is accepted for processing right away.</li>
+        <li><strong>Approved</strong>: you get payment instructions.</li>
         <li><strong>Returned for clarification</strong>: something needs correcting. The request page says what; choose <strong>Edit Request</strong>, fix it and resubmit.</li>
         <li><strong>Pending compliance</strong>: you need to visit the Office of the Registrar (see below).</li>
         <li><strong>Declined</strong>: the request can't go ahead; the reason is on its page.</li>
@@ -51,5 +51,5 @@
 </x-faq-item>
 
 <x-faq-item question="Can I cancel a request?">
-    <p>Yes, from its page, until it is <strong>accepted for processing</strong> (that is, until your payment is verified, or the evaluation is done for a free credential). Giving a reason is optional. After acceptance, the offices have started on your document and it can no longer be cancelled.</p>
+    <p>Yes, from its page, until it is <strong>accepted for processing</strong> (that is, until your payment is verified). Giving a reason is optional. After acceptance, the offices have started on your document and it can no longer be cancelled.</p>
 </x-faq-item>

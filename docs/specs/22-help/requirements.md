@@ -50,7 +50,8 @@ of their own.
     cancelling a request; what happens after submitting (the four evaluation outcomes); an office
     visit.
   - *Payment:* when to pay; how to pay and upload the proof; the amount; what happens after
-    uploading; a proof that is not accepted; free credentials.
+    uploading; a proof that is not accepted. *(No free credentials since 2026-11-16, user's
+    decision: every credential request is paid, so Help never mentions a free one.)*
   - *Tracking & Statuses:* the Request Tracker; what each status means; when the processing
     period starts and how the expected release date is counted; which office holds the document;
     notifications and turning email off; an overdue request.
