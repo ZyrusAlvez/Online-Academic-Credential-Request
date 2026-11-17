@@ -130,12 +130,13 @@ test('REQ-23-06 local and staging are not asked to confirm', function (string $e
     expect($migrate->calls)->toHaveCount(1);
 })->with(['local', 'staging']);
 
-test('REQ-23-07 app:reset-demo does the same reset and then loads the demo accounts and no requests', function () {
+test('REQ-31-01 app:reset-demo does the same reset and then loads the demo accounts and the demo requests', function () {
     fakeUploads();
     $migrate = fakeMigrateFresh();
     app()->detectEnvironment(fn () => 'staging');
+    config(['uphsl.demo.requesters' => 0, 'uphsl.demo.applications' => 0]);
 
-    $this->artisan('app:reset-demo')->expectsOutputToContain('Demo accounts reloaded')->assertSuccessful();
+    $this->artisan('app:reset-demo')->expectsOutputToContain('Demo data reloaded')->assertSuccessful();
 
     expect($migrate->calls)->toBe([['seed' => true, 'force' => true]])
         ->and(User::where('email', 'registrar@example.com')->sole()->role)->toBe(Role::Registrar)
@@ -143,23 +144,11 @@ test('REQ-23-07 app:reset-demo does the same reset and then loads the demo accou
         ->and(User::where('email', 'student@example.com')->sole()->role)->toBe(Role::Student)
         ->and(User::where('email', 'admin@example.com')->exists())->toBeFalse()
         ->and(User::where('email', config('uphsl.initial_admin.email'))->exists())->toBeTrue()
-        ->and(CredentialRequest::count())->toBe(0)
-        ->and(IdentityDocument::count())->toBe(0);
-});
-
-test('REQ-23-08 app:reset-demo --requests also loads the sample requests', function () {
-    fakeUploads();
-    fakeMigrateFresh();
-    app()->detectEnvironment(fn () => 'staging');
-
-    $this->artisan('app:reset-demo', ['--requests' => true])->expectsOutputToContain('Demo data reloaded')->assertSuccessful();
-
-    expect(User::where('email', 'student@example.com')->exists())->toBeTrue()
-        ->and(CredentialRequest::count())->toBeGreaterThan(10)
+        ->and(CredentialRequest::count())->toBeGreaterThan(50)
         ->and(IdentityDocument::count())->toBeGreaterThanOrEqual(4);
 });
 
-test('REQ-23-07 app:reset-demo refuses to run in production', function () {
+test('REQ-31-01 app:reset-demo refuses to run in production', function () {
     fakeUploads();
     $migrate = fakeMigrateFresh();
     app()->detectEnvironment(fn () => 'production');
