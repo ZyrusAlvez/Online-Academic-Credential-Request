@@ -54,6 +54,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('evaluation', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Evaluation->value)->name('evaluation');
         Route::get('payments', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Payment->value)->name('payments');
         Route::get('in-progress', Registrar\Queue::class)->defaults('queue', RegistrarQueue::InProgress->value)->name('in-progress');
+        // Every office's finished papers, which the Registrar brings to the next office (REQ-31-02).
+        Route::get('outgoing', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Outgoing->value)->name('outgoing');
         Route::get('final-check', Registrar\Queue::class)->defaults('queue', RegistrarQueue::FinalCheck->value)->name('final-check');
         Route::get('release', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Release->value)->name('release');
         // A request's working page lives under the queue it is in, e.g. payments/rc26-00042 (REQ-16-26).
@@ -102,6 +104,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get($path, Department\Queue::class)->defaults('queue', $queue->value)->name(Str::after($queue->routeName(), 'department.'));
             Route::get($path.'/{credentialRequest}', Department\Requests\Show::class)->defaults('queue', $queue->value)->name(Str::after($queue->showRouteName(), 'department.'));
         }
+        // To Forward is now Outgoing (REQ-31-05).
+        Route::permanentRedirect('to-forward', '/department/outgoing');
+        Route::permanentRedirect('to-forward/{path}', '/department/outgoing/{path}')->where('path', '[A-Za-z0-9-]+');
         // The former address, in notifications and emails: to the list the request is in now.
         Route::get('requests/{credentialRequest}', function (CredentialRequest $credentialRequest) {
             Gate::authorize('view', $credentialRequest);

@@ -214,7 +214,7 @@ test('REQ-16-25 every stage queue, Release included, searches by tracking number
     $pairs = [
         'evaluation' => [$this->request, submitRequest($other, $this->org->tor)],
         'payment' => [awaitingValidation(submitRequest($this->owner, $this->org->tor)), awaitingValidation(submitRequest($other, $this->org->tor))],
-        'in_progress' => [acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar), acceptRequest(submitRequest($other, $this->org->tor), $this->registrar)],
+        'outgoing' => [acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar), acceptRequest(submitRequest($other, $this->org->tor), $this->registrar)],
         'final_check' => [atFinalCheck(submitRequest($this->owner, $this->org->tor)), atFinalCheck(submitRequest($other, $this->org->tor))],
         'release' => [$ready($this->owner), $ready($other)],
     ];
@@ -233,8 +233,8 @@ test('REQ-16-25 every stage queue, Release included, searches by tracking number
     workflow()->returnForClarification($returned, $this->registrar, 'Blurred ID.');
     queuePage('evaluation', ['waiting' => true, 'search' => 'Zephyrine'])->assertSee($returned->reference_no);
     queuePage('evaluation', ['waiting' => true, 'search' => $this->request->reference_no])->assertDontSee($returned->reference_no);
-    queuePage('in_progress', ['office' => (string) $this->org->registrarOffice->id, 'search' => 'Zephyrine'])
-        ->assertSee($pairs['in_progress'][1]->reference_no)->assertDontSee($pairs['in_progress'][0]->reference_no);
+    queuePage('outgoing', ['office' => (string) $this->org->registrarOffice->id, 'search' => 'Zephyrine'])
+        ->assertSee($pairs['outgoing'][1]->reference_no)->assertDontSee($pairs['outgoing'][0]->reference_no);
 });
 
 test('REQ-16-25 on the queues with a waiting tab the search sits right of the tabs, on their line', function () {

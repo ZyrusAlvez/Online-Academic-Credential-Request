@@ -48,6 +48,7 @@ test('a TOR request follows the client\'s flowchart from portal to release', fun
     passOffice($request, $dean);
     workflow()->acceptReceipt(openVisit($request), $vpf);
     workflow()->returnVisit(openVisit($request), $vpf, $org->ccs, 'Missing Dean signature on page 2', 'Sign page 2');
+    workflow()->forwardDocument(openVisit($request), $registrar);   // the Registrar carries it back (REQ-31-08)
     passOffice($request, $dean);
     passOffice($request, $vpf);
     passOffice($request, $chancellor);

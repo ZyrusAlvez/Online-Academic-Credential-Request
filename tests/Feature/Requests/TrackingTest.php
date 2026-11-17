@@ -139,6 +139,7 @@ test('REQ-06-02 the requester history names offices, never staff, and hides inte
     passOffice($request, $this->dean);
     workflow()->acceptReceipt(openVisit($request), $this->vpf);
     workflow()->returnVisit(openVisit($request), $this->vpf, $this->org->ccs, 'Missing signature', 'Sign page 2');
+    workflow()->forwardDocument(openVisit($request), $this->registrar);
 
     Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])
         ->assertSee('Received by College of Computer Studies')

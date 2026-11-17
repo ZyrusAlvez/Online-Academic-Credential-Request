@@ -2,6 +2,13 @@
     use App\Enums\RegistrarQueue as Q;
     use App\Enums\RequestStatus as S;
     use App\Enums\VisitStatus;
+
+    $outgoing = $queue === Q::Outgoing;
+    $tracking = $queue->tracksOffices();
+    // The cashier's Payment Validation renders this view too, without a selection.
+    $pageIds ??= [];
+    $selected ??= [];
+    $allTicked = $pageIds !== [] && array_diff($pageIds, array_map('strval', $selected)) === [];
 @endphp
 
 <div class="space-y-6" data-queue="{{ $queue->value }}">
@@ -23,7 +30,7 @@
             'md:grid-cols-2 xl:grid-cols-3' => ! $hasWaitingTab,
         ]) data-queue-search>
             <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" label:sr-only :placeholder="__('Tracking no. or name')" clearable />
-            @if ($queue === Q::InProgress)
+            @if ($tracking)
                 <flux:select wire:model.live="office" :label="__('Currently at')" label:sr-only>
                     <flux:select.option value="">{{ __('Any office') }}</flux:select.option>
                     @foreach ($offices as $option)
@@ -32,13 +39,27 @@
                 </flux:select>
             @endif
         </div>
+
+        @if ($outgoing)
+            {{-- Each goes to its own next office (REQ-31-03). --}}
+            <flux:button variant="primary" icon="paper-airplane" wire:click="forwardSelected" :disabled="$selected === []" data-forward-selected
+                data-confirm-title="{{ __('Forward documents') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="trans_choice('Forward :count document to its next office?|Forward :count documents to their next offices?', count($selected))">
+                {{ $selected === [] ? __('Forward') : __('Forward (:count)', ['count' => count($selected)]) }}
+            </flux:button>
+        @endif
     </div>
 
     <flux:table :paginate="$requests">
         <flux:table.columns>
+            @if ($outgoing)
+                <flux:table.column class="w-8">
+                    <input type="checkbox" class="size-4 cursor-pointer accent-primary" aria-label="{{ __('Select every document on this page') }}"
+                        wire:click="togglePage(@js($pageIds))" @checked($allTicked) @disabled($pageIds === []) data-select-page>
+                </flux:table.column>
+            @endif
             <flux:table.column>{{ __('Request') }}</flux:table.column>
             <flux:table.column class="max-md:hidden">{{ __('Requester') }}</flux:table.column>
-            @if ($queue === Q::InProgress)
+            @if ($tracking)
                 <flux:table.column>{{ __('Currently at') }}</flux:table.column>
                 <flux:table.column>{{ __('Next') }}</flux:table.column>
                 <flux:table.column class="max-sm:hidden">{{ __('Due') }}</flux:table.column>
@@ -57,11 +78,17 @@
             @forelse ($requests as $request)
                 @php
                     $visit = $request->openVisit;
-                    // In Progress has no working page: its rows open the record (REQ-17-12, 13).
+                    // In Progress and Outgoing have no working page: their rows open the record (REQ-17-13, REQ-31-02).
                     $registrarActs = $visit?->department->code === \App\Models\Department::REGISTRAR_CODE;
                     $rowRoute = $queue->hasWorkingPage() ? $linkRoute : 'records.show';
                 @endphp
                 <flux:table.row :key="$request->id">
+                    @if ($outgoing)
+                        <flux:table.cell>
+                            <input type="checkbox" class="size-4 cursor-pointer accent-primary" value="{{ $request->id }}" wire:model.live="selected"
+                                aria-label="{{ __('Select :ref', ['ref' => $request->reference_no]) }}" data-select-row>
+                        </flux:table.cell>
+                    @endif
                     <flux:table.cell class="whitespace-normal">
                         <a href="{{ route($rowRoute, $request) }}" wire:navigate class="font-medium text-highlight underline underline-offset-2 hover:no-underline">{{ $request->reference_no }}</a>
                         <x-walk-in-badge :request="$request" class="ms-1" />
@@ -72,17 +99,18 @@
                         <div class="text-xs text-zinc-500">{{ $request->student_number }}</div>
                     </flux:table.cell>
 
-                    @if ($queue === Q::InProgress || $queue === Q::FinalCheck)
+                    @if ($tracking || $queue === Q::FinalCheck)
                         <flux:table.cell class="whitespace-normal" data-current-office>
                             {{-- A forwarded paper stays with its sender until it is received (REQ-17-18). --}}
-                            @if ($queue === Q::InProgress)
+                            @if ($tracking)
                                 <div class="font-medium text-ink">{{ $visit?->holder()->name ?? '—' }}</div>
                             @endif
                             @if ($visit)
                                 <div class="text-xs text-zinc-600">
-                                    {{ match ($visit->status) {
-                                        VisitStatus::InTransit => __('Forwarded :time to :office, not yet received', ['time' => $visit->forwarded_at->diffForHumans(), 'office' => $visit->department->name]),
-                                        VisitStatus::Done => __('Done :time, not yet forwarded', ['time' => $visit->done_at->diffForHumans()]),
+                                    {{ match (true) {
+                                        $visit->status === VisitStatus::InTransit => __('Forwarded :time to :office, not yet received', ['time' => $visit->forwarded_at->diffForHumans(), 'office' => $visit->department->name]),
+                                        $visit->isPendingReturn() => __('Returned :time', ['time' => $visit->done_at->diffForHumans()]),
+                                        $visit->status === VisitStatus::Done => __('Done :time, not yet forwarded', ['time' => $visit->done_at->diffForHumans()]),
                                         default => __('Received :time', ['time' => $visit->received_at->diffForHumans()]),
                                     } }}
                                 </div>
@@ -91,20 +119,22 @@
                                 <flux:badge size="sm" color="orange" class="mt-1">{{ __('Returned for correction') }}</flux:badge>
                             @endif
                         </flux:table.cell>
-                        @if ($queue === Q::InProgress)
+                        @if ($tracking)
                             @php($next = $request->nextOffice())
                             <flux:table.cell class="whitespace-normal" data-next-office>
-                                {{-- The Registrar's own papers are received and forwarded here only (REQ-17-12, 13); the buttons take the next office's place. --}}
-                                @if ($registrarActs && $visit->status === VisitStatus::InTransit)
+                                {{-- In Progress receives the papers sent to the Registrar (REQ-17-13); Outgoing
+                                     forwards every office's finished paper (REQ-31-03). The button names the next office. --}}
+                                @if (! $outgoing && $registrarActs && $visit->status === VisitStatus::InTransit)
                                     <flux:button size="sm" variant="primary" icon="inbox-arrow-down"
                                         wire:click="acceptReceipt({{ $request->id }})" data-accept-receipt>
                                         {{ __('Accept receipt') }}
                                     </flux:button>
-                                @elseif ($next && $registrarActs && $visit->isForwardable())
-                                    <flux:button size="sm" variant="primary" icon="paper-airplane"
+                                @elseif ($outgoing && $next)
+                                    @php($label = $visit->isPendingReturn() ? __('Return to :office', ['office' => $next->name]) : __('Forward to :office', ['office' => $next->name]))
+                                    <flux:button size="sm" variant="primary" :icon="$visit->isPendingReturn() ? 'arrow-uturn-left' : 'paper-airplane'"
                                         wire:click="forward({{ $request->id }})" data-forward
-                                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Forward :ref to :office now?', ['ref' => $request->reference_no, 'office' => $next->name])">
-                                        {{ __('Forward to :office', ['office' => $next->name]) }}
+                                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Bring :ref to :office now?', ['ref' => $request->reference_no, 'office' => $next->name])">
+                                        {{ $label }}
                                     </flux:button>
                                 @else
                                     <div class="text-ink" data-next-name>{{ $next?->name ?? '—' }}</div>
@@ -138,7 +168,7 @@
                 </flux:table.row>
             @empty
                 <flux:table.row>
-                    <flux:table.cell colspan="5" class="py-8 text-center text-zinc-500">{{ trim($search) !== '' ?__('No requests match your search.') : __('Nothing here right now.') }}</flux:table.cell>
+                    <flux:table.cell colspan="6" class="py-8 text-center text-zinc-500">{{ trim($search) !== '' ?__('No requests match your search.') : __('Nothing here right now.') }}</flux:table.cell>
                 </flux:table.row>
             @endforelse
         </flux:table.rows>

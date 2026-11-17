@@ -1,7 +1,7 @@
 {{--
     The office's Decision on a document received in its office (To Validate), laid out like the
     registrar's Decision panel: Return on the left, Approve on the right (REQ-24-07, REQ-17-02).
-    Forwarding is on the To Forward list (REQ-24-10). Requires
+    The Registrar forwards it from Outgoing (REQ-31-03). Requires
     $visit (with step, department, credentialRequest), $returnOffices.
 --}}
 @php

@@ -47,7 +47,7 @@
             <section aria-labelledby="decision-heading" class="space-y-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6" data-office-action>
                 <div>
                     <h2 id="decision-heading" class="text-lg font-semibold text-primary">{{ __('Decision') }}</h2>
-                    <p class="text-xs text-zinc-600">{{ __('Forwarded :time by :office', ['time' => $visit->forwarded_at->diffForHumans(), 'office' => $visit->holder()->name]) }}</p>
+                    <p class="text-xs text-zinc-600">{{ __('Forwarded :time from :office', ['time' => $visit->forwarded_at->diffForHumans(), 'office' => $visit->holder()->name]) }}</p>
                 </div>
                 <div class="flex flex-wrap justify-center gap-2">
                     <flux:button wire:click="acceptReceipt" variant="primary" icon="inbox-arrow-down" data-acknowledge>{{ __('Acknowledge receipt') }}</flux:button>
@@ -55,7 +55,7 @@
             </section>
         @endcan
     @elseif ($queue === Q::ToValidate && $visit)
-        {{-- To Forward has no panel: it is forwarded from its list (REQ-24-10). --}}
+        {{-- Outgoing has no panel: the Registrar forwards it (REQ-31-05). --}}
         @include('partials.visit-actions', ['visit' => $visit, 'returnOffices' => $returnOffices])
     @endif
 </div>

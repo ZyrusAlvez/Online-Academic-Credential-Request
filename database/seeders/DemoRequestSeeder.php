@@ -139,13 +139,16 @@ class DemoRequestSeeder extends Seeder
                 $this->advanceUntil($request, 'CBA', receive: true);
             });
 
-            // Returned for correction: VP Finance sent it back to the Registrar.
+            // Returned for correction: VP Finance returned it, and the Registrar brought it back (REQ-31-07, 08).
             $this->at(6, function () use ($juan, $tor): void {
                 $request = $this->accepted($juan, $tor, 'Employment');
                 $this->advanceUntil($request, 'VPF', receive: true);
                 $this->later(5);
-                $this->workflow->returnVisit($request->openVisit()->firstOrFail(), $this->staff['VPF'], Department::where('code', Department::REGISTRAR_CODE)->firstOrFail(),
+                $visit = $request->openVisit()->firstOrFail();
+                $this->workflow->returnVisit($visit, $this->staff['VPF'], Department::where('code', Department::REGISTRAR_CODE)->firstOrFail(),
                     'Name on the TOR does not match the records.', 'Correct the middle name and reprint the TOR.');
+                $this->later(2);
+                $this->workflow->forwardDocument($visit, $this->registrar);
             });
 
             // For final approval: back at the Registrar for the final quality check.
@@ -354,10 +357,10 @@ class DemoRequestSeeder extends Seeder
 
             $this->workflow->completeVisit($visit, $this->actorFor($code), fake()->optional(0.3)->randomElement(['Signed.', 'Verified.', 'Stamped.']));
 
-            // Done, then the office sends the paper on a little later (REQ-17-07).
+            // Done, then the Registrar collects the paper a little later and brings it on (REQ-31-03).
             if ($visit->status === VisitStatus::Done) {
                 $this->later(fake()->numberBetween(1, 6));
-                $this->workflow->forwardDocument($visit, $this->actorFor($code));
+                $this->workflow->forwardDocument($visit, $this->registrar);
             }
         }
     }

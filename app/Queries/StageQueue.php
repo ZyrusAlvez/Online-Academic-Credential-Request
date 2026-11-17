@@ -46,11 +46,15 @@ final class StageQueue
                 ->where('channel', $channel)
                 ->where('status', $waiting ? RequestStatus::AwaitingPayment : RequestStatus::PaymentVerification)
                 ->orderBy('updated_at')->orderBy('id'),
-            // Where each paper is and goes next, from acceptance on (REQ-17-11).
-            RegistrarQueue::InProgress => $query
-                ->with(['steps:id,credential_request_id,department_id,position,status', 'steps.department:id,name'])
+            // Where each paper is and goes next, from acceptance on (REQ-17-11), except the papers
+            // waiting to be collected, which are in Outgoing (REQ-31-02, 06).
+            RegistrarQueue::InProgress, RegistrarQueue::Outgoing => $query
+                ->with(['steps:id,credential_request_id,department_id,position,status', 'steps.department:id,name', 'openVisit.returnedTo:id,name'])
                 ->whereIn('status', [RequestStatus::AcceptedForProcessing, RequestStatus::InProgress, RequestStatus::ReturnedForCorrection])
                 ->whereDoesntHave('visits', self::atFinalCheck(...))
+                ->when($queue === RegistrarQueue::Outgoing,
+                    fn (Builder $q) => $q->whereHas('visits', self::forwardable(...)),
+                    fn (Builder $q) => $q->whereDoesntHave('visits', self::forwardable(...)))
                 ->when($office !== '', fn (Builder $q) => RegistrarRequestFilter::heldBy($q, (int) $office))
                 ->orderBy('effective_due_at')->orderBy('id'),
             RegistrarQueue::FinalCheck => $query
@@ -61,6 +65,17 @@ final class StageQueue
                 ->where('status', RequestStatus::ReadyForRelease)
                 ->orderBy('ready_at')->orderBy('id'),
         };
+    }
+
+    /**
+     * An open visit whose paper the Registrar can collect and forward (REQ-31-02).
+     *
+     * @param  Builder<OfficeVisit>  $visits
+     */
+    private static function forwardable(Builder $visits): void
+    {
+        $visits->whereIn('status', VisitStatus::open());
+        OfficeVisit::whereForwardable($visits);
     }
 
     /**
