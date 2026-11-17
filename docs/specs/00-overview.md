@@ -80,6 +80,7 @@ at acceptance.
 | Representative | A person acting for the document owner, backed by an SPA and the IDs of both |
 | Accepted date | When the Registrar formally accepted the request; the processing period starts here |
 | Due date | Accepted date plus the processing period in working days. Never changed; approved pauses produce a separate *adjusted* due date. |
+| Office deadline | Receipt date at an office plus that route step's allotted working days; the processing period is split among the route's offices (spec 30, an addition beyond the BRD). Internal only; the due date stays the promise to the requester. |
 | Working day | Monday to Saturday, except days in the working calendar (holidays, closures) |
 | Ledger / request event | An append-only record of every action on a request |
 | Tracking number | Human-friendly request ID shown to requesters, e.g. `rc26-00042` |
@@ -195,6 +196,10 @@ Every office has the same buttons:
   the Records page no longer shows it, REQ-09-23).
 - Time spent at an office = working days from receipt to completion (receipt day excluded,
   completion day included; the same day counts as 0).
+- Office deadline (spec 30, user's decision 2026-11-18, not in the BRD): each office gets a share of
+  the processing period, counted from its receipt of the document. The split is automatic (period
+  ÷ offices, leftover days to the first offices in route order, e.g. TOR 2-2-2-1) and the Admin can
+  adjust it. It never changes the request's due date.
 
 ## Cross-cutting rules
 
