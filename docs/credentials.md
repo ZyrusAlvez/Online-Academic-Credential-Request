@@ -21,9 +21,11 @@ There are exactly three environments. Any other `APP_ENV` value stops the app at
 Base data = the 15 offices (11 colleges and 4 offices), the 34 programs, the 17 credential types
 with their routes, the request purposes, the holiday calendar, and the first admin account (from `.env`).
 
-To reload the demo accounts (local or staging): `php artisan app:reset-demo`. It leaves the
-request ledger empty. `php artisan app:reset-demo --requests` also loads the sample requests
-described in section 2 (and a saved valid ID for each requester).
+To reload the demo data (local or staging): `php artisan app:reset-demo`. It wipes the database,
+then loads the demo accounts of section 2, their sample requests (with a saved valid ID for each
+requester) and about six months of generated activity (spec 31): about 550 requests in every
+status and at every office, from about 60 generated requester accounts. It takes a minute or two.
+`DEMO_REQUESTERS` and `DEMO_APPLICATIONS` in `.env` change the amount (defaults 60 and 400).
 
 Automated tests use their own database, `uphsl_credential_tracker_testing`, so running them never
 touches your local or staging data.
@@ -38,8 +40,9 @@ Open the local or staging address and log in with an **email and password** belo
 |---|---|---|
 | `registrar@example.com` | `@Test123` | Initial Evaluation, Payment Validation, In Progress, Final Quality Check, Release and Records |
 
-With `--requests`, the sample requests are evaluated, accepted, prepared, checked and released by
-this account.
+The sample requests are evaluated, accepted, prepared, checked and released by this account. The
+generated requests share the evaluations with `registrar2@example.com` and
+`registrar3@example.com` (same password), so the evaluator report has several people.
 
 ### Admin
 
@@ -55,18 +58,18 @@ registrar and department staff accounts under **Administration → Accounts** (s
 
 ### Requesters
 
-The requesters start with no requests and no saved ID. The last column lists the sample requests
-that `app:reset-demo --requests` adds.
+The last column lists their sample requests.
 
-| Name | Email | Password | College and program | Sample requests (`--requests` only) |
+| Name | Email | Password | College and program | Sample requests |
 |---|---|---|---|---|
-| Juan S. Dela Cruz | `student@example.com` | `@Test123` | CCS · Bachelor of Science in Computer Science, Specialization in Data Science | TOR just submitted; payment to verify; TOR **returned for correction** by VP Finance; Certification of Enrollment released; diploma paused for his action |
-| Maria Reyes | `maria@example.com` | `@Test123` | CBAA · Bachelor of Science in Accountancy | Certification under evaluation; Course Description awaiting payment; TOR at the Dean of CBAA; Copy of Grades ready for release to her verified representative; TOR **overdue** at the Chancellor |
-| Jose L. Garcia | `jose@example.com` | `@Test123` | CEA · Bachelor of Science in Civil Engineering | TOR pending compliance; Certification of Graduation just accepted; Transfer Certificate at the final check; TOR released late; one cancelled |
-| Ana Mendoza | `ana@example.com` | `@Test123` | CTE · Bachelor of Secondary Education | ID still **awaiting verification** (Identity Checks); Copy of Grades waiting for her clarification; Authentication declined |
+| Juan S. Dela Cruz | `student@example.com` | `@Test123` | CCS · Bachelor of Science in Computer Science, Specialization in Data Science | TOR just submitted; payment to verify; TOR **returned for correction** by VP Finance; Certification of Enrollment released; diploma received by the Registrar |
+| Maria Reyes | `maria@example.com` | `@Test123` | CBA · Bachelor of Science in Accountancy | Certification under evaluation; Course Description awaiting payment; TOR at the Dean of CBA; Certificate of Grades ready for release to her verified representative; TOR **overdue** at the Chancellor |
+| Jose L. Garcia | `jose@example.com` | `@Test123` | CEA · Bachelor of Science in Civil Engineering | TOR pending compliance; Certification of Graduation just accepted; Semestral Report awaiting payment; Certificate of Transfer at the final check; TOR released late; one cancelled |
+| Ana Mendoza | `ana@example.com` | `@Test123` | CTE · Bachelor of Secondary Education | Certificate of Grades resubmitted after a blurred ID; Authentication declined; an application of two credentials; a walk-in TOR |
 
-With `--requests`, Juan, Maria and Jose are verified, so their My Profile is read-only. Ana's is
-read-only while her ID waits; reject it on Identity Checks to see the profile open up again.
+**Generated requesters.** About 60 more requester accounts exist only to fill the dashboard,
+reports and queues, e.g. `maria.santos.07@example.com` (same password). They are not listed here;
+**Administration → Accounts** shows them all.
 
 ### Department staff
 
@@ -79,10 +82,10 @@ to it, so demo data can't bounce or use up the Gmail sending limit.
 |---|---|---|
 | College of Arts and Sciences | CAS | `cas@example.com` |
 | School of Aviation | SOA | `soa@example.com` |
-| Basic Education Department | BED | `bed@example.com` |
-| College of Business Administration and Accountancy | CBAA | `cbaa@example.com` |
+| Senior High School | SHS | `shs@example.com` |
+| College of Business and Accountancy | CBA | `cba@example.com` |
 | College of Computer Studies | CCS | `ccs@example.com` |
-| College of Criminal Justice Education | CCJE | `ccje@example.com` |
+| College of Criminology | COC | `coc@example.com` |
 | College of Teacher Education | CTE | `cte@example.com` |
 | College of Engineering and Architecture | CEA | `cea@example.com` |
 | Graduate School | GS | `gs@example.com` |
@@ -93,12 +96,8 @@ to it, so demo data can't bounce or use up the Gmail sending limit.
 | Office of the President | PRES | `pres@example.com` |
 | Office of the Registrar | REG | `reg@example.com` |
 
-The college list changed on 2026-11-06. The old addresses (`cba@`, `crim@`, `coed@`, `coe@`,
-`cihm@`, `caa@`, `law@`) no longer exist. On staging the deploy moved each demo account to its
-college's new address, keeping its history, and removed `law@`. Any other college staff account,
-such as the Basic Education starter account, was deleted, or deactivated if it had already acted.
-Production gets the same clean-up and no new accounts: the admin creates the college staff
-accounts under **Administration → Accounts**.
+Production has no demo accounts: the admin creates the college staff accounts under
+**Administration → Accounts**.
 
 ### Programs
 
@@ -106,10 +105,10 @@ accounts under **Administration → Accounts**.
 |---|---|
 | CAS | Bachelor of Arts in Communication · Bachelor of Arts in Political Science · Bachelor of Arts/Science in Psychology |
 | SOA | Bachelor of Science in Aircraft Maintenance and Technology · Bachelor of Science in Aviation Electronics Technology |
-| BED | Senior High School Department |
-| CBAA | Bachelor of Science in Accountancy · Bachelor of Science in Business Administration · Bachelor of Science in Management Accounting · Bachelor of Science in Real Estate Management |
+| SHS | Science, Technology, Engineering and Mathematics (STEM) |
+| CBA | Bachelor of Science in Accountancy · Bachelor of Science in Business Administration · Bachelor of Science in Management Accounting · Bachelor of Science in Real Estate Management |
 | CCS | Bachelor of Information Technology in Cybersecurity and Forensics · Bachelor of Science in Computer Science, Specialization in Data Science · Bachelor of Science in Entertainment and Multimedia Computing · Bachelor of Science in Information Technology, Specialization in Game Development |
-| CCJE | Bachelor of Science in Criminology |
+| COC | Bachelor of Science in Criminology |
 | CTE | Bachelor of Early Childhood Education · Bachelor of Elementary Education · Bachelor of Library and Information Science · Bachelor of Physical Education · Bachelor of Secondary Education · Bachelor of Special Needs Education |
 | CEA | Bachelor of Science in Architecture · Bachelor of Science in Civil Engineering · Bachelor of Science in Computer Engineering · Bachelor of Science in Electrical Engineering · Bachelor of Science in Electronics Engineering · Bachelor of Science in Industrial Engineering · Bachelor of Science in Mechanical Engineering |
 | GS | Graduate School |
@@ -177,4 +176,4 @@ logged in as several roles at once.
 | 10 | Requester, then Registrar | Add a representative; verify them; **Release** to the representative | Released; the release record shows who received it |
 | 11 | Registrar | **Dashboard** (period indicators, time per office), **Reports** (each report, filters, CSV), **Requests → Overdue**, **Working Calendar** | Maria's TOR is overdue; the delay analysis shows the Chancellor's recorded reason |
 
-To start over: `php artisan app:reset-demo` (add `--requests` for the sample requests).
+To start over: `php artisan app:reset-demo`.
