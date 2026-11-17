@@ -19,7 +19,8 @@ registrar" as "the Admin" in REQ-12-03..06 (REQ-18-04).*
   programs (the 34 programs of the list, see design) without duplicating or overwriting
   what the registrar has changed. *(Reworded 2026-11-15: the list is seeded, not installed by a
   migration on deploy, REQ-23-02. Corrected the same day: the Basic Education program is named
-  "Senior High School Department", and 7 programs were added, 27 → 34.)*
+  "Senior High School Department", and 7 programs were added, 27 → 34. 2026-11-18: Senior High
+  School's programs are its strands, STEM for now, REQ-28-09.)*
 - ~~REQ-12-12~~ *Superseded by REQ-23-01 and 02 (2026-11-15):* the one-time replacement of the
   earlier program list on existing databases is gone; the seeded list is the list (REQ-12-02).
 - ~~REQ-12-11~~ *Superseded by REQ-18-11 and REQ-23-02 (2026-11-15):* no staff account is created

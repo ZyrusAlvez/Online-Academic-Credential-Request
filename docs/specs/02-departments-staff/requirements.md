@@ -24,6 +24,8 @@ and switch accounts to Admin (REQ-18-09).*
 - **REQ-02-01** THE SYSTEM SHALL seed the 15 offices from the overview: the 11 colleges (each
   acting as the Dean) and the Office of the Registrar, VP Finance, Chancellor and President, with
   a name, short code, type and role description; re-seeding SHALL NOT create duplicates.
+  *(2026-11-18: three colleges renamed and Basic Education replaced by Senior High School,
+  REQ-28-08.)*
 - ~~REQ-02-14~~ *Superseded by REQ-23-01 and 02 (2026-11-15):* the one-time replacement of the
   earlier college list on existing databases is gone. Both servers are reset, and the 11 colleges
   of the 2026-11-06 list are simply the seeded list (REQ-02-01).
