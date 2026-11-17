@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -18,7 +19,10 @@ class DueReminder extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public CredentialRequest $request, public bool $overdue) {}
+    /**
+     * @param  ?CarbonInterface  $officeDue  the holding office's own deadline, for its staff (REQ-30-08)
+     */
+    public function __construct(public CredentialRequest $request, public bool $overdue, public ?CarbonInterface $officeDue = null) {}
 
     /**
      * @return list<string>
@@ -80,7 +84,7 @@ class DueReminder extends Notification implements ShouldQueue
 
         return $this->overdue
             ? "{$this->request->reference_no} is overdue"
-            : "{$this->request->reference_no} is due {$this->due()}";
+            : "{$this->request->reference_no} is due {$this->due($notifiable)}";
     }
 
     private function message(User $notifiable): string
@@ -99,12 +103,19 @@ class DueReminder extends Notification implements ShouldQueue
         }
 
         return $this->overdue
-            ? "It was due {$this->due()} and is with your office now."
-            : "It is with your office and due {$this->due()}.";
+            ? "It was due {$this->due($notifiable)} and is with your office now."
+            : "It is with your office and due {$this->due($notifiable)}.";
     }
 
-    private function due(): string
+    /**
+     * The office's own deadline for its staff when it has one, otherwise the request's due date.
+     */
+    private function due(?User $notifiable = null): string
     {
-        return (string) $this->request->effective_due_at?->format('l, M j');
+        $date = $notifiable?->hasRole(Role::Department) && $this->officeDue !== null
+            ? $this->officeDue
+            : $this->request->effective_due_at;
+
+        return (string) $date?->format('l, M j');
     }
 }

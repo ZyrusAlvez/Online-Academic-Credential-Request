@@ -136,5 +136,7 @@ class CredentialTypeSeeder extends Seeder
                 'instructions' => $instructions,
             ]);
         }
+
+        $type->resplitDays();
     }
 }

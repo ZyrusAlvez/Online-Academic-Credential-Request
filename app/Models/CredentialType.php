@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * An entry of the credential master list (spec 03).
  *
  * @property bool $requires_payment
+ * @property int $processing_days
  * @property ?string $fee
  * @property bool $fee_per_term the fee is charged once per ticked term (REQ-29-05)
  * @property ?list<string> $free_for academic statuses that get it free (REQ-29-07)
@@ -152,6 +153,38 @@ class CredentialType extends Model
         return $this->steps
             ->map(fn (WorkflowStep $step): string => $step->is_student_college ? 'Dean' : (string) $step->department?->code)
             ->implode(' → ');
+    }
+
+    /**
+     * The automatic split of a processing period among a route's steps (REQ-30-02): the period
+     * divided by the steps, rounded down, and the days left over one at a time to the steps in
+     * route order. 7 days over 4 steps → [2, 2, 2, 1].
+     *
+     * @return list<int>
+     */
+    public static function splitDays(int $days, int $steps): array
+    {
+        if ($steps < 1) {
+            return [];
+        }
+
+        $base = intdiv(max(0, $days), $steps);
+        $left = max(0, $days) - $base * $steps;
+
+        return array_map(fn (int $index): int => $base + ($index < $left ? 1 : 0), range(0, $steps - 1));
+    }
+
+    /**
+     * Write the automatic split to this type's route (REQ-30-02). A query update: the change that
+     * caused it (a step added or removed, the period edited) is already logged.
+     */
+    public function resplitDays(): void
+    {
+        $ids = $this->steps()->pluck('id');
+
+        foreach (self::splitDays($this->processing_days, $ids->count()) as $index => $days) {
+            WorkflowStep::whereKey($ids[$index])->update(['allotted_days' => $days]);
+        }
     }
 
     /**

@@ -29,8 +29,8 @@ allotted_days)` unless the visit is a correction or the step has none (REQ-30-05
 `OfficeVisit::isOverdue()` = in the office (received) and `due_at` past.
 
 ## Screens
-- Route page (`Admin\CredentialTypes\Workflow`): each step shows its days; a "Working days per
-  office" form lists the steps with a number input each and the total against the processing
+- Route page (`Admin\CredentialTypes\Workflow`): each step shows its days; a "Working Days for
+  Each Office" form lists the steps with a number input each and the total against the processing
   period.
 - Office queues (`livewire/department/queue`): below the credential, "Due Mon, Nov 23" from the
   visit's deadline while received; the Overdue badge when the visit or the request is overdue.

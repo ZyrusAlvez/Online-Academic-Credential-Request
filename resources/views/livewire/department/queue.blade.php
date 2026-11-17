@@ -78,7 +78,10 @@
                         @if ($visit->purpose !== VisitPurpose::Route)
                             <flux:badge size="sm" color="orange" class="mt-1">{{ $visit->purpose === VisitPurpose::Correction ? __('For correction') : __('Corrected, sent back') }}</flux:badge>
                         @endif
-                        @if (! $history && $request->isOverdue())
+                        @if (! $history && $visit->status === VisitStatus::Received && $visit->due_at)
+                            <div class="text-xs text-zinc-600" data-office-deadline>{{ __('Due :date', ['date' => $visit->due_at->format('D, M j')]) }}</div>
+                        @endif
+                        @if (! $history && ($visit->isOverdue() || $request->isOverdue()))
                             <flux:badge size="sm" color="red" class="mt-1">{{ __('Overdue') }}</flux:badge>
                         @endif
                     </flux:table.cell>

@@ -205,10 +205,11 @@ test('REQ-07-15 the evaluator report', function () {
 
 test('REQ-07-16 the department and signatory monitoring reports', function () {
     expect(reportRows(new DepartmentReport))->toBe([
-        ['College of Computer Studies', 1, 1, 0, 0, 3.0],
-        ['Office of the VP for Finance', 1, 0, 1, 0, 2.0],
-        ['Office of the Registrar', 1, 1, 0, 0, 1.0],
-        ['Office of the Chancellor', 1, 0, 0, 1, null],
+        // No office deadlines in these visits, so no On time % (REQ-30-09).
+        ['College of Computer Studies', 1, 1, 0, 0, 3.0, null],
+        ['Office of the VP for Finance', 1, 0, 1, 0, 2.0, null],
+        ['Office of the Registrar', 1, 1, 0, 0, 1.0, null],
+        ['Office of the Chancellor', 1, 0, 0, 1, null, null],
     ]);
 
     expect(reportRows(new SignatoryReport))->toBe([[

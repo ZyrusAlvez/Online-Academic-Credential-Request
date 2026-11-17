@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Department performance (REQ-07-16): per office, documents received and released in the period,
- * returns, documents pending now and the average working days per completed visit.
+ * returns, documents pending now, the average working days per completed visit and the share done by
+ * the office's own deadline (REQ-30-09).
  */
 final class DepartmentReport implements Report
 {
@@ -25,7 +26,7 @@ final class DepartmentReport implements Report
 
     public function columns(): array
     {
-        return ['Office', 'Received', 'Released', 'Returned', 'Pending now', 'Avg working days per document'];
+        return ['Office', 'Received', 'Released', 'Returned', 'Pending now', 'Avg working days per document', 'On time %'];
     }
 
     public function rows(ReportFilter $filter): iterable
@@ -43,6 +44,9 @@ final class DepartmentReport implements Report
                 DB::raw("SUM(office_visits.status = '".VisitStatus::Completed->value."') as released"),
                 DB::raw("SUM(office_visits.status = '".VisitStatus::Returned->value."') as returned"),
                 DB::raw('AVG(office_visits.working_days) as days'),
+                // Task done by the office's own deadline, of the visits that had one (REQ-30-09).
+                DB::raw('SUM(office_visits.due_at IS NOT NULL) as with_deadline'),
+                DB::raw('SUM(office_visits.due_at IS NOT NULL AND COALESCE(office_visits.done_at, office_visits.completed_at) <= office_visits.due_at) as on_time'),
             ])
             ->keyBy('department_id');
 
@@ -60,6 +64,8 @@ final class DepartmentReport implements Report
         return Department::whereIn('id', $ids)->get()
             ->map(function (Department $office) use ($received, $closed, $pending): array {
                 $row = $closed->get($office->id);
+                $withDeadline = (int) ($row?->getAttribute('with_deadline') ?? 0);
+                $onTime = (int) ($row?->getAttribute('on_time') ?? 0);
 
                 return [
                     $office->name,
@@ -68,6 +74,7 @@ final class DepartmentReport implements Report
                     (int) ($row?->getAttribute('returned') ?? 0),
                     (int) ($pending[$office->id] ?? 0),
                     $row?->getAttribute('days') === null ? null : round((float) $row->getAttribute('days'), 1),
+                    $withDeadline === 0 ? null : round($onTime * 100 / $withDeadline, 1),
                 ];
             })
             ->sortByDesc(fn (array $row) => $row[5] ?? -1)

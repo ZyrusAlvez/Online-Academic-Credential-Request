@@ -61,6 +61,9 @@ class CredentialTypeFactory extends Factory
                     'task' => $task,
                 ]);
             }
+
+            // The automatic split, as seeding gives it (REQ-30-02).
+            $type->resplitDays();
         });
     }
 }
