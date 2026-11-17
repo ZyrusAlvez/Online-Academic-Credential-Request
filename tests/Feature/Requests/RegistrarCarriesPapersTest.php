@@ -17,7 +17,7 @@ use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
 /*
-| The Registrar carries every paper between offices (spec 31).
+| The Registrar carries every paper between offices (spec 32).
 */
 
 beforeEach(function () {
@@ -55,7 +55,7 @@ function receivedAtVpf(): CredentialRequest
     return $request->fresh();
 }
 
-test('REQ-31-01 an approved document stays in the office, in its Outgoing list and the registrar\'s', function () {
+test('REQ-32-01 an approved document stays in the office, in its Outgoing list and the registrar\'s', function () {
     $request = approvedByDean();
 
     expect(openVisit($request))->department_id->toBe($this->org->ccs->id)->status->toBe(VisitStatus::Done);
@@ -65,7 +65,7 @@ test('REQ-31-01 an approved document stays in the office, in its Outgoing list a
     registrarOutgoing()->assertSeeInOrder([$request->reference_no, 'College of Computer Studies', 'Forward to Office of the VP for Finance']);
 });
 
-test('REQ-31-02 Outgoing is in the registrar\'s sidebar after In Progress and lists every office\'s finished papers, filterable by office', function () {
+test('REQ-32-02 Outgoing is in the registrar\'s sidebar after In Progress and lists every office\'s finished papers, filterable by office', function () {
     $atDean = approvedByDean();
     $atRegistrar = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);   // the Registrar's own task
     $notDone = receivedAtVpf();
@@ -81,7 +81,7 @@ test('REQ-31-02 Outgoing is in the registrar\'s sidebar after In Progress and li
     $this->actingAs($this->dean)->get(route('registrar.outgoing'))->assertForbidden();
 });
 
-test('REQ-31-03 the registrar forwards a row, which the next office still has to receive, and is told of it', function () {
+test('REQ-32-03 the registrar forwards a row, which the next office still has to receive, and is told of it', function () {
     Notification::fake();
     $request = approvedByDean();
 
@@ -97,7 +97,7 @@ test('REQ-31-03 the registrar forwards a row, which the next office still has to
     registrarOutgoing()->assertDontSee($request->reference_no);
 });
 
-test('REQ-31-03 the registrar forwards the ticked papers at once, skipping those no longer ready', function () {
+test('REQ-32-03 the registrar forwards the ticked papers at once, skipping those no longer ready', function () {
     $a = approvedByDean();
     $b = approvedByDean();
     $notDone = receivedAtVpf();
@@ -118,7 +118,7 @@ test('REQ-31-03 the registrar forwards the ticked papers at once, skipping those
     registrarOutgoing()->call('forwardSelected')->assertHasErrors(['selected']);
 });
 
-test('REQ-31-04 department staff cannot forward; nor can anyone outside Outgoing', function () {
+test('REQ-32-04 department staff cannot forward; nor can anyone outside Outgoing', function () {
     $request = approvedByDean();
     $visit = openVisit($request);
 
@@ -136,7 +136,7 @@ test('REQ-31-04 department staff cannot forward; nor can anyone outside Outgoing
     expect(openVisit($request)->status)->toBe(VisitStatus::Done);
 });
 
-test('REQ-31-05 the department\'s Outgoing list is view-only and replaces To Forward', function () {
+test('REQ-32-05 the department\'s Outgoing list is view-only and replaces To Forward', function () {
     $request = approvedByDean();
 
     Livewire::actingAs($this->dean)->test(OfficeQueue::class, ['queue' => 'outgoing'])
@@ -151,7 +151,7 @@ test('REQ-31-05 the department\'s Outgoing list is view-only and replaces To For
     $this->actingAs($this->dean)->get(route('department.outgoing.show', $request))->assertOk();
 });
 
-test('REQ-31-06 In Progress leaves out the papers waiting to be collected and has no Forward', function () {
+test('REQ-32-06 In Progress leaves out the papers waiting to be collected and has no Forward', function () {
     $waiting = approvedByDean();
     $moving = receivedAtVpf();
 
@@ -161,7 +161,7 @@ test('REQ-31-06 In Progress leaves out the papers waiting to be collected and ha
         ->assertDontSeeHtml('data-forward');
 });
 
-test('REQ-31-07 a return keeps the document in the returning office, in Outgoing, and leaves its step open', function () {
+test('REQ-32-07 a return keeps the document in the returning office, in Outgoing, and leaves its step open', function () {
     Notification::fake();
     $request = receivedAtVpf();
     $visit = openVisit($request);
@@ -188,7 +188,7 @@ test('REQ-31-07 a return keeps the document in the returning office, in Outgoing
     registrarOutgoing()->assertSeeInOrder([$request->reference_no, 'Office of the VP for Finance', 'Return to College of Computer Studies']);
 });
 
-test('REQ-31-08 the registrar carries a returned document back; the corrected one comes back the same way', function () {
+test('REQ-32-08 the registrar carries a returned document back; the corrected one comes back the same way', function () {
     Notification::fake();
     $request = receivedAtVpf();
     workflow()->returnVisit(openVisit($request), $this->vpf, $this->org->ccs, 'Unsigned', 'Sign page 2');

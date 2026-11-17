@@ -127,7 +127,7 @@ test('REQ-06-07 offices are told in-app and by email when a document is forwarde
     workflow()->acceptReceipt(openVisit($request), $this->vpf);
     workflow()->returnVisit(openVisit($request), $this->vpf, $this->org->ccs, 'Unsigned', 'Sign it');
     Notification::assertNotSentTo($this->dean, RequestActivity::class, fn ($n) => str_contains($n->title, 'returned to your office'));
-    workflow()->forwardDocument(openVisit($request), $this->registrar);   // told when the Registrar brings it (REQ-31-08)
+    workflow()->forwardDocument(openVisit($request), $this->registrar);   // told when the Registrar brings it (REQ-32-08)
     Notification::assertSentTo($this->dean, RequestActivity::class, fn ($n) => $n->title === "{$request->reference_no} was returned to your office for correction");
 
     passOffice($request, $this->dean);

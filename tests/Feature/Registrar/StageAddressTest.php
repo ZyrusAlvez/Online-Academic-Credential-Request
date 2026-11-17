@@ -173,7 +173,7 @@ test('REQ-16-26 the former address in notifications always lands where the reque
     walkIn($request);
     $this->actingAs($this->registrar)->get($link)->assertRedirect(route('registrar.payments.show', $request));
 
-    // Accepted, at the Registrar: the Outgoing list, searched by its tracking number (REQ-31-02).
+    // Accepted, at the Registrar: the Outgoing list, searched by its tracking number (REQ-32-02).
     $accepted = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
     $list = route('registrar.outgoing', ['search' => $accepted->reference_no]);
     $this->actingAs($this->registrar)->get(route('registrar.requests.show', $accepted))->assertRedirect($list);

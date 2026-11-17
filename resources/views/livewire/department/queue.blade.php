@@ -98,7 +98,7 @@
                         </flux:table.cell>
                     @else
                         @if ($outgoing)
-                            {{-- The Registrar collects it and brings it there (REQ-31-05). --}}
+                            {{-- The Registrar collects it and brings it there (REQ-32-05). --}}
                             @php($next = $visit->nextStep()?->department)
                             <flux:table.cell class="whitespace-normal text-ink" data-next-office>
                                 {{ match (true) {

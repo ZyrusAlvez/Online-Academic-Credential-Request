@@ -18,7 +18,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
- * One of the registrar's stage queues (REQ-16-02..06, REQ-31-02); the route chooses which.
+ * One of the registrar's stage queues (REQ-16-02..06, REQ-32-02); the route chooses which.
  */
 class Queue extends Component
 {
@@ -41,7 +41,7 @@ class Queue extends Component
     public string $search = '';
 
     /**
-     * Outgoing: the requests ticked for Forward (REQ-31-03).
+     * Outgoing: the requests ticked for Forward (REQ-32-03).
      *
      * @var list<int|string>
      */
@@ -72,7 +72,7 @@ class Queue extends Component
 
     /**
      * Outgoing: bring one office's finished paper to its next office, or a returned one back
-     * (REQ-31-03, 08).
+     * (REQ-32-03, 08).
      */
     public function forward(int $requestId, RequestWorkflow $workflow): void
     {
@@ -89,7 +89,7 @@ class Queue extends Component
 
     /**
      * Outgoing: forward every ticked paper still waiting to be collected. Each is its own
-     * transition, so one a colleague already forwarded is only counted (REQ-31-03).
+     * transition, so one a colleague already forwarded is only counted (REQ-32-03).
      */
     public function forwardSelected(RequestWorkflow $workflow): void
     {

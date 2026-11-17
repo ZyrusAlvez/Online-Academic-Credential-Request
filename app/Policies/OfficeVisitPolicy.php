@@ -31,7 +31,7 @@ class OfficeVisitPolicy
 
     /**
      * Carry the paper on to the next office: registrars only, from any office whose task is done
-     * (REQ-31-04).
+     * (REQ-32-04).
      */
     public function forward(User $user, OfficeVisit $visit): bool
     {

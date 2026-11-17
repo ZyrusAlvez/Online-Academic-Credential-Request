@@ -763,7 +763,7 @@ class RequestWorkflow
      * next office on the route, a corrected document back to the office that returned it, or a
      * returned one to the office it was returned to. That office still has to accept its receipt
      * (REQ-17-08). The Registrar's own received task is marked done in the same step (REQ-17-12).
-     * Only registrars forward, from Outgoing (REQ-31-03, 04; the policy checks it).
+     * Only registrars forward, from Outgoing (REQ-32-03, 04; the policy checks it).
      */
     public function forwardDocument(OfficeVisit $visit, User $actor): void
     {
@@ -775,7 +775,7 @@ class RequestWorkflow
             }
 
             if ($current->isPendingReturn()) {
-                // Returned for correction: back to the office it was returned to (REQ-31-08).
+                // Returned for correction: back to the office it was returned to (REQ-32-08).
                 $step = $current->step()->firstOrFail();
                 $office = $current->department()->firstOrFail();
                 $to = Department::findOrFail($current->returned_to_department_id);
@@ -814,7 +814,7 @@ class RequestWorkflow
     /**
      * Return the document to an earlier office for correction, with the reason and, optionally,
      * the corrective action needed (REQ-05-06). The paper stays in the office, in its Outgoing
-     * list, until the Registrar brings it back (REQ-31-07, forwardDocument). The office's route
+     * list, until the Registrar brings it back (REQ-32-07, forwardDocument). The office's route
      * step is not completed.
      */
     public function returnVisit(OfficeVisit $visit, User $actor, Department $to, string $reason, ?string $correctiveAction = null, ?string $remarks = null): void

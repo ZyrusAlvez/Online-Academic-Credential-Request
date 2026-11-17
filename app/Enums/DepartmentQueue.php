@@ -6,7 +6,7 @@ use App\Models\CredentialRequest;
 
 /**
  * A department office's lists: documents sent to it, to approve, waiting for the Registrar to
- * collect them, and what it did (spec 24, REQ-31-05).
+ * collect them, and what it did (spec 24, REQ-32-05).
  */
 enum DepartmentQueue: string
 {
@@ -77,7 +77,7 @@ enum DepartmentQueue: string
         return $this === self::History ? 'desc' : 'asc';
     }
 
-    /** Incoming acts on several documents at once (REQ-24-05); Outgoing is view-only (REQ-31-05). */
+    /** Incoming acts on several documents at once (REQ-24-05); Outgoing is view-only (REQ-32-05). */
     public function hasCheckboxes(): bool
     {
         return $this === self::Incoming;

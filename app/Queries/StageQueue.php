@@ -47,7 +47,7 @@ final class StageQueue
                 ->where('status', $waiting ? RequestStatus::AwaitingPayment : RequestStatus::PaymentVerification)
                 ->orderBy('updated_at')->orderBy('id'),
             // Where each paper is and goes next, from acceptance on (REQ-17-11), except the papers
-            // waiting to be collected, which are in Outgoing (REQ-31-02, 06).
+            // waiting to be collected, which are in Outgoing (REQ-32-02, 06).
             RegistrarQueue::InProgress, RegistrarQueue::Outgoing => $query
                 ->with(['steps:id,credential_request_id,department_id,position,status', 'steps.department:id,name', 'openVisit.returnedTo:id,name'])
                 ->whereIn('status', [RequestStatus::AcceptedForProcessing, RequestStatus::InProgress, RequestStatus::ReturnedForCorrection])
@@ -68,7 +68,7 @@ final class StageQueue
     }
 
     /**
-     * An open visit whose paper the Registrar can collect and forward (REQ-31-02).
+     * An open visit whose paper the Registrar can collect and forward (REQ-32-02).
      *
      * @param  Builder<OfficeVisit>  $visits
      */

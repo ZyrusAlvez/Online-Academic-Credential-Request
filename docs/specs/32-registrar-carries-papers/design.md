@@ -1,4 +1,4 @@
-# 31 — The Registrar Carries the Papers · Design
+# 32 — The Registrar Carries the Papers · Design
 
 No schema change: `office_visits` already has `returned_to_department_id`, `return_reason`,
 `corrective_action`, and `status` is a string.
@@ -9,12 +9,12 @@ No schema change: `office_visits` already has `returned_to_department_id`, `retu
   office), then sets the visit **Done** with `done_at`, `done_by`, `returned_to_department_id`,
   `return_reason`, `corrective_action` and `remarks`, without `markDone()`, so the step stays
   current. It writes `DocumentReturned` and sets `returned_for_correction` as before. Nothing is
-  forwarded yet (REQ-31-07).
+  forwarded yet (REQ-32-07).
 - `forwardDocument()`: a Done visit with `returned_to_department_id` (`OfficeVisit::isPendingReturn()`)
   is closed as `Returned` and a `Correction` visit is forwarded to the office it was returned to,
-  from the returning office (REQ-31-08). Any other forwardable visit goes on as before
+  from the returning office (REQ-32-08). Any other forwardable visit goes on as before
   (`markDone` for the Registrar's own received task, then `leave`).
-- The service does not check roles; `OfficeVisitPolicy::forward` does (REQ-31-04).
+- The service does not check roles; `OfficeVisitPolicy::forward` does (REQ-32-04).
 
 ## Model
 

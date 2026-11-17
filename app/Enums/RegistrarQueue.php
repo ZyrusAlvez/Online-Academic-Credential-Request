@@ -67,13 +67,13 @@ enum RegistrarQueue: string
         };
     }
 
-    /** In Progress and Outgoing are lists only; their rows act in place (REQ-17-13, REQ-31-02). */
+    /** In Progress and Outgoing are lists only; their rows act in place (REQ-17-13, REQ-32-02). */
     public function hasWorkingPage(): bool
     {
         return $this !== self::InProgress && $this !== self::Outgoing;
     }
 
-    /** The lists of papers between offices, with the office filter (REQ-17-11, REQ-31-02). */
+    /** The lists of papers between offices, with the office filter (REQ-17-11, REQ-32-02). */
     public function tracksOffices(): bool
     {
         return $this === self::InProgress || $this === self::Outgoing;

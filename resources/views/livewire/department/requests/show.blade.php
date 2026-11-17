@@ -55,7 +55,7 @@
             </section>
         @endcan
     @elseif ($queue === Q::ToValidate && $visit)
-        {{-- Outgoing has no panel: the Registrar forwards it (REQ-31-05). --}}
+        {{-- Outgoing has no panel: the Registrar forwards it (REQ-32-05). --}}
         @include('partials.visit-actions', ['visit' => $visit, 'returnOffices' => $returnOffices])
     @endif
 </div>

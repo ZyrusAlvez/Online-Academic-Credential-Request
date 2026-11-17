@@ -12,7 +12,7 @@ use Illuminate\Validation\Rule;
 /**
  * Office actions on a request's open visit: accept receipt, mark done, return for correction
  * (specs 05, 17). No delay reasons (REQ-24-09). Registrars forward, from Outgoing only
- * (REQ-31-04). The using component must expose a
+ * (REQ-32-04). The using component must expose a
  * `CredentialRequest $credentialRequest` property.
  *
  * @property CredentialRequest $credentialRequest

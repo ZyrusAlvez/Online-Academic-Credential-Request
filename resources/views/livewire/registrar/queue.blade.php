@@ -41,7 +41,7 @@
         </div>
 
         @if ($outgoing)
-            {{-- Each goes to its own next office (REQ-31-03). --}}
+            {{-- Each goes to its own next office (REQ-32-03). --}}
             <flux:button variant="primary" icon="paper-airplane" wire:click="forwardSelected" :disabled="$selected === []" data-forward-selected
                 data-confirm-title="{{ __('Forward documents') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="trans_choice('Forward :count document to its next office?|Forward :count documents to their next offices?', count($selected))">
                 {{ $selected === [] ? __('Forward') : __('Forward (:count)', ['count' => count($selected)]) }}
@@ -78,7 +78,7 @@
             @forelse ($requests as $request)
                 @php
                     $visit = $request->openVisit;
-                    // In Progress and Outgoing have no working page: their rows open the record (REQ-17-13, REQ-31-02).
+                    // In Progress and Outgoing have no working page: their rows open the record (REQ-17-13, REQ-32-02).
                     $registrarActs = $visit?->department->code === \App\Models\Department::REGISTRAR_CODE;
                     $rowRoute = $queue->hasWorkingPage() ? $linkRoute : 'records.show';
                 @endphp
@@ -123,7 +123,7 @@
                             @php($next = $request->nextOffice())
                             <flux:table.cell class="whitespace-normal" data-next-office>
                                 {{-- In Progress receives the papers sent to the Registrar (REQ-17-13); Outgoing
-                                     forwards every office's finished paper (REQ-31-03). The button names the next office. --}}
+                                     forwards every office's finished paper (REQ-32-03). The button names the next office. --}}
                                 @if (! $outgoing && $registrarActs && $visit->status === VisitStatus::InTransit)
                                     <flux:button size="sm" variant="primary" icon="inbox-arrow-down"
                                         wire:click="acceptReceipt({{ $request->id }})" data-accept-receipt>

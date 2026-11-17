@@ -28,7 +28,7 @@ class VisitQueue
             DepartmentQueue::Incoming => self::open($departmentId, VisitStatus::InTransit),
             DepartmentQueue::ToValidate => self::open($departmentId, VisitStatus::Received),
             // Approved or returned, still here until the Registrar collects it; the next office is
-            // shown, so the route comes along (REQ-31-05).
+            // shown, so the route comes along (REQ-32-05).
             DepartmentQueue::Outgoing => self::open($departmentId, VisitStatus::Done)
                 ->with(['step:id,task,position', 'credentialRequest.steps.department:id,name']),
             DepartmentQueue::History => self::history($departmentId),

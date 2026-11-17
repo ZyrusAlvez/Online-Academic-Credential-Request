@@ -56,7 +56,7 @@ function inProgressQueue(array $query = []): Testable
     return Livewire::withQueryParams($query)->actingAs(test()->registrar)->test(Queue::class, ['queue' => 'in_progress']);
 }
 
-/** The registrar's Outgoing list, where every forward happens (REQ-31-02, 03). */
+/** The registrar's Outgoing list, where every forward happens (REQ-32-02, 03). */
 function outgoingQueue(array $query = []): Testable
 {
     return Livewire::withQueryParams($query)->actingAs(test()->registrar)->test(Queue::class, ['queue' => 'outgoing']);
@@ -300,12 +300,12 @@ test('REQ-17-07 a corrected document is done, then forwarded back to the office 
     passOffice($request, $this->dean);
     workflow()->acceptReceipt(openVisit($request), $this->vpf);
     workflow()->returnVisit(openVisit($request), $this->vpf, $this->org->ccs, 'Unsigned', 'Sign page 2');
-    workflow()->forwardDocument(openVisit($request), $this->registrar);   // carried back (REQ-31-08)
+    workflow()->forwardDocument(openVisit($request), $this->registrar);   // carried back (REQ-32-08)
     workflow()->acceptReceipt(openVisit($request), $this->dean);
 
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
         ->assertSee('Returned to your office for correction')->assertSee('Approve')->assertDontSee('data-return-button', false)->call('completeVisit');
-    // The Registrar carries it back from Outgoing (REQ-31-03).
+    // The Registrar carries it back from Outgoing (REQ-32-03).
     outgoingQueue()->assertSee('Forward to Office of the VP for Finance')->call('forward', $request->id);
 
     $correction = $request->visits()->where('department_id', $this->org->ccs->id)->orderByDesc('id')->first();
@@ -416,7 +416,7 @@ test('REQ-17-18 a paper the Dean forwarded to the Registrar shows at the Dean, n
     workflow()->forwardDocument(openVisit($request), $this->registrar);
     workflow()->acceptReceipt(openVisit($request), $this->dean);
     workflow()->returnVisit(openVisit($request), $this->dean, $this->org->registrarOffice, 'Wrong name', 'Reprint');
-    workflow()->forwardDocument(openVisit($request), $this->registrar);   // carried back (REQ-31-08)
+    workflow()->forwardDocument(openVisit($request), $this->registrar);   // carried back (REQ-32-08)
 
     // Sent back to the Registrar for correction, not yet received there.
     expect(openVisit($request))->department_id->toBe($this->org->registrarOffice->id)->status->toBe(VisitStatus::InTransit);
@@ -509,7 +509,7 @@ test('REQ-17-13 a paper sent to the Registrar is received from its In Progress r
     workflow()->forwardDocument(openVisit($request), $this->registrar);
     workflow()->acceptReceipt(openVisit($request), $this->dean);
     workflow()->returnVisit(openVisit($request), $this->dean, $this->org->registrarOffice, 'Wrong grade', 'Fix the grade');
-    workflow()->forwardDocument(openVisit($request), $this->registrar);   // carried back (REQ-31-08)
+    workflow()->forwardDocument(openVisit($request), $this->registrar);   // carried back (REQ-32-08)
 
     inProgressQueue()
         ->assertSeeInOrder([$request->reference_no, 'not yet received', 'Accept receipt'])
@@ -550,7 +550,7 @@ test('REQ-17-16 only registrars forward, any office\'s done paper', function () 
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh()])
         ->assertDontSee('Forward to')
         ->call('completeVisit');
-    expect($this->dean->can('forward', openVisit($request)))->toBeFalse()          // its own done paper (REQ-31-04)
+    expect($this->dean->can('forward', openVisit($request)))->toBeFalse()          // its own done paper (REQ-32-04)
         ->and($this->vpf->can('forward', openVisit($request)))->toBeFalse()
         ->and($this->registrar->can('forward', openVisit($request)))->toBeTrue();
 
@@ -599,7 +599,7 @@ test('REQ-17-15 a done paper still counts as in the office', function () {
     workflow()->acceptReceipt(openVisit($request), $this->dean);
     workflow()->completeVisit(openVisit($request), $this->dean);
 
-    // Done and not yet forwarded: the office's Outgoing list (REQ-31-05).
+    // Done and not yet forwarded: the office's Outgoing list (REQ-32-05).
     Livewire::actingAs($this->dean)->test(OfficeQueue::class, ['queue' => 'outgoing'])
         ->assertSee($request->reference_no)->assertSee('Outgoing');
 

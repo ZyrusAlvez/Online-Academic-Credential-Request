@@ -56,7 +56,7 @@ class OfficeVisit extends Model
      * Where the paper goes when it leaves this office: a corrected document back to the office
      * that returned it (its step), otherwise the route's next waiting step; null after the final
      * quality check (REQ-17-07). A returned document goes to the office it was returned to
-     * (REQ-31-07). Reads the loaded `step` and `credentialRequest.steps`.
+     * (REQ-32-07). Reads the loaded `step` and `credentialRequest.steps`.
      */
     public function nextStep(): ?RequestStep
     {
@@ -127,7 +127,7 @@ class OfficeVisit extends Model
 
     /**
      * The office returned the document for correction and still has it, until the Registrar
-     * brings it back (REQ-31-07).
+     * brings it back (REQ-32-07).
      */
     public function isPendingReturn(): bool
     {
@@ -135,7 +135,7 @@ class OfficeVisit extends Model
     }
 
     /**
-     * Open visits the Registrar can forward from Outgoing, as isForwardable() (REQ-31-02).
+     * Open visits the Registrar can forward from Outgoing, as isForwardable() (REQ-32-02).
      *
      * @param  Builder<OfficeVisit>  $query
      */
@@ -154,7 +154,7 @@ class OfficeVisit extends Model
     /**
      * The registrar can send the paper on from here: its office's task is done (or it returned
      * the document), or it is the Office of the Registrar's own task (preparation or a
-     * correction, not the final quality check), which forwarding marks done (REQ-17-12, REQ-31-02).
+     * correction, not the final quality check), which forwarding marks done (REQ-17-12, REQ-32-02).
      * Reads the loaded `department` and `step`.
      */
     public function isForwardable(): bool

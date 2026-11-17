@@ -110,7 +110,7 @@ test('REQ-24-03 History lists what the office did, newest first, with who and wh
     $returned = sentToDean();
     workflow()->acceptReceipt(openVisit($returned), $this->dean);
     workflow()->returnVisit(openVisit($returned), $this->dean, $this->org->registrarOffice, 'Wrong grade', 'Fix it');
-    workflow()->forwardDocument(openVisit($returned), $this->registrar);   // carried back (REQ-31-08)
+    workflow()->forwardDocument(openVisit($returned), $this->registrar);   // carried back (REQ-32-08)
 
     officeList('history')
         ->assertSeeInOrder(['Request', 'Requester', 'Action', 'Date'])
@@ -199,7 +199,7 @@ test('REQ-24-06 a request opens under its list, an action goes back to that list
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh(), 'queue' => 'to_validate'])
         ->call('completeVisit')->assertRedirect(route('department.to-validate'));
 
-    // Outgoing: no panel on the page; once the Registrar forwards it, it is History (REQ-24-07, REQ-31-05).
+    // Outgoing: no panel on the page; once the Registrar forwards it, it is History (REQ-24-07, REQ-32-05).
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request->fresh(), 'queue' => 'outgoing'])
         ->assertSee('Request Details')->assertDontSee('data-office-action', false)->assertDontSee('Forward to');
     workflow()->forwardDocument(openVisit($request), $this->registrar);

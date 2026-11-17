@@ -84,7 +84,7 @@ test('REQ-05-04 approving releases the document to the next office, which must r
         ->call('acceptReceipt')
         ->set('completeRemarks', 'Signed')
         ->call('completeVisit');
-    // A separate action since spec 17, the Registrar's since spec 31 (REQ-31-03).
+    // A separate action since spec 17, the Registrar's since spec 32 (REQ-32-03).
     workflow()->forwardDocument(openVisit($this->request), $this->registrar);
 
     $visits = $this->request->visits()->get();
@@ -132,7 +132,7 @@ test('REQ-05-06 an office returns the document to an earlier office with reason 
         ->set('returnReason', 'Wrong middle name')
         ->set('correctiveAction', 'Reprint the TOR')
         ->call('returnVisit')->assertHasNoErrors();
-    workflow()->forwardDocument(openVisit($request), $this->registrar);   // carried back (REQ-31-08)
+    workflow()->forwardDocument(openVisit($request), $this->registrar);   // carried back (REQ-32-08)
 
     $correction = openVisit($request);
     expect($visit->fresh())

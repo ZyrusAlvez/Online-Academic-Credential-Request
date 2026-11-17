@@ -21,7 +21,7 @@ use Livewire\WithPagination;
 
 /**
  * One of a department office's lists: Incoming, To Validate, Outgoing or History; the route
- * chooses which (REQ-24-01..05, REQ-31-05).
+ * chooses which (REQ-24-01..05, REQ-32-05).
  */
 class Queue extends Component
 {
