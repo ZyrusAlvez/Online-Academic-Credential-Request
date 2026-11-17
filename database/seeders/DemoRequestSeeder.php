@@ -118,13 +118,16 @@ class DemoRequestSeeder extends Seeder
                 $this->advanceUntil($request, 'CBA', receive: true);
             });
 
-            // Returned for correction: VP Finance sent it back to the Registrar.
+            // Returned for correction: VP Finance returned it, and the Registrar brought it back (REQ-32-07, 08).
             $this->at(6, function () use ($juan, $tor): void {
                 $request = $this->accepted($juan, $tor, 'Employment');
                 $this->advanceUntil($request, 'VPF', receive: true);
                 $this->later(5);
-                $this->workflow->returnVisit($request->openVisit()->firstOrFail(), $this->staff['VPF'], Department::where('code', Department::REGISTRAR_CODE)->firstOrFail(),
+                $visit = $request->openVisit()->firstOrFail();
+                $this->workflow->returnVisit($visit, $this->staff['VPF'], Department::where('code', Department::REGISTRAR_CODE)->firstOrFail(),
                     'Name on the TOR does not match the records.', 'Correct the middle name and reprint the TOR.');
+                $this->later(2);
+                $this->workflow->forwardDocument($visit, $this->registrar);
             });
 
             // For final approval: back at the Registrar for the final quality check.

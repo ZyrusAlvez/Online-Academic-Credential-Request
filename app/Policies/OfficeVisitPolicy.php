@@ -30,12 +30,12 @@ class OfficeVisitPolicy
     }
 
     /**
-     * Send the paper on to the next office: staff of the office holding it, the Office of the
-     * Registrar's papers by registrars (REQ-17-07, 16).
+     * Carry the paper on to the next office: registrars only, from any office whose task is done
+     * (REQ-32-04).
      */
     public function forward(User $user, OfficeVisit $visit): bool
     {
-        return $this->act($user, $visit) && $visit->isForwardable();
+        return $user->hasRole(Role::Registrar) && $this->isActionable($visit) && $visit->isForwardable();
     }
 
     /** Registrar override (REQ-05-10). */

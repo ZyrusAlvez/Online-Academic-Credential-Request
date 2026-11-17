@@ -481,9 +481,13 @@ class DemoBulkSeeder extends Seeder
 
         $this->advanceUntil($request, $codes[$at], receive: true);
         $this->later(fake()->numberBetween(2, 24));
-        $this->workflow->returnVisit($request->openVisit()->firstOrFail(), $this->actorFor($codes[$at]), Department::where('code', $to)->firstOrFail(),
+        $this->workflow->returnVisit($visit = $request->openVisit()->firstOrFail(), $this->actorFor($codes[$at]), Department::where('code', $to)->firstOrFail(),
             fake()->randomElement(['Name does not match the records.', 'Missing dry seal.', 'Wrong program printed.', 'Grades do not match the records.']),
             'Correct and reprint.');
+
+        // The Registrar carries it back to that office (REQ-32-08).
+        $this->later(fake()->numberBetween(1, 6));
+        $this->workflow->forwardDocument($visit, $this->registrar);
     }
 
     private function declineAtFinalCheck(CredentialRequest $request): void

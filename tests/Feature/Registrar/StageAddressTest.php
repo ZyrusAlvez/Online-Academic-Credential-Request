@@ -52,7 +52,9 @@ function oneInEachQueue(): array
     $evaluation = submitRequest(test()->owner, test()->org->tor);
     $payment = walkIn(evaluate(submitRequest(test()->owner, test()->org->tor), $registrar));
     uploadPayment($payment);
+    $outgoing = acceptRequest(submitRequest(test()->owner, test()->org->tor), $registrar);
     $inProgress = acceptRequest(submitRequest(test()->owner, test()->org->tor), $registrar);
+    passOffice($inProgress, $registrar);   // forwarded to the Dean, not yet received
     $finalCheck = throughEveryOffice(submitRequest(test()->owner, test()->org->tor));
     $release = throughEveryOffice(submitRequest(test()->owner, test()->org->tor));
     workflow()->approveFinalCheck($release, $registrar);
@@ -61,6 +63,7 @@ function oneInEachQueue(): array
         'evaluation' => [RegistrarQueue::Evaluation, $evaluation->fresh()],
         'payment' => [RegistrarQueue::Payment, $payment->fresh()],
         'in progress' => [RegistrarQueue::InProgress, $inProgress->fresh()],
+        'outgoing' => [RegistrarQueue::Outgoing, $outgoing->fresh()],
         'final check' => [RegistrarQueue::FinalCheck, $finalCheck->fresh()],
         'release' => [RegistrarQueue::Release, $release->fresh()],
     ];
@@ -71,8 +74,8 @@ test('REQ-16-26 each request opens under its queue, with that queue current in t
         expect(RegistrarQueue::forRequest($request))->toBe($queue);
 
         if (! $queue->hasWorkingPage()) {
-            $this->actingAs($this->registrar)->get('/registrar/in-progress/'.$request->reference_no)->assertNotFound();
-            expect(RegistrarLink::to($request))->toBe(route('registrar.in-progress', ['search' => $request->reference_no]));
+            $this->actingAs($this->registrar)->get(route($queue->routeName()).'/'.$request->reference_no)->assertNotFound();
+            expect(RegistrarLink::to($request))->toBe(route($queue->routeName(), ['search' => $request->reference_no]));
 
             continue;
         }
@@ -144,7 +147,7 @@ test('REQ-16-26 after a decision moves the request, the page follows it to its n
         ->assertNoRedirect();
 });
 
-test('REQ-16-26 a payment approved at Payment Validation moves to In Progress', function () {
+test('REQ-16-26 a payment approved at Payment Validation moves to Outgoing, where the Registrar prepares and forwards it', function () {
     $request = walkIn(evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar));
     uploadPayment($request);
 
@@ -152,7 +155,7 @@ test('REQ-16-26 a payment approved at Payment Validation moves to In Progress', 
     Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request->fresh(), 'queue' => RegistrarQueue::Payment->value])
         ->set('receiptNo', 'OR-1001')->set('amountPaid', '530')
         ->call('validatePayment')
-        ->assertRedirect(route('registrar.in-progress', ['search' => $request->reference_no]));
+        ->assertRedirect(route('registrar.outgoing', ['search' => $request->reference_no]));
 
     expect(session('notify'))->toBe('Payment validated and request accepted. The processing period has started.');
 });
@@ -170,11 +173,16 @@ test('REQ-16-26 the former address in notifications always lands where the reque
     walkIn($request);
     $this->actingAs($this->registrar)->get($link)->assertRedirect(route('registrar.payments.show', $request));
 
-    // In progress: the In Progress list, searched by its tracking number.
+    // Accepted, at the Registrar: the Outgoing list, searched by its tracking number (REQ-32-02).
     $accepted = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
-    $list = route('registrar.in-progress', ['search' => $accepted->reference_no]);
+    $list = route('registrar.outgoing', ['search' => $accepted->reference_no]);
     $this->actingAs($this->registrar)->get(route('registrar.requests.show', $accepted))->assertRedirect($list);
     $this->actingAs($this->registrar)->get($list)->assertOk()->assertSee($accepted->reference_no);
+
+    // Forwarded to the Dean: the In Progress list.
+    passOffice($accepted, $this->registrar);
+    $this->actingAs($this->registrar)->get(route('registrar.requests.show', $accepted))
+        ->assertRedirect(route('registrar.in-progress', ['search' => $accepted->reference_no]));
 });
 
 test('REQ-16-26 a request\'s queue follows its status', function () {

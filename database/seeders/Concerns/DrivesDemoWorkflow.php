@@ -147,10 +147,10 @@ trait DrivesDemoWorkflow
 
             $this->workflow->completeVisit($visit, $this->actorFor($code), fake()->optional(0.3)->randomElement(['Signed.', 'Verified.', 'Stamped.']));
 
-            // Done, then the office sends the paper on a little later (REQ-17-07).
+            // Done, then the Registrar collects the paper a little later and brings it on (REQ-32-03).
             if ($visit->status === VisitStatus::Done) {
                 $this->later(fake()->numberBetween(1, 6));
-                $this->workflow->forwardDocument($visit, $this->actorFor($code));
+                $this->workflow->forwardDocument($visit, $this->registrar);
             }
         }
     }

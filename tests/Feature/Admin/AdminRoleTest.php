@@ -32,7 +32,7 @@ const ADMIN_PAGES = [
 ];
 
 /** The Registrar's stage pages (REQ-18-05). */
-const STAGE_PAGES = ['registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.final-check', 'registrar.release'];
+const STAGE_PAGES = ['registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.outgoing', 'registrar.final-check', 'registrar.release'];
 
 // ── Roles and pages ─────────────────────────────────────────────────────────────────────────
 
@@ -228,8 +228,8 @@ test('REQ-07-09 every demo account uses @Test123, which meets the password rules
     expect(Hash::check(DemoSeeder::PASSWORD, $office->password))->toBeTrue();
 });
 
-test('REQ-18-05 the admin cannot forward from In Progress', function () {
-    Livewire::actingAs($this->admin)->test(Queue::class, ['queue' => 'in_progress'])
+test('REQ-18-05 the admin cannot forward from Outgoing', function () {
+    Livewire::actingAs($this->admin)->test(Queue::class, ['queue' => 'outgoing'])
         ->call('forward', acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar)->id)
         ->assertForbidden();
 });

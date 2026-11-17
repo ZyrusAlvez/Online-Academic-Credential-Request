@@ -125,8 +125,8 @@ test('REQ-27-04 once paid, each credential is accepted with its own route and du
         ->and($lead->due_at->greaterThan($other->due_at))->toBeTrue()
         ->and($other->events()->where('type', RequestEventType::Accepted)->exists())->toBeTrue();
 
-    // Both in In Progress, one row each; the certification finishes first and is released alone.
-    expect(StageQueue::for(RegistrarQueue::InProgress)->pluck('id')->sort()->values()->all())->toBe(collect([$lead->id, $other->id])->sort()->values()->all());
+    // Both at the Registrar, in Outgoing, one row each; the certification finishes first and is released alone.
+    expect(StageQueue::for(RegistrarQueue::Outgoing)->pluck('id')->sort()->values()->all())->toBe(collect([$lead->id, $other->id])->sort()->values()->all());
 
     passOffice($other, $this->registrar);
     if (openVisit($other)->status === VisitStatus::InTransit) {

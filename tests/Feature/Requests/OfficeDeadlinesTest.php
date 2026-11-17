@@ -169,6 +169,7 @@ test('REQ-30-05 REQ-30-06 a document received again gets a new deadline; a corre
     Carbon::setTestNow('2026-10-10 09:00:00');
     workflow()->acceptReceipt($dean = openVisit($this->request), $this->dean);
     workflow()->returnVisit($dean, $this->dean, $this->org->registrarOffice, 'Wrong middle name');
+    workflow()->forwardDocument($dean->fresh(), $this->registrar);
 
     Carbon::setTestNow('2026-10-12 09:00:00');   // Monday
     $correction = openVisit($this->request);

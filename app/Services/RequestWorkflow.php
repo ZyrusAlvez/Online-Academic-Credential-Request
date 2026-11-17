@@ -759,10 +759,11 @@ class RequestWorkflow
     }
 
     /**
-     * The registrar sends the paper on from an office whose task is done: to the next office on
-     * the route, or a corrected document back to the office that returned it. That office still
-     * has to accept its receipt (REQ-17-07, 08). The Registrar's own received task is marked done
-     * in the same step (REQ-17-12). Only registrars forward, from In Progress (REQ-17-16).
+     * The Registrar collects the paper from an office whose task is done and brings it on: to the
+     * next office on the route, a corrected document back to the office that returned it, or a
+     * returned one to the office it was returned to. That office still has to accept its receipt
+     * (REQ-17-08). The Registrar's own received task is marked done in the same step (REQ-17-12).
+     * Only registrars forward, from Outgoing (REQ-32-03, 04; the policy checks it).
      */
     public function forwardDocument(OfficeVisit $visit, User $actor): void
     {
@@ -771,6 +772,19 @@ class RequestWorkflow
 
             if (! $current->load(['department', 'step'])->isForwardable()) {
                 throw new InvalidTransition('The office has to finish its task before the document is forwarded.');
+            }
+
+            if ($current->isPendingReturn()) {
+                // Returned for correction: back to the office it was returned to (REQ-32-08).
+                $step = $current->step()->firstOrFail();
+                $office = $current->department()->firstOrFail();
+                $to = Department::findOrFail($current->returned_to_department_id);
+
+                $this->closeVisit($current, $actor, VisitStatus::Returned);
+                $this->forward($locked, $step, $to, VisitPurpose::Correction, $office, $actor);
+                $visit->setRawAttributes($current->getAttributes(), sync: true);
+
+                return;
             }
 
             if ($current->status === VisitStatus::Received) {
@@ -799,7 +813,9 @@ class RequestWorkflow
 
     /**
      * Return the document to an earlier office for correction, with the reason and, optionally,
-     * the corrective action needed (REQ-05-06).
+     * the corrective action needed (REQ-05-06). The paper stays in the office, in its Outgoing
+     * list, until the Registrar brings it back (REQ-32-07, forwardDocument). The office's route
+     * step is not completed.
      */
     public function returnVisit(OfficeVisit $visit, User $actor, Department $to, string $reason, ?string $correctiveAction = null, ?string $remarks = null): void
     {
@@ -823,18 +839,19 @@ class RequestWorkflow
                 throw new InvalidTransition('A document can only be returned to an office it has already passed through.');
             }
 
-            $this->closeVisit($current, $actor, VisitStatus::Returned, [
+            $current->forceFill([
+                'status' => VisitStatus::Done,
+                'done_at' => now(),
+                'done_by' => $actor->id,
                 'returned_to_department_id' => $to->id,
                 'return_reason' => $reason,
                 'corrective_action' => $correctiveAction,
                 'remarks' => filled($remarks) ? $remarks : null,
-            ]);
+            ])->save();
             $visit->setRawAttributes($current->getAttributes(), sync: true);
 
-            $office = $current->department()->firstOrFail();
             $this->transition($locked, $locked, RequestStatus::ReturnedForCorrection, $actor, RequestEventType::DocumentReturned,
                 "Returned to {$to->name}: {$reason}".($correctiveAction !== null ? "\nCorrective action: {$correctiveAction}" : ''), visit: $current);
-            $this->forward($locked, $step, $to, VisitPurpose::Correction, $office, $actor);
         });
     }
 

@@ -55,11 +55,16 @@ class OfficeVisit extends Model
     /**
      * Where the paper goes when it leaves this office: a corrected document back to the office
      * that returned it (its step), otherwise the route's next waiting step; null after the final
-     * quality check (REQ-17-07). Reads the loaded `step` and `credentialRequest.steps`.
+     * quality check (REQ-17-07). A returned document goes to the office it was returned to
+     * (REQ-32-07). Reads the loaded `step` and `credentialRequest.steps`.
      */
     public function nextStep(): ?RequestStep
     {
         $steps = $this->credentialRequest->steps->sortBy('position');
+
+        if ($this->isPendingReturn()) {
+            return $steps->last(fn (RequestStep $step): bool => $step->position < $this->step->position && $step->department_id === $this->returned_to_department_id);
+        }
 
         if ($this->purpose === VisitPurpose::Correction) {
             return $steps->firstWhere('id', $this->request_step_id);
@@ -121,9 +126,36 @@ class OfficeVisit extends Model
     }
 
     /**
-     * The registrar can send the paper on from here: its office's task is done, or it is the
-     * Office of the Registrar's own task (preparation or a correction, not the final quality
-     * check), which forwarding marks done (REQ-17-12). Reads the loaded `department` and `step`.
+     * The office returned the document for correction and still has it, until the Registrar
+     * brings it back (REQ-32-07).
+     */
+    public function isPendingReturn(): bool
+    {
+        return $this->status === VisitStatus::Done && $this->returned_to_department_id !== null;
+    }
+
+    /**
+     * Open visits the Registrar can forward from Outgoing, as isForwardable() (REQ-32-02).
+     *
+     * @param  Builder<OfficeVisit>  $query
+     */
+    public static function whereForwardable(Builder $query): void
+    {
+        $query->where(fn (Builder $q) => $q
+            ->where('office_visits.status', VisitStatus::Done)
+            ->orWhere(fn (Builder $q) => $q
+                ->where('office_visits.status', VisitStatus::Received)
+                ->whereHas('department', fn (Builder $d) => $d->where('code', Department::REGISTRAR_CODE))
+                ->where(fn (Builder $q) => $q
+                    ->where('office_visits.purpose', VisitPurpose::Correction)
+                    ->orWhereHas('step', fn (Builder $s) => $s->where('task', '!=', RouteTask::FinalCheck)))));
+    }
+
+    /**
+     * The registrar can send the paper on from here: its office's task is done (or it returned
+     * the document), or it is the Office of the Registrar's own task (preparation or a
+     * correction, not the final quality check), which forwarding marks done (REQ-17-12, REQ-32-02).
+     * Reads the loaded `department` and `step`.
      */
     public function isForwardable(): bool
     {

@@ -32,7 +32,7 @@ test('every request page renders in every status for each role that can see it',
         }
     }
 
-    foreach (['registrar.walk-in', 'registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.final-check', 'registrar.release', 'records'] as $page) {
+    foreach (['registrar.walk-in', 'registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.outgoing', 'registrar.final-check', 'registrar.release', 'records'] as $page) {
         $this->actingAs($registrar)->get(route($page))->assertOk();
     }
 

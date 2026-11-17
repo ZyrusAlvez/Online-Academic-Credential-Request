@@ -20,8 +20,8 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
- * One of a department office's lists: Incoming, To Validate, To Forward or History; the route
- * chooses which (REQ-24-01..05, 10).
+ * One of a department office's lists: Incoming, To Validate, Outgoing or History; the route
+ * chooses which (REQ-24-01..05, REQ-32-05).
  */
 class Queue extends Component
 {
@@ -46,7 +46,7 @@ class Queue extends Component
     public string $direction = '';
 
     /**
-     * Incoming and To Forward: the visits ticked for Acknowledge receipt or Forward (REQ-24-05, 10).
+     * Incoming: the visits ticked for Acknowledge receipt (REQ-24-05).
      *
      * @var list<int|string>
      */
@@ -99,51 +99,6 @@ class Queue extends Component
         $this->report($done,
             'Receipt acknowledged for :count document.|Receipt acknowledged for :count documents.',
             ':count not acknowledged: already received, or no longer sent here.|:count not acknowledged: already received, or no longer sent here.');
-    }
-
-    /**
-     * To Forward: send every ticked document the office approved and still holds to its next
-     * office, which accepts its receipt there (REQ-24-10, REQ-17-07).
-     */
-    public function forward(RequestWorkflow $workflow): void
-    {
-        abort_unless($this->list === DepartmentQueue::ToForward, 404);
-
-        $done = $this->eachSelected(VisitStatus::Done, 'forward', fn (OfficeVisit $visit, User $actor) => $workflow->forwardDocument($visit, $actor));
-
-        $this->report($done,
-            'Forwarded :count document.|Forwarded :count documents.',
-            ':count not forwarded: already forwarded, or no longer here.|:count not forwarded: already forwarded, or no longer here.');
-    }
-
-    /**
-     * To Forward: a row's "Forward to <next office>" button sends that one document on, as the
-     * registrar's In Progress row does (REQ-24-10, REQ-17-12).
-     */
-    public function forwardOne(int $visitId, RequestWorkflow $workflow): void
-    {
-        abort_unless($this->list === DepartmentQueue::ToForward, 404);
-
-        $visit = OfficeVisit::query()
-            ->whereKey($visitId)
-            ->where('department_id', $this->actor()->department_id)
-            ->with(['department', 'step', 'credentialRequest.steps.department'])
-            ->first();
-        abort_if($visit === null, 404);
-        $this->authorize('forward', $visit);
-
-        $next = $visit->nextStep()?->department?->name;
-
-        try {
-            $workflow->forwardDocument($visit, $this->actor());
-        } catch (InvalidTransition $e) {
-            $this->dispatch('notify', message: $e->getMessage());
-
-            return;
-        }
-
-        $this->selected = array_values(array_diff(array_map(strval(...), $this->selected), [(string) $visitId]));
-        $this->dispatch('notify', message: $next !== null ? "Forwarded to {$next}. The office confirms when it arrives." : 'Forwarded.');
     }
 
     /**
