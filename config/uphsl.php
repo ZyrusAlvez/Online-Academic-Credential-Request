@@ -31,4 +31,14 @@ return [
         'password' => env('INITIAL_ADMIN_PASSWORD'),
     ],
 
+    /*
+    | How much `app:reset-demo` generates on top of the hand-written sample requests (spec 31):
+    | extra requester accounts and random applications over the past six months. Every status
+    | and office is covered whatever these are.
+    */
+    'demo' => [
+        'requesters' => (int) env('DEMO_REQUESTERS', 60),
+        'applications' => (int) env('DEMO_APPLICATIONS', 400),
+    ],
+
 ];

@@ -44,7 +44,7 @@ The rule from now on:
 - **REQ-23-06** WHILE the environment is production, `app:reset` SHALL ask the operator to type
   `reset production` and SHALL stop, changing nothing, on any other answer. Local and staging are
   not asked.
-- ~~REQ-23-07~~ *Superseded by REQ-30-01 (2026-11-18):* `app:reset-demo` now loads the sample
+- ~~REQ-23-07~~ *Superseded by REQ-31-01 (2026-11-18):* `app:reset-demo` now loads the sample
   requests too; it still refuses to run in production.
-- ~~REQ-23-08~~ *Superseded by REQ-30-01..05 (2026-11-18):* there is no `--requests` option; the
+- ~~REQ-23-08~~ *Superseded by REQ-31-01..05 (2026-11-18):* there is no `--requests` option; the
   sample requests and many generated ones are always loaded.

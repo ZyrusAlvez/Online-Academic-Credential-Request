@@ -66,10 +66,10 @@ class DemoSeeder extends Seeder
      * requests (REQ-18-12). There is no demo admin: the first admin is the one from
      * `INITIAL_ADMIN_*`.
      */
-    public static function registrarAccount(): User
+    public static function registrarAccount(string $email = 'registrar@example.com', string $firstName = 'Demo', string $lastName = 'Registrar'): User
     {
-        $user = User::firstOrNew(['email' => 'registrar@example.com']);
-        $user->fill(['first_name' => 'Demo', 'middle_name' => null, 'last_name' => 'Registrar', 'password' => self::PASSWORD]);
+        $user = User::firstOrNew(['email' => $email]);
+        $user->fill(['first_name' => $firstName, 'middle_name' => null, 'last_name' => $lastName, 'password' => self::PASSWORD]);
         $user->forceFill(['role' => Role::Registrar, 'department_id' => null, 'is_active' => true, 'email_verified_at' => now()])->save();
 
         return $user;
