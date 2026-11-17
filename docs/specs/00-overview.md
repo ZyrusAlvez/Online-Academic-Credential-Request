@@ -100,7 +100,8 @@ Registrar's final quality check.
 |---|---|---|---|
 | Authentication | ₱50 | University Registrar | 1 working day |
 | Certification, Authentication, Verification (CAV) | ₱500 | University Registrar | 2 working days |
-| Certification – general; of Graduation; of Enrollment; of Units Earned; Course Description; Medium of Instruction; Copy of Grades; Notice of Acceptance; Letter for the BI Commissioner; Permit to Cross-Enroll; Transfer Certificate; Copy of Grades for Transfer Credentials | ₱230 each | University Registrar, VP Finance (documentary stamp), Chancellor | 6 working days |
+| Certification of Graduation; of Enrollment; of Units Earned; Course Description; Medium of Instruction; Certificate of Grades (free for graduates); Notice of Acceptance; Letter for the BI Commissioner; Permit to Cross-Enroll; Certificate of Transfer; Copy of Grades for Transfer Credentials | ₱230 each | University Registrar, VP Finance (documentary stamp), Chancellor | 6 working days |
+| Semestral Report of Grades (terms and academic year chosen on the request) | ₱100 per term | University Registrar, VP Finance (documentary stamp), Chancellor | 6 working days |
 | Diploma / Certificate for Non-Degree Programs | ₱800 | University Registrar, Chancellor, President | 6 working days |
 | Transcript of Records (TOR); TOR for Transfer Credentials | ₱530 | University Registrar, Dean, VP Finance (documentary stamp), Chancellor | 7 working days |
 

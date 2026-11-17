@@ -23,13 +23,14 @@ periods, routing) and section III-A (requirements shown before submitting).
 - **REQ-03-01** THE SYSTEM SHALL seed the 17 credential types of the overview's master list with
   their fee, processing period in working days, documentary requirements, special conditions,
   receiving-school requirement and route. Re-seeding SHALL NOT duplicate types or overwrite
-  types the registrar has edited.
+  types the registrar has edited. *(2026-11-18: list changed by REQ-29-01, 02; still 17 types.)*
 - **REQ-03-02** THE SYSTEM SHALL let the registrar list credential types with their fee,
   processing period, route and status.
 - **REQ-03-03** THE SYSTEM SHALL let the registrar create and edit a credential type with a
   unique name, description, "requires payment" flag, fee (₱, ≥ 0; only kept when payment is
   required), processing period (1–60 working days), documentary requirements (one per line),
-  special conditions and whether the receiving school's name is required.
+  special conditions and whether the receiving school's name is required. *(2026-11-18: also
+  the term-and-year, per-term fee and "Free for" options, REQ-29-03.)*
 - **REQ-03-04** THE SYSTEM SHALL let the registrar deactivate and reactivate a credential type;
   credential types SHALL NOT be deletable.
 - **REQ-03-05** WHILE a credential type has no route steps THE SYSTEM SHALL flag it as
