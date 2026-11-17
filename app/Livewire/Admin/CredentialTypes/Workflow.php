@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\CredentialTypes;
 use App\Actions\Workflow\AddWorkflowStep;
 use App\Actions\Workflow\MoveWorkflowStep;
 use App\Actions\Workflow\RemoveWorkflowStep;
+use App\Actions\Workflow\SetAllottedDays;
 use App\Enums\RouteTask;
 use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialType;
@@ -38,11 +39,32 @@ class Workflow extends Component
 
     public string $editingInstructions = '';
 
+    /** @var array<int|string, int|string|null> working days per step id (REQ-30-03) */
+    public array $days = [];
+
     public function mount(CredentialType $credentialType): void
     {
         $this->authorize('update', $credentialType);
 
         $this->credentialType = $credentialType;
+        $this->loadDays();
+    }
+
+    public function saveDays(SetAllottedDays $setDays): void
+    {
+        $this->authorize('update', $this->credentialType);
+
+        $setDays->handle($this->credentialType, $this->days);
+
+        $this->loadDays();
+        $this->dispatch('notify', message: 'Working days per office saved.');
+    }
+
+    /** The form shows the saved split; adding, removing or moving a step reloads it. */
+    private function loadDays(): void
+    {
+        $this->resetErrorBag('days');
+        $this->days = $this->credentialType->steps()->pluck('allotted_days', 'id')->all();
     }
 
     public function addStep(AddWorkflowStep $addStep): void
@@ -62,6 +84,7 @@ class Workflow extends Component
         $step = $addStep->handle($this->credentialType, $department, RouteTask::from($this->newTask), $this->newInstructions, errorKey: 'newStep');
 
         $this->reset('newStep', 'newTask', 'newInstructions');
+        $this->loadDays();
         $this->dispatch('notify', message: "{$step->label()} added as step {$step->position}.");
     }
 
@@ -70,6 +93,7 @@ class Workflow extends Component
         $this->authorize('update', $this->credentialType);
 
         $move->handle($this->findStep($stepId), $direction);
+        $this->loadDays();
     }
 
     public function remove(int $stepId, RemoveWorkflowStep $remove): void
@@ -78,6 +102,7 @@ class Workflow extends Component
 
         $step = $this->findStep($stepId);
         $remove->handle($step);
+        $this->loadDays();
 
         $this->dispatch('notify', message: "{$step->label()} removed from the route.");
     }

@@ -1222,17 +1222,22 @@ class RequestWorkflow
         $registrarOffice = Department::where('code', Department::REGISTRAR_CODE)->first()
             ?? throw new InvalidTransition('The Office of the Registrar (code REG) is missing.');
 
-        $route = $template->map(fn ($step): array => [
-            'department_id' => $step->is_student_college ? $locked->college_id : $step->department_id,
-            'task' => $step->task,
-            'instructions' => $step->instructions,
-        ])->push([
-            'department_id' => $registrarOffice->id,
-            'task' => RouteTask::FinalCheck,
-            'instructions' => 'Confirm the completeness and accuracy of the credential before marking it ready for release.',
-        ]);
+        $route = [
+            ...$template->map(fn ($step): array => [
+                'department_id' => $step->is_student_college ? $locked->college_id : $step->department_id,
+                'task' => $step->task,
+                'allotted_days' => $step->allotted_days,   // REQ-30-04
+                'instructions' => $step->instructions,
+            ])->all(),
+            [
+                'department_id' => $registrarOffice->id,
+                'task' => RouteTask::FinalCheck,
+                'allotted_days' => null,   // the request's due date applies (REQ-30-06)
+                'instructions' => 'Confirm the completeness and accuracy of the credential before marking it ready for release.',
+            ],
+        ];
 
-        foreach ($route->values() as $index => $step) {
+        foreach ($route as $index => $step) {
             $locked->steps()->create($step + [
                 'position' => $index + 1,
                 'status' => $index === 0 ? StepStatus::Current : StepStatus::Waiting,
@@ -1280,7 +1285,15 @@ class RequestWorkflow
      */
     private function receive(CredentialRequest $locked, OfficeVisit $current, User $actor): void
     {
-        $current->forceFill(['status' => VisitStatus::Received, 'received_at' => now(), 'received_by' => $actor->id])->save();
+        $step = $current->step()->firstOrFail();
+
+        // The office's own deadline, counted from this receipt; none for a correction or the final
+        // check, where the request's due date applies (REQ-30-05, 06).
+        $deadline = $current->purpose !== VisitPurpose::Correction && $step->allotted_days !== null
+            ? $this->calendar->addWorkingDays(now(), $step->allotted_days)
+            : null;
+
+        $current->forceFill(['status' => VisitStatus::Received, 'received_at' => now(), 'received_by' => $actor->id, 'due_at' => $deadline])->save();
 
         if ($current->purpose === VisitPurpose::Correction) {
             $this->record($locked, $actor, RequestEventType::ReceiptAccepted, null, null, null, visit: $current);
@@ -1291,7 +1304,7 @@ class RequestWorkflow
         // The first office's receipt keeps the request accepted for processing; it is in
         // progress once sent on (REQ-16-18). A corrected document received back resumes it.
         $to = match (true) {
-            $current->step()->firstOrFail()->task === RouteTask::FinalCheck => RequestStatus::ForFinalApproval,
+            $step->task === RouteTask::FinalCheck => RequestStatus::ForFinalApproval,
             $locked->status === RequestStatus::ReturnedForCorrection => RequestStatus::InProgress,
             default => $locked->status,
         };

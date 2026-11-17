@@ -16,6 +16,7 @@ class RemoveWorkflowStep
 
             $step->delete();
             $type->resequenceSteps();
+            $type->resplitDays();
         });
     }
 }

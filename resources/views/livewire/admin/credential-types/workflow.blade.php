@@ -25,6 +25,7 @@
                                     <span class="sr-only">{{ __('Step :n:', ['n' => $step->position]) }}</span>
                                     {{ $step->label() }}
                                     <flux:badge size="sm" color="sky" class="ms-1">{{ $step->task->label() }}</flux:badge>
+                                    <flux:badge size="sm" color="zinc" class="ms-1" data-allotted-days>{{ trans_choice(':count working day|:count working days', $step->allotted_days) }}</flux:badge>
                                 </p>
                                 <p class="text-xs text-zinc-500">
                                     @if ($step->is_student_college)
@@ -67,6 +68,27 @@
             @endif
         </section>
 
+        <div class="space-y-6">
+        @if ($steps->isNotEmpty())
+            @php($total = collect($days)->sum(fn ($value) => (int) $value))
+            <section aria-labelledby="days-heading" class="h-fit rounded-xl border border-secondary/50 bg-white p-5" data-days-form>
+                <h2 id="days-heading" class="font-semibold text-primary">{{ __('Working Days for Each Office') }}</h2>
+
+                <form wire:submit="saveDays" class="mt-4 space-y-3">
+                    @foreach ($steps as $step)
+                        <flux:input type="number" min="0" max="60" wire:model.live.debounce.300ms="days.{{ $step->id }}" :label="$step->label()" wire:key="days-{{ $step->id }}" />
+                    @endforeach
+
+                    <p @class(['text-sm font-medium', 'text-red-700' => $total !== $credentialType->processing_days, 'text-zinc-700' => $total === $credentialType->processing_days]) data-days-total>
+                        {{ __('Total :total of :days working days', ['total' => $total, 'days' => $credentialType->processing_days]) }}
+                    </p>
+                    <flux:error name="days" />
+
+                    <flux:button type="submit" variant="primary" class="w-full">{{ __('Save days') }}</flux:button>
+                </form>
+            </section>
+        @endif
+
         <section aria-labelledby="add-step-heading" class="h-fit rounded-xl border border-secondary/50 bg-primary-50 p-5">
             <h2 id="add-step-heading" class="font-semibold text-primary">{{ __('Add a Step') }}</h2>
             <p class="mt-1 text-sm text-zinc-600">{{ __('New steps are added at the end.') }}</p>
@@ -93,5 +115,6 @@
                 <flux:button type="submit" variant="primary" icon="plus" class="w-full">{{ __('Add step') }}</flux:button>
             </form>
         </section>
+        </div>
     </div>
 </div>

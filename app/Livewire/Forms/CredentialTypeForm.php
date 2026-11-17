@@ -91,7 +91,15 @@ class CredentialTypeForm extends Form
             // Fee options mean nothing without a fee to pay (REQ-29-03).
             'fee_per_term' => $validated['requires_payment'] && $validated['fee_per_term'],
             'free_for' => $validated['requires_payment'] && $validated['free_for'] !== [] ? array_values(array_unique($validated['free_for'])) : null,
-        ])->save();
+        ]);
+
+        $resplit = $credentialType->isDirty('processing_days');
+        $credentialType->save();
+
+        // A new processing period is split among the offices again (REQ-30-02).
+        if ($resplit) {
+            $credentialType->resplitDays();
+        }
 
         $this->reset();
 

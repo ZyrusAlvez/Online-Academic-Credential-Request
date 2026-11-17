@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property ?int $from_department_id
  * @property Carbon $forwarded_at
  * @property ?Carbon $received_at
+ * @property ?Carbon $due_at the office deadline (REQ-30-05)
  * @property ?Carbon $done_at the office's task was done (spec 17)
  * @property ?Carbon $completed_at the paper left the office, or the final check closed it
  * @property ?int $returned_to_department_id
@@ -44,6 +45,7 @@ class OfficeVisit extends Model
             'status' => VisitStatus::class,
             'forwarded_at' => 'datetime',
             'received_at' => 'datetime',
+            'due_at' => 'datetime',
             'done_at' => 'datetime',
             'completed_at' => 'datetime',
             'working_days' => 'integer',
@@ -64,6 +66,14 @@ class OfficeVisit extends Model
         }
 
         return $steps->first(fn (RequestStep $step): bool => $step->position > $this->step->position && $step->status === StepStatus::Waiting);
+    }
+
+    /**
+     * The office still has the document to work on and its deadline has passed (REQ-30-07).
+     */
+    public function isOverdue(): bool
+    {
+        return $this->status === VisitStatus::Received && $this->due_at?->isPast() === true;
     }
 
     /**

@@ -35,13 +35,18 @@ class AddWorkflowStep
                 throw ValidationException::withMessages([$errorKey => "{$department->name} is inactive."]);
             }
 
-            return $type->steps()->create([
+            $step = $type->steps()->create([
                 'position' => $steps->count() + 1,
                 'department_id' => $department?->id,
                 'is_student_college' => $department === null,
                 'task' => $task,
                 'instructions' => filled($instructions) ? $instructions : null,
             ]);
+
+            // One more office: the processing period is split again (REQ-30-02).
+            $type->resplitDays();
+
+            return $step->refresh();
         });
     }
 }
