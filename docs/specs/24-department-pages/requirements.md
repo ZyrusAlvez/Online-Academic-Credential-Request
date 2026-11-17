@@ -68,6 +68,8 @@ This replaces:
   Each row's Next column SHALL also be a "Forward to <next office>" button that forwards that one
   document after a confirmation, as the registrar's In Progress row does (REQ-17-12); Forward is
   offered only on this list, not on the request page (REQ-24-07). *(User's request, 2026-11-15.)*
+  *(Replaced 2026-11-18 by REQ-31-05: the list is "Outgoing" at `/department/outgoing`, view-only;
+  the Registrar forwards, REQ-31-03. The same rename applies to REQ-24-01, 02, 06 and 07.)*
 
 ### The request page
 - **REQ-24-06** A request SHALL open under the list it is in for the office:

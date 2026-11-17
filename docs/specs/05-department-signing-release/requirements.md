@@ -37,7 +37,9 @@ the TOR routing example, and section X (return and reprocessing control, deadlin
 - **REQ-05-06** THE SYSTEM SHALL let staff of the office holding a received document return it for
   correction to an earlier office on its route (the previous office by default), with the reason
   and, optionally, the corrective action required (status `returned_for_correction`), and notify
-  that office. *(User's request, 2026-11-16: "Corrective action needed" is optional.)*
+  that office. *(User's request, 2026-11-16: "Corrective action needed" is optional.)* *(Changed
+  2026-11-18, REQ-31-07, 08: the returned document waits in the returning office's Outgoing list
+  until the Registrar brings it back; that office is notified then.)*
 - **REQ-05-07** WHEN the office a document was returned to has received and corrected it THE
   SYSTEM SHALL let it forward the document back to the office that returned it, which receives it
   again before the route continues. *Changed by REQ-17-07:* the corrected document is marked done,
