@@ -8,6 +8,11 @@
     @if ($request->receiving_institution)
         <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
     @endif
+    {{-- REQ-29-08 --}}
+    @if ($request->academic_year)
+        <x-summary-row :label="__('Terms')" data-terms>{{ \App\Enums\Term::labels($request->terms) }}</x-summary-row>
+        <x-summary-row :label="__('Academic year')">{{ $request->academic_year }}</x-summary-row>
+    @endif
     {{-- The request's own copy of the name (REQ-15-08); the contact number is for the Registrar only. --}}
     <x-summary-row :label="__('Requester')">{{ $request->requester_name }}</x-summary-row>
     @if ($request->maiden_name)

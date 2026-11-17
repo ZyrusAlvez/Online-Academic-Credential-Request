@@ -51,7 +51,8 @@ with the base data, on a new or reset database (spec 23). The one-time `install(
 |---|---|---|---|
 | Authentication | ₱50 | 1 | REG prepare |
 | Certification, Authentication, Verification (CAV) | ₱500 | 2 | REG prepare |
-| Certification (general); of Graduation; of Enrollment; of Units Earned; Course Description; Medium of Instruction; Copy of Grades; Notice of Acceptance; Letter for the BI Commissioner; Permit to Cross-Enroll; Transfer Certificate; Copy of Grades for Transfer Credentials | ₱230 | 6 | REG prepare → VPF documentary stamp → CHAN sign |
+| Certification of Graduation; of Enrollment; of Units Earned; Course Description; Medium of Instruction; Certificate of Grades (free for graduates); Notice of Acceptance; Letter for the BI Commissioner; Permit to Cross-Enroll; Certificate of Transfer; Copy of Grades for Transfer Credentials | ₱230 | 6 | REG prepare → VPF documentary stamp → CHAN sign |
+| Semestral Report of Grades (asks the terms and academic year) | ₱100 per term | 6 | REG prepare → VPF documentary stamp → CHAN sign |
 | Diploma / Certificate for Non-Degree Programs | ₱800 | 6 | REG prepare → CHAN sign → PRES sign |
 | Transcript of Records (TOR); TOR for Transfer Credentials | ₱530 | 7 | REG prepare → Dean sign → VPF documentary stamp → CHAN sign |
 

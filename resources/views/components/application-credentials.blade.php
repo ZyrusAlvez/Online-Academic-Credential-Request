@@ -15,7 +15,7 @@
                 <tr wire:key="application-credential-{{ $item->id }}">
                     <td class="px-3 py-2">
                         <div class="font-medium text-ink">{{ $item->credentialType->name }}</div>
-                        <div class="text-xs text-zinc-600">{{ $item->reference_no }}@if ($item->receiving_institution) · {{ $item->receiving_institution }}@endif</div>
+                        <div class="text-xs text-zinc-600">{{ $item->reference_no }}@if ($item->receiving_institution) · {{ $item->receiving_institution }}@endif @if ($item->academic_year) · {{ \App\Enums\Term::labels($item->terms) }}, {{ $item->academic_year }}@endif</div>
                         <div class="text-xs text-zinc-600 sm:hidden">{{ $item->purpose }}</div>
                     </td>
                     <td class="px-3 py-2 text-zinc-700 max-sm:hidden">{{ $item->purpose }}</td>

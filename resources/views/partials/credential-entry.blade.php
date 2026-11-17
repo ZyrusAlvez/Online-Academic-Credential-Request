@@ -30,7 +30,10 @@
                     <div>
                         <dt class="text-xs font-medium uppercase tracking-wide text-zinc-600">{{ __('Fee') }}</dt>
                         @if ($type->requires_payment && $type->fee !== null)
-                            <dd class="mt-0.5 font-semibold text-ink">₱{{ number_format((float) $type->fee, 2) }}</dd>
+                            <dd class="mt-0.5 font-semibold text-ink">₱{{ number_format((float) $type->fee, 2) }}@if ($type->fee_per_term) <span class="font-normal text-zinc-600">{{ __('per term') }}</span>@endif</dd>
+                            @if ($type->freeForLabel() !== '')
+                                <dd class="text-zinc-600" data-free-for>{{ __('Free for :who', ['who' => $type->freeForLabel()]) }}</dd>
+                            @endif
                         @else
                             <dd class="mt-0.5 font-semibold text-ink">{{ $type->requires_payment ? __('Requires payment') : __('Free') }}</dd>
                         @endif
@@ -101,3 +104,20 @@
         <flux:error name="{{ $path }}.receiving_institution" />
     </flux:field>
 </div>
+
+{{-- The terms and academic year, for a credential that asks for them (REQ-29-04). --}}
+@if ($selectedType?->asks_term_and_year)
+    <div class="grid gap-6 sm:grid-cols-2" data-term-and-year>
+        <flux:checkbox.group wire:model.live="{{ $path }}.terms" :label="__('Terms')">
+            @foreach (\App\Enums\Term::cases() as $term)
+                <flux:checkbox :value="$term->value" :label="$term->label()" />
+            @endforeach
+        </flux:checkbox.group>
+        <flux:select wire:model.live="{{ $path }}.academic_year" :label="__('Academic year')" required>
+            <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
+            @foreach (\App\Models\CredentialType::academicYears() as $year)
+                <flux:select.option :value="$year">{{ $year }}</flux:select.option>
+            @endforeach
+        </flux:select>
+    </div>
+@endif

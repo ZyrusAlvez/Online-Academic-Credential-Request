@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Actions\Audit\RecordRequestEvent;
+use App\Enums\AcademicStatus;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
@@ -17,6 +18,7 @@ use App\Enums\ReviewStatus;
 use App\Enums\Role;
 use App\Enums\RouteTask;
 use App\Enums\StepStatus;
+use App\Enums\Term;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use App\Events\RequestEventRecorded;
@@ -47,7 +49,7 @@ use Throwable;
  * The single place where credential requests, their route steps and office visits change
  * status (specs 04, 05, 11).
  *
- * @phpstan-type CredentialItem array{credential_type_id: int, purpose: string, receiving_institution?: ?string}
+ * @phpstan-type CredentialItem array{credential_type_id: int, purpose: string, receiving_institution?: ?string, terms?: ?list<string>, academic_year?: ?string}
  *
  * Every public method runs in a transaction, locks the request row, checks that the action is
  * allowed in the current status, and appends a ledger entry (request_events). Listeners are
@@ -120,9 +122,10 @@ class RequestWorkflow
      */
     private function createApplication(array $data, ?int $userId, RequestChannel $channel, array $snapshot): CredentialRequest
     {
-        $items = $this->items($data);
-        $paid = $items->filter(fn (array $item): bool => $item['type']->requires_payment);
-        $total = $paid->isNotEmpty() ? number_format($paid->sum(fn (array $item): float => (float) $item['type']->fee), 2, '.', '') : null;
+        $items = $this->items($data, self::status($snapshot['academic_status'] ?? null));
+        $paid = $items->filter(fn (array $item): bool => $item['fee'] !== null);
+        // Nothing to pay, e.g. a graduate's free Certificate of Grades, skips payment (REQ-29-07).
+        $total = $paid->isNotEmpty() ? number_format($paid->sum(fn (array $item): float => (float) $item['fee']), 2, '.', '') : null;
 
         $application = RequestApplication::create([
             'reference_no' => 'tmp-'.Str::random(12),
@@ -145,6 +148,8 @@ class RequestWorkflow
 
             $request->forceFill([
                 ...$snapshot,
+                'terms' => $item['terms'],
+                'academic_year' => $item['academic_year'],
                 'application_id' => $application->id,
                 'item_no' => $index + 1,
                 'reference_no' => $application->reference_no.'-'.($index + 1),
@@ -152,9 +157,9 @@ class RequestWorkflow
                 'channel' => $channel,
                 'requester_mode' => RequesterMode::Personal,
                 // The application is paid once, on its first credential (REQ-27-03).
-                'requires_payment' => $first ? $total !== null : $type->requires_payment,
-                'fee' => $type->requires_payment ? $type->fee : null,
-                'amount_due' => $first ? $total : ($type->requires_payment ? $type->fee : null),
+                'requires_payment' => $first ? $total !== null : $item['fee'] !== null,
+                'fee' => $item['fee'],
+                'amount_due' => $first ? $total : $item['fee'],
                 'submitted_at' => now(),
             ])->save();
 
@@ -165,13 +170,14 @@ class RequestWorkflow
     }
 
     /**
-     * The credentials asked for, each requestable, with the receiving school it needs, and none
-     * twice (REQ-27-01).
+     * The credentials asked for, each requestable, with the receiving school, terms and academic year
+     * it needs and its fee for the requester's status, and none twice: a credential that asks for the
+     * academic year may come once per year (REQ-27-01, REQ-29-04..07).
      *
      * @param  CredentialItem|list<CredentialItem>  $data
-     * @return Collection<int, array{type: CredentialType, purpose: string, receiving_institution: ?string}>
+     * @return Collection<int, array{type: CredentialType, purpose: string, receiving_institution: ?string, terms: ?list<string>, academic_year: ?string, fee: ?string}>
      */
-    private function items(array $data): Collection
+    private function items(array $data, ?AcademicStatus $status): Collection
     {
         $list = isset($data['credential_type_id']) ? [$data] : $data;
 
@@ -189,18 +195,54 @@ class RequestWorkflow
                 throw new InvalidTransition('Give the complete name of the receiving school.');
             }
 
+            [$terms, $academicYear] = self::termsAndYear($type, $item);
+
             $items->push([
                 'type' => $type,
                 'purpose' => (string) $item['purpose'],
                 'receiving_institution' => $type->requires_receiving_institution ? $receivingInstitution : null,
+                'terms' => $terms,
+                'academic_year' => $academicYear,
+                'fee' => $type->feeFor($status, count($terms ?? [])),
             ]);
         }
 
-        if ($items->map(fn (array $item): int => $item['type']->id)->duplicates()->isNotEmpty()) {
-            throw new InvalidTransition('Each credential can be requested only once in an application.');
+        if ($items->map(fn (array $item): string => $item['type']->id.'|'.$item['academic_year'])->duplicates()->isNotEmpty()) {
+            throw new InvalidTransition('Each credential can be requested only once in an application, or once per academic year.');
         }
 
         return $items;
+    }
+
+    /**
+     * The terms and academic year of a credential that asks for them, checked; nothing for any other
+     * (REQ-29-04).
+     *
+     * @param  array{terms?: ?list<string>, academic_year?: ?string}  $item
+     * @return array{0: ?list<string>, 1: ?string}
+     */
+    private static function termsAndYear(CredentialType $type, array $item): array
+    {
+        if (! $type->asks_term_and_year) {
+            return [null, null];
+        }
+
+        $terms = array_values(array_filter(
+            array_map(fn (Term $term): string => $term->value, Term::cases()),
+            fn (string $term): bool => in_array($term, $item['terms'] ?? [], true),
+        ));
+        $academicYear = $item['academic_year'] ?? null;
+
+        if ($terms === [] || ! in_array($academicYear, CredentialType::academicYears(), true)) {
+            throw new InvalidTransition('Choose the terms and the academic year.');
+        }
+
+        return [$terms, $academicYear];
+    }
+
+    private static function status(mixed $value): ?AcademicStatus
+    {
+        return $value instanceof AcademicStatus ? $value : AcademicStatus::tryFrom((string) $value);
     }
 
     // ── Initial Evaluation (specs 04, 16) ──────────────────────────────────────────────────
@@ -388,7 +430,7 @@ class RequestWorkflow
      * its fee, and a new copy of the owner's details; a new ID awaits verification. Rejected parts
      * and the parts whose data changed are checked again.
      *
-     * @param  ?array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $changes
+     * @param  ?CredentialItem  $changes
      */
     public function resubmit(CredentialRequest $request, User $owner, ?string $note = null, ?array $changes = null, ?IdentityDocument $identity = null): void
     {
@@ -553,7 +595,8 @@ class RequestWorkflow
     {
         return DB::transaction(function () use ($registrar, $data, $details): CredentialRequest {
             $email = Str::lower($details['email']);
-            $requiresPayment = $this->items($data)->contains(fn (array $item): bool => $item['type']->requires_payment);
+            // Priced for the client's status, so a free credential needs no payment (REQ-29-07).
+            $requiresPayment = $this->items($data, self::status($details['academic_status']))->contains(fn (array $item): bool => $item['fee'] !== null);
 
             $request = $this->createApplication($data, self::requesterAccount($email)?->id, RequestChannel::WalkIn, [
                 'recorded_by' => $registrar->id,
@@ -1068,7 +1111,7 @@ class RequestWorkflow
      * The requester's corrections (REQ-20-07): the credential, purpose and receiving school, the fee
      * that follows, and a new copy of their details. Returns the checklist parts whose data changed.
      *
-     * @param  array{credential_type_id: int, purpose: string, receiving_institution?: ?string}  $changes
+     * @param  CredentialItem  $changes
      * @return list<CheckItem>
      */
     private function applyChanges(CredentialRequest $locked, User $owner, array $changes): array
@@ -1084,6 +1127,11 @@ class RequestWorkflow
             throw new InvalidTransition('Give the complete name of the receiving school.');
         }
 
+        [$terms, $academicYear] = self::termsAndYear($type, $changes);
+        // Priced for the owner's status, as on submission (REQ-29-05, 07).
+        $fee = $type->feeFor($owner->academic_status, count($terms ?? []));
+
+        $locked->forceFill(['terms' => $terms, 'academic_year' => $academicYear]);
         $locked->fill([
             'credential_type_id' => $type->id,
             'purpose' => $changes['purpose'],
@@ -1101,14 +1149,14 @@ class RequestWorkflow
             'student_number' => $owner->student_number,
             'attended_from' => $owner->attended_from,
             'attended_to' => $owner->attended_to,
-            'requires_payment' => $type->requires_payment,
-            'fee' => $type->requires_payment ? $type->fee : null,
-            'amount_due' => $type->requires_payment ? $type->fee : null,
+            'requires_payment' => $fee !== null,
+            'fee' => $fee,
+            'amount_due' => $fee,
         ]);
 
         $changed = [];
 
-        if ($locked->isDirty(['credential_type_id', 'purpose', 'receiving_institution'])) {
+        if ($locked->isDirty(['credential_type_id', 'purpose', 'receiving_institution', 'terms', 'academic_year'])) {
             $changed[] = CheckItem::CredentialRequest;
         }
 

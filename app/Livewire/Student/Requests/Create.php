@@ -292,7 +292,7 @@ class Create extends Component
     protected function requestSummary(): array
     {
         // One section per credential, and the total when there are several (REQ-27-10).
-        return $this->form->summary();
+        return $this->form->summary(AcademicStatus::tryFrom($this->profile->academic_status));
     }
 
     /**

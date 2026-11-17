@@ -40,6 +40,8 @@ use Illuminate\Support\Carbon;
  * @property ReviewStatus $identity_status
  * @property ?Carbon $identity_reviewed_at
  * @property ?string $identity_remarks
+ * @property ?list<string> $terms the ticked Term values, when the credential asks for them (spec 29)
+ * @property ?string $academic_year e.g. "2025-2026"
  * @property int $college_id
  * @property AcademicStatus $academic_status
  * @property RequesterMode $requester_mode
@@ -124,6 +126,7 @@ class CredentialRequest extends Model
             'identity_status' => ReviewStatus::class,
             'identity_reviewed_at' => 'datetime',
             'requires_payment' => 'boolean',
+            'terms' => 'array',
             'fee' => 'decimal:2',
             'amount_due' => 'decimal:2',
             'item_no' => 'integer',
