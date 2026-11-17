@@ -47,6 +47,7 @@ function reviewRequest(User $user, array $overrides = []): Testable
         'profile.first_name' => 'Juan',
         'profile.middle_name' => 'Santos',
         'profile.last_name' => 'Dela Cruz',
+        'profile.sex' => 'male',
         'profile.contact_number' => '09171234567',
         'profile.academic_status' => 'graduate',
         'profile.college_id' => test()->org->ccs->id,

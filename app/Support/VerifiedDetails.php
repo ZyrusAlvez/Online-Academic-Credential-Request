@@ -24,7 +24,7 @@ final class VerifiedDetails
      * @var array<string, array{0: CheckItem, 1: list<string>}>
      */
     public const SECTIONS = [
-        'personal' => [CheckItem::Identity, ['name', 'contact_number']],
+        'personal' => [CheckItem::Identity, ['name', 'sex', 'maiden_name', 'contact_number']],
         'academic' => [CheckItem::AcademicRecord, ['academic_status', 'college_id', 'program', 'student_number', 'attended_from', 'attended_to']],
         'valid_id' => [CheckItem::Identity, ['id']],
     ];
@@ -38,8 +38,8 @@ final class VerifiedDetails
     {
         $values = match ($part) {
             CheckItem::Identity => $from instanceof User
-                ? ['name' => $from->requesterName(), 'contact_number' => $from->contact_number, 'id' => $from->latestIdentityDocument()->first()?->id]
-                : ['name' => $from->requester_name, 'contact_number' => $from->contact_number, 'id' => $from->identity_document_id],
+                ? ['name' => $from->requesterName(), 'sex' => $from->sex, 'maiden_name' => $from->maiden_name, 'contact_number' => $from->contact_number, 'id' => $from->latestIdentityDocument()->first()?->id]
+                : ['name' => $from->requester_name, 'sex' => $from->sex, 'maiden_name' => $from->maiden_name, 'contact_number' => $from->contact_number, 'id' => $from->identity_document_id],
             CheckItem::AcademicRecord => [
                 'academic_status' => $from->academic_status,
                 'college_id' => $from->college_id,

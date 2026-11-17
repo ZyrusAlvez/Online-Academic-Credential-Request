@@ -63,7 +63,7 @@ test('REQ-27-10 the Registrar records a walk-in application of several credentia
         ->set('form.more.0.credential_type_id', $this->org->free->id)->set('form.more.0.purpose', 'Employment');
 
     foreach ([
-        'first_name' => 'Pedro', 'last_name' => 'Villanueva', 'email' => 'pedro@example.com', 'contact_number' => '09171234567',
+        'first_name' => 'Pedro', 'last_name' => 'Villanueva', 'sex' => 'male', 'email' => 'pedro@example.com', 'contact_number' => '09171234567',
         'academic_status' => AcademicStatus::Graduate->value, 'college_id' => $this->org->ccs->id, 'program' => 'BS Computer Science',
         'attended_from' => 2018, 'attended_to' => 2022,
     ] as $field => $value) {

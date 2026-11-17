@@ -36,15 +36,14 @@ test('REQ-23-02 normal seeding loads the base data every environment needs and n
         ->and(CredentialRequest::count())->toBe(0);
 });
 
-test('REQ-12-02 the seeded program list has 34 programs, Senior High School Department and the 7 added ones', function () {
+test('REQ-12-02 the seeded program list has 34 programs, the 7 added ones included', function () {
     $this->seed(DatabaseSeeder::class);
 
     $programs = fn (string $code): array => Program::whereHas('college', fn ($query) => $query->where('code', $code))->orderBy('name')->pluck('name')->all();
 
     expect(Program::count())->toBe(34)
         ->and(Program::where('name', 'Basic Education')->exists())->toBeFalse()
-        ->and($programs('BED'))->toBe(['Senior High School Department'])
-        ->and($programs('CBAA'))->toContain('Bachelor of Science in Management Accounting')
+        ->and($programs('CBA'))->toContain('Bachelor of Science in Management Accounting')
         ->and($programs('CCS'))->toContain('Bachelor of Science in Information Technology, Specialization in Game Development')
         ->and($programs('CTE'))->toContain('Bachelor of Special Needs Education')
         ->and($programs('CEA'))->toContain(
@@ -53,6 +52,26 @@ test('REQ-12-02 the seeded program list has 34 programs, Senior High School Depa
             'Bachelor of Science in Mechanical Engineering',
         )
         ->and($programs('CME'))->toContain('Bachelor of Science in Marine Engineering');
+});
+
+test('REQ-28-08 the colleges are seeded with their new names and no Basic Education Department', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $colleges = Department::colleges()->pluck('name', 'code');
+
+    expect($colleges)->toHaveCount(11)
+        ->and($colleges['CBA'])->toBe('College of Business and Accountancy')
+        ->and($colleges['COC'])->toBe('College of Criminology')
+        ->and($colleges['SHS'])->toBe('Senior High School')
+        ->and(Department::where('name', 'like', '%Basic Education%')->exists())->toBeFalse()
+        ->and(Department::whereIn('code', ['BED', 'CBAA', 'CCJE'])->exists())->toBeFalse();
+});
+
+test('REQ-28-09 Senior High School\'s programs are its strands, STEM for now', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    expect(Program::whereHas('college', fn ($query) => $query->where('code', 'SHS'))->pluck('name')->all())
+        ->toBe(['Science, Technology, Engineering and Mathematics (STEM)']);
 });
 
 test('REQ-23-03 seeding the base data again adds nothing and keeps what the admin changed', function () {

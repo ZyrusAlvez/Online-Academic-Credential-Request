@@ -8,7 +8,8 @@ use Illuminate\Database\Seeder;
 
 /**
  * The 34 programs of the list, by college code (spec 12, REQ-12-02): the 2026-11-06 list, with
- * Basic Education renamed and 7 programs added on 2026-11-15. Only adds what is missing, so running
+ * 7 programs added on 2026-11-15 and Senior High School's STEM strand on 2026-11-18 (REQ-28-09).
+ * Only adds what is missing, so running
  * it again keeps the Admin's changes. Requires DepartmentSeeder.
  */
 class ProgramSeeder extends Seeder
@@ -24,10 +25,11 @@ class ProgramSeeder extends Seeder
             'Bachelor of Science in Aircraft Maintenance and Technology',
             'Bachelor of Science in Aviation Electronics Technology',
         ],
-        'BED' => [
-            'Senior High School Department',
+        // Senior High School's programs are its strands: STEM until the Registrar's list (REQ-28-09).
+        'SHS' => [
+            'Science, Technology, Engineering and Mathematics (STEM)',
         ],
-        'CBAA' => [
+        'CBA' => [
             'Bachelor of Science in Accountancy',
             'Bachelor of Science in Business Administration',
             'Bachelor of Science in Management Accounting',
@@ -39,7 +41,7 @@ class ProgramSeeder extends Seeder
             'Bachelor of Science in Entertainment and Multimedia Computing',
             'Bachelor of Science in Information Technology, Specialization in Game Development',
         ],
-        'CCJE' => [
+        'COC' => [
             'Bachelor of Science in Criminology',
         ],
         'CTE' => [

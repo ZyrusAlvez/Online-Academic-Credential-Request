@@ -130,7 +130,7 @@ class DemoRequestSeeder extends Seeder
             // In progress: received by the Dean of CBAA.
             $this->at(5, function () use ($maria, $tor): void {
                 $request = $this->accepted($maria, $tor, 'Further studies');
-                $this->advanceUntil($request, 'CBAA', receive: true);
+                $this->advanceUntil($request, 'CBA', receive: true);
             });
 
             // Returned for correction: VP Finance sent it back to the Registrar.
@@ -222,14 +222,14 @@ class DemoRequestSeeder extends Seeder
 
             // Walk-in, recorded at the counter; the client has no account yet (REQ-26-11).
             $this->at(0, fn () => $this->walkIn($type('Certification of Enrollment'), 'Scholarship application', [
-                'first_name' => 'Pedro', 'middle_name' => null, 'last_name' => 'Villanueva', 'email' => 'pedro.villanueva@example.com',
+                'first_name' => 'Pedro', 'middle_name' => null, 'last_name' => 'Villanueva', 'sex' => 'male', 'email' => 'pedro.villanueva@example.com',
                 'college' => 'CCS', 'program' => 'Bachelor of Science in Information Technology, Specialization in Game Development',
             ]));
 
             // Walk-in by a demo requester: linked to Ana's account, paid at the counter and in progress.
             $this->at(4, function () use ($ana, $tor): void {
                 $request = $this->walkIn($tor, 'Employment', [
-                    'first_name' => $ana->first_name, 'middle_name' => $ana->middle_name, 'last_name' => $ana->last_name, 'email' => $ana->email,
+                    'first_name' => $ana->first_name, 'middle_name' => $ana->middle_name, 'last_name' => $ana->last_name, 'sex' => $ana->sex->value ?? 'female', 'email' => $ana->email,
                     'college' => 'CTE', 'program' => (string) $ana->program,
                 ]);
                 $this->later(1);
@@ -241,7 +241,7 @@ class DemoRequestSeeder extends Seeder
     /**
      * A walk-in request recorded by the demo registrar (spec 26).
      *
-     * @param  array{first_name: string, middle_name: ?string, last_name: string, email: string, college: string, program: string}  $client
+     * @param  array{first_name: string, middle_name: ?string, last_name: string, sex: string, email: string, college: string, program: string}  $client
      */
     private function walkIn(CredentialType $type, string $purpose, array $client): CredentialRequest
     {
@@ -251,6 +251,8 @@ class DemoRequestSeeder extends Seeder
             'first_name' => $client['first_name'],
             'middle_name' => $client['middle_name'],
             'last_name' => $client['last_name'],
+            'sex' => $client['sex'],
+            'maiden_name' => null,
             'email' => $client['email'],
             'contact_number' => '0917'.fake()->numerify('#######'),
             'academic_status' => AcademicStatus::Graduate->value,

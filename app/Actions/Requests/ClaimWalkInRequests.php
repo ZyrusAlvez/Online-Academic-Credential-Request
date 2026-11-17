@@ -45,13 +45,17 @@ class ClaimWalkInRequests
     }
 
     /**
-     * An account with no contact number or academic information yet takes them from the newest
-     * linked request; anything the requester already gave stays (REQ-26-07).
+     * An account with no contact number, sex or academic information yet takes them from the newest
+     * linked request; anything the requester already gave stays (REQ-26-07, REQ-28-06).
      */
     private function fillProfile(User $user, CredentialRequest $request): void
     {
         if (blank($user->contact_number)) {
             $user->contact_number = $request->contact_number;
+        }
+
+        if ($user->sex === null) {
+            $user->forceFill(['sex' => $request->sex, 'maiden_name' => $request->maiden_name]);
         }
 
         if ($user->college_id === null) {

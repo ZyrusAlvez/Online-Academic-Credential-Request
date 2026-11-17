@@ -87,6 +87,8 @@ class RequestWorkflow
         return DB::transaction(function () use ($owner, $data, $identity): CredentialRequest {
             $request = $this->createApplication($data, $owner->id, RequestChannel::Online, [
                 'requester_name' => $owner->requesterName(),
+                'sex' => $owner->sex,
+                'maiden_name' => $owner->maiden_name,
                 'contact_number' => $owner->contact_number,
                 'identity_document_id' => $identity->id,
                 'identity_status' => ReviewStatus::Pending,
@@ -545,7 +547,7 @@ class RequestWorkflow
      * verified requester account with the client's email, if there is one (REQ-26-04, 08).
      *
      * @param  CredentialItem|list<CredentialItem>  $data
-     * @param  array{first_name: string, middle_name: ?string, last_name: string, email: string, contact_number: string, academic_status: string, college_id: int, program: string, student_number: ?string, attended_from: int, attended_to: int}  $details
+     * @param  array{first_name: string, middle_name: ?string, last_name: string, sex: string, maiden_name: ?string, email: string, contact_number: string, academic_status: string, college_id: int, program: string, student_number: ?string, attended_from: int, attended_to: int}  $details
      */
     public function submitWalkIn(User $registrar, array $data, array $details): CredentialRequest
     {
@@ -556,6 +558,8 @@ class RequestWorkflow
             $request = $this->createApplication($data, self::requesterAccount($email)?->id, RequestChannel::WalkIn, [
                 'recorded_by' => $registrar->id,
                 'requester_name' => trim(implode(' ', array_filter([$details['first_name'], $details['middle_name'], $details['last_name']], filled(...)))),
+                'sex' => $details['sex'],
+                'maiden_name' => $details['maiden_name'],
                 'requester_email' => $email,
                 'contact_number' => $details['contact_number'],
                 'college_id' => $details['college_id'],
@@ -1088,6 +1092,8 @@ class RequestWorkflow
         ]);
         $locked->forceFill([
             'requester_name' => $owner->requesterName(),
+            'sex' => $owner->sex,
+            'maiden_name' => $owner->maiden_name,
             'contact_number' => $owner->contact_number,
             'college_id' => $owner->college_id,
             'academic_status' => $owner->academic_status,
@@ -1106,7 +1112,7 @@ class RequestWorkflow
             $changed[] = CheckItem::CredentialRequest;
         }
 
-        if ($locked->isDirty(['requester_name', 'contact_number'])) {
+        if ($locked->isDirty(['requester_name', 'sex', 'maiden_name', 'contact_number'])) {
             $changed[] = CheckItem::Identity;
         }
 

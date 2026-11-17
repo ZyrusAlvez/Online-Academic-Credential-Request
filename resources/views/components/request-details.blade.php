@@ -10,6 +10,9 @@
     @endif
     {{-- The request's own copy of the name (REQ-15-08); the contact number is for the Registrar only. --}}
     <x-summary-row :label="__('Requester')">{{ $request->requester_name }}</x-summary-row>
+    @if ($request->maiden_name)
+        <x-summary-row :label="__('Maiden name')">{{ $request->maiden_name }}</x-summary-row>
+    @endif
     <x-summary-row :label="__('Status')">{{ $request->academic_status->label() }} · {{ $request->attended_from }}–{{ $request->attended_to }}</x-summary-row>
     <x-summary-row :label="__('Student number')">
         @if ($request->student_number)

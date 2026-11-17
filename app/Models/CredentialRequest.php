@@ -10,6 +10,7 @@ use App\Enums\RequesterMode;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
 use App\Enums\RouteTask;
+use App\Enums\Sex;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use Carbon\CarbonInterface;
@@ -30,6 +31,8 @@ use Illuminate\Support\Carbon;
  * @property int $item_no 1 for the application's first credential (spec 27)
  * @property ?int $user_id null for a walk-in request not linked to an account yet (spec 26)
  * @property string $requester_name
+ * @property ?Sex $sex null on requests made before spec 28
+ * @property ?string $maiden_name
  * @property ?string $contact_number
  * @property ?string $requester_email a walk-in client's email, to link the request (REQ-26-07)
  * @property ?int $recorded_by the registrar who recorded a walk-in request
@@ -114,6 +117,7 @@ class CredentialRequest extends Model
     {
         return [
             'status' => RequestStatus::class,
+            'sex' => Sex::class,
             'academic_status' => AcademicStatus::class,
             'requester_mode' => RequesterMode::class,
             'channel' => RequestChannel::class,

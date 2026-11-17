@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\AcademicStatus;
 use App\Enums\Role;
+use App\Enums\Sex;
 use App\Models\Department;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -21,12 +22,12 @@ class DemoSeeder extends Seeder
     /** Every demo account's password; it meets the password rules (REQ-07-09, REQ-01-03). */
     public const PASSWORD = '@Test123';
 
-    /** The demo requesters: email, first, middle and last name, college code, program. */
+    /** The demo requesters: email, first, middle and last name, college code, program, sex, maiden name. */
     public const REQUESTERS = [
-        ['student@example.com', 'Juan', 'Santos', 'Dela Cruz', 'CCS', 'Bachelor of Science in Computer Science, Specialization in Data Science'],
-        ['maria@example.com', 'Maria', null, 'Reyes', 'CBAA', 'Bachelor of Science in Accountancy'],
-        ['jose@example.com', 'Jose', 'Lopez', 'Garcia', 'CEA', 'Bachelor of Science in Civil Engineering'],
-        ['ana@example.com', 'Ana', null, 'Mendoza', 'CTE', 'Bachelor of Secondary Education'],
+        ['student@example.com', 'Juan', 'Santos', 'Dela Cruz', 'CCS', 'Bachelor of Science in Computer Science, Specialization in Data Science', Sex::Male, null],
+        ['maria@example.com', 'Maria', null, 'Reyes', 'CBA', 'Bachelor of Science in Accountancy', Sex::Female, 'Bautista'],
+        ['jose@example.com', 'Jose', 'Lopez', 'Garcia', 'CEA', 'Bachelor of Science in Civil Engineering', Sex::Male, null],
+        ['ana@example.com', 'Ana', null, 'Mendoza', 'CTE', 'Bachelor of Secondary Education', Sex::Female, null],
     ];
 
     public function run(): void
@@ -44,7 +45,7 @@ class DemoSeeder extends Seeder
         $departments->each(fn (Department $department) => self::staffAccount($department));
 
         foreach (self::REQUESTERS as $r) {
-            $this->requester($departments[$r[4]], ...array_slice($r, 0, 4), program: $r[5]);
+            $this->requester($departments[$r[4]], ...array_slice($r, 0, 4), program: $r[5], sex: $r[6], maidenName: $r[7]);
         }
     }
 
@@ -87,13 +88,15 @@ class DemoSeeder extends Seeder
         return $user;
     }
 
-    private function requester(Department $college, string $email, string $first, ?string $middle, string $last, string $program): User
+    private function requester(Department $college, string $email, string $first, ?string $middle, string $last, string $program, Sex $sex, ?string $maidenName): User
     {
         $user = User::firstOrNew(['email' => $email]);
         $user->fill([
             'first_name' => $first,
             'middle_name' => $middle,
             'last_name' => $last,
+            'sex' => $sex,
+            'maiden_name' => $maidenName,
             'password' => self::PASSWORD,
             'contact_number' => '0917'.fake()->numerify('#######'),
             'academic_status' => AcademicStatus::Graduate,

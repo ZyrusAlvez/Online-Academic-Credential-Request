@@ -44,6 +44,7 @@ function reviewProfile(array $overrides = [], ?User $user = null): Testable
         'form.first_name' => 'Juan',
         'form.middle_name' => '',
         'form.last_name' => 'Dela Cruz',
+        'form.sex' => 'male',
         'form.contact_number' => '09171234567',
         'form.academic_status' => 'graduate',
         'form.college_id' => test()->college->id,
