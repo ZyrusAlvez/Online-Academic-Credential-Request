@@ -41,7 +41,7 @@ beforeEach(function () {
 function walkInClient(array $overrides = []): array
 {
     return array_merge([
-        'first_name' => 'Pedro', 'middle_name' => 'Cruz', 'last_name' => 'Villanueva', 'email' => 'Pedro.V@Example.com',
+        'first_name' => 'Pedro', 'middle_name' => 'Cruz', 'last_name' => 'Villanueva', 'sex' => 'male', 'maiden_name' => null, 'email' => 'Pedro.V@Example.com',
         'contact_number' => '09171234567', 'academic_status' => AcademicStatus::Graduate->value, 'college_id' => test()->org->ccs->id,
         'program' => 'BS Computer Science', 'student_number' => '18-1234-567', 'attended_from' => 2018, 'attended_to' => 2022,
     ], $overrides);
@@ -63,7 +63,7 @@ function filledWalkInPage(): Testable
         ->set('form.purpose', 'Employment');
 
     foreach (walkInClient() as $field => $value) {
-        $page->set("profile.{$field}", $value);
+        $page->set("profile.{$field}", $value ?? '');
     }
 
     return $page;

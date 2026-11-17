@@ -131,6 +131,12 @@
                         @case(Item::Identity)
                             <dl class="divide-y divide-zinc-200 text-sm">
                                 <x-summary-row :label="__('Name')">{{ $request->requester_name }}</x-summary-row>
+                                @if ($request->sex)
+                                    <x-summary-row :label="__('Sex')">{{ $request->sex->label() }}</x-summary-row>
+                                @endif
+                                @if ($request->maiden_name)
+                                    <x-summary-row :label="__('Maiden name')">{{ $request->maiden_name }}</x-summary-row>
+                                @endif
                                 <x-summary-row :label="__('Email')" class="[&_dd]:break-all"><a href="mailto:{{ $request->requesterEmail() }}" class="text-highlight underline underline-offset-2">{{ $request->requesterEmail() }}</a></x-summary-row>
                                 <x-summary-row :label="__('Contact number')">{{ $request->contact_number ?? '—' }}</x-summary-row>
                                 <x-summary-row :label="__('Valid ID')">

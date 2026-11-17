@@ -4,6 +4,7 @@ namespace App\Livewire\Forms;
 
 use App\Enums\AcademicStatus;
 use App\Enums\DepartmentType;
+use App\Enums\Sex;
 use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\User;
@@ -31,6 +32,11 @@ class RequesterProfileForm extends Form
     public string $middle_name = '';
 
     public string $last_name = '';
+
+    public string $sex = '';
+
+    /** Asked only of a woman (REQ-28-04). */
+    public string $maiden_name = '';
 
     public string $contact_number = '';
 
@@ -65,6 +71,8 @@ class RequesterProfileForm extends Form
         $this->first_name = $user->first_name ?? '';
         $this->middle_name = $user->middle_name ?? '';
         $this->last_name = $user->last_name ?? '';
+        $this->sex = $user->sex->value ?? '';
+        $this->maiden_name = $user->maiden_name ?? '';
         $this->contact_number = $user->contact_number ?? '';
         $this->academic_status = $user->academic_status->value ?? '';
         $this->college_id = $user->college_id;
@@ -87,6 +95,9 @@ class RequesterProfileForm extends Form
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
+            'sex' => ['required', Rule::enum(Sex::class)],
+            // Only a woman's; a man's is dropped when saved rather than refused (REQ-28-04).
+            'maiden_name' => ['nullable', 'string', 'max:100'],
             'contact_number' => ['required', 'string', self::PHONE_RULE],
             'academic_status' => ['required', Rule::enum(AcademicStatus::class)],
             'college_id' => [
@@ -162,6 +173,8 @@ class RequesterProfileForm extends Form
                 'First name' => $this->first_name,
                 'Middle name' => filled($this->middle_name) ? $this->middle_name : EmptyValue::notProvided(),
                 'Last name' => $this->last_name,
+                'Sex' => (string) Sex::tryFrom($this->sex)?->label(),
+                ...($this->isFemale() ? ['Maiden name' => filled($this->maiden_name) ? $this->maiden_name : EmptyValue::notProvided()] : []),
                 'Contact number' => $this->contact_number,
             ],
             'Academic Information' => [
@@ -190,6 +203,8 @@ class RequesterProfileForm extends Form
             'first_name' => $validated['first_name'],
             'middle_name' => filled($validated['middle_name']) ? $validated['middle_name'] : null,
             'last_name' => $validated['last_name'],
+            'sex' => $validated['sex'],
+            'maiden_name' => $this->maidenName(),
             'contact_number' => $validated['contact_number'],
             'academic_status' => $validated['academic_status'],
             'college_id' => (int) $validated['college_id'],
@@ -208,6 +223,19 @@ class RequesterProfileForm extends Form
         return $this->id_file instanceof UploadedFile
             ? ['type' => $this->id_type, 'file' => $this->id_file]
             : null;
+    }
+
+    public function isFemale(): bool
+    {
+        return $this->sex === Sex::Female->value;
+    }
+
+    /**
+     * The maiden name to save: a woman's, if given; never a man's (REQ-28-04).
+     */
+    protected function maidenName(): ?string
+    {
+        return $this->isFemale() && filled($this->maiden_name) ? $this->maiden_name : null;
     }
 
     private function user(): User

@@ -8,8 +8,9 @@
 - `User::hasRequesterDetails()` also needs the sex.
 
 ## Form
-- `RequesterProfileForm`: `sex` (required, `Rule::enum(Sex)`), `maiden_name` (nullable, max 100,
-  prohibited unless female). Saving a male profile clears `maiden_name`. The summary gains "Sex" and,
+- `RequesterProfileForm`: `sex` (required, `Rule::enum(Sex)`), `maiden_name` (nullable, max 100).
+  A maiden name typed before switching to Male is dropped, not refused: saving a male profile
+  clears `maiden_name`. The summary gains "Sex" and,
   for a woman, "Maiden name". `WalkInRequesterForm::details()` returns both.
 - `partials/requester-profile-fields`: a Sex radio group (`wire:model.live`) beside the contact
   number; the Maiden name input renders only while `sex` is female.

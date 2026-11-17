@@ -6,6 +6,7 @@ use App\Actions\Auth\SendVerificationCode;
 use App\Enums\AcademicStatus;
 use App\Enums\ActivityCategory;
 use App\Enums\Role;
+use App\Enums\Sex;
 use App\Models\Concerns\LogsActivity;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -24,6 +25,8 @@ use Illuminate\Support\Str;
  * @property bool $is_active
  * @property bool $email_notifications
  * @property ?string $contact_number
+ * @property ?Sex $sex
+ * @property ?string $maiden_name
  * @property ?AcademicStatus $academic_status
  * @property ?int $college_id
  * @property ?string $program
@@ -46,6 +49,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'first_name',
         'middle_name',
         'last_name',
+        'sex',
+        'maiden_name',
         'email',
         'contact_number',
         'password',
@@ -86,6 +91,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_active' => 'boolean',
             'email_notifications' => 'boolean',
             'privacy_consented_at' => 'datetime',
+            'sex' => Sex::class,
             'academic_status' => AcademicStatus::class,
             'attended_from' => 'integer',
             'attended_to' => 'integer',
@@ -198,6 +204,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return filled($this->first_name)
             && filled($this->last_name)
             && filled($this->contact_number)
+            && $this->sex !== null
             && $this->academic_status !== null
             && $this->college_id !== null
             && filled($this->program)

@@ -40,7 +40,7 @@ class WalkInRequesterForm extends RequesterProfileForm
     /**
      * The checked entries, as the request's copy of the requester's details (REQ-26-04).
      *
-     * @return array{first_name: string, middle_name: ?string, last_name: string, email: string, contact_number: string, academic_status: string, college_id: int, program: string, student_number: ?string, attended_from: int, attended_to: int}
+     * @return array{first_name: string, middle_name: ?string, last_name: string, sex: string, maiden_name: ?string, email: string, contact_number: string, academic_status: string, college_id: int, program: string, student_number: ?string, attended_from: int, attended_to: int}
      */
     public function details(): array
     {
@@ -51,6 +51,8 @@ class WalkInRequesterForm extends RequesterProfileForm
             'first_name' => (string) $validated['first_name'],
             'middle_name' => filled($validated['middle_name']) ? (string) $validated['middle_name'] : null,
             'last_name' => (string) $validated['last_name'],
+            'sex' => (string) $validated['sex'],
+            'maiden_name' => $this->maidenName(),
             'email' => Str::lower((string) $validated['email']),
             'contact_number' => (string) $validated['contact_number'],
             'academic_status' => (string) $validated['academic_status'],

@@ -25,6 +25,18 @@
         <flux:input wire:model.live.blur="{{ $prefix }}.last_name" :label="__('Last name')" autocomplete="family-name" required />
     </div>
 
+    {{-- Sex, and a woman's maiden name (REQ-28-03, 04). --}}
+    <div class="grid gap-6 sm:grid-cols-3">
+        <flux:radio.group wire:model.live="{{ $prefix }}.sex" :label="__('Sex')" data-sex>
+            @foreach (\App\Enums\Sex::cases() as $sex)
+                <flux:radio :value="$sex->value" :label="$sex->label()" />
+            @endforeach
+        </flux:radio.group>
+        @if ($fields->isFemale())
+            <flux:input wire:model.live.blur="{{ $prefix }}.maiden_name" :label="__('Maiden name (optional)')" autocomplete="off" class="sm:col-span-2" data-maiden-name />
+        @endif
+    </div>
+
     <div class="grid gap-6 sm:grid-cols-3">
         <flux:input wire:model.live.blur="{{ $prefix }}.contact_number" type="tel" :label="__('Contact number')" autocomplete="tel" inputmode="numeric" maxlength="11" x-mask="99999999999" placeholder="09171234567" required />
         @if ($withEmail)
