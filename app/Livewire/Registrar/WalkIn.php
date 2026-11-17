@@ -135,7 +135,7 @@ class WalkIn extends Component
                 ? Program::active()->where('department_id', $college->id)->orderBy('name')->pluck('name')
                 : collect(),
             // One section per credential, and the total when there are several (REQ-27-10).
-            'requestSummary' => $this->reviewing ? $this->form->summary() : [],
+            'requestSummary' => $this->reviewing ? $this->form->summary(AcademicStatus::tryFrom($this->profile->academic_status)) : [],
             'summary' => $this->reviewing ? $this->profile->summary() : [],
         ]);
     }

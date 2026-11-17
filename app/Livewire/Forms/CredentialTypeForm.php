@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Forms;
 
+use App\Enums\AcademicStatus;
 use App\Models\CredentialType;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
@@ -27,6 +28,14 @@ class CredentialTypeForm extends Form
 
     public bool $requires_receiving_institution = false;
 
+    /** Per-type options (REQ-29-03). */
+    public bool $asks_term_and_year = false;
+
+    public bool $fee_per_term = false;
+
+    /** @var list<string> AcademicStatus values */
+    public array $free_for = [];
+
     public function edit(CredentialType $credentialType): void
     {
         $this->credentialType = $credentialType;
@@ -38,6 +47,9 @@ class CredentialTypeForm extends Form
         $this->requirements = implode("\n", $credentialType->requirements ?? []);
         $this->special_conditions = $credentialType->special_conditions ?? '';
         $this->requires_receiving_institution = $credentialType->requires_receiving_institution;
+        $this->asks_term_and_year = $credentialType->asks_term_and_year;
+        $this->fee_per_term = $credentialType->fee_per_term;
+        $this->free_for = $credentialType->free_for ?? [];
     }
 
     /**
@@ -54,6 +66,10 @@ class CredentialTypeForm extends Form
             'requirements' => ['nullable', 'string', 'max:3000'],
             'special_conditions' => ['nullable', 'string', 'max:1000'],
             'requires_receiving_institution' => ['boolean'],
+            'asks_term_and_year' => ['boolean'],
+            'fee_per_term' => ['boolean'],
+            'free_for' => ['array'],
+            'free_for.*' => [Rule::enum(AcademicStatus::class)],
         ];
     }
 
@@ -71,6 +87,10 @@ class CredentialTypeForm extends Form
             'requirements' => $this->requirementList((string) $validated['requirements']) ?: null,
             'special_conditions' => filled($validated['special_conditions']) ? $validated['special_conditions'] : null,
             'requires_receiving_institution' => $validated['requires_receiving_institution'],
+            'asks_term_and_year' => $validated['asks_term_and_year'],
+            // Fee options mean nothing without a fee to pay (REQ-29-03).
+            'fee_per_term' => $validated['requires_payment'] && $validated['fee_per_term'],
+            'free_for' => $validated['requires_payment'] && $validated['free_for'] !== [] ? array_values(array_unique($validated['free_for'])) : null,
         ])->save();
 
         $this->reset();

@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Forms;
 
+use App\Enums\AcademicStatus;
 use App\Enums\RequesterMode;
+use App\Enums\Term;
 use App\Models\CredentialType;
 use App\Support\EmptyValue;
 use Illuminate\Validation\Rule;
@@ -27,6 +29,15 @@ class CredentialRequestForm extends Form
 
     public string $receiving_institution = '';
 
+    /**
+     * The ticked terms and the academic year, for a credential that asks for them (REQ-29-04).
+     *
+     * @var list<string>
+     */
+    public array $terms = [];
+
+    public string $academic_year = '';
+
     public string $requester_mode = 'personal';
 
     public string $representative_name = '';
@@ -41,14 +52,14 @@ class CredentialRequestForm extends Form
     /**
      * The credentials after the first, in the same shape (REQ-27-10).
      *
-     * @var list<array{credential_type_id: int|string|null, purpose: string, purpose_other: string, receiving_institution: string}>
+     * @var list<array{credential_type_id: int|string|null, purpose: string, purpose_other: string, receiving_institution: string, terms: list<string>, academic_year: string}>
      */
     public array $more = [];
 
     public function addCredential(): void
     {
         if (count($this->more) + 1 < self::MAX_CREDENTIALS) {
-            $this->more[] = ['credential_type_id' => null, 'purpose' => '', 'purpose_other' => '', 'receiving_institution' => ''];
+            $this->more[] = ['credential_type_id' => null, 'purpose' => '', 'purpose_other' => '', 'receiving_institution' => '', 'terms' => [], 'academic_year' => ''];
         }
     }
 
@@ -78,11 +89,46 @@ class CredentialRequestForm extends Form
         foreach ($this->more as $index => $entry) {
             $type = is_numeric($entry['credential_type_id']) ? CredentialType::find((int) $entry['credential_type_id']) : null;
             $rules = [...$rules, ...$this->entryRules("more.{$index}.", $entry['purpose'], $type, $requestable)];
-            // The same credential once per application (REQ-27-01).
-            $rules["more.{$index}.credential_type_id"][] = Rule::notIn($this->chosenTypes(except: $index + 1));
+
+            if ($type?->asks_term_and_year) {
+                // Once per academic year (REQ-29-06).
+                $rules["more.{$index}.academic_year"][] = Rule::notIn($this->chosenYears($type->id, except: $index + 1));
+            } else {
+                // The same credential once per application (REQ-27-01).
+                $rules["more.{$index}.credential_type_id"][] = Rule::notIn($this->chosenTypes(except: $index + 1));
+            }
         }
 
         return $rules;
+    }
+
+    /**
+     * Every entry, the first then the others, in one shape.
+     *
+     * @return list<array{credential_type_id: int|string|null, purpose: string, purpose_other: string, receiving_institution: string, terms: list<string>, academic_year: string}>
+     */
+    private function entries(): array
+    {
+        return [
+            [
+                'credential_type_id' => $this->credential_type_id, 'purpose' => $this->purpose, 'purpose_other' => $this->purpose_other,
+                'receiving_institution' => $this->receiving_institution, 'terms' => $this->terms, 'academic_year' => $this->academic_year,
+            ],
+            ...$this->more,
+        ];
+    }
+
+    /**
+     * The academic years already asked for a credential before entry $position (0 is the first).
+     *
+     * @return list<string>
+     */
+    private function chosenYears(int $typeId, int $except): array
+    {
+        return array_values(array_map(
+            fn (array $entry): string => $entry['academic_year'],
+            array_filter(array_slice($this->entries(), 0, $except), fn (array $entry): bool => (int) $entry['credential_type_id'] === $typeId && filled($entry['academic_year'])),
+        ));
     }
 
     /**
@@ -94,12 +140,17 @@ class CredentialRequestForm extends Form
     private function entryRules(string $prefix, string $purpose, ?CredentialType $type, array $requestable): array
     {
         $other = $purpose === self::OTHER_PURPOSE;
+        $asksTerm = (bool) $type?->asks_term_and_year;
 
         return [
             "{$prefix}credential_type_id" => ['required', 'integer', Rule::in($requestable)],
             "{$prefix}purpose" => $other ? ['required', 'string'] : ['required', 'string', Rule::exists('purposes', 'name')->where('is_active', true)],
             "{$prefix}purpose_other" => [Rule::requiredIf($other), 'nullable', 'string', 'max:500'],
             "{$prefix}receiving_institution" => [Rule::requiredIf((bool) $type?->requires_receiving_institution), 'nullable', 'string', 'max:255'],
+            // Asked only by a credential that needs them (REQ-29-04).
+            "{$prefix}terms" => [Rule::requiredIf($asksTerm), 'array'],
+            "{$prefix}terms.*" => [Rule::enum(Term::class)],
+            "{$prefix}academic_year" => [Rule::requiredIf($asksTerm), 'nullable', 'string', Rule::in(CredentialType::academicYears())],
         ];
     }
 
@@ -124,6 +175,7 @@ class CredentialRequestForm extends Form
             'credential_type_id' => 'credential',
             'purpose_other' => 'purpose',
             'receiving_institution' => 'receiving school',
+            'academic_year' => 'academic year',
             'representative_name' => "representative's full name",
             'representative_contact' => "representative's contact number",
         ];
@@ -134,6 +186,8 @@ class CredentialRequestForm extends Form
             $attributes["more.{$index}.purpose"] = "purpose of credential {$n}";
             $attributes["more.{$index}.purpose_other"] = "purpose of credential {$n}";
             $attributes["more.{$index}.receiving_institution"] = "receiving school of credential {$n}";
+            $attributes["more.{$index}.terms"] = "terms of credential {$n}";
+            $attributes["more.{$index}.academic_year"] = "academic year of credential {$n}";
         }
 
         return $attributes;
@@ -150,6 +204,9 @@ class CredentialRequestForm extends Form
             'representative_contact.regex' => RequesterProfileForm::PHONE_MESSAGE,
             'more.*.purpose.exists' => 'Choose a purpose from the list.',
             'more.*.credential_type_id.not_in' => 'Each credential can be requested only once.',
+            'terms.required' => 'Tick at least one term.',
+            'more.*.terms.required' => 'Tick at least one term.',
+            'more.*.academic_year.not_in' => 'This credential is already requested for that academic year.',
         ];
     }
 
@@ -161,35 +218,49 @@ class CredentialRequestForm extends Form
     }
 
     /**
-     * @return array{credential_type_id: int, purpose: string, receiving_institution: ?string}
+     * The first credential, checked with the whole form.
+     *
+     * @return array{credential_type_id: int, purpose: string, receiving_institution: ?string, terms: ?list<string>, academic_year: ?string}
      */
     public function validatedRequest(): array
     {
-        /** @var array{credential_type_id: int|string, purpose: string, purpose_other: ?string, receiving_institution: ?string} $data */
-        $data = $this->validate();
+        $this->validate();
 
+        return self::item($this->entries()[0]);
+    }
+
+    /**
+     * One entry as the workflow takes it.
+     *
+     * @param  array{credential_type_id: int|string|null, purpose: string, purpose_other: string, receiving_institution: string, terms: list<string>, academic_year: string}  $entry
+     * @return array{credential_type_id: int, purpose: string, receiving_institution: ?string, terms: ?list<string>, academic_year: ?string}
+     */
+    private static function item(array $entry): array
+    {
         return [
-            'credential_type_id' => (int) $data['credential_type_id'],
-            'purpose' => $data['purpose'] === self::OTHER_PURPOSE ? (string) $data['purpose_other'] : $data['purpose'],
-            'receiving_institution' => filled($data['receiving_institution']) ? $data['receiving_institution'] : null,
+            'credential_type_id' => (int) $entry['credential_type_id'],
+            'purpose' => $entry['purpose'] === self::OTHER_PURPOSE ? $entry['purpose_other'] : $entry['purpose'],
+            'receiving_institution' => filled($entry['receiving_institution']) ? $entry['receiving_institution'] : null,
+            // The workflow keeps them only for a credential that asks for them (REQ-29-04).
+            'terms' => $entry['terms'] !== [] ? $entry['terms'] : null,
+            'academic_year' => filled($entry['academic_year']) ? $entry['academic_year'] : null,
         ];
     }
 
     /**
      * Section 1 of the summary: the first credential under "1. What Do You Need?", each other under
-     * "Credential N", then the total when there are several (REQ-15-17, REQ-27-10).
+     * "Credential N", then the total when there are several (REQ-15-17, REQ-27-10). Each is priced
+     * for the requester's status (REQ-29-05, 07).
      *
      * @return array<string, array<string, string|EmptyValue>>
      */
-    public function summary(): array
+    public function summary(?AcademicStatus $status = null): array
     {
-        $entries = [
-            ['credential_type_id' => $this->credential_type_id, 'purpose' => $this->purpose, 'purpose_other' => $this->purpose_other, 'receiving_institution' => $this->receiving_institution],
-            ...$this->more,
-        ];
+        $entries = $this->entries();
         $types = CredentialType::query()->whereIn('id', array_filter(array_column($entries, 'credential_type_id'), is_numeric(...)))->get()->keyBy('id');
         $several = count($entries) > 1;
         $sections = [];
+        $total = 0.0;
 
         foreach ($entries as $index => $entry) {
             $type = $types->get((int) $entry['credential_type_id']);
@@ -202,15 +273,23 @@ class CredentialRequestForm extends Form
                 $receivingLabel => filled($entry['receiving_institution']) ? $entry['receiving_institution'] : EmptyValue::notProvided(),
             ];
 
-            if ($several) {
-                $rows[__('Fee')] = $type?->requires_payment && $type->fee !== null ? '₱'.number_format((float) $type->fee, 2) : __('None');
+            if ($type?->asks_term_and_year) {
+                $rows[__('Terms')] = Term::labels($entry['terms']);
+                $rows[__('Academic year')] = $entry['academic_year'];
+            }
+
+            $fee = $type?->feeFor($status, count($type->asks_term_and_year ? $entry['terms'] : []));
+            $total += (float) $fee;
+
+            // Shown when it is not simply the listed fee: several credentials, per term, or free.
+            if ($several || $type?->fee_per_term || $type?->isFreeFor($status)) {
+                $rows[__('Fee')] = $fee !== null ? '₱'.number_format((float) $fee, 2) : __('None');
             }
 
             $sections[$index === 0 ? __('1. What Do You Need?') : __('Credential :n', ['n' => $index + 1])] = $rows;
         }
 
         if ($several) {
-            $total = $types->filter(fn (CredentialType $type): bool => $type->requires_payment)->sum(fn (CredentialType $type): float => (float) $type->fee);
             $sections[__('Total')] = [__('Amount due') => '₱'.number_format($total, 2)];
         }
 
@@ -220,17 +299,13 @@ class CredentialRequestForm extends Form
     /**
      * Every credential asked for, the first then the others (REQ-27-10).
      *
-     * @return list<array{credential_type_id: int, purpose: string, receiving_institution: ?string}>
+     * @return list<array{credential_type_id: int, purpose: string, receiving_institution: ?string, terms: ?list<string>, academic_year: ?string}>
      */
     public function validatedItems(): array
     {
-        $first = $this->validatedRequest();
+        $this->validate();
 
-        return [$first, ...array_map(fn (array $entry): array => [
-            'credential_type_id' => (int) $entry['credential_type_id'],
-            'purpose' => $entry['purpose'] === self::OTHER_PURPOSE ? (string) $entry['purpose_other'] : $entry['purpose'],
-            'receiving_institution' => filled($entry['receiving_institution']) ? $entry['receiving_institution'] : null,
-        ], $this->more)];
+        return array_map(self::item(...), $this->entries());
     }
 
     /**

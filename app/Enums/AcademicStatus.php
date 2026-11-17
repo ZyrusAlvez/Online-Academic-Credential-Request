@@ -16,4 +16,16 @@ enum AcademicStatus: string
             self::Former => 'Former student',
         };
     }
+
+    /**
+     * The people of this status, as in "Free for graduates" (REQ-29-08).
+     */
+    public function groupLabel(): string
+    {
+        return match ($this) {
+            self::Current => 'currently enrolled students',
+            self::Graduate => 'graduates',
+            self::Former => 'former students',
+        };
+    }
 }

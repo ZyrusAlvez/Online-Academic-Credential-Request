@@ -39,6 +39,8 @@ class Edit extends Create
         $this->form->purpose = $purposeListed ? $credentialRequest->purpose : CredentialRequestForm::OTHER_PURPOSE;
         $this->form->purpose_other = $purposeListed ? '' : $credentialRequest->purpose;
         $this->form->receiving_institution = (string) $credentialRequest->receiving_institution;
+        $this->form->terms = $credentialRequest->terms ?? [];
+        $this->form->academic_year = (string) $credentialRequest->academic_year;
     }
 
     /**

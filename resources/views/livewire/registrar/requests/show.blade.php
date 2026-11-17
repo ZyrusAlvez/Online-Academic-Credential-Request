@@ -121,6 +121,10 @@
                                     @if ($request->receiving_institution)
                                         <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
                                     @endif
+                                    @if ($request->academic_year)
+                                        <x-summary-row :label="__('Terms')">{{ \App\Enums\Term::labels($request->terms) }}</x-summary-row>
+                                        <x-summary-row :label="__('Academic year')">{{ $request->academic_year }}</x-summary-row>
+                                    @endif
                                 @endif
                                 <x-summary-row :label="__('Amount due')">{{ $request->requires_payment ? '₱'.number_format((float) $request->amount_due, 2) : __('None required') }}</x-summary-row>
                                 <x-summary-row :label="__('Transacting')">{{ $request->requester_mode->label() }}</x-summary-row>

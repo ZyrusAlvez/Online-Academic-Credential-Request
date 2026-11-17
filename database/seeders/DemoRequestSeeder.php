@@ -102,7 +102,7 @@ class DemoRequestSeeder extends Seeder
 
             // Resubmitted: returned for a blurred ID, the requester uploaded another and sent it back.
             $this->at(2, function () use ($ana, $type): void {
-                $request = $this->submit($ana, $type('Copy of Grades'), 'Employment');
+                $request = $this->submit($ana, $type('Certificate of Grades'), 'Employment');
                 $this->workflow->startEvaluation($request, $this->registrar);
                 $this->check($request, CheckStage::Evaluation, reject: CheckItem::Identity);
                 $this->workflow->returnForClarification($request, $this->registrar, 'The photo of your ID is too blurred to read the name.');
@@ -114,6 +114,12 @@ class DemoRequestSeeder extends Seeder
             // Awaiting payment.
             $this->at(2, function () use ($maria, $type): void {
                 $request = $this->submit($maria, $type('Course Description'), 'Further studies');
+                $this->evaluate($request);
+            });
+
+            // Awaiting payment: a Semestral Report for two terms, ₱100 each (spec 29).
+            $this->at(1, function () use ($jose, $type): void {
+                $request = $this->submit($jose, $type('Semestral Report of Grades'), 'Scholarship application', terms: ['first', 'second'], academicYear: '2023-2024');
                 $this->evaluate($request);
             });
 
@@ -144,13 +150,13 @@ class DemoRequestSeeder extends Seeder
 
             // For final approval: back at the Registrar for the final quality check.
             $this->at(7, function () use ($jose, $type): void {
-                $request = $this->accepted($jose, $type('Transfer Certificate'), 'Transfer to another school', 'Polytechnic University of the Philippines');
+                $request = $this->accepted($jose, $type('Certificate of Transfer'), 'Transfer to another school', 'Polytechnic University of the Philippines');
                 $this->advanceUntil($request, Department::REGISTRAR_CODE, receive: true, finalCheck: true);
             });
 
             // Ready for release, to be claimed by a verified representative.
             $this->at(9, function () use ($maria, $type): void {
-                $request = $this->accepted($maria, $type('Copy of Grades'), 'Employment');
+                $request = $this->accepted($maria, $type('Certificate of Grades'), 'Employment');
                 $this->workflow->declareRepresentative($request, $maria, ['full_name' => 'Rosa Reyes', 'relationship' => 'Mother', 'contact_number' => '09185550101'],
                     UploadedFile::fake()->create('spa.pdf', 120, 'application/pdf'), $this->image('rosa-id.png'));
                 $this->workflow->reviewRepresentative($request->representatives()->firstOrFail(), $this->registrar, true);
@@ -264,12 +270,17 @@ class DemoRequestSeeder extends Seeder
         ]);
     }
 
-    private function submit(User $owner, CredentialType $type, string $purpose, ?string $receivingSchool = null): CredentialRequest
+    /**
+     * @param  ?list<string>  $terms
+     */
+    private function submit(User $owner, CredentialType $type, string $purpose, ?string $receivingSchool = null, ?array $terms = null, ?string $academicYear = null): CredentialRequest
     {
         return $this->workflow->submit($owner, [
             'credential_type_id' => $type->id,
             'purpose' => $purpose,
             'receiving_institution' => $receivingSchool,
+            'terms' => $terms,
+            'academic_year' => $academicYear,
         ]);
     }
 
