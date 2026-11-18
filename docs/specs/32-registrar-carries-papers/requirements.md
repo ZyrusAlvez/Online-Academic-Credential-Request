@@ -36,7 +36,8 @@ This replaces:
   holds, and the documents the Office of the Registrar holds for its own route task (REQ-17-12),
   oldest due date first, with the office holding it, since when, the next office (or "Return to
   <office>") and the due date. It SHALL have the search and the office filter of In Progress, and
-  each row SHALL open the request's record.
+  each row SHALL open the request's record. *(Since REQ-32-10 it follows Payment Validation in
+  the sidebar.)*
 - **REQ-32-03** EACH Outgoing row SHALL have a "Forward to <office>" button that forwards that
   document after a confirmation, and checkboxes with a bulk "Forward" button that forwards every
   selected document still forwardable, saying how many were forwarded and how many were not.
@@ -52,6 +53,7 @@ This replaces:
   be read-only: no Forward or Accept receipt button in any row (REQ-17-13). *(Changed
   2026-11-18, user's decision: the Accept receipt kept for papers forwarded to the Office of the
   Registrar before REQ-32-09 is removed, here and on the final quality check; staging is reset.)*
+  *(Removed 2026-11-18 by REQ-32-10: there is no In Progress list.)*
 
 ### Returns
 - **REQ-32-07** WHEN an office returns a document for correction THE SYSTEM SHALL record the
@@ -71,4 +73,15 @@ This replaces:
   The registrar's In Progress list SHALL describe a document forwarded to another office and not
   yet received as "Collected <time> for <office>, not yet received". *(User's decision,
   2026-11-18: the Registrar carries the paper, so it is already in hand when it reaches its own
-  office.)*
+  office.)* *(The In Progress list is removed by REQ-32-10.)*
+
+### No In Progress list
+- **REQ-32-10** THE registrar's sidebar SHALL NOT have In Progress. A request being processed
+  whose paper is at an office, and is neither in Outgoing nor at the final quality check, SHALL
+  belong to no registrar queue: every link that takes the registrar to it (notifications, the
+  dashboard, a working page opened under another queue) SHALL open its Records page. The former
+  `/registrar/in-progress` address SHALL redirect to Records filtered to the requests being
+  processed. Outgoing keeps its search and office filter. *(User's decision, 2026-11-18:
+  forwarding is on Outgoing, so In Progress only showed where papers are, which Records already
+  shows with its "Currently at" column and filter. This removes REQ-16-04, REQ-17-11, 13 and
+  REQ-32-06, and In Progress from REQ-07-05, 07, REQ-16-25, 26 and REQ-18-03.)*
