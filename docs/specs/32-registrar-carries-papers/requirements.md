@@ -49,7 +49,8 @@ This replaces:
   ("<next office>" or "Return to <office>") and no checkboxes or buttons. The former
   `/department/to-forward` addresses SHALL redirect to it.
 - **REQ-32-06** THE registrar's In Progress list SHALL leave out the requests in Outgoing and SHALL
-  have no Forward button; it keeps Accept receipt (REQ-17-13).
+  have no Forward button; it keeps Accept receipt (REQ-17-13) only for a paper forwarded to the
+  Office of the Registrar before REQ-32-09.
 
 ### Returns
 - **REQ-32-07** WHEN an office returns a document for correction THE SYSTEM SHALL record the
@@ -60,3 +61,13 @@ This replaces:
   returning office's visit as returned, open a correction visit at the office it was returned
   to, awaiting its receipt, and notify that office (REQ-06-07). The corrected document then goes
   back the same way: done, Outgoing, forwarded by the registrar.
+
+### The Registrar's own receipt
+- **REQ-32-09** WHEN the registrar forwards a document to the Office of the Registrar (its own
+  route task, the final quality check, or a document returned to it for correction) THE SYSTEM
+  SHALL record it as received there at once, by that registrar, with no Accept receipt step.
+  Every other office still accepts its receipt (Proposed Workflow VI-B control requirement).
+  The registrar's In Progress list SHALL describe a document forwarded to another office and not
+  yet received as "Collected <time> for <office>, not yet received". *(User's decision,
+  2026-11-18: the Registrar carries the paper, so it is already in hand when it reaches its own
+  office.)*

@@ -26,7 +26,7 @@ the data only, so the dashboard, reports, queues and their page limits can be se
   returns for clarification, office visits for requirements, rejected payments, returns for
   correction between offices and releases to representatives.
 - **REQ-31-04** WHATEVER the amount, THE generated data SHALL include a request in every status the
-  workflow reaches, and every office SHALL hold documents both received and on their way to it;
-  some requests SHALL be overdue.
+  workflow reaches, and every office SHALL hold documents both received and on their way to it
+  (the Office of the Registrar only received ones, REQ-32-09); some requests SHALL be overdue.
 - **REQ-31-05** THE generated history SHALL send no notifications or emails, SHALL never be dated
   after the moment it is loaded, and SHALL come out the same on every run.
