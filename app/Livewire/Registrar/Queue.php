@@ -145,20 +145,6 @@ class Queue extends Component
             : array_values(array_unique([...$selected, ...$ids]));
     }
 
-    /**
-     * In Progress: a paper sent to the Office of the Registrar arrived there (REQ-17-13).
-     */
-    public function acceptReceipt(int $requestId, RequestWorkflow $workflow): void
-    {
-        abort_unless($this->stage === RegistrarQueue::InProgress, 404);
-
-        $visit = $this->openVisit($requestId);
-        abort_if($visit === null, 404);
-        $this->authorize('act', $visit);
-
-        $this->attempt(fn () => $workflow->acceptReceipt($visit, $this->actor()), "Receipt confirmed at {$visit->department->name}.");
-    }
-
     public function render(): View
     {
         $stage = $this->stage;

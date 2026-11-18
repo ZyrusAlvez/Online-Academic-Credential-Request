@@ -49,8 +49,9 @@ This replaces:
   ("<next office>" or "Return to <office>") and no checkboxes or buttons. The former
   `/department/to-forward` addresses SHALL redirect to it.
 - **REQ-32-06** THE registrar's In Progress list SHALL leave out the requests in Outgoing and SHALL
-  have no Forward button; it keeps Accept receipt (REQ-17-13) only for a paper forwarded to the
-  Office of the Registrar before REQ-32-09.
+  be read-only: no Forward or Accept receipt button in any row (REQ-17-13). *(Changed
+  2026-11-18, user's decision: the Accept receipt kept for papers forwarded to the Office of the
+  Registrar before REQ-32-09 is removed, here and on the final quality check; staging is reset.)*
 
 ### Returns
 - **REQ-32-07** WHEN an office returns a document for correction THE SYSTEM SHALL record the

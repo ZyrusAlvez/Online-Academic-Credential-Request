@@ -178,32 +178,23 @@
         @endif
 
         @if ($panel === Page::PANEL_FINAL_CHECK)
-            @if ($visit->status === \App\Enums\VisitStatus::InTransit)
-                <section aria-labelledby="receive-heading" class="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6">
-                    <div>
-                        <h2 id="receive-heading" class="text-lg font-semibold text-primary">{{ __('Final Quality Check') }}</h2>
-                        <p class="text-sm text-zinc-700">{{ __('Forwarded :time from :office.',['time' => $visit->forwarded_at->diffForHumans(), 'office' => $request->visits->where('status', \App\Enums\VisitStatus::Completed)->last()?->department->name ?? __('the last office')]) }}</p>
-                    </div>
-                    <flux:button wire:click="acceptReceipt" variant="primary" icon="inbox-arrow-down">{{ __('Accept receipt') }}</flux:button>
-                </section>
-            @else
-                {{-- The final quality check: the credential and its route, read-only (REQ-16-19). --}}
-                <section aria-labelledby="final-document-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-final-check-details>
-                    <h2 id="final-document-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Credential Document') }}</h2>
-                    <dl class="divide-y divide-zinc-200 text-sm">
-                        <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
-                        <x-summary-row :label="__('Issued to')">{{ $request->requester_name }}</x-summary-row>
-                        <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
-                        @if ($request->receiving_institution)
-                            <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
-                        @endif
-                    </dl>
-                </section>
-                <section aria-labelledby="final-route-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-final-check-route>
-                    <h2 id="final-route-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Signatures and Stamps') }}</h2>
-                    <x-request-route :steps="$request->steps" />
-                </section>
-            @endif
+            {{-- The final quality check: the credential and its route, read-only (REQ-16-19). Received at
+                 once when the Registrar brings it back (REQ-32-09), so there is no Accept receipt. --}}
+            <section aria-labelledby="final-document-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-final-check-details>
+                <h2 id="final-document-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Credential Document') }}</h2>
+                <dl class="divide-y divide-zinc-200 text-sm">
+                    <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
+                    <x-summary-row :label="__('Issued to')">{{ $request->requester_name }}</x-summary-row>
+                    <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
+                    @if ($request->receiving_institution)
+                        <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
+                    @endif
+                </dl>
+            </section>
+            <section aria-labelledby="final-route-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-final-check-route>
+                <h2 id="final-route-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Signatures and Stamps') }}</h2>
+                <x-request-route :steps="$request->steps" />
+            </section>
         @endif
 
         @if ($panel === Page::PANEL_RELEASE)

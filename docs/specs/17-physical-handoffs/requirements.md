@@ -129,7 +129,9 @@ REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16
   where the paper was, the step's instructions, optional remarks and a Done button, which the
   row's Forward already covers.)* *(Changed 2026-11-18, REQ-32-09: a paper the Registrar brings
   to the Office of the Registrar is received at once, so new ones never wait there; the Accept
-  receipt button remains only for a paper forwarded there before this change.)*
+  receipt button remains only for a paper forwarded there before this change.)* *(Changed
+  2026-11-18, user's decision: In Progress is read-only. The rows have no buttons, and the
+  fallback Accept receipt is removed, since only staging held such papers and it is reset.)*
 - **REQ-17-16** THE SYSTEM SHALL let department office staff forward only the done documents their
   own office holds, from their To Forward list (REQ-24-10; their request page until 2026-11-15).
   Registrars SHALL forward only the documents the
