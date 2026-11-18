@@ -1,9 +1,11 @@
 <?php
 
 use App\Actions\Workflow\SetAllottedDays;
+use App\Enums\RequestStatus;
 use App\Enums\VisitPurpose;
 use App\Livewire\Admin\CredentialTypes\Index;
 use App\Livewire\Admin\CredentialTypes\Workflow;
+use App\Livewire\Registrar\Records\Index as Records;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\OfficeVisit;
@@ -207,6 +209,39 @@ test('REQ-30-07 the office queue shows the office deadline and Overdue once it h
     Carbon::setTestNow('2026-10-14 09:00:00');   // past the Dean's deadline, not the request's (Oct 17)
     $this->actingAs($this->dean)->get(route('department.to-validate'))
         ->assertSee('Overdue');
+});
+
+test('REQ-30-10 Records marks Office overdue and Request overdue from the dates, office first, each with its filter', function () {
+    torAtDean($this);   // the request is due Sat, Oct 17
+
+    Carbon::setTestNow('2026-10-10 09:00:00');
+    workflow()->acceptReceipt(openVisit($this->request), $this->dean);   // the Dean's deadline: Tue, Oct 13
+    $ref = $this->request->reference_no;
+    $records = fn (string $status = '') => Livewire::withQueryParams(['status' => $status])->actingAs($this->registrar)->test(Records::class);
+
+    // Within both deadlines: no mark.
+    Carbon::setTestNow('2026-10-12 09:00:00');
+    $records()->assertSee($ref)->assertDontSeeHtml('data-office-overdue')->assertDontSeeHtml('data-request-overdue')
+        ->assertSee('Office overdue (0)')->assertSee('Request overdue (0)');
+
+    // Past the Dean's deadline only: Office overdue, and only its filter lists it.
+    Carbon::setTestNow('2026-10-14 09:00:00');
+    $records()->assertSeeHtml('data-office-overdue')->assertDontSeeHtml('data-request-overdue')->assertSee('Office overdue (1)');
+    $records('office_overdue')->assertSee($ref);
+    $records('overdue')->assertDontSee($ref);
+
+    // Past both: both, the office's first; both filters list it. The status is unchanged.
+    Carbon::setTestNow('2026-10-19 09:00:00');
+    $records()->assertSeeHtmlInOrder(['data-office-overdue', 'data-request-overdue']);
+    $records('office_overdue')->assertSee($ref);
+    $records('overdue')->assertSee($ref);
+    expect($this->request->fresh()->status)->toBe(RequestStatus::InProgress);
+
+    // On at the VP for Finance, within its own deadline: Request overdue only.
+    passOffice($this->request, $this->dean);
+    workflow()->acceptReceipt(openVisit($this->request), $this->vpf);
+    $records()->assertSeeHtml('data-request-overdue')->assertDontSeeHtml('data-office-overdue');
+    $records('office_overdue')->assertDontSee($ref);
 });
 
 test('REQ-30-08 an office is reminded by its own deadline; registrars and the requester by the request\'s', function () {

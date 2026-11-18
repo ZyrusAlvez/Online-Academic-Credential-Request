@@ -8,3 +8,10 @@
 - [x] Reminders by office deadline (REQ-30-08)
 - [x] Department report On time % (REQ-30-09)
 - [x] Pest tests for REQ-30-01..09
+
+## REQ-30-10 Records: Office overdue / Request overdue (2026-11-18)
+
+- [x] Spec REQ-30-10
+- [x] `OfficeVisit::whereOverdue`, `RegistrarRequestFilter::OFFICE_OVERDUE`
+- [x] Records filter options and badges
+- [x] Pest tests REQ-30-10

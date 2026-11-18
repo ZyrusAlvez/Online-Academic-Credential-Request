@@ -82,6 +82,16 @@ class OfficeVisit extends Model
     }
 
     /**
+     * Visits overdue at their office, as isOverdue() (REQ-30-10).
+     *
+     * @param  Builder<OfficeVisit>  $query
+     */
+    public static function whereOverdue(Builder $query): void
+    {
+        $query->where('office_visits.status', VisitStatus::Received)->where('office_visits.due_at', '<', now());
+    }
+
+    /**
      * The office that has the paper during this visit. A forwarded paper stays with the office
      * that sent it until this office accepts receipt; the forward made at acceptance leaves the
      * Office of the Registrar (REQ-17-18). Reads the loaded `fromDepartment` and `department`.
