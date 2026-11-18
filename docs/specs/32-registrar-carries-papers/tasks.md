@@ -27,7 +27,7 @@
 ## REQ-32-10 No In Progress list (2026-11-18)
 
 - [x] Spec: REQ-32-10; REQ-16-04, 26, REQ-17-11..13, REQ-32-02, 06 amended
-- [ ] `RegistrarQueue::InProgress` removed; `forRequest` returns null for a paper at an office (Records)
-- [ ] `/registrar/in-progress` redirects to Records, status "processing"
-- [ ] `StageQueue` and the queue view keep Outgoing only
-- [ ] Pest tests REQ-32-10; In Progress tests removed or moved to Records/Outgoing
+- [x] `RegistrarQueue::InProgress` removed; `forRequest` returns null for a paper at an office (Records)
+- [x] `/registrar/in-progress` redirects to Records, status "processing"
+- [x] `StageQueue` and the queue view keep Outgoing only
+- [x] Pest tests REQ-32-10; In Progress tests removed or moved to Records/Outgoing

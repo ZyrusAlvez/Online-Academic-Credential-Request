@@ -6,9 +6,9 @@ use App\Enums\RegistrarQueue;
 use App\Models\CredentialRequest;
 
 /**
- * Where a registrar works on a request now: its page under the queue it is in, the In Progress
- * list searched by its tracking number (no working page there), or its Records page once it is
- * closed (REQ-16-26, REQ-17-13).
+ * Where a registrar works on a request now: its page under the queue it is in, the Outgoing list
+ * searched by its tracking number (no working page there), or its Records page once it is closed
+ * or while its paper is at an office (REQ-16-26, REQ-32-10).
  */
 final class RegistrarLink
 {

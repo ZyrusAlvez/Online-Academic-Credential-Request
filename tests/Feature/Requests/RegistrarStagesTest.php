@@ -101,7 +101,7 @@ test('REQ-18-03 the registrar has one page per stage and Records, and no Request
     // REQ-16-01, superseded by REQ-18-03; the sidebar itself is in tests/Feature/Admin/AdminRoleTest.php.
     $this->actingAs($this->registrar)->get('/registrar/requests')->assertNotFound();
 
-    foreach (['registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.final-check', 'registrar.release', 'records'] as $route) {
+    foreach (['registrar.evaluation', 'registrar.payments', 'registrar.outgoing', 'registrar.final-check', 'registrar.release', 'records'] as $route) {
         $this->actingAs($this->registrar)->get(route($route))->assertOk();
         $this->actingAs($this->owner)->get(route($route))->assertForbidden();
     }
@@ -166,25 +166,6 @@ test('REQ-16-03 Payment Validation lists the proofs to verify; the requests awai
 
     // The other queues keep a single list.
     queuePage('release')->assertDontSeeHtml('data-queue-tabs');
-});
-
-test('REQ-16-04 In Progress tracks the office holding each document, filterable by office, without actions', function () {
-    $atDean = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
-    passOffice($atDean, $this->registrar);
-    $finalCheck = atFinalCheck(submitRequest($this->owner, $this->org->tor));
-
-    queuePage('in_progress')
-        ->assertSee($atDean->reference_no)
-        ->assertSee('College of Computer Studies')
-        ->assertSee('not yet received')
-        ->assertSee(route('records.show', $atDean), false)
-        ->assertDontSee($finalCheck->reference_no)
-        ->assertDontSee('Approve');
-
-    // Forwarded to the Dean but not yet received: still with the Registrar (REQ-17-18).
-    queuePage('in_progress', ['office' => (string) $this->org->vpf->id])->assertDontSee($atDean->reference_no);
-    queuePage('in_progress', ['office' => (string) $this->org->ccs->id])->assertDontSee($atDean->reference_no);
-    queuePage('in_progress', ['office' => (string) $this->org->registrarOffice->id])->assertSee($atDean->reference_no);
 });
 
 test('REQ-16-05 Final Quality Check lists the documents back at the Registrar for the final check', function () {

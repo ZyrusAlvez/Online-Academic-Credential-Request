@@ -437,7 +437,7 @@ class Show extends Component
             $request->status === RequestStatus::PaymentVerification && $request->isWalkIn() => self::PANEL_PAYMENT,
             $atFinalCheck => self::PANEL_FINAL_CHECK,
             $request->status === RequestStatus::ReadyForRelease => self::PANEL_RELEASE,
-            // In Progress has no working page: its rows act in place (REQ-17-13).
+            // A paper at an office belongs to no queue; it opens on Records (REQ-32-10).
             default => self::PANEL_VIEW,
         };
     }
