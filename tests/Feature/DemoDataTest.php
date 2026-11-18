@@ -75,7 +75,9 @@ test('REQ-31-04 there is a request in every status and documents received at and
         ->and(CredentialRequest::overdue()->count())->toBeGreaterThanOrEqual(3);
 
     foreach (Department::active()->get() as $office) {
-        expect($open->where('department_id', $office->id)->pluck('status')->unique()->count())->toBe(2, "{$office->code} holds no received or incoming document");
+        // The Registrar carries every paper, so its own office receives at once (REQ-32-09).
+        $expected = $office->code === Department::REGISTRAR_CODE ? 1 : 2;
+        expect($open->where('department_id', $office->id)->pluck('status')->unique()->count())->toBe($expected, "{$office->code} holds no received or incoming document");
     }
 });
 

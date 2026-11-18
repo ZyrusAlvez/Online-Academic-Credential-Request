@@ -496,7 +496,7 @@ test('REQ-16-18 the request is in progress only once the paper leaves the first 
 
 // ── Final Quality Check ─────────────────────────────────────────────────────────────────────
 
-test('REQ-16-19 the final check is received first, then shows the details and route read-only, and is approved or declined with remarks', function () {
+test('REQ-16-19 the final check shows the details and route read-only, and is approved or declined with remarks', function () {
     Notification::fake();
     acceptRequest($this->request, $this->registrar);
     passOffice($this->request, $this->registrar);
@@ -504,8 +504,9 @@ test('REQ-16-19 the final check is received first, then shows the details and ro
     passOffice($this->request, User::factory()->departmentStaff($this->org->vpf)->create());
     passOffice($this->request, User::factory()->departmentStaff($this->org->chancellor)->create());
 
-    stagePage()->assertSee('Accept receipt')->assertDontSee('Credential Document')->call('acceptReceipt');
+    // Brought back by the Registrar: received at once, no Accept receipt (REQ-32-09).
     expect($this->request->fresh()->status)->toBe(RequestStatus::ForFinalApproval);
+    stagePage()->assertDontSee('Accept receipt');
 
     // No checklist: the details and the route, with no Reject/Confirm and no part to confirm.
     stagePage()
