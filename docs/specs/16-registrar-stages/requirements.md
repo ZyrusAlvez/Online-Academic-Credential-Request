@@ -164,8 +164,8 @@ This replaces:
   forwarded to the next office THE SYSTEM SHALL set the status `in_progress`.
 
 ### Final Quality Check
-- **REQ-16-19** WHILE a request's document is at the final quality check THE SYSTEM SHALL first let
-  the registrar accept its receipt (REQ-05-03). Once it is received, THE SYSTEM SHALL show the
+- **REQ-16-19** WHILE a request's document is at the final quality check (received there at once,
+  REQ-32-09; there is no Accept receipt step since 2026-11-18) THE SYSTEM SHALL show the
   credential's details (credential, issued to, purpose, receiving school) and its route (each office
   and when it finished), read-only with no checklist, then Remarks and the buttons Approve and
   Decline. The BRD asks only that the Registrar confirm the credential is complete and accurate

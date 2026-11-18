@@ -17,3 +17,9 @@
 - [x] In Progress row wording "Collected :time for :office, not yet received"
 - [x] Pest tests REQ-32-09; existing tests updated
 - [ ] `composer qa`
+
+## In Progress read-only (2026-11-18)
+
+- [x] Spec: REQ-32-06, REQ-17-13 and REQ-16-19 amended
+- [ ] Remove `Registrar\Queue::acceptReceipt` and its In Progress button, and the final check's Accept receipt panel
+- [ ] Pest tests REQ-17-13 / REQ-32-06 updated
