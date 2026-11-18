@@ -762,7 +762,8 @@ class RequestWorkflow
      * The Registrar collects the paper from an office whose task is done and brings it on: to the
      * next office on the route, a corrected document back to the office that returned it, or a
      * returned one to the office it was returned to. That office still has to accept its receipt
-     * (REQ-17-08). The Registrar's own received task is marked done in the same step (REQ-17-12).
+     * (REQ-17-08), except the Office of the Registrar itself (REQ-32-09). The Registrar's own
+     * received task is marked done in the same step (REQ-17-12).
      * Only registrars forward, from Outgoing (REQ-32-03, 04; the policy checks it).
      */
     public function forwardDocument(OfficeVisit $visit, User $actor): void
@@ -1379,8 +1380,9 @@ class RequestWorkflow
 
     /**
      * Dispatch the document to an office; it still has to be received there (REQ-05-03). A paper
-     * that does not move (accepted at the Registrar, or sent on within the same office) is
-     * received at once (REQ-17-05).
+     * that does not move (sent on within the same office, REQ-17-05) or that comes to the Office
+     * of the Registrar, which carries every paper and so already has it in hand (REQ-32-09), is
+     * received at once.
      */
     private function forward(CredentialRequest $locked, RequestStep $step, Department $to, VisitPurpose $purpose, ?Department $from, User $actor): OfficeVisit
     {
@@ -1402,9 +1404,7 @@ class RequestWorkflow
             ? $this->transition($locked, $locked, RequestStatus::InProgress, $actor, RequestEventType::DocumentForwarded, null, $step, $visit)
             : $this->record($locked, $actor, RequestEventType::DocumentForwarded, null, null, null, $step, $visit);
 
-        $stays = $from !== null ? $from->is($to) : $to->code === Department::REGISTRAR_CODE;
-
-        if ($stays) {
+        if ($to->code === Department::REGISTRAR_CODE || $from?->is($to) === true) {
             $this->receive($locked, $visit, $actor);
         }
 

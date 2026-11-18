@@ -397,7 +397,7 @@ test('REQ-17-18 a forwarded paper is still with the office that sent it until it
 
     // Not at the Dean yet: still with the Registrar, going to the Dean next.
     inProgressQueue()
-        ->assertSeeInOrder([$request->reference_no, 'Office of the Registrar', 'to College of Computer Studies, not yet received', 'College of Computer Studies'])
+        ->assertSeeInOrder([$request->reference_no, 'Office of the Registrar', 'Collected', 'for College of Computer Studies, not yet received', 'College of Computer Studies'])
         ->assertDontSee('On the way');
     inProgressQueue(['office' => $this->org->registrarOffice->id])->assertSee($request->reference_no);
     inProgressQueue(['office' => $this->org->ccs->id])->assertDontSee($request->reference_no);
@@ -411,21 +411,22 @@ test('REQ-17-18 a forwarded paper is still with the office that sent it until it
     expect($request->fresh()->load('openVisit.department', 'openVisit.fromDepartment')->whereabouts())->toBe('College of Computer Studies');
 });
 
-test('REQ-17-18 a paper the Dean forwarded to the Registrar shows at the Dean, next the Registrar, with Accept receipt', function () {
+test('REQ-32-09 a paper the Registrar brings back to its own office is received there at once', function () {
     $request = preparedAtRegistrar();
     workflow()->forwardDocument(openVisit($request), $this->registrar);
     workflow()->acceptReceipt(openVisit($request), $this->dean);
     workflow()->returnVisit(openVisit($request), $this->dean, $this->org->registrarOffice, 'Wrong name', 'Reprint');
     workflow()->forwardDocument(openVisit($request), $this->registrar);   // carried back (REQ-32-08)
 
-    // Sent back to the Registrar for correction, not yet received there.
-    expect(openVisit($request))->department_id->toBe($this->org->registrarOffice->id)->status->toBe(VisitStatus::InTransit);
+    // Back at the Registrar for correction, received by the registrar who carried it.
+    expect(openVisit($request))->department_id->toBe($this->org->registrarOffice->id)->status->toBe(VisitStatus::Received)
+        ->received_by->toBe($this->registrar->id);
 
-    inProgressQueue()->assertSeeInOrder([$request->reference_no, 'College of Computer Studies', 'to Office of the Registrar, not yet received', 'Accept receipt']);
+    inProgressQueue()->assertDontSee('data-accept-receipt', false);
 
     // The requester's pages and emails say where the paper is.
-    expect($request->fresh()->load('openVisit.department', 'openVisit.fromDepartment')->whereabouts())->toBe('College of Computer Studies');
-    $this->actingAs($this->owner)->get(route('student.requests.show', $request))->assertSee('Currently with College of Computer Studies.');
+    expect($request->fresh()->load('openVisit.department', 'openVisit.fromDepartment')->whereabouts())->toBe('Office of the Registrar');
+    $this->actingAs($this->owner)->get(route('student.requests.show', $request))->assertSee('Currently with Office of the Registrar.');
 });
 
 test('REQ-17-18 the dashboard office counts and the office reports count it at the sender', function () {
@@ -504,12 +505,15 @@ test('REQ-17-13 In Progress has no working page; the Registrar\'s task is done o
         ->assertDontSee('Prepared')->assertDontSee('wire:click="completeVisit"', false);
 });
 
-test('REQ-17-13 a paper sent to the Registrar is received from its In Progress row', function () {
+test('REQ-17-13 a paper sent to the Registrar before REQ-32-09 is received from its In Progress row', function () {
     $request = preparedAtRegistrar();
     workflow()->forwardDocument(openVisit($request), $this->registrar);
     workflow()->acceptReceipt(openVisit($request), $this->dean);
     workflow()->returnVisit(openVisit($request), $this->dean, $this->org->registrarOffice, 'Wrong grade', 'Fix the grade');
     workflow()->forwardDocument(openVisit($request), $this->registrar);   // carried back (REQ-32-08)
+
+    // As a paper forwarded before the change still is: on its way, not yet received.
+    openVisit($request)->forceFill(['status' => VisitStatus::InTransit, 'received_at' => null, 'received_by' => null])->save();
 
     inProgressQueue()
         ->assertSeeInOrder([$request->reference_no, 'not yet received', 'Accept receipt'])

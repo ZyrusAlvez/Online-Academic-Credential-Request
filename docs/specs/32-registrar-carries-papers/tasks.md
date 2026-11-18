@@ -9,3 +9,11 @@
 - [x] Demo data forwards as the registrar
 - [x] Pest tests REQ-32-01..08; existing tests updated (a freshly accepted request is in Outgoing, since the Registrar's preparation is finished through Forward, REQ-17-12)
 - [x] `composer qa`
+
+## REQ-32-09 (2026-11-18)
+
+- [x] Spec: REQ-32-09; REQ-17-13, REQ-17-18 and REQ-32-06 amended
+- [x] `RequestWorkflow::forward` receives at once a paper sent to the Office of the Registrar
+- [x] In Progress row wording "Collected :time for :office, not yet received"
+- [x] Pest tests REQ-32-09; existing tests updated
+- [ ] `composer qa`

@@ -108,7 +108,7 @@
                             @if ($visit)
                                 <div class="text-xs text-zinc-600">
                                     {{ match (true) {
-                                        $visit->status === VisitStatus::InTransit => __('Forwarded :time to :office, not yet received', ['time' => $visit->forwarded_at->diffForHumans(), 'office' => $visit->department->name]),
+                                        $visit->status === VisitStatus::InTransit => __('Collected :time for :office, not yet received', ['time' => $visit->forwarded_at->diffForHumans(), 'office' => $visit->department->name]),
                                         $visit->isPendingReturn() => __('Returned :time', ['time' => $visit->done_at->diffForHumans()]),
                                         $visit->status === VisitStatus::Done => __('Done :time, not yet forwarded', ['time' => $visit->done_at->diffForHumans()]),
                                         default => __('Received :time', ['time' => $visit->received_at->diffForHumans()]),
@@ -122,7 +122,7 @@
                         @if ($tracking)
                             @php($next = $request->nextOffice())
                             <flux:table.cell class="whitespace-normal" data-next-office>
-                                {{-- In Progress receives the papers sent to the Registrar (REQ-17-13); Outgoing
+                                {{-- In Progress receives a paper forwarded to the Registrar before REQ-32-09; Outgoing
                                      forwards every office's finished paper (REQ-32-03). The button names the next office. --}}
                                 @if (! $outgoing && $registrarActs && $visit->status === VisitStatus::InTransit)
                                     <flux:button size="sm" variant="primary" icon="inbox-arrow-down"

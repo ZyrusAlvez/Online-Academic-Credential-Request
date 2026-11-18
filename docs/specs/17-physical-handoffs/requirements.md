@@ -127,7 +127,9 @@ REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16
   (REQ-05-03). The Registrar's own route task SHALL be marked done only through Forward
   (REQ-17-12), with no remarks. *(Changed 2026-11-15, user's decision: the working page showed
   where the paper was, the step's instructions, optional remarks and a Done button, which the
-  row's Forward already covers.)*
+  row's Forward already covers.)* *(Changed 2026-11-18, REQ-32-09: a paper the Registrar brings
+  to the Office of the Registrar is received at once, so new ones never wait there; the Accept
+  receipt button remains only for a paper forwarded there before this change.)*
 - **REQ-17-16** THE SYSTEM SHALL let department office staff forward only the done documents their
   own office holds, from their To Forward list (REQ-24-10; their request page until 2026-11-15).
   Registrars SHALL forward only the documents the
@@ -161,4 +163,6 @@ REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16
   list and its Accept receipt SHALL NOT change. *(User's decision, 2026-11-07: "there is no on the
   way". An office approves the paper, and it is delivered when the next office accepts receipt.
   Before this, a forwarded paper showed as at the receiving office, "on the way", which said it
-  was somewhere it was not.)*
+  was somewhere it was not.)* *(Changed 2026-11-18, REQ-32-09: on the registrar's In Progress
+  list the state reads "Collected <time> for <office>, not yet received", since the Registrar
+  carries the paper and the office never forwards it.)*
