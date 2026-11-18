@@ -26,7 +26,7 @@ class Index extends Component
     #[Url(except: '')]
     public string $search = '';
 
-    /** 'processing', 'open', 'overdue', '' (all) or a RequestStatus value. */
+    /** 'processing', 'open', 'overdue', 'office_overdue', '' (all) or a RequestStatus value. */
     #[Url(except: '')]
     public string $status = '';
 
@@ -63,7 +63,7 @@ class Index extends Component
                 'application.credentialRequests.openVisit.department:id,name',
                 'application.credentialRequests.openVisit.fromDepartment:id,name',
             ])
-            ->when($this->status === RegistrarRequestFilter::OVERDUE, fn ($q) => $q->orderBy('effective_due_at'), fn ($q) => $q->latest('id'))
+            ->when(RegistrarRequestFilter::sortsByDueDate($this->status), fn ($q) => $q->orderBy('effective_due_at'), fn ($q) => $q->latest('id'))
             ->paginate(20);
 
         return view('livewire.registrar.records.index', [
@@ -72,6 +72,7 @@ class Index extends Component
             'types' => CredentialType::active()->orderBy('name')->get(['id', 'name']),
             'offices' => Department::active()->orderBy('name')->get(['id', 'name']),
             'overdueCount' => CredentialRequest::overdue()->count(),
+            'officeOverdueCount' => RegistrarRequestFilter::officeOverdue(CredentialRequest::query())->count(),
         ]);
     }
 }

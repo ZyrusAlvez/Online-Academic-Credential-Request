@@ -39,7 +39,7 @@ test('REQ-07-02 requests being processed past their due date are overdue and fil
         ->set('status', 'overdue')
         ->assertSee($late->reference_no)
         ->assertDontSee($onTime->reference_no)
-        ->assertSee('Overdue');
+        ->assertSee('Request overdue')->assertSeeHtml('data-request-overdue');   // "Overdue" before REQ-30-10
 
     // In progress: its row opens the record (REQ-17-12).
     $this->actingAs($this->registrar)->get(route('records.show', $late))->assertSee('Overdue since');

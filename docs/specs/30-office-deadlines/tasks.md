@@ -12,6 +12,6 @@
 ## REQ-30-10 Records: Office overdue / Request overdue (2026-11-18)
 
 - [x] Spec REQ-30-10
-- [ ] `OfficeVisit::whereOverdue`, `RegistrarRequestFilter::OFFICE_OVERDUE`
-- [ ] Records filter options and badges
-- [ ] Pest tests REQ-30-10
+- [x] `OfficeVisit::whereOverdue`, `RegistrarRequestFilter::OFFICE_OVERDUE`
+- [x] Records filter options and badges
+- [x] Pest tests REQ-30-10

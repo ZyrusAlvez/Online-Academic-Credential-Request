@@ -9,7 +9,8 @@
             <flux:select.option value="needs_registrar">{{ __('Needs the Registrar') }}</flux:select.option>
             <flux:select.option value="waiting_for_requester">{{ __('Waiting for the requester') }}</flux:select.option>
             <flux:select.option value="processing">{{ __('Being processed') }}</flux:select.option>
-            <flux:select.option value="overdue">{{ __('Overdue (:count)', ['count' => $overdueCount]) }}</flux:select.option>
+            <flux:select.option value="overdue">{{ __('Request overdue (:count)', ['count' => $overdueCount]) }}</flux:select.option>
+            <flux:select.option value="office_overdue">{{ __('Office overdue (:count)', ['count' => $officeOverdueCount]) }}</flux:select.option>
             @foreach ($statuses as $option)
                 <flux:select.option :value="$option->value">{{ $option->label() }}</flux:select.option>
             @endforeach
@@ -65,8 +66,12 @@
                             @foreach ($credentials as $credential)
                                 <div class="flex flex-wrap gap-1">
                                     <x-request-status :status="$credential->status" />
+                                    {{-- Worked out from the dates, not statuses; the office's first (REQ-30-10). --}}
+                                    @if ($credential->openVisit?->isOverdue())
+                                        <flux:badge size="sm" color="amber" icon="clock" data-office-overdue>{{ __('Office overdue') }}</flux:badge>
+                                    @endif
                                     @if ($credential->isOverdue())
-                                        <flux:badge size="sm" color="red" icon="clock">{{ __('Overdue') }}</flux:badge>
+                                        <flux:badge size="sm" color="red" icon="clock" data-request-overdue>{{ __('Request overdue') }}</flux:badge>
                                     @endif
                                 </div>
                             @endforeach
