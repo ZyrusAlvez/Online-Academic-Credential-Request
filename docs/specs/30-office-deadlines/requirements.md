@@ -47,3 +47,18 @@ changed by anything here.
   requester reminders keep the request's due date.
 - **REQ-30-09** THE department performance report SHALL show, per office, the percentage of
   documents with an office deadline whose task was done by that deadline.
+
+### Records
+- **REQ-30-10** THE Records list SHALL mark each credential being processed with:
+  - "Office overdue" (amber) WHILE the office holding it has received it and its office deadline
+    has passed;
+  - "Request overdue" (red) WHILE the request's due date has passed (REQ-05-12; shown as
+    "Overdue" before this change).
+
+  WHEN both apply, both SHALL show, "Office overdue" first. Neither is a status: both are worked
+  out from the stored dates when the list is shown, and the request keeps its status. The status
+  filter SHALL offer "Request overdue (count)" (the former "Overdue") and "Office overdue (count)",
+  which lists the requests whose paper is overdue at its office, whether or not the request is also
+  overdue, the earliest due date first. Elsewhere "Overdue" keeps its wording. *(User's decision,
+  2026-11-18: with In Progress removed (REQ-32-10), Records is where the registrar sees a paper
+  late at an office.)*
