@@ -32,7 +32,7 @@ const ADMIN_PAGES = [
 ];
 
 /** The Registrar's stage pages (REQ-18-05). */
-const STAGE_PAGES = ['registrar.evaluation', 'registrar.payments', 'registrar.in-progress', 'registrar.outgoing', 'registrar.final-check', 'registrar.release'];
+const STAGE_PAGES = ['registrar.evaluation', 'registrar.payments', 'registrar.outgoing', 'registrar.final-check', 'registrar.release'];
 
 // ── Roles and pages ─────────────────────────────────────────────────────────────────────────
 
@@ -57,7 +57,8 @@ test('REQ-18-03 the registrar has the five stages and Records in the sidebar and
     $this->get('/registrar')->assertRedirect('/registrar/evaluation');
 
     $this->get(route('registrar.evaluation'))->assertOk()
-        ->assertSeeInOrder(['Initial Evaluation', 'Payment Validation', 'In Progress', 'Final Quality Check', 'Release', 'Records'])
+        ->assertSeeInOrder(['Initial Evaluation', 'Payment Validation', 'Outgoing', 'Final Quality Check', 'Release', 'Records'])
+        ->assertDontSee('In Progress')   // removed (REQ-32-10)
         ->assertSee(route('records'))
         ->assertDontSee(route('admin.reports'))
         ->assertDontSee(route('admin.credential-types'))

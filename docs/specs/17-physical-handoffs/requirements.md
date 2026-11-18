@@ -106,6 +106,9 @@ REQ-17-17 sits with the stage page criteria, though it was added after REQ-17-16
   received and not yet done.
 
 ### In Progress
+*(Removed 2026-11-18 by REQ-32-10, user's decision: the In Progress list is gone. REQ-17-11 and
+REQ-17-13 no longer apply; REQ-17-12's Forward lives on Outgoing. The Registrar's own route task is
+still marked done only through Forward, now on Outgoing.)*
 - **REQ-17-11** THE In Progress queue SHALL list the requests `accepted_for_processing`,
   `in_progress` or `returned_for_correction` whose paper is not at the final quality check. For
   each, it SHALL show the office holding the paper (REQ-17-18) and its state there (forwarded to

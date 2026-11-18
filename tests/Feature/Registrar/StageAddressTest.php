@@ -52,8 +52,6 @@ function oneInEachQueue(): array
     $payment = walkIn(evaluate(submitRequest(test()->owner, test()->org->tor), $registrar));
     uploadPayment($payment);
     $outgoing = acceptRequest(submitRequest(test()->owner, test()->org->tor), $registrar);
-    $inProgress = acceptRequest(submitRequest(test()->owner, test()->org->tor), $registrar);
-    passOffice($inProgress, $registrar);   // forwarded to the Dean, not yet received
     $finalCheck = throughEveryOffice(submitRequest(test()->owner, test()->org->tor));
     $release = throughEveryOffice(submitRequest(test()->owner, test()->org->tor));
     workflow()->approveFinalCheck($release, $registrar);
@@ -61,14 +59,13 @@ function oneInEachQueue(): array
     return [
         'evaluation' => [RegistrarQueue::Evaluation, $evaluation->fresh()],
         'payment' => [RegistrarQueue::Payment, $payment->fresh()],
-        'in progress' => [RegistrarQueue::InProgress, $inProgress->fresh()],
         'outgoing' => [RegistrarQueue::Outgoing, $outgoing->fresh()],
         'final check' => [RegistrarQueue::FinalCheck, $finalCheck->fresh()],
         'release' => [RegistrarQueue::Release, $release->fresh()],
     ];
 }
 
-test('REQ-16-26 each request opens under its queue, with that queue current in the sidebar and as the breadcrumb; In Progress has no page', function () {
+test('REQ-16-26 each request opens under its queue, with that queue current in the sidebar and as the breadcrumb; Outgoing has no page', function () {
     foreach (oneInEachQueue() as [$queue, $request]) {
         expect(RegistrarQueue::forRequest($request))->toBe($queue);
 
@@ -178,10 +175,28 @@ test('REQ-16-26 the former address in notifications always lands where the reque
     $this->actingAs($this->registrar)->get(route('registrar.requests.show', $accepted))->assertRedirect($list);
     $this->actingAs($this->registrar)->get($list)->assertOk()->assertSee($accepted->reference_no);
 
-    // Forwarded to the Dean: the In Progress list.
+    // Forwarded to the Dean: its record, since there is no In Progress list (REQ-32-10).
     passOffice($accepted, $this->registrar);
     $this->actingAs($this->registrar)->get(route('registrar.requests.show', $accepted))
-        ->assertRedirect(route('registrar.in-progress', ['search' => $accepted->reference_no]));
+        ->assertRedirect(route('records.show', $accepted));
+});
+
+test('REQ-32-10 there is no In Progress list: a paper at an office opens on Records, and the old address goes to Records', function () {
+    $atDean = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    passOffice($atDean, $this->registrar);   // forwarded to the Dean, not yet received
+    $atDean = $atDean->fresh();
+
+    expect(RegistrarQueue::tryFrom('in_progress'))->toBeNull()
+        ->and(RegistrarQueue::forRequest($atDean))->toBeNull()
+        ->and(RegistrarLink::to($atDean))->toBe(route('records.show', $atDean));
+
+    // A working page opened under a queue it is not in goes to its record.
+    $this->actingAs($this->registrar)->get(route('registrar.final-check.show', $atDean))
+        ->assertRedirect(route('records.show', $atDean));
+
+    $this->get('/registrar/in-progress')->assertRedirect(route('records', ['status' => 'processing']));
+    $this->get(route('records', ['status' => 'processing']))->assertOk()->assertSee($atDean->reference_no);
+    $this->get(route('registrar.evaluation'))->assertDontSee('In Progress')->assertDontSee('/registrar/in-progress', false);
 });
 
 test('REQ-16-26 a request\'s queue follows its status', function () {

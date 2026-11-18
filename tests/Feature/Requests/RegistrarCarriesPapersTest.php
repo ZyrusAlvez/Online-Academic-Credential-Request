@@ -65,13 +65,13 @@ test('REQ-32-01 an approved document stays in the office, in its Outgoing list a
     registrarOutgoing()->assertSeeInOrder([$request->reference_no, 'College of Computer Studies', 'Forward to Office of the VP for Finance']);
 });
 
-test('REQ-32-02 Outgoing is in the registrar\'s sidebar after In Progress and lists every office\'s finished papers, filterable by office', function () {
+test('REQ-32-02 Outgoing is in the registrar\'s sidebar after Payment Validation and lists every office\'s finished papers, filterable by office', function () {
     $atDean = approvedByDean();
     $atRegistrar = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);   // the Registrar's own task
     $notDone = receivedAtVpf();
 
     $html = $this->actingAs($this->registrar)->get(route('registrar.outgoing'))->assertOk()->getContent();
-    expect($html)->toMatch('#registrar/in-progress".*?registrar/outgoing".*?registrar/final-check"#s');
+    expect($html)->toMatch('#registrar/payments".*?registrar/outgoing".*?registrar/final-check"#s');
 
     registrarOutgoing()
         ->assertSee($atDean->reference_no)->assertSee($atRegistrar->reference_no)->assertDontSee($notDone->reference_no)
@@ -128,9 +128,9 @@ test('REQ-32-04 department staff cannot forward; nor can anyone outside Outgoing
 
     Livewire::actingAs($this->dean)->test(OfficeQueue::class, ['queue' => 'outgoing'])
         ->assertDontSeeHtml('data-forward')->assertDontSee('Forward to');
-    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => 'in_progress'])
+    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => 'final_check'])
         ->call('forward', $request->id)->assertNotFound();
-    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => 'in_progress'])
+    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => 'final_check'])
         ->call('forwardSelected')->assertNotFound();
 
     expect(openVisit($request)->status)->toBe(VisitStatus::Done);
@@ -149,16 +149,6 @@ test('REQ-32-05 the department\'s Outgoing list is view-only and replaces To For
     $this->actingAs($this->dean)->get('/department/to-forward/'.$request->reference_no)
         ->assertRedirect('/department/outgoing/'.$request->reference_no);
     $this->actingAs($this->dean)->get(route('department.outgoing.show', $request))->assertOk();
-});
-
-test('REQ-32-06 In Progress leaves out the papers waiting to be collected and has no Forward', function () {
-    $waiting = approvedByDean();
-    $moving = receivedAtVpf();
-
-    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => 'in_progress'])
-        ->assertDontSee($waiting->reference_no)
-        ->assertSee($moving->reference_no)
-        ->assertDontSeeHtml('data-forward');
 });
 
 test('REQ-32-07 a return keeps the document in the returning office, in Outgoing, and leaves its step open', function () {

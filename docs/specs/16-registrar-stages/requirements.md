@@ -58,7 +58,8 @@ This replaces:
   whether it has been received there, since when, the due date and an overdue mark, and SHALL let
   the registrar filter it by office. It SHALL be for tracking only, with no actions. *Changed by
   REQ-17-11, 12:* it also lists accepted requests, shows the next office, and lets the registrar
-  forward the papers its office holds.
+  forward the papers its office holds. *(Removed 2026-11-18 by REQ-32-10: there is no In Progress
+  list; Records shows where each paper is.)*
 - **REQ-16-05** THE Final Quality Check queue SHALL list the requests whose document is sent to, or
   held by, the Registrar for the final quality check, oldest first.
 - **REQ-16-06** THE Release queue SHALL list the credentials ready for release, oldest first.
@@ -78,7 +79,9 @@ This replaces:
   Records page once it is released, declined or cancelled. WHEN a decision or action moves the
   request to another queue THE SYSTEM SHALL follow it there. *(User's report, 2026-11-16: every
   request page was `/registrar/requests/…`, so no sidebar item was highlighted. In Progress page
-  removed 2026-11-15, user's decision.)*
+  removed 2026-11-15, user's decision.)* *(Changed 2026-11-18, REQ-32-10: In Progress is removed;
+  a request being processed at an office, not in Outgoing or at the final check, leads to its
+  Records page.)*
 - **REQ-16-07** THE Records list SHALL show every request, searchable by tracking number, student
   number or name, and filterable by status (including "Overdue"), credential type and the office
   holding it. A record SHALL open a read-only page with the request's details, route, office visits

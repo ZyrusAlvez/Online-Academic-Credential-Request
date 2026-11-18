@@ -53,13 +53,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('walk-in', Registrar\WalkIn::class)->name('walk-in');
         Route::get('evaluation', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Evaluation->value)->name('evaluation');
         Route::get('payments', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Payment->value)->name('payments');
-        Route::get('in-progress', Registrar\Queue::class)->defaults('queue', RegistrarQueue::InProgress->value)->name('in-progress');
+        // In Progress is gone; Records shows where each paper is (REQ-32-10).
+        Route::get('in-progress', fn () => redirect()->route('records', ['status' => 'processing']));
         // Every office's finished papers, which the Registrar brings to the next office (REQ-32-02).
         Route::get('outgoing', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Outgoing->value)->name('outgoing');
         Route::get('final-check', Registrar\Queue::class)->defaults('queue', RegistrarQueue::FinalCheck->value)->name('final-check');
         Route::get('release', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Release->value)->name('release');
         // A request's working page lives under the queue it is in, e.g. payments/rc26-00042 (REQ-16-26).
-        // In Progress has none: its rows forward and accept receipt in place (REQ-17-13).
+        // Outgoing has none: its rows forward in place (REQ-32-03).
         Route::get('evaluation/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::Evaluation->value)->name('evaluation.show');
         Route::get('payments/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::Payment->value)->name('payments.show');
         Route::get('final-check/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::FinalCheck->value)->name('final-check.show');

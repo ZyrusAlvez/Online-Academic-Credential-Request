@@ -73,7 +73,7 @@ function filledWalkInPage(): Testable
 
 test('REQ-26-01 Walk-in Request is first in the registrar sidebar and only the registrar opens it', function () {
     $this->actingAs($this->registrar)->get(route('registrar.evaluation'))->assertOk()
-        ->assertSeeInOrder(['Walk-in Request', 'Initial Evaluation', 'Payment Validation', 'In Progress', 'Final Quality Check', 'Release', 'Records']);
+        ->assertSeeInOrder(['Walk-in Request', 'Initial Evaluation', 'Payment Validation', 'Outgoing', 'Final Quality Check', 'Release', 'Records']);
     $this->get(route('registrar.walk-in'))->assertOk();
     $this->get('/dashboard')->assertRedirect(route('registrar.evaluation'));
 

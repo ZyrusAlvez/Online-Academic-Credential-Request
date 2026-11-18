@@ -32,7 +32,7 @@ class Queue extends Component
     #[Url(except: false)]
     public bool $waiting = false;
 
-    /** In Progress and Outgoing: the office holding the document. */
+    /** Outgoing: the office holding the document. */
     #[Url(except: '')]
     public string $office = '';
 

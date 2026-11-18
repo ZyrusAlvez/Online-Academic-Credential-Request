@@ -28,8 +28,8 @@ function listedNames(Collection $rows, string $key = 'name'): array
     return $rows->pluck($key)->all();
 }
 
-test('REQ-02-19 the In progress office filter lists only active offices', function () {
-    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => RegistrarQueue::InProgress->value])
+test('REQ-02-19 the Outgoing office filter lists only active offices', function () {
+    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => RegistrarQueue::Outgoing->value])
         ->assertViewHas('offices', fn (Collection $offices) => in_array('College of Computer Studies', listedNames($offices), true)
             && ! in_array('College of Law', listedNames($offices), true)
             && ! in_array('Cashier', listedNames($offices), true))
