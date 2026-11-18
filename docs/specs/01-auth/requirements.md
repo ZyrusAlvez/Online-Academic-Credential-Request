@@ -65,6 +65,10 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 - **REQ-01-32** WHEN a logged-in user opens the landing page (`/`) THE SYSTEM SHALL take them to
   their role's home (as `/dashboard` does); only guests see the landing page. *(User's request,
   2026-11-13.)*
+- **REQ-01-33** WHEN a user signs in (password or Google) after being sent to the login page from a
+  page under another role's area (e.g. `/student` before a registrar signs in) THE SYSTEM SHALL
+  take them to their role's home instead of that page; a page in their own area or a shared page
+  is still honoured. *(User's report, 2026-11-18: signing in landed on a 403.)*
 
 ### Profile
 - **REQ-01-12** THE SYSTEM SHALL NOT let users change their own email in settings; settings holds

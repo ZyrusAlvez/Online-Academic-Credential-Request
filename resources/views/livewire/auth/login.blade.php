@@ -49,6 +49,7 @@ new #[Layout('components.layouts.auth')] #[Title('Log in')] class extends Compon
 
         RateLimiter::clear($this->throttleKey());
         Session::regenerate();
+        \App\Support\IntendedUrl::dropIfForeign(Auth::user());
 
         $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
     }

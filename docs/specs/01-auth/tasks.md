@@ -51,3 +51,5 @@
       re-checks the form's marked fields; choices `wire:model.live`, typed entries
       `wire:model.live.blur` (REQ-01-31)
 - [x] Pest tests for REQ-01-31
+- [x] `IntendedUrl::dropIfForeign()` before the login and Google redirects (REQ-01-33)
+- [x] Pest tests for REQ-01-33
