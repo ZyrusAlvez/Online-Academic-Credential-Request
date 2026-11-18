@@ -79,7 +79,6 @@
                 @php
                     $visit = $request->openVisit;
                     // In Progress and Outgoing have no working page: their rows open the record (REQ-17-13, REQ-32-02).
-                    $registrarActs = $visit?->department->code === \App\Models\Department::REGISTRAR_CODE;
                     $rowRoute = $queue->hasWorkingPage() ? $linkRoute : 'records.show';
                 @endphp
                 <flux:table.row :key="$request->id">
@@ -122,14 +121,9 @@
                         @if ($tracking)
                             @php($next = $request->nextOffice())
                             <flux:table.cell class="whitespace-normal" data-next-office>
-                                {{-- In Progress receives a paper forwarded to the Registrar before REQ-32-09; Outgoing
-                                     forwards every office's finished paper (REQ-32-03). The button names the next office. --}}
-                                @if (! $outgoing && $registrarActs && $visit->status === VisitStatus::InTransit)
-                                    <flux:button size="sm" variant="primary" icon="inbox-arrow-down"
-                                        wire:click="acceptReceipt({{ $request->id }})" data-accept-receipt>
-                                        {{ __('Accept receipt') }}
-                                    </flux:button>
-                                @elseif ($outgoing && $next)
+                                {{-- In Progress is read-only (REQ-32-06); Outgoing forwards every office's finished
+                                     paper (REQ-32-03). The button names the next office. --}}
+                                @if ($outgoing && $next)
                                     @php($label = $visit->isPendingReturn() ? __('Return to :office', ['office' => $next->name]) : __('Forward to :office', ['office' => $next->name]))
                                     <flux:button size="sm" variant="primary" :icon="$visit->isPendingReturn() ? 'arrow-uturn-left' : 'paper-airplane'"
                                         wire:click="forward({{ $request->id }})" data-forward

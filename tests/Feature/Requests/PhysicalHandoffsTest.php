@@ -505,40 +505,17 @@ test('REQ-17-13 In Progress has no working page; the Registrar\'s task is done o
         ->assertDontSee('Prepared')->assertDontSee('wire:click="completeVisit"', false);
 });
 
-test('REQ-17-13 a paper sent to the Registrar before REQ-32-09 is received from its In Progress row', function () {
-    $request = preparedAtRegistrar();
-    workflow()->forwardDocument(openVisit($request), $this->registrar);
-    workflow()->acceptReceipt(openVisit($request), $this->dean);
-    workflow()->returnVisit(openVisit($request), $this->dean, $this->org->registrarOffice, 'Wrong grade', 'Fix the grade');
-    workflow()->forwardDocument(openVisit($request), $this->registrar);   // carried back (REQ-32-08)
-
-    // As a paper forwarded before the change still is: on its way, not yet received.
-    openVisit($request)->forceFill(['status' => VisitStatus::InTransit, 'received_at' => null, 'received_by' => null])->save();
-
-    inProgressQueue()
-        ->assertSeeInOrder([$request->reference_no, 'not yet received', 'Accept receipt'])
-        ->assertDontSee('Forward to')
-        ->call('acceptReceipt', $request->id)->assertDispatched('notify');
-
-    expect(openVisit($request))->department_id->toBe($this->org->registrarOffice->id)->status->toBe(VisitStatus::Received)
-        ->received_by->toBe($this->registrar->id);
-
-    // Received for correction: the Registrar corrects it and forwards it from Outgoing.
-    inProgressQueue()->assertDontSee($request->reference_no);
-    outgoingQueue()->assertSee('Forward to College of Computer Studies')->assertDontSee('data-accept-receipt', false);
-});
-
-test('REQ-17-13 the row\'s Accept receipt is refused for another office\'s paper and outside In Progress', function () {
+test('REQ-32-06 In Progress is read-only: its rows have no Accept receipt or Forward', function () {
     $request = preparedAtRegistrar();
     workflow()->forwardDocument(openVisit($request), $this->registrar);   // to the Dean, not yet received
 
-    inProgressQueue()->assertDontSee('data-accept-receipt', false)
-        ->call('acceptReceipt', $request->id)->assertForbidden();
+    inProgressQueue()
+        ->assertSeeInOrder([$request->reference_no, 'not yet received', 'College of Computer Studies'])
+        ->assertDontSee('Accept receipt')->assertDontSee('Forward to');
 
-    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => 'final_check'])
-        ->call('acceptReceipt', $request->id)->assertNotFound();
-
-    expect(openVisit($request)->status)->toBe(VisitStatus::InTransit);
+    // The list has no receipt action left to call (REQ-17-13).
+    expect(method_exists(Queue::class, 'acceptReceipt'))->toBeFalse()
+        ->and(openVisit($request)->status)->toBe(VisitStatus::InTransit);
 });
 
 test('REQ-17-16 only registrars forward, any office\'s done paper', function () {
