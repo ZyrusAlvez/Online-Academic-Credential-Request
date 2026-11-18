@@ -28,7 +28,8 @@ test('REQ-01-32 a logged-in user opening the landing page goes to their role\'s 
 ]);
 
 test('REQ-01-32 guests see the landing page', function () {
-    $this->get('/')->assertOk()->assertSee('Create an account');
+    $this->get('/')->assertOk()->assertSee('Create an account')
+        ->assertSeeInOrder(['University of Perpetual Help System Laguna', 'University of Perpetual Help System Laguna &middot; Office of the Registrar'], false);
 });
 
 test('REQ-01-11 users cannot open another role\'s pages', function (string $state, array $forbidden) {

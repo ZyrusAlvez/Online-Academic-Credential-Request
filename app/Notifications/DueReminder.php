@@ -48,7 +48,7 @@ class DueReminder extends Notification implements ShouldQueue
         return $message
             ->line('We are sorry for the delay. You can follow your request at any time.')
             ->action('Track your request', $this->url($notifiable))
-            ->salutation('Office of the Registrar, University of Perpetual Help System');
+            ->salutation('Office of the Registrar, University of Perpetual Help System Laguna');
     }
 
     /**

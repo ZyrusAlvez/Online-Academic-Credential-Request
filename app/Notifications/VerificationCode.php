@@ -31,6 +31,6 @@ class VerificationCode extends Notification
             ->line('Enter this code to verify your email address:')
             ->line("# {$this->code}")
             ->line('The code expires in '.SendVerificationCode::EXPIRES_MINUTES.' minutes. If you did not create an account, you can ignore this email.')
-            ->salutation('Office of the Registrar, University of Perpetual Help System');
+            ->salutation('Office of the Registrar, University of Perpetual Help System Laguna');
     }
 }

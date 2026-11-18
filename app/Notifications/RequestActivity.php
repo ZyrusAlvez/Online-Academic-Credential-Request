@@ -104,7 +104,7 @@ class RequestActivity extends Notification implements ShouldQueue
         return $message
             ->line('Current location: '.$request->whereabouts())
             ->action('Track your request', $this->url($notifiable, $request))
-            ->salutation('Office of the Registrar, University of Perpetual Help System');
+            ->salutation('Office of the Registrar, University of Perpetual Help System Laguna');
     }
 
     /**

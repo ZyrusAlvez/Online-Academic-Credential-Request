@@ -10,8 +10,8 @@
                     <img src="{{ asset('images/uphsl-logo.webp') }}" alt="" class="h-14 w-auto shrink-0" width="42" height="56">
                     <span class="leading-tight">
                         <span class="block text-base font-semibold">
-                            <abbr title="University of Perpetual Help System" class="no-underline sm:hidden">UPHSL</abbr>
-                            <span class="max-sm:hidden">University of Perpetual Help System</span>
+                            <abbr title="University of Perpetual Help System Laguna" class="no-underline sm:hidden">UPHSL</abbr>
+                            <span class="max-sm:hidden">University of Perpetual Help System Laguna</span>
                         </span>
                         <span class="block text-xs text-secondary">Office of the Registrar</span>
                     </span>
@@ -66,7 +66,7 @@
 
         <footer class="border-t border-secondary/40">
             <div class="mx-auto max-w-6xl px-4 py-6 text-sm sm:px-6">
-                &copy; {{ now()->year }} University of Perpetual Help System &middot; Office of the Registrar
+                &copy; {{ now()->year }} University of Perpetual Help System Laguna &middot; Office of the Registrar
             </div>
         </footer>
     </body>
