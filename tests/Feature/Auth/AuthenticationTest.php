@@ -23,6 +23,28 @@ test('REQ-01-05 users can log in with email and password', function () {
     $this->assertAuthenticatedAs($user);
 });
 
+test('REQ-01-33 signing in skips a remembered page from another role\'s area', function () {
+    $user = User::factory()->registrar()->create();
+    session()->put('url.intended', url('/student'));
+
+    Volt::test('auth.login')
+        ->set('email', $user->email)
+        ->set('password', 'password')
+        ->call('login')
+        ->assertRedirect(route('dashboard', absolute: false));
+});
+
+test('REQ-01-33 signing in keeps a remembered page from the user\'s own area', function () {
+    $user = User::factory()->registrar()->create();
+    session()->put('url.intended', url('/registrar/payment'));
+
+    Volt::test('auth.login')
+        ->set('email', $user->email)
+        ->set('password', 'password')
+        ->call('login')
+        ->assertRedirect(url('/registrar/payment'));
+});
+
 test('REQ-01-05 users cannot log in with an invalid password', function () {
     $user = User::factory()->create();
 

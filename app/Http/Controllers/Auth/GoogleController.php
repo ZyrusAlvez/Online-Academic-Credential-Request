@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Actions\Auth\SignInWithGoogle;
 use App\Http\Controllers\Controller;
+use App\Support\IntendedUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -43,6 +44,7 @@ class GoogleController extends Controller
 
         Auth::login($user);
         request()->session()->regenerate();
+        IntendedUrl::dropIfForeign($user);
 
         return redirect()->intended(route('dashboard', absolute: false));
     }
