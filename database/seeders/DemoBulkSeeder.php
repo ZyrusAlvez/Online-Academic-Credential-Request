@@ -124,10 +124,18 @@ class DemoBulkSeeder extends Seeder
         for ($i = 1; $i <= $count; $i++) {
             /** @var Department $college */
             $college = $i <= $colleges->count() ? $colleges[$i - 1] : fake()->randomElement($colleges->all());
-            $sex = fake()->boolean() ? Sex::Female : Sex::Male;
+            // The first ones cover both sexes and every academic status; the rest are random (REQ-31-02).
+            $statuses = AcademicStatus::cases();
+            $sex = match ($i) {
+                1 => Sex::Female,
+                2 => Sex::Male,
+                default => fake()->boolean() ? Sex::Female : Sex::Male,
+            };
             $first = fake()->randomElement($sex === Sex::Female ? self::WOMEN : self::MEN);
             $last = fake()->randomElement(self::SURNAMES);
-            $status = fake()->randomElement([...array_fill(0, 14, AcademicStatus::Graduate), ...array_fill(0, 3, AcademicStatus::Current), ...array_fill(0, 3, AcademicStatus::Former)]);
+            $status = $i <= count($statuses)
+                ? $statuses[$i - 1]
+                : fake()->randomElement([...array_fill(0, 14, AcademicStatus::Graduate), ...array_fill(0, 3, AcademicStatus::Current), ...array_fill(0, 3, AcademicStatus::Former)]);
             $to = $status === AcademicStatus::Current ? (int) $this->realNow->year : fake()->numberBetween(2008, (int) $this->realNow->year - 1);
             $married = $sex === Sex::Female && $status !== AcademicStatus::Current && fake()->boolean(40);
 
