@@ -111,8 +111,7 @@ test('REQ-05-05 the final quality check makes the request ready for release', fu
     passOffice($request, $this->vpf);
     passOffice($request, $this->chancellor);
 
-    workflow()->acceptReceipt(openVisit($request), $this->registrar);
-    expect($request->fresh()->status)->toBe(RequestStatus::ForFinalApproval);
+    expect($request->fresh()->status)->toBe(RequestStatus::ForFinalApproval);   // received at once (REQ-32-09)
 
     workflow()->completeVisit(openVisit($request), $this->registrar);
     expect($request->fresh())

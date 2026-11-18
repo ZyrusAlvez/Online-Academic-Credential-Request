@@ -90,8 +90,7 @@ function atFinalCheck(CredentialRequest $request): CredentialRequest
     passOffice($request, $registrar);                                                       // Registrar prepares
     passOffice($request, User::factory()->departmentStaff(test()->org->ccs)->create());       // Dean
     passOffice($request, User::factory()->departmentStaff(test()->org->vpf)->create());       // VP Finance
-    passOffice($request, User::factory()->departmentStaff(test()->org->chancellor)->create()); // Chancellor
-    workflow()->acceptReceipt(openVisit($request), $registrar);
+    passOffice($request, User::factory()->departmentStaff(test()->org->chancellor)->create()); // Chancellor; received at once (REQ-32-09)
 
     return $request->fresh();
 }

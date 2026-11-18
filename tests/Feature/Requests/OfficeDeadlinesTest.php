@@ -172,8 +172,7 @@ test('REQ-30-05 REQ-30-06 a document received again gets a new deadline; a corre
     workflow()->forwardDocument($dean->fresh(), $this->registrar);
 
     Carbon::setTestNow('2026-10-12 09:00:00');   // Monday
-    $correction = openVisit($this->request);
-    workflow()->acceptReceipt($correction, $this->registrar);
+    $correction = openVisit($this->request);   // received at once (REQ-32-09)
     expect($correction->fresh()->purpose)->toBe(VisitPurpose::Correction)
         ->and($correction->fresh()->due_at)->toBeNull();
 
@@ -188,7 +187,7 @@ test('REQ-30-05 REQ-30-06 a document received again gets a new deadline; a corre
     passOffice($this->request, $this->dean);
     passOffice($this->request, $this->vpf);
     passOffice($this->request, User::factory()->departmentStaff($this->org->chancellor)->create());
-    workflow()->acceptReceipt($check = openVisit($this->request), $this->registrar);
+    $check = openVisit($this->request);   // received at once (REQ-32-09)
 
     expect($check->fresh()->due_at)->toBeNull()
         ->and(OfficeVisit::where('credential_request_id', $this->request->id)->whereNull('due_at')->whereNotNull('received_at')->count())->toBe(2);
