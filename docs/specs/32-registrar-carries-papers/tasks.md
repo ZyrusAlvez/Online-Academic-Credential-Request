@@ -31,3 +31,10 @@
 - [x] `/registrar/in-progress` redirects to Records, status "processing"
 - [x] `StageQueue` and the queue view keep Outgoing only
 - [x] Pest tests REQ-32-10; In Progress tests removed or moved to Records/Outgoing
+
+## REQ-32-11 Registrars told of Outgoing papers (2026-11-20)
+
+- [ ] Spec: REQ-32-11
+- [ ] `SendRequestNotifications::notifyOutgoing`: StepCompleted, DocumentReturned and Corrected by
+      department staff, when the paper waits for collection
+- [ ] Pest tests REQ-32-11
