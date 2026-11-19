@@ -40,6 +40,7 @@ class Dashboard extends Component
         return view('livewire.admin.dashboard', [
             'metrics' => PerformanceMetrics::for($period),
             'offices' => DepartmentReport::offices($period),
+            'credentials' => PerformanceMetrics::byCredential($period),
             'causes' => DelayReport::causeCounts($period),
             'reportsUrl' => route('admin.reports', ['report' => 'office', ...$period->toArray()]),
             'delayUrl' => route('admin.reports', ['report' => 'delay', ...$period->toArray()]),

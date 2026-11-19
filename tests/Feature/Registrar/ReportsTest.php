@@ -114,7 +114,7 @@ function reportRows(Report $report, ?ReportFilter $filter = null): array
     return collect($report->rows($filter ?? test()->filter))->values()->all();
 }
 
-test('REQ-34-01 the four indicators of a period', function () {
+test('REQ-34-01 the three indicators of a period', function () {
     $metrics = PerformanceMetrics::for($this->filter);
 
     expect($metrics)
@@ -122,13 +122,34 @@ test('REQ-34-01 the four indicators of a period', function () {
         ->eligible->toBe(3)
         ->onTime->toBe(1)
         ->overdue->toBe(2)
-        ->avgProcessingDays->toBe(8.0)
         ->and($metrics->onTimeRate())->toBe(33.3)
         ->and($metrics->overdueRate())->toBe(66.7);
 
     $this->actingAs($this->admin)->get(route('admin.dashboard', ['from' => '2026-10-01', 'to' => '2026-10-31']))
         ->assertOk()
-        ->assertSeeInOrder(['Total requests', '7', 'Released on time', '1', '33.3%', 'Overdue', '2', '66.7%', 'Average processing time', '8 working days']);
+        ->assertSeeInOrder(['Total requests', '7', 'Released on time', '1', '33.3%', 'Overdue', '2', '66.7%']);
+});
+
+test('REQ-34-09 the dashboard shows the average processing time per credential, longest first', function () {
+    $certificate = CredentialType::factory()->create(['name' => 'Certificate of Enrollment', 'processing_days' => 3]);
+    CredentialRequest::factory()->create([
+        'user_id' => $this->owner->id, 'credential_type_id' => $certificate->id, 'college_id' => $this->org->ccs->id,
+        'status' => RequestStatus::Released, 'submitted_at' => '2026-10-15 08:00', 'accepted_at' => '2026-10-15 09:00',
+        'due_at' => '2026-10-20 23:59:59', 'released_at' => '2026-10-16 10:00', 'processing_working_days' => 1,
+    ]);
+
+    // A (6) and B (10) are Transcripts released in October; E (September) is outside the period.
+    expect(PerformanceMetrics::byCredential($this->filter)->all())->toBe([
+        ['name' => 'Transcript of Records', 'released' => 2, 'days' => 8.0, 'standard' => 7],
+        ['name' => 'Certificate of Enrollment', 'released' => 1, 'days' => 1.0, 'standard' => 3],
+    ]);
+
+    $response = $this->actingAs($this->admin)->get(route('admin.dashboard', ['from' => '2026-10-01', 'to' => '2026-10-31']))
+        ->assertSeeInOrder(['Processing Time by Credential', 'Transcript of Records', '2', '8 working days', '7 working days',
+            'Certificate of Enrollment', '1', '1 working day', '3 working days']);
+
+    // Only the Transcript's 8 days are over its 7-day standard.
+    expect(substr_count($response->getContent(), 'data-over-standard'))->toBe(1);
 });
 
 test('REQ-07-11 requests within their period are not overdue; open past-due ones are in the delay analysis', function () {
@@ -150,7 +171,8 @@ test('REQ-34-02 the dashboard\'s office table, longest first, with what each off
 
     $this->actingAs($this->admin)->get(route('admin.dashboard', ['from' => '2026-10-01', 'to' => '2026-10-31']))
         ->assertSeeInOrder(['Processing Time by Office', 'College of Computer Studies', '3 working days', 'Office of the VP for Finance', '2 working days',
-            'Office of the Registrar', 'Office of the Chancellor', '5 working days'])
+            'Office of the Registrar', 'Office of the Chancellor', 'Processing Time by Credential'])
+        ->assertDontSee('Oldest pending')
         ->assertSeeHtml('data-slowest')
         ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->chancellor->id]));
 });
@@ -168,6 +190,7 @@ test('REQ-34-04 the dashboard shows nothing else', function () {
         ->assertDontSee('Needs the Registrar')->assertDontSee('Awaiting payment')
         ->assertDontSee('Overdue workload')->assertDontSee('Returned for correction')->assertDontSee('Average initial evaluation time')
         ->assertDontSee('Where Requests Are Waiting')->assertDontSee('Most Overdue')
+        ->assertDontSee('Average processing time')->assertDontSee('Oldest pending')
         ->assertDontSee('Every credential request at a glance.');
 });
 

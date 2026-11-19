@@ -9,8 +9,8 @@
         </x-slot:actions>
     </x-page-header>
 
-    {{-- The four indicators (REQ-34-01). --}}
-    <dl class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    {{-- The three indicators (REQ-34-01). --}}
+    <dl class="grid gap-3 sm:grid-cols-3">
         <div class="rounded-xl bg-primary-50 p-4">
             <dt class="text-sm text-zinc-600">{{ __('Total requests') }}</dt>
             <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->received }}</dd>
@@ -22,10 +22,6 @@
         <div @class(['rounded-xl p-4', 'bg-red-50' => $metrics->overdue > 0, 'bg-primary-50' => $metrics->overdue === 0])>
             <dt @class(['text-sm', 'text-red-800' => $metrics->overdue > 0, 'text-zinc-600' => $metrics->overdue === 0])>{{ __('Overdue') }}</dt>
             <dd @class(['text-2xl font-bold tabular-nums', 'text-red-800' => $metrics->overdue > 0, 'text-primary' => $metrics->overdue === 0])>{{ $metrics->overdue }} <span class="text-base font-semibold">/ {{ $metrics->overdueRate() === null ? '—' : $metrics->overdueRate().'%' }}</span></dd>
-        </div>
-        <div class="rounded-xl bg-primary-50 p-4">
-            <dt class="text-sm text-zinc-600">{{ __('Average processing time') }}</dt>
-            <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->avgProcessingDays === null ? '—' : trans_choice(':count working day|:count working days', $metrics->avgProcessingDays) }}</dd>
         </div>
     </dl>
 
@@ -39,14 +35,13 @@
             @php($maxDays = max(1, (float) $offices->max('days')))
             @php($slowest = $offices->count() > 1 && $offices->first()['days'] !== null ? $offices->first()['id'] : null)
             <div class="overflow-x-auto rounded-xl border border-secondary/50">
-                <table class="w-full min-w-[36rem] text-sm">
+                <table class="w-full min-w-[30rem] text-sm">
                     <thead class="bg-primary-50 text-start text-zinc-600">
                         <tr>
                             <th scope="col" class="p-3 text-start font-medium">{{ __('Office') }}</th>
                             <th scope="col" class="p-3 text-start font-medium">{{ __('Avg per document') }}</th>
                             <th scope="col" class="p-3 text-end font-medium">{{ __('Done') }}</th>
                             <th scope="col" class="p-3 text-end font-medium">{{ __('Pending now') }}</th>
-                            <th scope="col" class="p-3 text-end font-medium">{{ __('Oldest pending') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-secondary/40">
@@ -73,7 +68,39 @@
                                         0
                                     @endif
                                 </td>
-                                <td class="p-3 text-end tabular-nums">{{ $office['oldest'] === null ? '—' : trans_choice(':count working day|:count working days', $office['oldest']) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </section>
+
+    {{-- Average processing time per credential, longest first (REQ-34-09). --}}
+    <section aria-labelledby="credentials-heading" class="space-y-3">
+        <h2 id="credentials-heading" class="text-lg font-semibold text-primary">{{ __('Processing Time by Credential') }}</h2>
+
+        @if ($credentials->isEmpty())
+            <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No credentials released in this period.') }}</p>
+        @else
+            <div class="overflow-x-auto rounded-xl border border-secondary/50">
+                <table class="w-full min-w-[30rem] text-sm">
+                    <thead class="bg-primary-50 text-start text-zinc-600">
+                        <tr>
+                            <th scope="col" class="p-3 text-start font-medium">{{ __('Credential') }}</th>
+                            <th scope="col" class="p-3 text-end font-medium">{{ __('Released') }}</th>
+                            <th scope="col" class="p-3 text-end font-medium">{{ __('Avg processing') }}</th>
+                            <th scope="col" class="p-3 text-end font-medium">{{ __('Standard') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-secondary/40">
+                        @foreach ($credentials as $credential)
+                            @php($over = $credential['days'] > $credential['standard'])
+                            <tr>
+                                <th scope="row" class="p-3 text-start font-medium text-ink">{{ $credential['name'] }}</th>
+                                <td class="p-3 text-end tabular-nums">{{ $credential['released'] }}</td>
+                                <td @class(['p-3 text-end font-semibold tabular-nums', 'text-red-700' => $over, 'text-ink' => ! $over]) @if ($over) data-over-standard @endif>{{ trans_choice(':count working day|:count working days', $credential['days']) }}</td>
+                                <td class="p-3 text-end tabular-nums text-zinc-600">{{ trans_choice(':count working day|:count working days', $credential['standard']) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
