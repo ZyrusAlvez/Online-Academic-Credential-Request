@@ -10,6 +10,7 @@ use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use App\Models\CredentialRequest;
 use App\Models\OfficeVisit;
+use App\Models\RequestEvent;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -41,11 +42,15 @@ final class StageQueue
             RegistrarQueue::Evaluation => $query
                 ->whereIn('status', $waiting ? RequestStatus::waitingForRequester() : [RequestStatus::Submitted, RequestStatus::UnderEvaluation])
                 ->orderBy('submitted_at')->orderBy('id'),
-            // Proofs to verify; the requests still awaiting payment wait apart (REQ-16-03).
+            // Proofs to verify; the requests still awaiting payment wait apart (REQ-16-03). Oldest
+            // first by when each entered its status, from the ledger: `updated_at` moves on any edit.
             RegistrarQueue::Payment => $query
                 ->where('request_type', $requestType)
                 ->where('status', $waiting ? RequestStatus::AwaitingPayment : RequestStatus::PaymentVerification)
-                ->orderBy('updated_at')->orderBy('id'),
+                ->orderBy(RequestEvent::query()->selectRaw('max(created_at)')
+                    ->whereColumn('request_events.credential_request_id', 'credential_requests.id')
+                    ->whereColumn('request_events.to_status', 'credential_requests.status'))
+                ->orderBy('id'),
             // The papers an office finished, waiting for the Registrar to collect (REQ-32-02).
             RegistrarQueue::Outgoing => $query
                 ->with(['steps:id,credential_request_id,department_id,position,status', 'steps.department:id,name', 'openVisit.returnedTo:id,name'])
