@@ -27,6 +27,12 @@ requester) and about six months of generated activity (spec 31): about 550 reque
 status and at every office, from about 60 generated requester accounts. It takes a minute or two.
 `DEMO_REQUESTERS` and `DEMO_APPLICATIONS` in `.env` change the amount (defaults 60 and 400).
 
+The data is dated around the moment it is loaded. To load it ahead of a presentation, date it to
+the presentation instead: `php artisan app:reset-demo --as-of="2026-11-20 08:00"` (or `DEMO_AS_OF`
+in `.env`). Pick a moment before the presentation starts: nothing is dated after it, and around
+that day some credentials are overdue by 1, 3 and 5 working days, some are due that day and on
+the next two working days, and new applications arrive that morning (spec 31).
+
 Automated tests use their own database, `uphsl_credential_tracker_testing`, so running them never
 touches your local or staging data.
 

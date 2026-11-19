@@ -29,4 +29,14 @@ the data only, so the dashboard, reports, queues and their page limits can be se
   workflow reaches, and every office SHALL hold documents both received and on their way to it
   (the Office of the Registrar only received ones, REQ-32-09); some requests SHALL be overdue.
 - **REQ-31-05** THE generated history SHALL send no notifications or emails, SHALL never be dated
-  after the moment it is loaded, and SHALL come out the same on every run.
+  after the moment it is loaded (or the as-of moment, REQ-31-06), and SHALL come out the same on
+  every run.
+- **REQ-31-06** `app:reset-demo --as-of="2026-11-20 08:00"` (or `DEMO_AS_OF`) SHALL date the demo
+  data as if it were loaded at that moment, so it can be loaded the day before a presentation and
+  still be about the day itself. Without it, the moment of loading is used. An as-of that cannot be
+  read SHALL stop the command before anything is wiped. *(User's request, 2026-11-19: presentation
+  on 2026-11-20.)*
+- **REQ-31-07** WHATEVER the amount, THE demo data SHALL include, around the as-of day, credentials
+  being processed at an office whose due date is 5, 3 and 1 working days past, the day itself, and
+  the next 1 and 2 working days, two of each; and applications submitted and under evaluation that
+  day.
