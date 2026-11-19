@@ -129,6 +129,8 @@ Identity code:
 - Guest routes `auth.google.redirect` and `auth.google.callback` (throttled 10/min) on
   `Auth\GoogleController`, which 404s while the keys are missing; `App\Actions\Auth\SignInWithGoogle`
   finds by Google ID, then by email, else creates; it trusts only `email_verified === true`.
+- The redirect sends `prompt=select_account`: without it Google silently reuses the browser's
+  signed-in account after a log-out, so the user could never pick another one.
 - `<x-google-sign-in>` renders the button on the log-in and sign-up pages when configured.
 
 - Password rules (REQ-01-03) live in one place, `Password::defaults()` in `AppServiceProvider`:
