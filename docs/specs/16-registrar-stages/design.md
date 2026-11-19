@@ -53,7 +53,7 @@ official receipt number; `payment_proofs.official_receipt_no` keeps the numbers 
 | `verifyPaymentAndAccept(request, registrar, ?remarks)` | payment_verification → accepted_for_processing | the proof becomes verified; no checklist, no receipt number (2026-11-16) |
 | `rejectPayment` | payment_verification → awaiting_payment | the proof becomes rejected with the remarks |
 | `approveFinalCheck(request, registrar, ?remarks)` | for_final_approval → ready_for_release | completes the final-check visit (`completeVisit`) |
-| `release(request, registrar, recipientType, ?representativeId)` | ready_for_release → released | the name comes from the owner or the representative |
+| `release(request, registrar, recipientType, ?representativeId, ?remarks, ?representativeName)` | ready_for_release → released | the name comes from the owner, the verified representative, or, with no representative id, the name typed at the counter (no `request_representative_id`; history says "SPA and IDs checked at release", REQ-16-28) |
 
 `forward()` moves `accepted_for_processing` to `in_progress` when it sends the document on from an
 office (REQ-16-18). `acceptReceipt()` only sets `for_final_approval` for the final check, or

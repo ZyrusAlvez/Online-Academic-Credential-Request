@@ -189,6 +189,13 @@ This replaces:
   recorded. A representative not yet verified SHALL be verifiable or rejectable, with a reason, on
   this page. (Representatives are declared on New Request only since 2026-11-13, REQ-11-01, so
   they are normally verified during the evaluation.)
+- **REQ-16-28** THE "A representative" choice on Release SHALL always be selectable. WHEN it is
+  chosen THE SYSTEM SHALL offer the request's verified representatives, if any, and "Someone else";
+  for someone else (or when there is no verified representative) the registrar SHALL type the
+  representative's full name, which becomes the recipient's name, and the history SHALL say the
+  SPA and IDs were checked at release. WHILE a representative is chosen THE SYSTEM SHALL remind the
+  registrar to confirm the SPA and the document owner's valid ID, and the representative's valid
+  ID. *(User's decision, 2026-11-20.)*
 
 ### Removed registrar actions
 - **REQ-16-21** THE SYSTEM SHALL NOT let the registrar change a request's college, cancel a

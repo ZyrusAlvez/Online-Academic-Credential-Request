@@ -45,3 +45,7 @@
 - [x] After a decision, back to the queue's list as left: `ReturnsToList` concern on the
       Registrar, Department and Cashier pages; breadcrumb uses it too (REQ-16-26, REQ-24-06, REQ-25-05)
 - [x] Pest tests for the changed REQ-16-26, REQ-24-06, REQ-25-05
+- [ ] Release to a representative typed at the counter: `release(..., ?representativeName)`,
+      "A representative" always selectable, "Someone else" and the name field, the SPA/ID reminder
+      (REQ-16-28, REQ-11-07)
+- [ ] Pest tests for REQ-16-28 and the changed REQ-11-07
