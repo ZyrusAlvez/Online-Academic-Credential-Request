@@ -97,7 +97,7 @@ class NonWorkingDayForm extends Form
         $workWeek = array_map(intval(...), (array) config('uphsl.work_week', [1, 2, 3, 4, 5, 6]));
         $taken = NonWorkingDay::query()->whereBetween('date', [$validated['date'], $validated['until']])
             ->pluck('date')->map(fn ($date) => $date->format('Y-m-d'))->all();
-        $dates = collect(CarbonPeriod::create($validated['date'], $validated['until']))
+        $dates = collect(CarbonPeriod::create($validated['date'], $validated['until'])->toArray())
             ->filter(fn ($day): bool => in_array($day->dayOfWeekIso, $workWeek, true) && ! in_array($day->format('Y-m-d'), $taken, true))
             ->map(fn ($day): string => $day->format('Y-m-d'))
             ->values();
