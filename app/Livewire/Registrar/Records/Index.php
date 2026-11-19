@@ -7,6 +7,7 @@ use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
+use App\Queries\DashboardScope;
 use App\Queries\RegistrarRequestFilter;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Title;
@@ -37,6 +38,19 @@ class Index extends Component
     #[Url(except: '')]
     public string $office = '';
 
+    /** The dashboard number this list was opened from, with its period and office (REQ-34-17). */
+    #[Url(except: '')]
+    public string $scope = '';
+
+    #[Url(except: '')]
+    public string $from = '';
+
+    #[Url(except: '')]
+    public string $to = '';
+
+    #[Url(except: '')]
+    public string $at = '';
+
     public function mount(): void
     {
         $this->authorize('viewAny', CredentialRequest::class);
@@ -49,10 +63,20 @@ class Index extends Component
         }
     }
 
+    /** The chip's ✕: back to every request (REQ-34-17). */
+    public function clearScope(): void
+    {
+        $this->scope = $this->from = $this->to = $this->at = '';
+        $this->resetPage();
+    }
+
     public function render(): View
     {
+        $scope = new DashboardScope($this->scope, $this->from, $this->to, $this->at);
+
         // One row per application with a credential that matches the filters (REQ-27-08).
         $matching = (new RegistrarRequestFilter($this->search, $this->status, $this->type, $this->office))->query()
+            ->when($scope->active(), fn ($q) => $scope->apply($q))
             ->reorder()->select('application_id');
 
         $requests = CredentialRequest::query()
@@ -68,6 +92,7 @@ class Index extends Component
 
         return view('livewire.registrar.records.index', [
             'requests' => $requests,
+            'scopeLabel' => $scope->active() ? $scope->label() : null,
             'statuses' => RequestStatus::cases(),
             'types' => CredentialType::active()->orderBy('name')->get(['id', 'name']),
             'offices' => Department::active()->orderBy('name')->get(['id', 'name']),

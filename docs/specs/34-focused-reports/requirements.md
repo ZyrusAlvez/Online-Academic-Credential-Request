@@ -32,15 +32,15 @@ longest-pending column.
 - **REQ-34-01** THE Dashboard SHALL show, for a chosen period (this month by default), three
   indicators: Total requests (received in the period); and Ready on time and Overdue, each as
   a count and a percentage of the eligible requests (REQ-07-11). The average processing time is
-  per credential (REQ-34-09). Total requests SHALL open the Transaction Report of the period, and
-  Overdue the Delay Analysis report; Ready on time is not a link.
+  per credential (REQ-34-09). Total requests and Ready on time SHALL open Records with those
+  requests (REQ-34-17); Overdue SHALL open the Delay Analysis report.
 - **REQ-34-02** THE Dashboard SHALL show one office table, sorted by the longest average first.
   For each office it shows: the average working days per document finished in the period, the
   documents done, and the documents pending (columns Office, Avg per document, Done, Pending). A
   document forwarded but not yet received is pending at the office that sent it (REQ-17-18). No
-  office is highlighted. Each pending count SHALL open Records filtered to that office: pending is
-  about now, and Records is the live list (user's decision, 2026-11-20). The other cells are not
-  links.
+  office is highlighted. Each pending count SHALL open Records filtered to that office. The
+  office's name and average SHALL open Records with the requests the office finished (done or
+  returned) in the period, and Done those it completed (REQ-34-17).
 - **REQ-34-03** THE Dashboard SHALL show the causes of delay for overdue requests due in the
   period: the count per cause, using the same causes as the Delay Analysis report (REQ-07-18), all
   four causes of REQ-34-10 listed, largest first. Each cause SHALL have an information icon to the
@@ -55,7 +55,16 @@ longest-pending column.
   type with a request made ready for release in the period, it shows how many, their average
   working days from acceptance to ready for release (REQ-07-11's formula, per credential; Proposed Workflow
   XIII.2), and the credential's standard processing days. Longest average first. An average above
-  the standard SHALL be marked. Its cells are not links.
+  the standard SHALL be marked. The credential's name, count and average SHALL open Records with
+  that credential's requests made ready in the period (REQ-34-17).
+- **REQ-34-17** WHEN Records is opened from a dashboard number, it SHALL list the requests behind
+  that number and show them as one chip above the list ("Ready on time · due Oct 1 – Oct 31"),
+  which clears the selection. The selections are: submitted in the period; due in the period and
+  ready on time; made ready in the period (with a credential); finished, or done, at an office in
+  the period. Records' own filters are unchanged. Records lists one row per application with a
+  line per credential (REQ-27-08), so an application with several matching credentials is one
+  row. Overdue and the causes stay on Delay Analysis. *(User's decision, 2026-11-20: the
+  dashboard drills into Records, which holds the specifics.)*
 - **REQ-34-10** THE cause of a delay SHALL be one of four, decided by the office holding the
   document (or, once it has left the offices, the office where it stayed longest):
   - Registrar / evaluation: the Office of the Registrar (verifying records, preparing the

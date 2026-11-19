@@ -90,12 +90,29 @@ carry `[&>div]:justify-center`, so they are centered like their values.
 
 | Dashboard number | Opens |
 |---|---|
-| Total requests | `admin.reports?report=transactions` with the period |
+| Total requests | `records?scope=submitted&from&to` |
+| Ready on time | `records?scope=on_time&from&to` |
 | Overdue | `admin.reports?report=delay` with the period |
 | Cause name / count | `admin.reports?report=delay&show=<cause value>` |
+| Office name / average | `records?scope=finished&at=ID&from&to` |
+| Office Done | `records?scope=done&at=ID&from&to` |
 | Office Pending | `records?status=processing&office=ID` |
+| Credential name / Ready / average | `records?scope=ready&type=ID&from&to` |
 
-Ready on time, the office name, average and Done, and the credential table are plain numbers.
+## Records' dashboard selection (REQ-34-17)
+`App\Queries\DashboardScope` narrows a request query to the selection, using a `ReportFilter`
+for the dates, with the same conditions as the dashboard's numbers:
+
+- `submitted`: `submitted_at` in the period (Total requests).
+- `on_time`: `PerformanceMetrics`' eligible conditions (accepted, not cancelled or declined,
+  `effective_due_at` from the start to `judgedUntil()`) and `ready_at <= effective_due_at`.
+- `ready`: `ready_at` in the period with a `processing_working_days` (`byCredential`).
+- `finished` / `done`: a visit at office `at` completed in the period with status Completed or
+  Returned / Completed (`DepartmentReport::offices`).
+
+`Registrar\Records\Index` keeps `scope`, `from`, `to` and `at` in the URL, applies them to the
+matching query, and shows `DashboardScope::label()` as a chip whose ✕ (`clearScope`) removes them.
+There is no control to set them on the page.
 
 ## Dashboard
 `Admin\Dashboard` passes `metrics`, `offices`, `credentials`, `causes` and `period`. The view has
