@@ -8,6 +8,6 @@
 - [x] Dashboard: four tiles, office table, causes of delay; nothing else (REQ-34-01..04)
 - [x] Supersede REQ-07-03, 04, 05, 06, 12..17, 19 and REQ-20-12; reword REQ-07-11, REQ-18-08
 - [x] Pest tests for REQ-34-01..08; update the tests that used the removed reports
-- [ ] Dashboard: three tiles, no oldest-pending column (REQ-34-01, 02, 04)
-- [ ] `PerformanceMetrics::byCredential()` and the credential table (REQ-34-09)
-- [ ] Pest tests for REQ-34-09; update REQ-34-01, 02, 04
+- [x] Dashboard: three tiles, no oldest-pending column (REQ-34-01, 02, 04)
+- [x] `PerformanceMetrics::byCredential()` and the credential table (REQ-34-09)
+- [x] Pest tests for REQ-34-09; update REQ-34-01, 02, 04
