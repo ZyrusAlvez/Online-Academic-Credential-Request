@@ -134,6 +134,16 @@ test('REQ-25-05 the cashier returns a proof with remarks, and declines with rema
     expect($request->fresh()->status)->toBe(RequestStatus::Declined);
 });
 
+test('REQ-25-05 after a decision the list goes back as the cashier left it', function () {
+    $request = paidOnline($this);
+    $list = route('cashier.payments', ['search' => $request->reference_no]);
+
+    Livewire::withHeaders(['Referer' => $list])->actingAs($this->cashier)->test(Show::class, ['credentialRequest' => $request])
+        ->assertSeeHtml('href="'.e($list).'"')
+        ->call('approve')
+        ->assertRedirect($list);
+});
+
 test('REQ-25-05 a request with no payment to validate goes back to the list', function () {
     $request = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
 

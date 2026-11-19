@@ -17,7 +17,8 @@
 
 <div class="mx-auto max-w-4xl space-y-6">
     <flux:breadcrumbs>
-        <flux:breadcrumbs.item :href="route($queueRoute)" wire:navigate>{{ $queueLabel }}</flux:breadcrumbs.item>
+        {{-- Back to the list as it was left (REQ-16-26). --}}
+        <flux:breadcrumbs.item :href="$listUrl ?: route($queueRoute)" wire:navigate>{{ $queueLabel }}</flux:breadcrumbs.item>
         <flux:breadcrumbs.item>{{ $request->reference_no }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 

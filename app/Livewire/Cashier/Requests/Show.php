@@ -4,6 +4,7 @@ namespace App\Livewire\Cashier\Requests;
 
 use App\Enums\PaymentStatus;
 use App\Enums\RequestEventType;
+use App\Livewire\Concerns\ReturnsToList;
 use App\Livewire\Concerns\RunsTransitions;
 use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
@@ -19,6 +20,7 @@ use Livewire\Component;
  */
 class Show extends Component
 {
+    use ReturnsToList;
     use RunsTransitions;
     use TrimsInput;
 
@@ -31,11 +33,11 @@ class Show extends Component
     {
         $this->authorize('view', $credentialRequest);
         $this->credentialRequest = $credentialRequest;
+        $this->rememberList('cashier.payments');
 
         // Validated, returned or declined already: back to the list (REQ-25-05).
         if (! auth()->user()?->can('validatePayment', $credentialRequest)) {
-            session()->flash('notify', __(':ref has no payment to validate.', ['ref' => $credentialRequest->reference_no]));
-            $this->redirectRoute('cashier.payments', navigate: true);
+            $this->backToList(__(':ref has no payment to validate.', ['ref' => $credentialRequest->reference_no]));
         }
     }
 
@@ -86,9 +88,8 @@ class Show extends Component
         $this->validate(['remarks' => $rules], ['remarks.required' => 'Write your remarks; the requester sees them.']);
 
         if ($this->attempt($decision, $success)) {
-            // The request has left Payment Validation: back to the list with the message.
-            session()->flash('notify', $success);
-            $this->redirectRoute('cashier.payments', navigate: true);
+            // The request has left Payment Validation: back to the list as it was left (REQ-25-05).
+            $this->backToList($success);
         }
     }
 }

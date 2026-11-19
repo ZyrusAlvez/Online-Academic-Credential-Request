@@ -5,6 +5,7 @@ namespace App\Livewire\Department\Requests;
 use App\Enums\DepartmentQueue;
 use App\Enums\PaymentStatus;
 use App\Livewire\Concerns\ActsOnVisits;
+use App\Livewire\Concerns\ReturnsToList;
 use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use App\Support\DepartmentLink;
@@ -23,6 +24,7 @@ class Show extends Component
     use ActsOnVisits {
         attempt as runTransition;
     }
+    use ReturnsToList;
     use TrimsInput;
 
     #[Locked]
@@ -44,12 +46,16 @@ class Show extends Component
 
         if ($queue !== null && $this->currentQueue !== (is_string($queue) ? DepartmentQueue::from($queue) : $queue)) {
             $this->redirect(DepartmentLink::to($credentialRequest, $this->departmentId()), navigate: true);
+
+            return;
         }
+
+        $this->rememberList($this->currentQueue->routeName());
     }
 
     /**
-     * Run a transition; when it moves the request out of this list, go back to the list
-     * (REQ-24-06).
+     * Run a transition; when it moves the request out of this list, go back to the list as the
+     * user left it (REQ-24-06).
      */
     protected function attempt(Closure $transition, string $success): bool
     {
@@ -60,8 +66,7 @@ class Show extends Component
         $request = $this->credentialRequest->fresh();
 
         if ($request === null || DepartmentQueue::forRequest($request, $this->departmentId()) !== $this->currentQueue) {
-            session()->flash('notify', $success);
-            $this->redirect(route($this->currentQueue->routeName()), navigate: true);
+            $this->backToList($success);
         }
 
         return true;

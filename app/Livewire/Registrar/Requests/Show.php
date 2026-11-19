@@ -12,6 +12,7 @@ use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\ActsOnVisits;
+use App\Livewire\Concerns\ReturnsToList;
 use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use App\Models\RequestCheck;
@@ -36,6 +37,7 @@ class Show extends Component
     use ActsOnVisits {
         attempt as runTransition;
     }
+    use ReturnsToList;
     use TrimsInput;
 
     /** What the page shows, by the request's stage. */
@@ -128,12 +130,16 @@ class Show extends Component
 
         if ($follower || ($queue !== null && $current !== (is_string($queue) ? RegistrarQueue::from($queue) : $queue))) {
             $this->redirect(RegistrarLink::to($credentialRequest), navigate: true);
+
+            return;
         }
+
+        $this->rememberList($current?->routeName() ?? 'records');
     }
 
     /**
-     * Run a transition; when it moves the request to another queue, follow it there so the address
-     * and the sidebar stay right (REQ-16-26).
+     * Run a transition; when it moves the request out of the queue the page is under, go back to
+     * that queue's list as the registrar left it (REQ-16-26).
      */
     protected function attempt(Closure $transition, string $success): bool
     {
@@ -143,9 +149,8 @@ class Show extends Component
 
         $request = $this->credentialRequest->fresh();
 
-        if ($request !== null && RegistrarQueue::forRequest($request) !== $this->currentQueue) {
-            session()->flash('notify', $success);
-            $this->redirect(RegistrarLink::to($request), navigate: true);
+        if ($request === null || RegistrarQueue::forRequest($request) !== $this->currentQueue) {
+            $this->backToList($success);
         }
 
         return true;

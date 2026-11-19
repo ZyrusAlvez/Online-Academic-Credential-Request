@@ -183,6 +183,17 @@ test('REQ-24-05 Incoming acknowledges the ticked documents at once; the button w
 
 // ── The request page ───────────────────────────────────────────────────────────────────────
 
+test('REQ-24-06 after an action the list goes back as the office left it', function () {
+    $request = sentToDean();
+    $list = route('department.incoming', ['search' => $request->reference_no]);
+
+    Livewire::withHeaders(['Referer' => $list])->actingAs($this->dean)
+        ->test(OfficeShow::class, ['credentialRequest' => $request, 'queue' => 'incoming'])
+        ->assertSeeHtml('href="'.e($list).'"')
+        ->call('acceptReceipt')
+        ->assertRedirect($list);
+});
+
 test('REQ-24-06 a request opens under its list, an action goes back to that list, and the former address leads there', function () {
     $request = sentToDean();
 
