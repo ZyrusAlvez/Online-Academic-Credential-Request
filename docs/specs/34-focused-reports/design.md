@@ -59,13 +59,22 @@ then by name (REQ-34-09).
 
 ## Filters per report (REQ-34-13)
 `Report::filters()` lists which of `type`, `evaluator` and `office` a report uses. `Report::shows()`
-gives its Show options (`value => label`), or `[]` for none. `Admin\Reports\Index` renders only
+gives its own filter's options (`value => label`, the `''` key first, naming what the report
+lists without it), or `[]` for none; `Report::showLabel()` names that filter (Requests, Cause,
+Result). `Admin\Reports\Index` renders only
 those selects, and `filter()` builds the `ReportFilter` from those values alone, so a leftover URL
 parameter never narrows a report that does not show it. `ReportFilter::$show` carries the chosen
 option, and changing the report clears it.
 
 `ReportKind::listed()` holds the four reports of the dropdown. `ReportKind::OfficeDocuments`
 (`office-documents`) is reachable by URL only. While it is open, the dropdown also shows its option.
+
+## Sorting and pages (REQ-34-14)
+`Admin\Reports\Index` keeps `sort` (the column index) and `direction` in the URL. It collects the
+report's rows, sorts them in PHP (numbers by value, other cells naturally and case-insensitively,
+empty cells last in both directions), and pages them 50 at a time with a `LengthAwarePaginator`
+on Livewire's page (`WithPagination`), shown by `flux:table :paginate`. Changing the report clears
+`show` and `sort`; changing any filter or the sort resets the page.
 
 ## Office Documents (`OfficeDocumentsReport`, REQ-34-12)
 - Finished rows: `$filter->visits()` completed in the period with status Completed or Returned,
