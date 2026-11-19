@@ -17,7 +17,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 
 /**
- * The client's ten reports with shared filters (REQ-07-13..20). There is no CSV (REQ-16-08).
+ * The four reports with shared filters (REQ-34-05, REQ-07-20). There is no CSV (REQ-16-08).
  */
 #[Title('Reports')]
 class Index extends Component
@@ -26,7 +26,7 @@ class Index extends Component
     public const PAGE_ROWS = 200;
 
     #[Url]
-    public string $report = 'daily';
+    public string $report = 'office';
 
     #[Url(except: '')]
     public string $from = '';
@@ -47,13 +47,15 @@ class Index extends Component
     {
         $this->authorize('viewAny', CredentialRequest::class);
 
+        // A removed report's old link opens Office Performance (REQ-34-05).
+        $this->report = (ReportKind::tryFrom($this->report) ?? ReportKind::Office)->value;
         $this->from = $this->from !== '' ? $this->from : now()->startOfMonth()->format('Y-m-d');
         $this->to = $this->to !== '' ? $this->to : now()->endOfMonth()->format('Y-m-d');
     }
 
     public function render(): View
     {
-        $kind = ReportKind::tryFrom($this->report) ?? ReportKind::Daily;
+        $kind = ReportKind::tryFrom($this->report) ?? ReportKind::Office;
         $current = $kind->report();
         $filter = $this->filter();
         $rows = $current->rows($filter);

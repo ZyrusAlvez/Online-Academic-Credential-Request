@@ -118,18 +118,16 @@ test('REQ-18-07 the admin opens a request\'s valid ID and proof of payment', fun
 
 // ── Dashboard ───────────────────────────────────────────────────────────────────────────────
 
-test('REQ-18-08 the dashboard links open Records and it has no Office of the Registrar queue', function () {
+test('REQ-18-08 the dashboard links open Reports and it has no Office of the Registrar queue', function () {
     submitRequest($this->owner, $this->org->free);
 
     $this->actingAs($this->admin)->get(route('admin.dashboard'))->assertOk()
-        ->assertSee(route('records', ['status' => 'needs_registrar']), false)
-        ->assertSee(route('records', ['status' => 'waiting_for_requester']), false)
-        ->assertSee(route('records', ['status' => 'overdue']), false)
         ->assertSee(route('admin.reports'), false)
+        ->assertDontSee(route('records', ['status' => 'needs_registrar']), false)
         ->assertDontSee('Office of the Registrar queue')
         ->assertDontSee(route('registrar.evaluation'), false);
 
-    // The tile's filter lists what it counted.
+    // The status counts are Records filters now.
     Livewire::actingAs($this->admin)->test(Records::class)
         ->set('status', 'needs_registrar')
         ->assertSee(CredentialRequest::sole()->reference_no);

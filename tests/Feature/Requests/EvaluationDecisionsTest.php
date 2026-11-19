@@ -19,9 +19,6 @@ use App\Models\CredentialRequest;
 use App\Models\RequestEvent;
 use App\Models\User;
 use App\Notifications\RequestActivity;
-use App\Reports\ComplianceReport;
-use App\Reports\EvaluatorReport;
-use App\Reports\ReportFilter;
 use App\Services\RequestWorkflow;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -551,21 +548,6 @@ test('REQ-20-11 where the request is, in the requester\'s and in the staff\'s wo
         ->and($clarify->staffWhereabouts())->toBe('Waiting for the requester to correct the request')
         ->and($visit->whereabouts())->toBe('Waiting for you at the Office of the Registrar')
         ->and($visit->staffWhereabouts())->toBe('Waiting for the requester at the Office of the Registrar');
-});
-
-test('REQ-20-12 the reports keep the two returns apart', function () {
-    $clarify = returnedForClarification(submitRequest($this->owner, $this->org->free), [CheckItem::Identity], 'The ID photo is blurred.');
-    $visit = sentToOffice(submitRequest($this->owner, $this->org->tor), ['Completed clearance'], 'Bring it.');
-
-    $rows = collect((new ComplianceReport)->rows(new ReportFilter))->keyBy(0);
-    expect($rows[$clarify->reference_no][4])->toBe('Returned for clarification')
-        ->and($rows[$clarify->reference_no][5])->toBe('Rejected: User Identity Verification – The ID photo is blurred.')
-        ->and($rows[$visit->reference_no][4])->toBe('Pending compliance')
-        ->and($rows[$visit->reference_no][5])->toBe('Required: Completed clearance');
-
-    // Evaluator, taken up, complete, returned for clarification, sent for compliance, declined…
-    expect(collect((new EvaluatorReport)->rows(new ReportFilter))->firstWhere(0, $this->registrar->name))
-        ->toMatchArray([0 => $this->registrar->name, 1 => 2, 2 => 0, 3 => 1, 4 => 1, 5 => 0]);
 });
 
 test('REQ-20-13 there is no Reopen evaluation and no online resubmit of an office visit; both can be cancelled', function () {
