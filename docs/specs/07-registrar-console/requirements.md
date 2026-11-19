@@ -38,9 +38,10 @@ office filter (REQ-07-07) serve both the Registrar and the Admin, at `/records` 
 - ~~REQ-07-04~~ *Superseded by REQ-34-01 (2026-11-19):* four indicators only.
 - **REQ-07-11** THE SYSTEM SHALL compute the indicators with the client's formulas: eligible
   requests are accepted requests (not cancelled or declined) whose effective due date falls in the
-  period and not after today; on-time % = released on or before the due date ÷ eligible × 100;
-  overdue % = not released by the due date ÷ eligible × 100; average processing time = working days
-  from acceptance to release ÷ requests released in the period; average office time = working days
+  period and not after today; on-time % = ready for release on or before the due date ÷ eligible
+  × 100; overdue % = not ready for release by the due date ÷ eligible × 100; average processing
+  time = working days from acceptance to ready for release ÷ requests made ready in the period
+  (REQ-34-11: the BRD's "released" is read as ready for release); average office time = working days
   across completed office visits ÷ completed visits. Requests still within their period SHALL NOT
   count as overdue; open requests past their due date are listed in the Delay Analysis report
   (REQ-07-18) and counted as "still pending" in the Monthly Summary (REQ-34-08).

@@ -29,11 +29,13 @@ use Livewire\Livewire;
 /*
 | One hand-computed month (October 2026; "now" is Tue Oct 20, 12:00):
 |
-|   A  submitted Oct 2, accepted Oct 2, due Oct 10, released Oct 9  → on time, 6 working days
-|   B  submitted Oct 3, accepted Oct 3, due Oct 12, released Oct 15 → late, 10 working days
+| On time and late are judged when the credential is ready for release (REQ-34-11).
+|
+|   A  submitted Oct 2, accepted Oct 2, due Oct 10, ready Oct 8, released Oct 9  → on time, 6 working days
+|   B  submitted Oct 3, accepted Oct 3, due Oct 12, ready Oct 14, released Oct 15 → late, 10 working days
 |   C  submitted Oct 5, accepted Oct 5, due Oct 14, still at the Chancellor → overdue (open)
 |   D  submitted Oct 10, accepted Oct 10, due Oct 25 → not yet due: not eligible
-|   E  submitted Sep 20, released Sep 29 → outside the period
+|   E  submitted Sep 20, ready Sep 28, released Sep 29 → outside the period
 |   F  submitted Oct 6, accepted Oct 6, due Oct 12, cancelled Oct 7 → excluded
 |   G  submitted Oct 18, not evaluated yet
 |   H  submitted Oct 19 08:00, evaluation started 14:00, pending compliance (Form 137)
@@ -74,7 +76,7 @@ beforeEach(function () {
         ['processing_working_days' => 10, 'evaluation_started_at' => '2026-10-03 12:00', 'evaluated_by' => $this->registrar->id, 'requirements_completed_at' => '2026-10-03 13:00']);
     $this->c = $make('C', 'in_progress', ['submitted' => '2026-10-05 08:00', 'accepted' => '2026-10-05 09:00', 'due' => '2026-10-14 23:59:59']);
     $this->d = $make('D', 'in_progress', ['submitted' => '2026-10-10 08:00', 'accepted' => '2026-10-10 09:00', 'due' => '2026-10-25 23:59:59']);
-    $make('E', 'released', ['submitted' => '2026-09-20 08:00', 'accepted' => '2026-09-20 09:00', 'due' => '2026-09-30 23:59:59', 'released' => '2026-09-29 10:00'], ['processing_working_days' => 7]);
+    $make('E', 'released', ['submitted' => '2026-09-20 08:00', 'accepted' => '2026-09-20 09:00', 'due' => '2026-09-30 23:59:59', 'ready' => '2026-09-28 10:00', 'released' => '2026-09-29 10:00'], ['processing_working_days' => 7]);
     $make('F', 'cancelled', ['submitted' => '2026-10-06 08:00', 'accepted' => '2026-10-06 09:00', 'due' => '2026-10-12 23:59:59', 'cancelled' => '2026-10-07 10:00']);
     $this->g = $make('G', 'submitted', ['submitted' => '2026-10-18 08:00']);
     $this->h = $make('H', 'pending_compliance', ['submitted' => '2026-10-19 08:00'], ['evaluation_started_at' => '2026-10-19 14:00', 'evaluated_by' => $this->registrar->id]);
@@ -128,7 +130,7 @@ test('REQ-34-01 the three indicators of a period', function () {
 
     $this->actingAs($this->admin)->get(route('admin.dashboard', ['from' => '2026-10-01', 'to' => '2026-10-31']))
         ->assertOk()
-        ->assertSeeInOrder(['Total requests', '7', 'Released on time', '1', '33.3%', 'Overdue', '2', '66.7%']);
+        ->assertSeeInOrder(['Total requests', '7', 'Ready on time', '1', '33.3%', 'Overdue', '2', '66.7%']);
 });
 
 test('REQ-34-09 the dashboard shows the average processing time per credential, longest first', function () {
@@ -136,13 +138,13 @@ test('REQ-34-09 the dashboard shows the average processing time per credential, 
     CredentialRequest::factory()->create([
         'user_id' => $this->owner->id, 'credential_type_id' => $certificate->id, 'college_id' => $this->org->ccs->id,
         'status' => RequestStatus::Released, 'submitted_at' => '2026-10-15 08:00', 'accepted_at' => '2026-10-15 09:00',
-        'due_at' => '2026-10-20 23:59:59', 'released_at' => '2026-10-16 10:00', 'processing_working_days' => 1,
+        'due_at' => '2026-10-20 23:59:59', 'ready_at' => '2026-10-16 09:00', 'released_at' => '2026-10-16 10:00', 'processing_working_days' => 1,
     ]);
 
-    // A (6) and B (10) are Transcripts released in October; E (September) is outside the period.
+    // A (6) and B (10) are Transcripts ready in October; E (September) is outside the period.
     expect(PerformanceMetrics::byCredential($this->filter)->all())->toBe([
-        ['name' => 'Transcript of Records', 'released' => 2, 'days' => 8.0, 'standard' => 7],
-        ['name' => 'Certificate of Enrollment', 'released' => 1, 'days' => 1.0, 'standard' => 3],
+        ['name' => 'Transcript of Records', 'ready' => 2, 'days' => 8.0, 'standard' => 7],
+        ['name' => 'Certificate of Enrollment', 'ready' => 1, 'days' => 1.0, 'standard' => 3],
     ]);
 
     $response = $this->actingAs($this->admin)->get(route('admin.dashboard', ['from' => '2026-10-01', 'to' => '2026-10-31']))
@@ -160,6 +162,18 @@ test('REQ-07-11 requests within their period are not overdue; open past-due ones
         ->and(collect(reportRows(new DelayReport))->pluck(0)->all())->toContain($this->c->reference_no)->not->toContain($this->d->reference_no)
         ->and(PerformanceMetrics::for(new ReportFilter('2026-11-01', '2026-11-30')))->eligible->toBe(0)
         ->and(PerformanceMetrics::for(new ReportFilter('2026-11-01', '2026-11-30'))->onTimeRate())->toBeNull();
+});
+
+test('REQ-34-11 the clock stops at ready for release: an unclaimed credential ready in time is on time', function () {
+    $unclaimed = CredentialRequest::factory()->create([
+        'user_id' => $this->owner->id, 'credential_type_id' => $this->org->tor->id, 'college_id' => $this->org->ccs->id,
+        'status' => RequestStatus::ReadyForRelease, 'submitted_at' => '2026-10-05 08:00', 'accepted_at' => '2026-10-05 09:00',
+        'due_at' => '2026-10-15 23:59:59', 'ready_at' => '2026-10-15 10:00',   // still not claimed on the 20th
+    ]);
+
+    expect(PerformanceMetrics::for($this->filter))->eligible->toBe(4)->onTime->toBe(2)->overdue->toBe(2)
+        ->and(collect(reportRows(new DelayReport))->pluck(0)->all())->not->toContain($unclaimed->reference_no)
+        ->and(collect(reportRows(new TransactionReport))->keyBy(0)[$unclaimed->reference_no][9])->toBe('Yes');
 });
 
 test('REQ-34-02 the dashboard\'s office table, longest first, with what each office holds now', function () {
@@ -272,13 +286,13 @@ test('REQ-34-07 the transaction record lists each request of the period, on time
         ->merge(CredentialRequest::whereIn('purpose', ['F', 'D', 'G', 'H'])->orderBy('submitted_at')->pluck('reference_no'))->all())
         ->and($rows[$this->a->reference_no])->toBe([
             $this->a->reference_no, '2026-10-02', '2026-10-10', $this->a->requester_name, $this->a->program,
-            'Transcript of Records', '2026-10-09', 'Eva Luator', 'Yes', null,
+            'Transcript of Records', '2026-10-08', '2026-10-09', 'Eva Luator', 'Yes', null,
         ])
-        ->and(array_slice($rows[$this->b->reference_no], 8))->toBe(['Late', 'VP Finance documentary stamp'])
-        ->and(array_slice($rows[$this->c->reference_no], 8))->toBe(['Overdue', 'Pending signature'])
-        ->and(array_slice($rows[$this->d->reference_no], 8))->toBe(['Pending', null])
-        ->and($rows[$this->g->reference_no][8])->toBe('Pending')
-        ->and($rows->firstWhere(8, 'Cancelled'))->not->toBeNull();
+        ->and(array_slice($rows[$this->b->reference_no], 9))->toBe(['Late', 'VP Finance documentary stamp'])
+        ->and(array_slice($rows[$this->c->reference_no], 9))->toBe(['Overdue', 'Pending signature'])
+        ->and(array_slice($rows[$this->d->reference_no], 9))->toBe(['Pending', null])
+        ->and($rows[$this->g->reference_no][9])->toBe('Pending')
+        ->and($rows->firstWhere(9, 'Cancelled'))->not->toBeNull();
 
     $byEvaluator = new ReportFilter('2026-10-01', '2026-10-31', evaluator: (string) $this->registrar->id);
     expect(collect(reportRows(new TransactionReport, $byEvaluator))->pluck(0)->all())
@@ -289,7 +303,7 @@ test('REQ-34-08 the monthly summary\'s totals tie', function () {
     expect(reportRows(new MonthlySummaryReport))->toBe([['October 2026', 7, 3, 1, 1, 1, 33.3, 66.7, 8.0]]);
 
     $rows = reportRows(new MonthlySummaryReport, new ReportFilter('2026-09-01', '2026-10-31'));
-    expect($rows[0])->toBe(['September 2026', 2, 2, 1, 0, 1, 50.0, 50.0, 7.0])   // E on time; R past due, not yet claimed
+    expect($rows[0])->toBe(['September 2026', 2, 2, 1, 1, 0, 50.0, 50.0, 7.0])   // E ready on time; R ready Oct 1, after its due date
         ->and($rows)->toHaveCount(2)
         ->and(collect($rows)->every(fn (array $row) => $row[2] === $row[3] + $row[4] + $row[5]))->toBeTrue();
 });
@@ -299,8 +313,8 @@ test('REQ-07-18 the delay analysis separates the holding office from the cause',
 
     expect($rows)->toHaveCount(2)
         ->and($rows[$this->b->reference_no])->toBe([
-            $this->b->reference_no, 'Transcript of Records', '2026-10-03', '2026-10-12', '2026-10-15', '—', 'Released',
-            3, 0, 'VP Finance documentary stamp', null, null,   // late Tue–Thu; inferred from the slowest office
+            $this->b->reference_no, 'Transcript of Records', '2026-10-03', '2026-10-12', '2026-10-14', '—', 'Released',
+            2, 0, 'VP Finance documentary stamp', null, null,   // ready 2 days late (Tue, Wed); inferred from the slowest office
         ])
         ->and($rows[$this->c->reference_no])->toBe([
             $this->c->reference_no, 'Transcript of Records', '2026-10-05', '2026-10-14', null, 'Office of the Chancellor', 'In progress',

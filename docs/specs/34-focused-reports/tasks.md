@@ -14,3 +14,5 @@
 - [x] Four delay causes by office, notes no longer set the cause (REQ-34-10, REQ-07-18)
 - [x] Information icon with the cause's scope on the dashboard (REQ-34-03)
 - [x] Pest tests for REQ-34-10; update REQ-34-03
+- [x] Clock stops at ready for release: metrics, delay, transaction and monthly reports; processing
+  time stored when ready (REQ-34-11, REQ-07-11, REQ-11-08)

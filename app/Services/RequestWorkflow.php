@@ -976,8 +976,9 @@ class RequestWorkflow
             ]);
 
             $locked->released_at = now();
-            $locked->processing_working_days = $locked->accepted_at !== null
-                ? $this->calendar->workingDaysBetween($locked->accepted_at, now())
+            // Counted when it was made ready (REQ-11-08); only a request without one gets it here.
+            $locked->processing_working_days ??= $locked->accepted_at !== null
+                ? $this->calendar->workingDaysBetween($locked->accepted_at, $locked->ready_at ?? now())
                 : null;
 
             $this->transition($locked, $request, RequestStatus::Released, $registrar, RequestEventType::Released,
@@ -1298,7 +1299,11 @@ class RequestWorkflow
             return;
         }
 
+        // The processing clock stops here (REQ-34-11, REQ-11-08).
         $locked->ready_at = now();
+        $locked->processing_working_days = $locked->accepted_at !== null
+            ? $this->calendar->workingDaysBetween($locked->accepted_at, now())
+            : null;
         $this->transition($locked, $locked, RequestStatus::ReadyForRelease, $actor, RequestEventType::ReadyForRelease);
     }
 

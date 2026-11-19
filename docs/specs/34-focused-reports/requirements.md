@@ -30,7 +30,7 @@ longest-pending column.
 
 ### Dashboard
 - **REQ-34-01** THE Dashboard SHALL show, for a chosen period (this month by default), three
-  indicators: Total requests (received in the period); and Released on time and Overdue, each as
+  indicators: Total requests (received in the period); and Ready on time and Overdue, each as
   a count and a percentage of the eligible requests (REQ-07-11). The average processing time is
   per credential (REQ-34-09).
 - **REQ-34-02** THE Dashboard SHALL show one office table, sorted by the longest average first.
@@ -47,8 +47,8 @@ longest-pending column.
   "Where Requests Are Waiting" and "Most Overdue" lists, a single overall average processing
   time, an oldest-pending column, or helper lines under its headings.
 - **REQ-34-09** THE Dashboard SHALL show the processing time by credential. For each credential
-  type with a request released in the period, it shows the requests released, their average
-  working days from acceptance to release (REQ-07-11's formula, per credential; Proposed Workflow
+  type with a request made ready for release in the period, it shows how many, their average
+  working days from acceptance to ready for release (REQ-07-11's formula, per credential; Proposed Workflow
   XIII.2), and the credential's standard processing days. Longest average first. An average above
   the standard SHALL be marked.
 - **REQ-34-10** THE cause of a delay SHALL be one of four, decided by the office holding the
@@ -63,6 +63,11 @@ longest-pending column.
   and nothing in that time is asked of the requester, so customer compliance is not a cause; the
   Dean's step is a signature like the Chancellor's and President's; a correction is internal.
   Reasons recorded before REQ-24-09 still show as text, but no longer set the cause.)*
+- **REQ-34-11** THE processing clock SHALL stop when the credential is marked ready for release:
+  a request is on time when it was ready for release by its due date, late when it was ready
+  after it, and pending until then. Processing time is counted from acceptance to ready for
+  release. When the requester claims it does not count. *(User's decision, 2026-11-20: the
+  BRD's "released" means ready for release; the claim date is outside the offices' control.)*
 
 ### Reports
 - **REQ-34-05** Reports SHALL offer exactly four reports: Office Performance (the default),
@@ -75,11 +80,12 @@ longest-pending column.
   percentage by the office deadline (REQ-30-09).
 - **REQ-34-07** THE Transaction Record SHALL list each request submitted in the period, in order.
   Each row shows: the tracking number, the date requested, the expected release date (due), the
-  requester, the program, the credential, the date released, the evaluator, the timeliness, and
-  the cause of delay. Timeliness is one of: Yes (released by the due date), Late (released after
-  it), Overdue (open past it), Pending, or Declined or Cancelled. The cause of delay is given for
+  requester, the program, the credential, the date ready for release, the date released, the
+  evaluator, the timeliness, and the cause of delay. Timeliness (REQ-34-11) is one of: Yes (ready
+  by the due date), Late (ready after it), Overdue (not ready and past it), Pending, or Declined
+  or Cancelled. The cause of delay is given for
   Late and Overdue requests only, using the Delay Analysis cause (REQ-07-18).
 - **REQ-34-08** THE Monthly Summary SHALL show, per month of the period up to today: the requests
-  received; the requests due (eligible, REQ-07-11); those released on time, released late, and
-  still pending past the due date; the on-time and overdue percentages; and the average processing
+  received; the requests due (eligible, REQ-07-11); those ready on time, ready late, and
+  still pending past the due date (REQ-34-11); the on-time and overdue percentages; and the average processing
   time. The totals SHALL tie: due = on time + late + still pending (pilot consultation §10).
