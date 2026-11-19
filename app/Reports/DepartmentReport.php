@@ -43,7 +43,7 @@ final class DepartmentReport implements Report
     }
 
     /**
-     * @return Collection<int, array{id: int, name: string, days: ?float, done: int, returned: int, pending: int, oldest: ?int, onTime: ?float}>
+     * @return Collection<int, array{id: int<0, max>, name: string, days: ?float, done: int, returned: int, pending: int, oldest: ?int, onTime: ?float}>
      */
     public static function offices(ReportFilter $filter): Collection
     {
@@ -89,7 +89,7 @@ final class DepartmentReport implements Report
                     'returned' => (int) ($row?->getAttribute('returned') ?? 0),
                     'pending' => (int) ($pending?->getAttribute('total') ?? 0),
                     'oldest' => $since === null ? null : $calendar->workingDaysBetween(CarbonImmutable::parse((string) $since), now()),
-                    'onTime' => $withDeadline === 0 ? null : round((int) $row?->getAttribute('on_time') * 100 / $withDeadline, 1),
+                    'onTime' => $withDeadline === 0 ? null : round((int) $row->getAttribute('on_time') * 100 / $withDeadline, 1),
                 ];
             })
             ->sortBy([
