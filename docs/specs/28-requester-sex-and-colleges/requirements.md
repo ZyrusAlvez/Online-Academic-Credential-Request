@@ -2,7 +2,8 @@
 
 Client's changes of 2026-11-18: the requester's sex (and, for a woman, her maiden name, under which
 her records may be kept), clearer status and payment wording, and the college list as the
-Registrar's Office now names it.
+Registrar's Office now names it. Since 2026-11-20 a woman gives her maiden name in the Middle name
+and Last name fields themselves, not in a separate field (REQ-28-04).
 
 ## User stories
 
@@ -22,15 +23,16 @@ Registrar's Office now names it.
 ### Sex and maiden name
 - **REQ-28-03** THE Personal Information section of New Request, Settings → Profile and Walk-in
   Request SHALL ask for the requester's sex, Male or Female, and SHALL require it.
-- **REQ-28-04** WHILE Female is chosen THE SYSTEM SHALL show an optional "Maiden name" field; WHEN
-  Male is chosen THE SYSTEM SHALL hide it and SHALL NOT save a maiden name.
-- **REQ-28-05** THE summary's Personal Information SHALL show the sex and, for a woman, the maiden
-  name ("Not provided" when blank, REQ-15-19).
-- **REQ-28-06** THE SYSTEM SHALL keep each request's own copy of the sex and maiden name (as
-  REQ-15-08) and show them to the registrar with the request's identity details; a request's details
-  SHALL show the maiden name when there is one.
-- **REQ-28-07** THE sex and maiden name SHALL belong to the identity part verified once (spec 21):
-  changing either sends the Personal Information back for verification.
+- **REQ-28-04** WHILE Female is chosen THE SYSTEM SHALL show the caption "Maiden Name" below the
+  right end of the Middle name and the Last name fields, so that she enters her maiden middle and
+  last names there; THE SYSTEM SHALL NOT ask for a separate maiden name. WHEN Male is chosen THE
+  SYSTEM SHALL hide the captions. (User's decision, 2026-11-20: the separate optional "Maiden name"
+  field is removed, along with its saved values.)
+- **REQ-28-05** THE summary's Personal Information SHALL show the sex.
+- **REQ-28-06** THE SYSTEM SHALL keep each request's own copy of the sex (as REQ-15-08) and show it
+  to the registrar with the request's identity details.
+- **REQ-28-07** THE sex SHALL belong to the identity part verified once (spec 21): changing it sends
+  the Personal Information back for verification.
 
 ### Colleges and programs
 - **REQ-28-08** WHEN the base data is seeded THE SYSTEM SHALL name the colleges "College of Business

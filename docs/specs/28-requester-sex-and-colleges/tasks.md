@@ -7,3 +7,5 @@
 - [x] Registrar identity rows and request details (REQ-28-06)
 - [x] Seeded colleges and SHS strand; overview, REQ-02-01 and REQ-12-02 notes (REQ-28-08, 09)
 - [x] Pest tests for REQ-28-01..09
+- [ ] 2026-11-20: "Maiden Name" captions under Middle and Last name; drop the separate field and
+      the `maiden_name` columns; Help, demo data and tests follow (REQ-28-04..07)
