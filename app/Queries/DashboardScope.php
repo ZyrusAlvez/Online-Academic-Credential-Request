@@ -75,7 +75,7 @@ final class DashboardScope
     {
         $period = new ReportFilter($this->from, $this->to);
         $dates = $period->start->format('M j').' – '.$period->end->format('M j, Y');
-        $office = Department::find((int) $this->at)?->name ?? __('the office');
+        $office = Department::whereKey((int) $this->at)->value('name') ?? __('the office');
 
         return match ($this->scope) {
             self::SUBMITTED => __('Submitted :dates', ['dates' => $dates]),
