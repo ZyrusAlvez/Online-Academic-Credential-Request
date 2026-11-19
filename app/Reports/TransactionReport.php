@@ -40,9 +40,15 @@ final class TransactionReport implements Report
     public function shows(): array
     {
         return [
-            self::ON_TIME => 'Due in the period, ready on time',
+            '' => 'Requested in the period',
+            self::ON_TIME => 'Due in the period and ready on time',
             self::READY => 'Ready for release in the period',
         ];
+    }
+
+    public function showLabel(): string
+    {
+        return 'Requests';
     }
 
     public function rows(ReportFilter $filter): iterable

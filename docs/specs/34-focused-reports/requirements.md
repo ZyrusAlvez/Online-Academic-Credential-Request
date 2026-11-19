@@ -49,7 +49,8 @@ longest-pending column.
 - **REQ-34-04** THE Dashboard SHALL NOT show the status-count tiles, the secondary indicators
   (overdue workload, returns, average time per office, initial evaluation time), the separate
   "Where Requests Are Waiting" and "Most Overdue" lists, a single overall average processing
-  time, an oldest-pending column, a Reports button, or helper lines under its headings.
+  time, an oldest-pending column, a Reports button, bar graphs, or helper lines under its
+  headings.
 - **REQ-34-09** THE Dashboard SHALL show the processing time by credential. For each credential
   type with a request made ready for release in the period, it shows how many, their average
   working days from acceptance to ready for release (REQ-07-11's formula, per credential; Proposed Workflow
@@ -87,7 +88,7 @@ longest-pending column.
   Each row shows: the tracking number, the date requested, the expected release date (due), the
   requester, the program, the credential, the date ready for release, the date released, the
   processing time in working days, the evaluator, the timeliness, and the cause of delay. Its
-  Show filter (REQ-34-13) narrows it to the requests due in the period and ready on time, or to
+  Requests filter (REQ-34-13) narrows it to the requests due in the period and ready on time, or to
   those made ready for release in the period. Timeliness (REQ-34-11) is one of: Yes (ready
   by the due date), Late (ready after it), Overdue (not ready and past it), Pending, or Declined
   or Cancelled. The cause of delay is given for
@@ -100,7 +101,7 @@ longest-pending column.
   finished (done or returned) in the period, the same ones Office Performance counts, and those the
   office holds now (in transit = at the sender, REQ-17-18). Each row shows the tracking number,
   the credential, the office, received, finished, the working days (up to now when pending) and
-  the result: Done, Returned or Pending. Its Show filter narrows it to the finished, done,
+  the result: Done, Returned or Pending. Its Result filter narrows it to the finished, done,
   returned or pending ones.
 - **REQ-34-13** THE Reports page SHALL show only the filters of the chosen report, and a filter
   the report does not show SHALL NOT narrow it:
@@ -109,8 +110,15 @@ longest-pending column.
   |---|---|
   | Office Performance | period, credential |
   | Delay Analysis | period, credential, office, cause |
-  | Transaction Record | period, credential, evaluator, office, show (pilot §10) |
+  | Transaction Record | period, credential, evaluator, office, requests (pilot §10) |
   | Monthly Summary | period, credential, evaluator, office |
-  | Office Documents | period, credential, office, show |
+  | Office Documents | period, credential, office, result |
 
-  *(User's decision, 2026-11-20.)*
+  The report's own filter is named for what it chooses, and its first option says what the
+  report lists without it: Requests ("Requested in the period", "Due in the period and ready on
+  time", "Ready for release in the period"); Cause ("All causes" and the four causes); Result
+  ("All results", "Finished (done or returned)", "Done", "Returned", "Pending"). *(User's
+  decision, 2026-11-20; "Show" with "All" was confusing.)*
+- **REQ-34-14** Each report's table SHALL sort by a column when its header is clicked, ascending
+  then descending, with empty cells last, and SHALL show 50 rows per page with page links. A
+  change of report, filter or sort SHALL go back to the first page. *(User's decision, 2026-11-20.)*

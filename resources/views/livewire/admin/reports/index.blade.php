@@ -36,8 +36,7 @@
             </flux:select>
         @endif
         @if ($current->shows() !== [])
-            <flux:select wire:model.live="show" :label="$kind === \App\Enums\ReportKind::Delay ? __('Cause') : __('Show')">
-                <flux:select.option value="">{{ __('All') }}</flux:select.option>
+            <flux:select wire:model.live="show" :label="__($current->showLabel())">
                 @foreach ($current->shows() as $value => $label)
                     <flux:select.option :value="$value">{{ $label }}</flux:select.option>
                 @endforeach
@@ -51,16 +50,19 @@
             <p class="text-sm text-zinc-600">{{ $current->description() }}</p>
         </div>
 
-        <flux:table>
+        {{-- Click a column to sort by it; 50 rows per page (REQ-34-14). --}}
+        <flux:table :paginate="$rows">
             <flux:table.columns>
                 {{-- Everything centered except the first column (user, 2026-11-20). --}}
                 @foreach ($current->columns() as $column)
-                    <flux:table.column :align="$loop->first ? 'start' : 'center'">{{ $column }}</flux:table.column>
+                    <flux:table.column :align="$loop->first ? 'start' : 'center'" sortable
+                        :sorted="$sort === (string) $loop->index" :direction="$direction"
+                        wire:click="sortBy({{ $loop->index }})" class="cursor-pointer">{{ $column }}</flux:table.column>
                 @endforeach
             </flux:table.columns>
             <flux:table.rows>
-                @forelse (array_slice($rows, 0, \App\Livewire\Admin\Reports\Index::PAGE_ROWS) as $row)
-                    <flux:table.row :key="$kind->value.'-'.$loop->index">
+                @forelse ($rows as $row)
+                    <flux:table.row :key="$kind->value.'-'.$rows->currentPage().'-'.$loop->index">
                         @foreach ($row as $cell)
                             <flux:table.cell :align="$loop->first ? 'start' : 'center'" @class(['whitespace-normal', 'tabular-nums' => is_numeric($cell)])>{{ $cell ?? '—' }}</flux:table.cell>
                         @endforeach
@@ -72,9 +74,5 @@
                 @endforelse
             </flux:table.rows>
         </flux:table>
-
-        @if (count($rows) > \App\Livewire\Admin\Reports\Index::PAGE_ROWS)
-            <p class="text-sm text-zinc-600">{{ __('Showing the first :n rows. Narrow the filters to see the rest.',['n' => \App\Livewire\Admin\Reports\Index::PAGE_ROWS]) }}</p>
-        @endif
     </section>
 </div>
