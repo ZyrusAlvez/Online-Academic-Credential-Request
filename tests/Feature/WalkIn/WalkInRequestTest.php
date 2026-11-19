@@ -308,7 +308,7 @@ test('REQ-26-10 Request Details shows the request type, online or walk-in, on ev
     expect($row($this->actingAs($cashier)->get(route('cashier.payments.show', $online))->getContent()))->toContain('Online request')
         // Stored as request_type (REQ-26-10).
         ->and($walkIn->fresh()->request_type)->toBe(RequestType::WalkIn)
-        ->and($online->application()->value('request_type'))->toBe(RequestType::Online->value);
+        ->and($online->application()->firstOrFail()->request_type)->toBe(RequestType::Online);
 });
 
 test('REQ-26-11 the demo data has a walk-in request with no account and one linked to a demo requester', function () {
