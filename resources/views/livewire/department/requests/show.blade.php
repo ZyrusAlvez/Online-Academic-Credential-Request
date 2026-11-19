@@ -7,7 +7,8 @@
 <div class="mx-auto max-w-4xl space-y-6">
     {{-- The list the request is in is the breadcrumb (REQ-24-06). --}}
     <flux:breadcrumbs>
-        <flux:breadcrumbs.item :href="route($queue->routeName())" wire:navigate>{{ __($queue->label()) }}</flux:breadcrumbs.item>
+        {{-- Back to the list as it was left (REQ-24-06). --}}
+        <flux:breadcrumbs.item :href="$listUrl ?: route($queue->routeName())" wire:navigate>{{ __($queue->label()) }}</flux:breadcrumbs.item>
         <flux:breadcrumbs.item>{{ $request->reference_no }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 

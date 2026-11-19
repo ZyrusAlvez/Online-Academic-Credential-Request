@@ -42,3 +42,6 @@
 - [x] No working page under In Progress; a request in progress leads to the searched list (REQ-16-26, see spec 17)
 - [x] Search on Release too: remove `RegistrarQueue::isSearchable()` (REQ-16-25)
 - [x] Pest test for the changed REQ-16-25
+- [x] After a decision, back to the queue's list as left: `ReturnsToList` concern on the
+      Registrar, Department and Cashier pages; breadcrumb uses it too (REQ-16-26, REQ-24-06, REQ-25-05)
+- [x] Pest tests for the changed REQ-16-26, REQ-24-06, REQ-25-05

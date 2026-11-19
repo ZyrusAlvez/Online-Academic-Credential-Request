@@ -125,16 +125,16 @@ test('REQ-16-26 a page under the wrong queue, or at the former address, goes to 
     $this->actingAs($this->owner)->get(route('registrar.requests.show', $payment))->assertForbidden();
 });
 
-test('REQ-16-26 after a decision moves the request, the page follows it to its new queue', function () {
+test('REQ-16-26 after a decision moves the request out of the queue, the page goes back to that queue\'s list', function () {
     $request = submitRequest($this->owner, $this->org->tor);
     workflow()->startEvaluation($request, $this->registrar);
     checkAll($request, $this->registrar, CheckStage::Evaluation);
 
-    // An online request's payment is the cashier's: the registrar's page for it is its record (REQ-25-07).
+    // Approved, the request is the cashier's now; the registrar stays on Initial Evaluation.
     Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request->fresh(), 'queue' => RegistrarQueue::Evaluation->value])
         ->call('approve')
         ->assertHasNoErrors()
-        ->assertRedirect(route('records.show', $request));
+        ->assertRedirect(route('registrar.evaluation'));
 
     // Within the same queue the page stays.
     $other = submitRequest($this->owner, $this->org->tor);
@@ -143,7 +143,7 @@ test('REQ-16-26 after a decision moves the request, the page follows it to its n
         ->assertNoRedirect();
 });
 
-test('REQ-16-26 a payment approved at Payment Validation moves to Outgoing, where the Registrar prepares and forwards it', function () {
+test('REQ-16-26 a payment approved at Payment Validation moves to Outgoing; the registrar stays on Payment Validation', function () {
     $request = walkIn(evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar));
     uploadPayment($request);
 
@@ -151,10 +151,38 @@ test('REQ-16-26 a payment approved at Payment Validation moves to Outgoing, wher
     Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request->fresh(), 'queue' => RegistrarQueue::Payment->value])
         ->set('receiptNo', 'OR-1001')->set('amountPaid', '530')
         ->call('validatePayment')
-        ->assertRedirect(route('registrar.outgoing', ['search' => $request->reference_no]));
+        ->assertRedirect(route('registrar.payments'));
 
-    expect(session('notify'))->toBe('Payment validated and request accepted. The processing period has started.');
+    expect(session('notify'))->toBe('Payment validated and request accepted. The processing period has started.')
+        ->and(RegistrarQueue::forRequest($request->fresh()))->toBe(RegistrarQueue::Outgoing);
 });
+
+test('REQ-16-26 the list goes back as the registrar left it: its tab, search and page', function () {
+    $request = submitRequest($this->owner, $this->org->tor);
+    workflow()->startEvaluation($request, $this->registrar);
+    checkAll($request, $this->registrar, CheckStage::Evaluation);
+    $list = route('registrar.evaluation', ['search' => $request->reference_no, 'page' => 2]);
+
+    $page = Livewire::withHeaders(['Referer' => $list])->actingAs($this->registrar)
+        ->test(Show::class, ['credentialRequest' => $request->fresh(), 'queue' => RegistrarQueue::Evaluation->value])
+        ->assertSeeHtml('href="'.e($list).'"');
+
+    $page->call('approve')->assertHasNoErrors()->assertRedirect($list);
+});
+
+test('REQ-16-26 an address other than the queue\'s list is never returned to', function (string $referer) {
+    $request = submitRequest($this->owner, $this->org->tor);
+    workflow()->startEvaluation($request, $this->registrar);
+    checkAll($request, $this->registrar, CheckStage::Evaluation);
+
+    Livewire::withHeaders(['Referer' => $referer])->actingAs($this->registrar)
+        ->test(Show::class, ['credentialRequest' => $request->fresh(), 'queue' => RegistrarQueue::Evaluation->value])
+        ->call('approve')
+        ->assertRedirect(route('registrar.evaluation'));
+})->with([
+    'another site' => 'https://evil.example.com/registrar/evaluation?search=x',
+    'another page' => fn () => route('records', ['search' => 'x']),
+]);
 
 test('REQ-16-26 the former address in notifications always lands where the request is now', function () {
     $request = submitRequest($this->owner, $this->org->tor);

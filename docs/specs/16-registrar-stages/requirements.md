@@ -77,7 +77,11 @@ This replaces:
   another queue than the request's, or at the former `/registrar/requests/{tracking no.}` (in
   notifications and emails), THE SYSTEM SHALL redirect to the request's current queue, or to its
   Records page once it is released, declined or cancelled. WHEN a decision or action moves the
-  request to another queue THE SYSTEM SHALL follow it there. *(User's report, 2026-11-16: every
+  request out of the queue the page is under THE SYSTEM SHALL go back to that queue's list, as the
+  registrar left it (tab, search, filters and page), with the decision's message; a decision that
+  keeps it in the queue stays on the page. *(Changed 2026-11-19, user's rule for every role: the
+  page used to follow the request to its next queue or to Records, so the registrar lost their
+  place. Same for the department, REQ-24-06, and the cashier, REQ-25-05.)* *(User's report, 2026-11-16: every
   request page was `/registrar/requests/…`, so no sidebar item was highlighted. In Progress page
   removed 2026-11-15, user's decision.)* *(Changed 2026-11-18, REQ-32-10: In Progress is removed;
   a request being processed at an office, not in Outgoing or at the final check, leads to its

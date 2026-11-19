@@ -48,7 +48,8 @@ by the Registrar at the counter, spec 26). Every request made before this change
   REQ-16-17 shows (the proof of payment, the payment details and the request's record) and its
   decision: Decline, Return to Requester (remarks required) and Approve (remarks optional). IF the
   request is not an online request awaiting payment verification, THEN THE page SHALL go back to
-  the list.
+  the list. After a decision THE page SHALL go back to the list as the cashier left it (tab and
+  search), with the decision's message. *(2026-11-19, the same rule for every role, REQ-16-26.)*
 - **REQ-25-06** THE cashier SHALL be able to open the proof of payment of an online request.
 - **REQ-25-07** THE Registrar's Payment Validation SHALL list the **walk-in** requests whose payment
   awaits validation only, with no "Waiting for the requester" tab. THE Registrar SHALL NOT
