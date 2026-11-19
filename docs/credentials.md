@@ -9,6 +9,12 @@
 | Demo Registrar | `registrar@example.com` |
 | Liza Santos | `registrar2@example.com` |
 
+## Cashier
+
+| Name | Email |
+|---|---|
+| Demo Cashier | `cashier@example.com` |
+
 ## Requesters
 
 | Name | Email | College | Program |
