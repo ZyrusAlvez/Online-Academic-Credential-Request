@@ -561,6 +561,11 @@ class RequestWorkflow
         DB::transaction(function () use ($request, $registrar, $remarks): void {
             $locked = $this->lock($request, [RequestStatus::PaymentVerification], 'Only payments awaiting verification can be rejected.');
 
+            // Paid at the counter: validated or declined there, never returned (REQ-26-05).
+            if ($locked->isWalkIn()) {
+                throw new InvalidTransition('A walk-in payment cannot be returned. Validate it or decline the request.');
+            }
+
             $this->reviewLatestProof($locked, $registrar, PaymentStatus::Rejected, remarks: $remarks);
             $this->transition($locked, $request, RequestStatus::AwaitingPayment, $registrar, RequestEventType::PaymentRejected, $remarks);
         });
