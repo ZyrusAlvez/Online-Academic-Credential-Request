@@ -34,26 +34,33 @@ of their own.
 ### Content
 - **REQ-22-03** THE topics SHALL answer at least:
   - *Getting Started:* what the system does and does not do (the credential is paper and is
-    claimed in person; nothing is sent digitally), who can use it, signing up with email or
+    claimed in person; nothing is sent digitally), who can use it (and that a request made at the
+    counter joins the account with the same email, spec 26), signing up with email or
     Google, the email verification code, a forgotten password, changing the email address, a
     deactivated account, deleting an account.
-  - *Your Details & Valid ID:* that personal information, academic information and the valid ID
-    are given once and verified once, then reused; what "Verified" and "For verification" mean;
+  - *Your Details & Valid ID:* which details are required (all but the middle name, maiden name
+    and student number; why the maiden name and years attended matter, spec 28); that personal
+    information, academic information and the valid ID are given once and verified once, then reused; what "Verified" and "For verification" mean;
     that details can still be edited and are then verified again on the next request; why a
     submitted request keeps the details it was sent with; the accepted IDs and files; changing the
     saved ID; a rejected ID; who can see the uploads; the data privacy consent.
-  - *Requesting a Credential:* the steps of New Request and the tracking number; where to see a
-    credential's fee, processing period and offices; the purpose and "Others"; the receiving
-    school; that documents are submitted in person only when an office visit asks for them
+  - *Requesting a Credential:* the steps of New Request and the tracking number; several
+    credentials in one request, paid once (spec 27); the limit of open requests (spec 33); where to
+    see a credential's fee, processing period and offices; a specific purpose, since general ones
+    are returned (pilot consultation §5), and "Others"; the receiving school; terms and academic
+    year (spec 29); that documents are submitted in person only when an office visit asks for them
     (REQ-04-23, 2026-11-15); copies of a
     credential; changing or
     cancelling a request; what happens after submitting (the four evaluation outcomes); an office
     visit.
-  - *Payment:* when to pay; how to pay and upload the proof; the amount; what happens after
-    uploading; a proof that is not accepted. *(No free credentials since 2026-11-16, user's
-    decision: every credential request is paid, so Help never mentions a free one.)*
-  - *Tracking & Statuses:* the Request Tracker; what each status means; when the processing
-    period starts and how the expected release date is counted; which office holds the document;
+  - *Payment:* when to pay; how to pay and upload the proof; the amount (the total of the
+    request's credentials, and the Certificate of Grades at no charge for graduates, REQ-29-07);
+    what happens after uploading (the Cashier checks it, spec 25); a proof that is not accepted.
+    *(Updated 2026-11-19: REQ-29-07 brought back a credential at no charge.)*
+  - *Tracking & Statuses:* the Request Tracker and a tab per credential; following a request made
+    at the counter; what each status means; when the processing
+    period starts and how the expected release date is counted; which office holds the document
+    (the Office of the Registrar carries it between offices, spec 32);
     notifications and turning email off; an overdue request.
   - *Claiming a Credential:* how the credential is claimed; who may claim or transact for the
     requester; what an SPA is; when a representative can be added; what the representative brings;
