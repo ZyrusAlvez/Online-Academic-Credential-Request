@@ -16,3 +16,8 @@
 - [x] Pest tests for REQ-34-10; update REQ-34-03
 - [x] Clock stops at ready for release: metrics, delay, transaction and monthly reports; processing
   time stored when ready (REQ-34-11, REQ-07-11, REQ-11-08)
+- [ ] `Report::filters()` / `shows()`; Reports shows only the chosen report's filters (REQ-34-13)
+- [ ] `OfficeDocumentsReport`, a `ReportKind` case not in the list (REQ-34-12, REQ-34-05)
+- [ ] Delay cause filter; Transaction Record show filter and processing column (REQ-34-03, 07, 09)
+- [ ] Dashboard: no Reports button or highlight, "Pending", every number links (REQ-34-01..04, 09)
+- [ ] Pest tests for REQ-34-12, 13; update REQ-34-01..05, 07, 09 and the pending-link tests
