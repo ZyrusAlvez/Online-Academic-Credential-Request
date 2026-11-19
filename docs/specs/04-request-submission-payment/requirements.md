@@ -26,7 +26,10 @@ period starts only at acceptance.
   credential from a dropdown and, once one is chosen, show its description, fee, processing
   period, offices on its route and special conditions; THE SYSTEM SHALL also show the *Incomplete
   requirements* notice of the client's workflow. *(Documentary requirements no longer shown since
-  2026-11-15, REQ-04-23.)*
+  2026-11-15, REQ-04-23.)* *(2026-11-19, pilot consultation §5–6: the notice is in plain language,
+  "such as Form 137 or a TOR copy for UPHSL", without "Submitting an online request does not
+  automatically mean…"; the processing period reads "upon payment validation"; under the purpose,
+  a note says general purposes are not accepted.)*
 - ~~REQ-04-18, REQ-04-19~~ *Superseded by REQ-04-22 (user's decision, 2026-11-15):* the optional
   upload of copies of the documentary requirements on New Request, and their listing for the
   evaluator, Records and the owner, are removed. The client's workflow never asks the requester to
@@ -73,8 +76,10 @@ period starts only at acceptance.
 ### Payment
 - **REQ-04-12** WHILE a request is `awaiting_payment` THE SYSTEM SHALL show the amount due and a
   "Pay online" link to the UPHSL payment portal, and let the owner upload a proof of payment (JPG,
-  PNG, WebP or PDF, max 5 MB, stored privately) with the payment reference, amount and date paid
-  (status `payment_verification`). The proof field SHALL be the valid ID's picker (REQ-15-04): the
+  PNG, WebP or PDF, max 5 MB, stored privately) with the amount and date paid
+  (status `payment_verification`). *(No payment reference number since 2026-11-19: the pilot
+  consultation §8 said requesters only upload the payment email or screenshot. A reference on an
+  older proof is still shown.)* The proof field SHALL be the valid ID's picker (REQ-15-04): the
   chosen file's name is a link that opens it in the file viewer. *(User's request, 2026-11-13.)*
 - **REQ-04-13** THE SYSTEM SHALL let the registrar reject a proof with remarks (back to
   `awaiting_payment`) or verify it against the official record; an uploaded proof alone SHALL NOT

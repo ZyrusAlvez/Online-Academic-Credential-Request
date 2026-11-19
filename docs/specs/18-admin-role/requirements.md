@@ -68,7 +68,11 @@ This replaces:
 
 ### Dashboard
 - **REQ-18-08** THE Admin's Dashboard SHALL keep:
-  - the status counts;
+  - the status counts. "Needs the Registrar" SHALL count the requests submitted or under
+    evaluation and the **walk-in** payments to validate, not online payments, which are the
+    Cashier's (REQ-25-04); "Waiting for the requester" SHALL count those returned for
+    clarification, pending compliance or returned for customer action. *(Corrected 2026-11-19:
+    the first counted online payments too, and the second was labelled "Pending compliance".)*
   - the performance indicators for a period and the link to Reports;
   - where requests are waiting, by office;
   - the most overdue requests.
