@@ -17,7 +17,6 @@ class PurposeSeeder extends Seeder
         'Employment',
         'Employment abroad',
         'Further studies',
-        'Personal copy',
         'Scholarship application',
         'Transfer to another school',
         'Visa or immigration',
