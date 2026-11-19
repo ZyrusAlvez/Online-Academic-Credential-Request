@@ -283,7 +283,7 @@ test('REQ-09-10 the incomplete-requirements notice is collapsed between "Who Wil
     $notice = Str::between($html, '<details', '</details>');
     expect(Str::before($notice, '>'))->not->toContain(' open')
         ->and(Str::between($notice, '<summary', '</summary>'))->toContain($heading)
-        ->and(Str::after($notice, '</summary>'))->toContain('Submitting an online request does not automatically mean')
+        ->and(Str::after($notice, '</summary>'))->toContain('The processing period starts only upon payment validation')
         ->and($html)->not->toContain(' inert');
 });
 

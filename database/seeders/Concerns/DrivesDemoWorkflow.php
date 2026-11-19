@@ -96,8 +96,9 @@ trait DrivesDemoWorkflow
     private function pay(CredentialRequest $request): void
     {
         $this->later(5);
+        // No reference number, as on the requester's page (REQ-04-12).
         $this->workflow->submitPaymentProof($request, $request->student()->firstOrFail(), $this->image('receipt.png'),
-            'UPHSL-'.fake()->numerify('########'), (string) $request->amount_due, now()->format('Y-m-d'));
+            null, (string) $request->amount_due, now()->format('Y-m-d'));
     }
 
     /**

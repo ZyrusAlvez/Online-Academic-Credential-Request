@@ -83,7 +83,11 @@ test('REQ-04-02 the form shows fee, period, offices, conditions and the notice, 
 
     $page = Livewire::actingAs($this->owner)->test(Create::class)
         ->assertSee('Important notice: incomplete requirements')
-        ->assertSee('Submitting an online request does not automatically mean that your request has been accepted for processing.')
+        // Plain language, without the redundant "does not automatically mean…" (pilot consultation §6).
+        ->assertSee('such as your Form 137, a TOR copy for UPHSL')
+        ->assertDontSee('does not automatically mean')
+        // General purposes are returned, so the form says so (pilot consultation §5).
+        ->assertSee('General purposes such as')
         ->assertSee('Choose a credential…')
         ->assertDontSee('Copies')
         ->assertDontSee('per copy');
@@ -98,7 +102,7 @@ test('REQ-04-02 the form shows fee, period, offices, conditions and the notice, 
     $card = credentialCard($page->html(), $this->org->tor);
     expect($card)->toContain('₱530.00')
         ->toContain('Bring the original diploma.')
-        ->toMatch('/7 working days.*from acceptance/s')
+        ->toMatch('/7 working days.*upon payment validation/s')
         ->toMatch('/Office of the VP for Finance.*\(documentary stamp\).*\(final quality check\)/s');
 
     $page->set('form.credential_type_id', $this->org->tor->id);

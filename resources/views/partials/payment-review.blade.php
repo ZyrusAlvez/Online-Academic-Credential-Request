@@ -26,7 +26,10 @@
     <dl class="divide-y divide-zinc-200 text-sm">
         <x-summary-row :label="__('Amount due')">₱{{ number_format((float) $request->amount_due, 2) }}</x-summary-row>
         <x-summary-row :label="__('Amount paid')">{{ $pendingProof?->amount !== null ? '₱'.number_format((float) $pendingProof->amount, 2) : '—' }}</x-summary-row>
-        <x-summary-row :label="__('Reference')" class="[&_dd]:break-all">{{ $pendingProof?->reference_no ?? '—' }}</x-summary-row>
+        {{-- Requesters no longer give one (REQ-04-12); an older proof's is still shown. --}}
+        @if (filled($pendingProof?->reference_no))
+            <x-summary-row :label="__('Reference')" class="[&_dd]:break-all">{{ $pendingProof->reference_no }}</x-summary-row>
+        @endif
         <x-summary-row :label="__('Date paid')">{{ $pendingProof?->paid_on?->format('M j, Y') ?? '—' }}</x-summary-row>
     </dl>
 </section>

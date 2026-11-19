@@ -2,6 +2,7 @@
 
 namespace App\Queries;
 
+use App\Enums\RequestChannel;
 use App\Enums\RequestStatus;
 use App\Models\CredentialRequest;
 use App\Models\OfficeVisit;
@@ -22,7 +23,7 @@ final class RegistrarRequestFilter
     /** The paper is past its office's deadline (REQ-30-10). */
     public const OFFICE_OVERDUE = 'office_overdue';
 
-    /** The dashboard's "Needs the Registrar" and "Pending compliance" tiles (REQ-18-08). */
+    /** The dashboard's "Needs the Registrar" and "Waiting for the requester" tiles (REQ-18-08). */
     public const NEEDS_REGISTRAR = 'needs_registrar';
 
     public const WAITING_FOR_REQUESTER = 'waiting_for_requester';
@@ -47,7 +48,7 @@ final class RegistrarRequestFilter
             ->when($this->status === self::OPEN, fn (Builder $q) => $q->whereIn('status', RequestStatus::open()))
             ->when($this->status === self::OVERDUE, fn (Builder $q) => $q->overdue())
             ->when($this->status === self::OFFICE_OVERDUE, fn (Builder $q) => self::officeOverdue($q))
-            ->when($this->status === self::NEEDS_REGISTRAR, fn (Builder $q) => $q->whereIn('status', self::needsRegistrar()))
+            ->when($this->status === self::NEEDS_REGISTRAR, fn (Builder $q) => self::needsRegistrar($q))
             ->when($this->status === self::WAITING_FOR_REQUESTER, fn (Builder $q) => $q->whereIn('status', self::waitingForRequester()))
             ->when(RequestStatus::tryFrom($this->status), fn (Builder $q, RequestStatus $status) => $q->where('status', $status))
             ->when($this->type !== '', fn (Builder $q) => $q->where('credential_type_id', (int) $this->type))
@@ -114,13 +115,19 @@ final class RegistrarRequestFilter
     }
 
     /**
-     * Requests waiting for a Registrar decision: evaluation or payment validation.
+     * Requests waiting for a Registrar decision: the evaluation, or a walk-in payment to validate.
+     * Online payments are the Cashier's (REQ-18-08, REQ-25-04).
      *
-     * @return list<RequestStatus>
+     * @param  Builder<CredentialRequest>  $query
+     * @return Builder<CredentialRequest>
      */
-    public static function needsRegistrar(): array
+    public static function needsRegistrar(Builder $query): Builder
     {
-        return [RequestStatus::Submitted, RequestStatus::UnderEvaluation, RequestStatus::PaymentVerification];
+        return $query->where(fn (Builder $q) => $q
+            ->whereIn('status', [RequestStatus::Submitted, RequestStatus::UnderEvaluation])
+            ->orWhere(fn (Builder $walkIn) => $walkIn
+                ->where('status', RequestStatus::PaymentVerification)
+                ->where('channel', RequestChannel::WalkIn)));
     }
 
     /**

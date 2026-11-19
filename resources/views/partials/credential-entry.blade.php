@@ -44,7 +44,8 @@
                     <div>
                         <dt class="text-xs font-medium uppercase tracking-wide text-zinc-600">{{ __('Processing period') }}</dt>
                         <dd class="mt-0.5 font-semibold text-ink">{{ trans_choice(':count working day|:count working days', $type->processing_days) }}</dd>
-                        <dd class="text-zinc-600">{{ __('from acceptance') }}</dd>
+                        {{-- Counted from payment validation, not from filing (pilot consultation §6). --}}
+                        <dd class="text-zinc-600">{{ __('upon payment validation') }}</dd>
                     </div>
                 </div>
             </dl>
@@ -76,7 +77,9 @@
 </div>
 
 <div class="space-y-3">
-    <flux:select wire:model.live="{{ $path }}.purpose" :label="__('Purpose')" required>
+    {{-- General purposes are returned, so the requester is told before choosing (pilot consultation §5). --}}
+    <flux:select wire:model.live="{{ $path }}.purpose" :label="__('Purpose')" required data-purpose-note
+        :description="__('Be specific. General purposes such as “personal copy”, “for reference” or “for whatever legal purpose it may serve” are not accepted, and the request is returned.')">
         <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
         @foreach ($purposes as $purpose)
             <flux:select.option :value="$purpose">{{ $purpose }}</flux:select.option>
