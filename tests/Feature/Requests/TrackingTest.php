@@ -27,7 +27,8 @@ test('REQ-06-01 the requester sees the tracker, the holding office and the expec
         ->assertSee('Payment verified')
         ->assertSee('(final quality check)')
         ->assertSee('7 working days')
-        ->assertSee('Set on acceptance');
+        ->assertSee('Set on payment validation')
+        ->assertDontSee('Set on acceptance');
 
     Carbon::setTestNow('2026-10-09 10:00:00');
     acceptRequest($request, $this->registrar);

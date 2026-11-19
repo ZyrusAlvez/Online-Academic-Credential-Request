@@ -195,7 +195,7 @@ test('REQ-04-03 the requester is told the request was received for evaluation', 
     $this->actingAs($this->owner)->get(route('student.requests.show', $request))
         ->assertOk()
         ->assertSee('received for evaluation')
-        ->assertSee('Set on acceptance');
+        ->assertSee('Set on payment validation');
 });
 
 test('REQ-04-04 requesters see only their own requests', function () {

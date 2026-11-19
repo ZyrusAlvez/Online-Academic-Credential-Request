@@ -97,8 +97,8 @@
                     @endif
                 </dd>
             @else
-                <dd class="text-lg font-bold text-zinc-500">{{ __('Set on acceptance') }}</dd>
-                <dd class="text-xs text-zinc-600">{{ __('Not yet accepted for processing.') }}</dd>
+                {{-- Validating the payment accepts the request and sets the date (REQ-04-14). --}}
+                <dd class="text-lg font-bold text-zinc-500">{{ __('Set on payment validation') }}</dd>
             @endif
         </div>
     </dl>
