@@ -27,9 +27,13 @@ needs `id` for the Records link (REQ-34-02).
 ## Delay causes (`DelayReport`)
 - `overdue(ReportFilter)`: the eligible requests that were not released by their due date. The
   report rows and the counts share it.
-- `causeOf(CredentialRequest)`: the latest delay note's category, otherwise the cause inferred
-  from the stage, as before.
-- `causeCounts(ReportFilter)`: `label => count`, largest first. The Dashboard uses it (REQ-34-03).
+- `causeOf(CredentialRequest)`: one of `DelayCategory::inferred()` (REQ-34-10), from the open
+  visit, otherwise the visit with the most working days: a correction visit is Document
+  correction; a college, CHAN or PRES is Pending signature; VPF is the documentary stamp; the
+  Registrar, or no visit, is Registrar / evaluation. Delay notes no longer set it.
+- `causeCounts(ReportFilter)`: one `{label, scope, count}` per inferred cause, zeros included,
+  largest first. `scope` is `DelayCategory::description()`, the tooltip of the dashboard's
+  information icon (REQ-34-03). The enum keeps its other cases for the notes recorded before.
 
 ## Transaction Record (`TransactionReport`)
 Requests whose `submitted_at` falls in the period, ordered by it. The query eager-loads

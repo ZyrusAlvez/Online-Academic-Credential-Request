@@ -56,8 +56,8 @@ office filter (REQ-07-07) serve both the Registrar and the Admin, at `/records` 
 - ~~REQ-07-17~~ *Removed by REQ-34-05:* a request's routing history is on its record (REQ-17-14).
 - **REQ-07-18** THE delay analysis report SHALL show, for overdue requests: tracking number,
   credential, acceptance and due dates, the office holding it, the stage, days overdue, the number
-  of returns, the recorded cause (the latest delay reason, otherwise inferred from the stage) and
-  the corrective action, distinguishing the holding office from the cause.
+  of returns, the cause (one of the four of REQ-34-10), and any reason and corrective action
+  recorded before REQ-24-09, distinguishing the holding office from the cause.
 - ~~REQ-07-19~~ *Removed by REQ-34-05:* no compliance or release report; those requests are
   Records filters.
 - **REQ-07-20** THE SYSTEM SHALL refuse reports to other roles. *(The CSV download of each report
