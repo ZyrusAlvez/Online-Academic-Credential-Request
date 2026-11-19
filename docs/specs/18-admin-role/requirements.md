@@ -48,7 +48,7 @@ This replaces:
   `department` (shown as *Department Staff*) and `admin` (shown as *Admin*). *Changed by REQ-25-01
   (2026-11-17):* a fifth role, `cashier`.
 - **REQ-18-02** THE SYSTEM SHALL give the Admin the sidebar groups **Overview** (Dashboard,
-  Records, Reports) and **Administration** (Credential Types, Departments, Programs, Purposes,
+  Reports, Records; user's order, 2026-11-19) and **Administration** (Credential Types, Departments, Programs, Purposes,
   Accounts, Working Calendar, Logs). Opening `/dashboard` or logging in as the Admin SHALL lead
   to the Dashboard (`/admin`).
 - **REQ-18-03** THE SYSTEM SHALL give the Registrar the sidebar items Initial Evaluation,
