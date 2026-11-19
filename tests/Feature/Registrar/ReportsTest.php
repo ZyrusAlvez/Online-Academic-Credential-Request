@@ -389,7 +389,8 @@ test('REQ-34-12 office documents list the documents behind each office\'s number
 test('REQ-34-13 the Reports page shows only the chosen report\'s filters, and only those narrow it', function () {
     $page = fn (array $query) => $this->actingAs($this->admin)->get(route('admin.reports', ['from' => '2026-10-01', 'to' => '2026-10-31', ...$query]))->assertOk();
 
-    $page(['report' => 'office'])->assertSee('All credentials')->assertDontSee('All evaluators')->assertDontSee('All offices');
+    $page(['report' => 'office'])->assertSee('All credentials')->assertDontSee('All evaluators')->assertDontSee('All offices')
+        ->assertSeeHtml('group/center-align')->assertSeeHtml('text-center');   // every column but the first is centered
     $page(['report' => 'transactions'])->assertSee('All credentials')->assertSee('All evaluators')->assertSee('All offices')
         ->assertSee('Ready for release in the period');
     $page(['report' => 'delay'])->assertSee('All offices')->assertDontSee('All evaluators')->assertSee('Cause');

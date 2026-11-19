@@ -53,15 +53,16 @@
 
         <flux:table>
             <flux:table.columns>
+                {{-- Everything centered except the first column (user, 2026-11-20). --}}
                 @foreach ($current->columns() as $column)
-                    <flux:table.column>{{ $column }}</flux:table.column>
+                    <flux:table.column :align="$loop->first ? 'start' : 'center'">{{ $column }}</flux:table.column>
                 @endforeach
             </flux:table.columns>
             <flux:table.rows>
                 @forelse (array_slice($rows, 0, \App\Livewire\Admin\Reports\Index::PAGE_ROWS) as $row)
                     <flux:table.row :key="$kind->value.'-'.$loop->index">
                         @foreach ($row as $cell)
-                            <flux:table.cell @class(['whitespace-normal', 'tabular-nums' => is_numeric($cell)])>{{ $cell ?? '—' }}</flux:table.cell>
+                            <flux:table.cell :align="$loop->first ? 'start' : 'center'" @class(['whitespace-normal', 'tabular-nums' => is_numeric($cell)])>{{ $cell ?? '—' }}</flux:table.cell>
                         @endforeach
                     </flux:table.row>
                 @empty
