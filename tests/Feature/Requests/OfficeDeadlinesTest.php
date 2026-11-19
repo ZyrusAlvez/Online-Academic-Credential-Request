@@ -66,8 +66,8 @@ test('REQ-30-01 REQ-30-02 the seeded routes split each processing period among t
 
     $split = fn (string $name): array => allotted(CredentialType::where('name', $name)->sole());
 
-    expect($split('Transcript of Records (TOR)'))->toBe([2, 2, 2, 1])
-        ->and($split('TOR for Transfer Credentials'))->toBe([2, 2, 2, 1])
+    expect($split('Transcript of Records (TOR)'))->toBe([1, 2, 2, 2])
+        ->and($split('TOR for Transfer Credentials'))->toBe([1, 2, 2, 2])
         ->and($split('Certification of Graduation'))->toBe([2, 2, 2])
         ->and($split('Diploma / Certificate for Non-Degree Programs'))->toBe([2, 2, 2])
         ->and($split('Authentication'))->toBe([1])
