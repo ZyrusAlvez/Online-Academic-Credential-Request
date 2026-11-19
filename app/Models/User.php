@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Actions\Auth\SendVerificationCode;
 use App\Enums\AcademicStatus;
 use App\Enums\ActivityCategory;
+use App\Enums\RequestChannel;
+use App\Enums\RequestStatus;
 use App\Enums\Role;
 use App\Enums\Sex;
 use App\Models\Concerns\LogsActivity;
@@ -194,6 +196,29 @@ class User extends Authenticatable implements MustVerifyEmail
     public function verifications(): HasMany
     {
         return $this->hasMany(RequesterVerification::class);
+    }
+
+    /**
+     * Their open online requests, one per credential: not released, declined or cancelled.
+     * Walk-ins never count (REQ-33-01).
+     */
+    public function openRequestCount(): int
+    {
+        $final = array_map(fn (RequestStatus $status): string => $status->value, [RequestStatus::Released, RequestStatus::Declined, RequestStatus::Cancelled]);
+
+        return CredentialRequest::query()
+            ->where('user_id', $this->id)
+            ->where('channel', RequestChannel::Online->value)
+            ->whereNotIn('status', $final)
+            ->count();
+    }
+
+    /**
+     * How many more credentials they may request now (REQ-33-01).
+     */
+    public function openRequestRoom(): int
+    {
+        return max(0, CredentialRequest::OPEN_LIMIT - $this->openRequestCount());
     }
 
     /**
