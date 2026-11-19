@@ -34,7 +34,7 @@
 
 ## REQ-32-11 Registrars told of Outgoing papers (2026-11-20)
 
-- [ ] Spec: REQ-32-11
-- [ ] `SendRequestNotifications::notifyOutgoing`: StepCompleted, DocumentReturned and Corrected by
+- [x] Spec: REQ-32-11
+- [x] `SendRequestNotifications::notifyOutgoing`: StepCompleted, DocumentReturned and Corrected by
       department staff, when the paper waits for collection
-- [ ] Pest tests REQ-32-11
+- [x] Pest tests REQ-32-11
