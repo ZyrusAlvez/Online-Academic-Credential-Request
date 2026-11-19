@@ -128,10 +128,8 @@ This replaces:
   clarification "Waiting for you to correct your request" (staff: "Waiting for the requester to
   correct the request"), and for one pending compliance "Waiting for you at the Office of the
   Registrar" (staff: "Waiting for the requester at the Office of the Registrar").
-- **REQ-20-12** THE Customer Compliance report SHALL list requests returned for clarification and
-  those pending compliance as separate statuses: the first waiting for the evaluator's remarks, the
-  second for its required items. THE Evaluator Performance report SHALL count, per evaluator, the
-  requests returned for clarification apart from those sent for compliance.
+- ~~REQ-20-12~~ *Removed by REQ-34-05 (2026-11-19):* the Customer Compliance and Evaluator
+  Performance reports are gone. The two returns stay separate statuses (REQ-20-11).
 - **REQ-20-13** THE SYSTEM SHALL NOT offer the registrar's Reopen evaluation, nor let a requester
   resubmit a request pending compliance. A requester SHALL be able to cancel a request in either
   waiting status.
