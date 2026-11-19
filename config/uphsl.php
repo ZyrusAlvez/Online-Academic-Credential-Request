@@ -39,6 +39,8 @@ return [
     'demo' => [
         'requesters' => (int) env('DEMO_REQUESTERS', 60),
         'applications' => (int) env('DEMO_APPLICATIONS', 400),
+        // The moment the data is dated as of, e.g. "2026-11-20 08:00"; empty = when it is loaded (REQ-31-06).
+        'as_of' => env('DEMO_AS_OF'),
     ],
 
 ];

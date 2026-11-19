@@ -39,7 +39,10 @@ trait DrivesDemoWorkflow
     /** @var Collection<string, User> office code => staff account */
     private Collection $staff;
 
-    /** The real moment the seeding started; the demo clock never passes it. */
+    /**
+     * The moment the data is dated as of: when the seeding started, or `uphsl.demo.as_of`
+     * (REQ-31-06). The demo clock never passes it.
+     */
     private Carbon $realNow;
 
     private function bootDemo(RequestWorkflow $workflow): void
@@ -52,7 +55,8 @@ trait DrivesDemoWorkflow
         $this->registrar = DemoSeeder::registrarAccount();
         $this->cashier = DemoSeeder::cashierAccount();
         $this->staff = Department::active()->get()->keyBy('code')->map(fn (Department $department) => DemoSeeder::staffAccount($department));
-        $this->realNow = Carbon::now();
+        $asOf = config('uphsl.demo.as_of');
+        $this->realNow = filled($asOf) ? Carbon::parse((string) $asOf) : Carbon::now();
     }
 
     /**
