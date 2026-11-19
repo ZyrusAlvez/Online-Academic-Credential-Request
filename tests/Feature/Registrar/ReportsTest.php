@@ -209,6 +209,9 @@ test('REQ-34-02 the dashboard\'s office table, longest first, with what each off
         ->assertSeeInOrder(['Office', 'Avg per document', 'Done', 'Pending'])
         ->assertDontSee('Oldest pending')->assertDontSee('Pending now')
         ->assertDontSeeHtml('data-slowest')->assertDontSeeHtml('bg-amber')
+        // Every bar's track is the same width, whatever the label's length.
+        ->assertSeeHtml('class="h-3 w-32 shrink-0 rounded-e bg-primary/10" aria-hidden="true" data-bar-track')
+        ->assertDontSeeHtml('max-w-48')
         // The name, average, Done and Pending open the office's documents.
         ->assertSee($documents($this->org->ccs))
         ->assertSee($documents($this->org->ccs, 'finished'))
