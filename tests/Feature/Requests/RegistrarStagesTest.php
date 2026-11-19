@@ -537,6 +537,38 @@ test('REQ-16-20 release records who claimed it; a representative must be verifie
     expect($owners->fresh()->release->recipient_name)->toBe($owners->requester_name);
 });
 
+test('REQ-16-28 a representative can always be chosen; someone not on the list is typed in, with the SPA and ID reminder', function () {
+    $ready = atFinalCheck($this->request);
+    workflow()->approveFinalCheck($ready, $this->registrar);
+    $reminder = "Confirm the SPA and the document owner's valid ID, and the representative's valid ID.";
+
+    // No representative on the request: the choice is enabled and asks for the name.
+    stagePage($ready)->assertSee('A representative')->assertDontSee('A verified representative')
+        ->assertDontSeeHtml('data-release-reminder')
+        ->set('recipientType', 'representative')
+        ->assertSeeHtml('data-counter-representative')->assertSee($reminder)
+        ->call('release')->assertHasErrors(['recipientName' => 'required'])
+        ->set('recipientName', 'Pedro Santos')->call('release')->assertHasNoErrors();
+
+    expect($ready->fresh()->status)->toBe(RequestStatus::Released)
+        ->and($ready->fresh()->release)->recipient_type->toBe(RecipientType::Representative)
+        ->recipient_name->toBe('Pedro Santos')->request_representative_id->toBeNull()
+        ->and($ready->events()->get()->last()->remarks)->toBe('Received by Pedro Santos (Authorized representative); SPA and IDs checked at release');
+
+    // With a verified representative: the list, plus "Someone else" for anyone else.
+    $other = atFinalCheck(submitRequest($this->owner, $this->org->tor));
+    workflow()->approveFinalCheck($other, $this->registrar);
+    $rosa = declareRepresentative($other, $this->owner, ['full_name' => 'Rosa Reyes']);
+    workflow()->reviewRepresentative($rosa, $this->registrar, true);
+
+    stagePage($other)->set('recipientType', 'representative')
+        ->assertSee('Someone else')->assertDontSeeHtml('data-counter-representative')->assertSee($reminder)
+        ->set('recipientRepresentativeId', Show::SOMEONE_ELSE)->assertSeeHtml('data-counter-representative')
+        ->set('recipientName', 'Liza Cruz')->call('release')->assertHasNoErrors();
+
+    expect($other->fresh()->release)->recipient_name->toBe('Liza Cruz')->request_representative_id->toBeNull();
+});
+
 // ── Removed registrar actions ───────────────────────────────────────────────────────────────
 
 test('REQ-16-21 the registrar cannot change the college, cancel, bypass, pause or record delays', function () {

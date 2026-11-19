@@ -40,6 +40,9 @@ class Show extends Component
     use ReturnsToList;
     use TrimsInput;
 
+    /** The Release choice for a representative not on the request's list (REQ-16-28). */
+    public const SOMEONE_ELSE = 'other';
+
     /** What the page shows, by the request's stage. */
     public const PANEL_LOCKED = 'locked';
 
@@ -96,6 +99,9 @@ class Show extends Component
     public string $recipientType = 'owner';
 
     public int|string|null $recipientRepresentativeId = null;
+
+    /** A representative not declared on the request, checked at the counter (REQ-16-28). */
+    public string $recipientName = '';
 
     /** The decision that could not run, and why (REQ-17-17). */
     #[Locked]
@@ -365,16 +371,24 @@ class Show extends Component
     public function release(RequestWorkflow $workflow): void
     {
         $this->authorize('release', $this->credentialRequest);
+
+        // A verified representative is picked from the list; anyone else is typed in (REQ-16-28).
+        $toRepresentative = $this->recipientType === RecipientType::Representative->value;
+        $hasVerified = $this->credentialRequest->representatives()->where('status', ReviewStatus::Verified)->exists();
+        $atCounter = $toRepresentative && ($this->recipientRepresentativeId === self::SOMEONE_ELSE || (! $hasVerified && blank($this->recipientRepresentativeId)));
+
         $this->validate([
             'recipientType' => ['required', Rule::enum(RecipientType::class)],
-            'recipientRepresentativeId' => [Rule::requiredIf($this->recipientType === RecipientType::Representative->value), 'nullable', 'integer'],
-        ], attributes: ['recipientRepresentativeId' => 'representative']);
+            'recipientRepresentativeId' => [Rule::requiredIf($toRepresentative && $hasVerified), 'nullable', $atCounter ? 'string' : 'integer'],
+            'recipientName' => [Rule::requiredIf($atCounter), 'nullable', 'string', 'max:150'],
+        ], attributes: ['recipientRepresentativeId' => 'representative', 'recipientName' => "representative's full name"]);
 
         $this->attempt(fn () => $workflow->release(
             $this->credentialRequest,
             $this->actor(),
             RecipientType::from($this->recipientType),
-            filled($this->recipientRepresentativeId) ? (int) $this->recipientRepresentativeId : null,
+            $toRepresentative && ! $atCounter ? (int) $this->recipientRepresentativeId : null,
+            representativeName: $atCounter ? $this->recipientName : null,
         ), 'Credential marked released.');
     }
 
