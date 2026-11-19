@@ -85,3 +85,12 @@ This replaces:
   forwarding is on Outgoing, so In Progress only showed where papers are, which Records already
   shows with its "Currently at" column and filter. This removes REQ-16-04, REQ-17-11, 13 and
   REQ-32-06, and In Progress from REQ-07-05, 07, REQ-16-25, 26 and REQ-18-03.)*
+
+### Telling the registrar
+- **REQ-32-11** WHEN department staff approve their office's task, return a document for
+  correction, or finish a correction, and the paper waits in Outgoing for the Registrar to carry
+  it (not when it moves on at once: after the final quality check, or to the same office) THE
+  SYSTEM SHALL notify every active registrar, in-app and, if they want it, by email (REQ-06-16):
+  "<tracking no.> is ready to collect from <office>". A registrar's own task at the Office of the
+  Registrar SHALL NOT notify. *(User's request, 2026-11-20: the Registrar must forward it to the
+  next office.)*

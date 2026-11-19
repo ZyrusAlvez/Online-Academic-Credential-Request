@@ -31,6 +31,13 @@ class SendRequestNotifications
         RequestEventType::IdentityResubmitted,
     ];
 
+    /** An office finished with the paper, which then waits in Outgoing for the Registrar (REQ-32-11). */
+    private const FOR_OUTGOING = [
+        RequestEventType::StepCompleted,
+        RequestEventType::DocumentReturned,
+        RequestEventType::Corrected,
+    ];
+
     public function handle(RequestEventRecorded $recorded): void
     {
         $event = $recorded->event->loadMissing(['department', 'step', 'visit', 'credentialRequest.student']);
@@ -40,6 +47,37 @@ class SendRequestNotifications
         $this->notifyRequester($event, $request);
         $this->notifyOffice($event, $request);
         $this->notifyRegistrars($event, $request);
+        $this->notifyOutgoing($event, $request);
+    }
+
+    /**
+     * Department staff finished with the paper and it waits for the Registrar to carry it on;
+     * not when it moves on at once, after the final check or to the same office (REQ-32-11).
+     */
+    private function notifyOutgoing(RequestEvent $event, CredentialRequest $request): void
+    {
+        $visit = $event->visit;
+
+        if (! in_array($event->type, self::FOR_OUTGOING, true) || $visit === null || $event->actor_id === null) {
+            return;
+        }
+
+        if (! User::whereKey($event->actor_id)->where('role', Role::Department)->exists()) {
+            return;
+        }
+
+        if ($event->type === RequestEventType::StepCompleted) {
+            $next = $visit->loadMissing(['step', 'credentialRequest.steps'])->nextStep();
+
+            if ($next === null || $next->department_id === $visit->department_id) {
+                return;
+            }
+        }
+
+        $office = $visit->department()->value('name');
+
+        $this->send(User::where('role', Role::Registrar)->where('is_active', true)->get(), $event,
+            "{$request->reference_no} is ready to collect from {$office}");
     }
 
     private function notifyRequester(RequestEvent $event, CredentialRequest $request): void

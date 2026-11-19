@@ -178,6 +178,35 @@ test('REQ-32-07 a return keeps the document in the returning office, in Outgoing
     registrarOutgoing()->assertSeeInOrder([$request->reference_no, 'Office of the VP for Finance', 'Return to College of Computer Studies']);
 });
 
+test('REQ-32-11 registrars are told when an office approves, returns or corrects a paper waiting in Outgoing', function () {
+    Notification::fake();
+    $other = User::factory()->registrar()->create();
+    $inactive = User::factory()->registrar()->create(['is_active' => false]);
+    $collect = fn (CredentialRequest $request, string $office) => fn (RequestActivity $n) => $n->title === "{$request->reference_no} is ready to collect from {$office}";
+
+    // The Registrar's own preparation: no notification.
+    $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    passOffice($request, $this->registrar);
+    Notification::assertNotSentTo($this->registrar, RequestActivity::class, fn (RequestActivity $n) => str_contains($n->title, 'ready to collect'));
+
+    // The Dean approves: every active registrar hears of it.
+    workflow()->acceptReceipt(openVisit($request), $this->dean);
+    workflow()->completeVisit(openVisit($request), $this->dean);
+    Notification::assertSentTo([$this->registrar, $other], RequestActivity::class, $collect($request, 'College of Computer Studies'));
+    Notification::assertNotSentTo($inactive, RequestActivity::class);
+
+    // VP Finance returns it; the Dean corrects it: each waits in Outgoing.
+    workflow()->forwardDocument(openVisit($request), $this->registrar);
+    workflow()->acceptReceipt(openVisit($request), $this->vpf);
+    workflow()->returnVisit(openVisit($request), $this->vpf, $this->org->ccs, 'Unsigned', 'Sign page 2');
+    Notification::assertSentTo($this->registrar, RequestActivity::class, $collect($request, 'Office of the VP for Finance'));
+
+    workflow()->forwardDocument(openVisit($request), $this->registrar);
+    workflow()->acceptReceipt(openVisit($request), $this->dean);
+    workflow()->completeVisit(openVisit($request), $this->dean);
+    expect(Notification::sent($this->registrar, RequestActivity::class, fn (RequestActivity $n) => str_contains($n->title, 'ready to collect from'))->count())->toBe(3);
+});
+
 test('REQ-32-08 the registrar carries a returned document back; the corrected one comes back the same way', function () {
     Notification::fake();
     $request = receivedAtVpf();
