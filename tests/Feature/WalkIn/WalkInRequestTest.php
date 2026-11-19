@@ -275,7 +275,13 @@ test('REQ-26-09 a linked walk-in request is the owner\'s; before linking nobody 
 test('REQ-26-10 queues, Records and the record mark a walk-in request and show its own name and email', function () {
     $request = recordWalkIn();
 
-    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => 'payment'])->assertSeeHtml('data-walk-in-badge');
+    // Payment Validation lists walk-ins only: no badge there.
+    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => 'payment'])
+        ->assertSee($request->reference_no)->assertDontSeeHtml('data-walk-in-badge');
+    $accepted = recordWalkIn();
+    workflow()->verifyWalkInPayment($accepted, $this->registrar, 'OR-1001', '530');
+    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => 'outgoing'])
+        ->assertSee($accepted->reference_no)->assertSeeHtml('data-walk-in-badge');
     Livewire::actingAs($this->registrar)->test(RecordsIndex::class)->assertSeeHtml('data-walk-in-badge')->assertSee('Pedro Cruz Villanueva');
     $this->actingAs($this->registrar)->get(route('records.show', $request))->assertOk()
         ->assertSee('Walk-in')->assertSee('pedro.v@example.com');
