@@ -34,6 +34,19 @@ final class DelayReport implements Report
         return ['Tracking no.', 'Credential', 'Accepted', 'Due', 'Ready for release', 'Holding office', 'Stage', 'Working days late', 'Returns', 'Cause', 'Recorded reason', 'Corrective action'];
     }
 
+    public function filters(): array
+    {
+        return ['type', 'office'];
+    }
+
+    /** The Show filter is the cause (REQ-34-03, REQ-34-13). */
+    public function shows(): array
+    {
+        return collect(DelayCategory::inferred())
+            ->mapWithKeys(fn (DelayCategory $cause): array => [$cause->value => $cause->label()])
+            ->all();
+    }
+
     public function rows(ReportFilter $filter): iterable
     {
         $calendar = app(WorkingCalendar::class);
@@ -41,6 +54,8 @@ final class DelayReport implements Report
         return self::overdue($filter)
             ->with(['credentialType', 'openVisit.department', 'openVisit.fromDepartment'])
             ->get()
+            ->when($filter->show !== '', fn (Collection $requests) => $requests
+                ->filter(fn (CredentialRequest $request): bool => self::causeOf($request)->value === $filter->show))
             ->map(function (CredentialRequest $request) use ($calendar): array {
                 $note = $request->delayNotes->first();   // latest first
                 $holding = $request->openVisit?->department->name
@@ -61,6 +76,7 @@ final class DelayReport implements Report
                     $note?->corrective_action,
                 ];
             })
+            ->values()
             ->all();
     }
 
@@ -81,7 +97,7 @@ final class DelayReport implements Report
     /**
      * The four causes with the period's count of each, zeros included, largest first (REQ-34-03).
      *
-     * @return Collection<int, array{label: string, scope: string, count: int}>
+     * @return Collection<int, array{value: string, label: string, scope: string, count: int}>
      */
     public static function causeCounts(ReportFilter $filter): Collection
     {
@@ -90,6 +106,7 @@ final class DelayReport implements Report
 
         return collect(DelayCategory::inferred())
             ->map(fn (DelayCategory $cause): array => [
+                'value' => $cause->value,
                 'label' => $cause->label(),
                 'scope' => $cause->description(),
                 'count' => (int) $counts->get($cause->value, 0),

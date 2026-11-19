@@ -72,9 +72,10 @@ test('REQ-34-02 the office table\'s pending counts follow the paper', function (
     expect($pending['Office of the Registrar'])->toBe(2)
         ->and($pending['College of Computer Studies'])->toBe(1);
 
+    // Each pending count opens the office's pending documents (REQ-34-12).
     $this->actingAs($this->admin)->get(route('admin.dashboard'))
-        ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->registrarOffice->id]))
-        ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->ccs->id]));
+        ->assertSee('report=office-documents&office='.$this->org->registrarOffice->id.'&show=pending')
+        ->assertSee('report=office-documents&office='.$this->org->ccs->id.'&show=pending');
 });
 
 test('REQ-07-07 the request list can be filtered by the office holding the document', function () {

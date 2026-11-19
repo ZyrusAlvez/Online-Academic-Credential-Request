@@ -57,7 +57,36 @@ released in the period that have `processing_working_days`: `name`, `released` (
 (average, 1 decimal) and `standard` (`credential_types.processing_days`). Longest average first,
 then by name (REQ-34-09).
 
+## Filters per report (REQ-34-13)
+`Report::filters()` lists which of `type`, `evaluator` and `office` a report uses. `Report::shows()`
+gives its Show options (`value => label`), or `[]` for none. `Admin\Reports\Index` renders only
+those selects, and `filter()` builds the `ReportFilter` from those values alone, so a leftover URL
+parameter never narrows a report that does not show it. `ReportFilter::$show` carries the chosen
+option, and changing the report clears it.
+
+`ReportKind::listed()` holds the four reports of the dropdown. `ReportKind::OfficeDocuments`
+(`office-documents`) is reachable by URL only. While it is open, the dropdown also shows its option.
+
+## Office Documents (`OfficeDocumentsReport`, REQ-34-12)
+- Finished rows: `$filter->visits()` completed in the period with status Completed or Returned,
+  the query behind Office Performance's Done, Returned and average. Show `finished`, `done` and
+  `returned` narrow it.
+- Pending rows: `$filter->heldVisits()`, the office is `OfficeVisit::holder()`, and the days are
+  `workingDaysBetween(received_at ?? forwarded_at, now)`. Show `pending`.
+
+## Drill-down links (Dashboard)
+The links are `route('admin.reports', [period…, report, …])`:
+
+| Dashboard number | Opens |
+|---|---|
+| Total requests | `transactions` |
+| Ready on time | `transactions&show=on_time` (eligible, ready by the due date) |
+| Overdue | `delay` (`DelayReport::overdue`) |
+| Office name / avg / Done / Pending | `office-documents&office=ID` with no show / `finished` / `done` / `pending` |
+| Credential name / Ready / avg | `transactions&type=ID&show=ready` (`ready_at` in the period, with a processing time) |
+| Cause name / count | `delay&show=<cause value>` |
+
 ## Dashboard
-`Admin\Dashboard` passes `metrics`, `offices`, `credentials` and `causes`. The view has the header,
-the period inputs and the Reports button, then the three tiles, the office table, the credential
+`Admin\Dashboard` passes `metrics`, `offices`, `credentials` and `causes`. The view has the header
+and the period inputs, then the three tiles, the office table (no highlight), the credential
 table (an average above its standard is red and marked `data-over-standard`) and the causes.
