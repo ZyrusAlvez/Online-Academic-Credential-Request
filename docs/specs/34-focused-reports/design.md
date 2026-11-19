@@ -94,10 +94,12 @@ carry `[&>div]:justify-center`, so they are centered like their values.
 | Ready on time | `records?scope=on_time&from&to` |
 | Overdue | `admin.reports?report=delay` with the period |
 | Cause name / count | `admin.reports?report=delay&show=<cause value>` |
-| Office name / average | `records?scope=finished&at=ID&from&to` |
+| Office average | `records?scope=finished&at=ID&from&to` |
 | Office Done | `records?scope=done&at=ID&from&to` |
 | Office Pending | `records?status=processing&office=ID` |
-| Credential name / Ready / average | `records?scope=ready&type=ID&from&to` |
+| Credential Ready / average | `records?scope=ready&type=ID&from&to` |
+
+The office and credential names are not links (user, 2026-11-20).
 
 ## Records' dashboard selection (REQ-34-17)
 `App\Queries\DashboardScope` narrows a request query to the selection, using a `ReportFilter`

@@ -39,7 +39,7 @@ longest-pending column.
   documents done, and the documents pending (columns Office, Avg per document, Done, Pending). A
   document forwarded but not yet received is pending at the office that sent it (REQ-17-18). No
   office is highlighted. Each pending count SHALL open Records filtered to that office. The
-  office's name and average SHALL open Records with the requests the office finished (done or
+  office's average SHALL open Records with the requests the office finished (done or
   returned) in the period, and Done those it completed (REQ-34-17).
 - **REQ-34-03** THE Dashboard SHALL show the causes of delay for overdue requests due in the
   period: the count per cause, using the same causes as the Delay Analysis report (REQ-07-18), all
@@ -55,7 +55,7 @@ longest-pending column.
   type with a request made ready for release in the period, it shows how many, their average
   working days from acceptance to ready for release (REQ-07-11's formula, per credential; Proposed Workflow
   XIII.2), and the credential's standard processing days. Longest average first. An average above
-  the standard SHALL be marked. The credential's name, count and average SHALL open Records with
+  the standard SHALL be marked. The credential's count and average SHALL open Records with
   that credential's requests made ready in the period (REQ-34-17).
 - **REQ-34-17** WHEN Records is opened from a dashboard number, it SHALL list the requests behind
   that number and show them as one chip above the list ("Ready on time · due Oct 1 – Oct 31"),

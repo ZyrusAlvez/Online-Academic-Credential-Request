@@ -56,13 +56,7 @@
                         @foreach ($offices as $office)
                             @php($finished = $records('finished', ['at' => $office['id']]))
                             <tr>
-                                <th scope="row" class="p-3 text-start font-medium text-ink">
-                                    @if ($office['days'] === null)
-                                        {{ $office['name'] }}
-                                    @else
-                                        <a href="{{ $finished }}" wire:navigate class="underline-offset-2 hover:text-highlight hover:underline">{{ $office['name'] }}</a>
-                                    @endif
-                                </th>
+                                <th scope="row" class="p-3 text-start font-medium text-ink">{{ $office['name'] }}</th>
                                 <td class="p-3 text-center tabular-nums">
                                     @if ($office['days'] === null)
                                         <span class="text-zinc-500">—</span>
@@ -115,9 +109,7 @@
                             @php($over = $credential['days'] > $credential['standard'])
                             @php($ready = $records('ready', ['type' => $credential['id']]))
                             <tr>
-                                <th scope="row" class="p-3 text-start font-medium text-ink">
-                                    <a href="{{ $ready }}" wire:navigate class="underline-offset-2 hover:text-highlight hover:underline">{{ $credential['name'] }}</a>
-                                </th>
+                                <th scope="row" class="p-3 text-start font-medium text-ink">{{ $credential['name'] }}</th>
                                 <td class="p-3 text-center tabular-nums">
                                     <a href="{{ $ready }}" wire:navigate class="{{ $linkClass }}">{{ $credential['ready'] }}</a>
                                 </td>

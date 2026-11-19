@@ -211,7 +211,10 @@ test('REQ-34-02 the dashboard\'s office table, longest first, with what each off
         ->assertSee(route('records', ['scope' => 'finished', 'from' => '2026-10-01', 'to' => '2026-10-31', 'at' => $this->org->ccs->id]))
         ->assertSee(route('records', ['scope' => 'done', 'from' => '2026-10-01', 'to' => '2026-10-31', 'at' => $this->org->ccs->id]))
         ->assertDontSee(route('records', ['scope' => 'done', 'from' => '2026-10-01', 'to' => '2026-10-31', 'at' => $this->org->vpf->id]))   // nothing done
-        ->assertDontSee('office-documents');
+        ->assertDontSee('office-documents')
+        // The office and credential names are plain text.
+        ->assertSeeHtml('<th scope="row" class="p-3 text-start font-medium text-ink">College of Computer Studies</th>')
+        ->assertSeeHtml('<th scope="row" class="p-3 text-start font-medium text-ink">Transcript of Records</th>');
 });
 
 test('REQ-34-17 Records lists the requests behind a dashboard number, shown as a chip that clears it', function () {
