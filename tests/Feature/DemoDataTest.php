@@ -12,9 +12,11 @@ use App\Models\OfficeVisit;
 use App\Models\RequestEvent;
 use App\Models\User;
 use App\Services\RequestWorkflow;
+use App\Services\WorkingCalendar;
 use Database\Seeders\DemoRequestSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -79,6 +81,56 @@ test('REQ-31-04 there is a request in every status and documents received at and
         $expected = $office->code === Department::REGISTRAR_CODE ? 1 : 2;
         expect($open->where('department_id', $office->id)->pluck('status')->unique()->count())->toBe($expected, "{$office->code} holds no received or incoming document");
     }
+});
+
+/** The working day $offset working days from $day (0: that day, or the next working day). */
+function workingDayFrom(WorkingCalendar $calendar, Carbon $day, int $offset): Carbon
+{
+    $day = $day->copy()->startOfDay();
+
+    if ($offset === 0) {
+        while (! $calendar->isWorkingDay($day)) {
+            $day->addDay();
+        }
+
+        return $day;
+    }
+
+    for ($left = abs($offset); $left > 0;) {
+        $day->addDays($offset < 0 ? -1 : 1);
+        $left -= $calendar->isWorkingDay($day) ? 1 : 0;
+    }
+
+    return $day;
+}
+
+test('REQ-31-06 REQ-31-07 dated as of a chosen moment, with due dates around that day and new applications that morning', function () {
+    $asOf = now()->subWeek()->setTime(8, 30);
+    config(['uphsl.demo.as_of' => $asOf->toDateTimeString()]);
+    $this->seed(DemoRequestSeeder::class);
+
+    // Nothing after the as-of moment (REQ-31-05, 06).
+    expect(RequestEvent::max('created_at'))->not->toBeGreaterThan($asOf->toDateTimeString())
+        ->and(CredentialRequest::whereDate('submitted_at', $asOf->toDateString())->count())->toBeGreaterThanOrEqual(5);
+
+    // Two credentials at an office for each due date around the day (REQ-31-07).
+    $calendar = app(WorkingCalendar::class);
+    foreach ([-5, -3, -1, 0, 1, 2] as $offset) {
+        $due = workingDayFrom($calendar, $asOf, $offset);
+        expect(CredentialRequest::whereIn('status', RequestStatus::processing())->whereDate('effective_due_at', $due->toDateString())->count())
+            ->toBeGreaterThanOrEqual(2, "nothing due on {$due->toDateString()} (offset {$offset})");
+    }
+});
+
+test('REQ-31-06 an as-of moment that cannot be read stops app:reset-demo before anything is wiped', function () {
+    app()['env'] = 'local';
+    $kept = User::factory()->create();
+
+    $this->artisan('app:reset-demo', ['--as-of' => 'next presentation'])
+        ->expectsOutputToContain('Cannot read the as-of moment')
+        ->assertFailed();
+
+    expect(User::find($kept->id))->not->toBeNull();
 });
 
 test('REQ-31-05 the generated history notifies no one and is never dated after the moment it is loaded', function () {

@@ -17,8 +17,10 @@ use App\Models\Department;
 use App\Models\Purpose;
 use App\Models\User;
 use App\Services\RequestWorkflow;
+use App\Services\WorkingCalendar;
 use Database\Seeders\Concerns\DrivesDemoWorkflow;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -210,6 +212,114 @@ class DemoBulkSeeder extends Seeder
         foreach ([1, 2, 3] as $_) {
             $this->application(fake()->numberBetween(25, 40), 'in_progress', items: [$this->item($tor)], receive: true);
         }
+
+        $this->deadlines($tor);
+
+        // The day itself: new applications, and some already being evaluated (REQ-31-07).
+        foreach (['submitted', 'submitted', 'submitted', 'evaluating', 'evaluating'] as $outcome) {
+            $this->application(0, $outcome);
+        }
+    }
+
+    /**
+     * Credentials at an office whose due date is 5, 3 and 1 working days past, the as-of day, and
+     * the next 1 and 2 working days, two of each (REQ-31-07).
+     */
+    private function deadlines(CredentialType $type): void
+    {
+        $calendar = app(WorkingCalendar::class);
+        $today = $this->realNow->copy()->startOfDay();
+
+        foreach ([-5, -3, -1, 0, 1, 2] as $offset) {
+            $accepted = $this->acceptanceDayFor($calendar, $this->workingDayFrom($calendar, $today, $offset), $type->processing_days);
+
+            // Accepted before the day itself, so nothing is dated after it (REQ-31-05).
+            if ($accepted === null || ! $accepted->lt($today)) {
+                continue;
+            }
+
+            foreach ([1, 2] as $_) {
+                $this->acceptedOn((int) abs($accepted->diffInDays($today)), $type);
+            }
+        }
+    }
+
+    /**
+     * The working day $offset working days from $today (0: today, or the next working day).
+     */
+    private function workingDayFrom(WorkingCalendar $calendar, Carbon $today, int $offset): Carbon
+    {
+        $day = $today->copy();
+        $step = $offset < 0 ? -1 : 1;
+        $left = abs($offset);
+
+        if ($offset === 0) {
+            while (! $calendar->isWorkingDay($day)) {
+                $day->addDay();
+            }
+
+            return $day;
+        }
+
+        while ($left > 0) {
+            $day->addDays($step);
+
+            if ($calendar->isWorkingDay($day)) {
+                $left--;
+            }
+        }
+
+        return $day;
+    }
+
+    /**
+     * The latest working day on which a credential of $days working days is accepted and comes
+     * due on $due (REQ-10-02).
+     */
+    private function acceptanceDayFor(WorkingCalendar $calendar, Carbon $due, int $days): ?Carbon
+    {
+        for ($back = 1; $back <= 90; $back++) {
+            $day = $due->copy()->subDays($back);
+
+            if ($calendar->isWorkingDay($day) && $calendar->addWorkingDays($day, $days)->isSameDay($due)) {
+                return $day;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Submitted two days before $daysAgo, evaluated the next day, then paid and accepted on that
+     * day (so its due date is exact), and received at an office mid-route.
+     */
+    private function acceptedOn(int $daysAgo, CredentialType $type): void
+    {
+        $this->at($daysAgo + 2, function () use ($type): void {
+            DB::transaction(function () use ($type): void {
+                $this->registrar = fake()->randomElement($this->registrars);
+                $owner = fake()->randomElement($this->requesters);
+                $lead = $this->workflow->submit($owner, [$this->item($type)]);
+
+                // Submitted 8–10 a.m.; evaluated the next day; paid and accepted around 1–3 p.m.
+                // two days after submitting.
+                $this->later(26);
+                $this->workflow->startEvaluation($lead, $this->registrar);
+                $this->check($lead, CheckStage::Evaluation);
+                $this->workflow->approveEvaluation($lead, $this->registrar, 'Records and requirements complete.');
+                $this->later(20);
+                $this->pay($lead);
+                $this->later(2);
+                $this->workflow->verifyPaymentAndAccept($lead, $this->cashier);
+
+                $codes = $lead->steps()->with('department')->orderBy('position')->get()->map(fn ($step) => (string) $step->department?->code)->all();
+                $middle = array_values(array_filter(array_slice($codes, 1, -1), fn (string $code): bool => $code !== Department::REGISTRAR_CODE));
+
+                if ($middle !== []) {
+                    $this->advanceUntil($lead, (string) fake()->randomElement($middle), receive: true);
+                }
+            });
+        });
     }
 
     /**

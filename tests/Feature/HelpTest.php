@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\HelpTopic;
+use App\Models\CredentialRequest;
 use App\Models\IdentityDocument;
 use App\Models\User;
 use Illuminate\Support\Str;
@@ -101,14 +102,15 @@ test('REQ-22-03 each topic answers its questions', function (HelpTopic $topic, a
         'I forgot my password.', 'Can I change my email address?', 'It says my account has been deactivated.', 'Can I delete my account?',
     ]],
     'details and ID' => [HelpTopic::DetailsAndId, [
-        'Do I have to give my details and upload my ID on every request?', 'How do I know whether my details are verified?',
+        'Which details are required?', 'Do I have to give my details and upload my ID on every request?', 'How do I know whether my details are verified?',
         'Can I still change my details after they are verified?', 'I updated my details. Why does my earlier request still show the old ones?',
         'Which IDs and files are accepted?', 'How do I use a different ID?', 'What if my ID is not accepted?',
         'Who can see my ID and the files I upload?', 'Why do I tick the data privacy box every time?',
     ]],
     'requesting' => [HelpTopic::Requesting, [
-        'How do I request a credential?', "Where do I see a credential's fee and processing time?", "My purpose isn't in the list.",
-        'Why does it ask for a receiving school?', 'Do I need to submit documents?', 'How do I request more than one copy?',
+        'How do I request a credential?', 'Can I request several credentials at once?', 'How many requests can I have at a time?',
+        "Where do I see a credential's fee and processing time?", 'What purpose should I give?', "My purpose isn't in the list.",
+        'Why does it ask for a receiving school?', 'Why does it ask for terms and an academic year?', 'Do I need to submit documents?', 'How do I request more than one copy?',
         'What happens after I submit?', 'It says “Visit the Office of the Registrar”. What do I do?', 'Can I change a request after submitting it?', 'Can I cancel a request?',
     ]],
     'payment' => [HelpTopic::Payment, [
@@ -116,7 +118,7 @@ test('REQ-22-03 each topic answers its questions', function (HelpTopic $topic, a
         'My proof of payment was not accepted.',
     ]],
     'tracking' => [HelpTopic::Tracking, [
-        'Where do I see my requests?', 'What does each status mean?', 'When does the processing period start? When will my credential be ready?',
+        'Where do I see my requests?', 'I made a request at the Office of the Registrar. Can I follow it here?', 'What does each status mean?', 'When does the processing period start? When will my credential be ready?',
         'Who has my document right now?', 'How will I know when something changes?', 'My request is overdue. What happens now?',
     ]],
     'representatives and release' => [HelpTopic::RepresentativesAndRelease, [
@@ -134,12 +136,13 @@ test('REQ-22-03 the details topic explains giving and verifying details once, an
         ->toContain('loses its <strong>Verified</strong> badge and is checked again on your next request');
 });
 
-test('REQ-22-03 no help page mentions a free credential: every request is paid', function () {
-    foreach (HelpTopic::cases() as $topic) {
-        $html = $this->actingAs($this->owner)->get(route('student.help', $topic->value))->assertOk()->getContent();
+test('REQ-22-03 the answers follow the current rules: the open limit, one payment, the Cashier, graduates\' Certificate of Grades', function () {
+    $get = fn (HelpTopic $topic): string => strip_tags($this->actingAs($this->owner)->get(route('student.help', $topic->value))->getContent());
 
-        expect(Str::lower(strip_tags($html)))->not->toContain('free credential')->not->toContain('is free');
-    }
+    expect($get(HelpTopic::Requesting))->toContain('Up to '.CredentialRequest::OPEN_LIMIT.' open credentials')
+        ->toContain('paid once, for the total');
+    expect($get(HelpTopic::Payment))->toContain("the university's Cashier checks your payment")
+        ->toContain('Graduates pay nothing for the Certificate of Grades');
 });
 
 test('REQ-22-04 answers link to the pages they name and read the same settings as the forms', function () {

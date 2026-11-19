@@ -1,11 +1,12 @@
 {{-- Help: Getting Started (REQ-22-03). --}}
 <x-faq-item question="What can I do here?">
-    <p>You can request academic credentials from the UPHSL Office of the Registrar, such as a Transcript of Records, certifications, a diploma or a CAV, then pay for them and follow each request until it is ready to claim.</p>
+    <p>You can request academic credentials from the University of Perpetual Help System Laguna (UPHSL) Office of the Registrar, such as a Transcript of Records, certificates, a diploma or a CAV, then pay for them and follow each request until it is ready to claim.</p>
     <p>This system only <strong>tracks</strong> your request. Your credential is a paper document: it is never sent to you by email or as a download. You claim it in person at the Office of the Registrar, or through an authorized representative.</p>
 </x-faq-item>
 
 <x-faq-item question="Who can use it?">
     <p>Current students, graduates and former students of UPHSL. You can sign up with any email address; it does not have to be a UPHSL address.</p>
+    <p>If you made a request in person at the Office of the Registrar, sign up with the email address you gave there and the request appears in your account.</p>
 </x-faq-item>
 
 <x-faq-item question="How do I create an account?">
