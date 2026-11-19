@@ -54,8 +54,9 @@ class Dashboard extends Component
         // Every tile opens Records with the matching filter (REQ-18-08).
         return view('livewire.admin.dashboard', [
             'tiles' => [
-                ['label' => __('Needs the Registrar'), 'value' => $count(...RegistrarRequestFilter::needsRegistrar()), 'href' => route('records', ['status' => RegistrarRequestFilter::NEEDS_REGISTRAR])],
-                ['label' => __('Pending compliance'), 'value' => $count(...RegistrarRequestFilter::waitingForRequester()), 'href' => route('records', ['status' => RegistrarRequestFilter::WAITING_FOR_REQUESTER])],
+                // Online payments are the Cashier's, so only walk-in ones count here (REQ-18-08).
+                ['label' => __('Needs the Registrar'), 'value' => RegistrarRequestFilter::needsRegistrar(CredentialRequest::query())->count(), 'href' => route('records', ['status' => RegistrarRequestFilter::NEEDS_REGISTRAR])],
+                ['label' => __('Waiting for the requester'), 'value' => $count(...RegistrarRequestFilter::waitingForRequester()), 'href' => route('records', ['status' => RegistrarRequestFilter::WAITING_FOR_REQUESTER])],
                 ['label' => __('Awaiting payment'), 'value' => $count(RequestStatus::AwaitingPayment), 'href' => route('records', ['status' => RequestStatus::AwaitingPayment->value])],
                 ['label' => __('Being processed'), 'value' => $count(...RequestStatus::processing()), 'href' => route('records', ['status' => RegistrarRequestFilter::PROCESSING])],
                 ['label' => __('Ready for release'), 'value' => $count(RequestStatus::ReadyForRelease), 'href' => route('records', ['status' => RequestStatus::ReadyForRelease->value])],

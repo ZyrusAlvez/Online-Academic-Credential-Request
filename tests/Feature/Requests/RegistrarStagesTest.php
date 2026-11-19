@@ -339,7 +339,7 @@ test('REQ-16-24 each checklist part shows its data as summary rows, label left a
         ->toMatch($row('College', 'College of Computer Studies'));
 
     // An online proof, on the cashier's Payment Validation (REQ-25-05).
-    expect(cashierPage(onlineProofToVerify(submitRequest($this->owner, $this->org->tor)))->html())->toMatch($row('Reference', 'REF-123'));
+    expect(cashierPage(onlineProofToVerify(submitRequest($this->owner, $this->org->tor)))->html())->toMatch($row('Amount due', '₱530.00'));
 
     $final = atFinalCheck(submitRequest($this->owner, $this->org->tor));
     expect(stagePage($final)->html())->toMatch($row('Issued to', $final->requester_name));
@@ -398,7 +398,7 @@ test('REQ-16-17 payment validation shows the proof and its details read-only, th
     $html = cashierPage($this->request)->html();
 
     // No checklist and no receipt number: the proof and its details, read-only.
-    expect($html)->toContain('data-payment-proof')->toContain('data-payment-details')->toContain('REF-123')
+    expect($html)->toContain('data-payment-proof')->toContain('data-payment-details')
         ->not->toContain('data-check=')->not->toContain('data-confirm-button')
         ->not->toContain('Official receipt')
         ->and(Str::between($html, 'data-payment-details', '</section>'))->toContain('Amount due')->toContain('Amount paid')->toContain('Date paid');

@@ -73,9 +73,10 @@
             </summary>
             <div class="space-y-2 px-4 pb-4 text-sm text-amber-950 sm:pl-12">
                 <p>{{ __('Before submitting your online request for academic credentials, please ensure that your admission requirements and clearance are complete.') }}</p>
-                <p>{{ __('If your records indicate that you have lacking admission requirements, such as Form 137, the required UPHSL copy of your previous Transcript of Records, a PSA-authenticated birth certificate, or other applicable documents, you must first submit the original required documents to the Registrar\'s Office of the University of Perpetual Help System Laguna (UPHSL). You will also be required to accomplish the appropriate clearance form and complete the necessary clearance process.') }}</p>
+                {{-- Plain language (pilot consultation §6). --}}
+                <p>{{ __('If your records show that an admission requirement is missing, such as your Form 137, a TOR copy for UPHSL or a PSA-authenticated birth certificate, submit the original to the Registrar\'s Office of the University of Perpetual Help System Laguna (UPHSL) first. You will also need to complete your clearance.') }}</p>
                 <p>{{ __('You must visit the University personally or send an authorized representative on your behalf. A representative must present a valid Special Power of Attorney (SPA) authorizing them to act on your behalf, together with the valid IDs of both the document owner and the representative, subject to University verification.') }}</p>
-                <p class="font-medium">{{ __('Your online request will remain pending until the deficiencies have been resolved and verified by the Registrar\'s Office. The prescribed processing period will begin only after all applicable requirements and clearance have been completed, payment has been verified, and the request has been officially accepted. Submitting an online request does not automatically mean that your request has been accepted for processing.') }}</p>
+                <p class="font-medium">{{ __('Your request stays pending until the Registrar\'s Office has received and checked what is missing. The processing period starts only upon payment validation, once your requirements and clearance are complete.') }}</p>
             </div>
         </details>
 

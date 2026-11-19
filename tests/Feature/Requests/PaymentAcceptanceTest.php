@@ -30,29 +30,30 @@ beforeEach(function () {
 
 afterEach(fn () => Carbon::setTestNow());
 
-test('REQ-04-12 the owner sees the amount due and uploads a proof with the transaction details', function () {
+test('REQ-04-12 the owner sees the amount due and uploads a proof with the amount and date, no reference number', function () {
     Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $this->request])
         ->assertSee('Amount due: ₱530.00')
         ->assertSee(config('uphsl.payment_url'))
+        ->assertDontSee('Payment reference no.')
         ->set('receipt', UploadedFile::fake()->image('receipt.jpg'))
-        ->set('paymentReference', 'UPHSL-123')
         ->set('amountPaid', '530')
         ->set('paidOn', now()->format('Y-m-d'))
         ->call('uploadReceipt')
-        ->assertHasNoErrors();
+        ->assertHasNoErrors()
+        ->assertDispatched('notify', message: 'Proof of payment uploaded. The Cashier will verify it against the payment record.');
 
     $proof = $this->request->paymentProofs()->sole();
 
     Storage::disk(RequestWorkflow::proofDisk())->assertExists($proof->path);
     expect($this->request->fresh()->status)->toBe(RequestStatus::PaymentVerification)
-        ->and($proof)->reference_no->toBe('UPHSL-123')->amount->toBe('530.00')->paid_on->toDateString()->toBe(now()->toDateString());
+        ->and($proof)->reference_no->toBeNull()->amount->toBe('530.00')->paid_on->toDateString()->toBe(now()->toDateString());
 });
 
 test('REQ-04-12 the proof must be an image or PDF of at most 5 MB with its details', function () {
     Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $this->request])
         ->set('receipt', UploadedFile::fake()->create('receipt.exe', 100))
         ->call('uploadReceipt')
-        ->assertHasErrors(['receipt' => 'mimes', 'paymentReference' => 'required', 'amountPaid' => 'required', 'paidOn' => 'required']);
+        ->assertHasErrors(['receipt' => 'mimes', 'amountPaid' => 'required', 'paidOn' => 'required']);
 
     expect($this->request->fresh()->status)->toBe(RequestStatus::AwaitingPayment);
 });
@@ -79,7 +80,7 @@ test('REQ-04-21 the uploaded proofs open from a Payment History button beside th
     $proof = $this->request->paymentProofs()->sole();
     $page()->assertDontSee('Uploaded Proofs of Payment')
         ->assertSeeHtmlInOrder(['Your payment is being verified.', 'data-payment-history-button', 'Payment History'])
-        ->assertSeeHtmlInOrder(['data-payment-history', 'Payment History', $proof->original_name, 'Ref REF-123', 'For verification']);
+        ->assertSeeHtmlInOrder(['data-payment-history', 'Payment History', $proof->original_name, 'For verification']);
 
     // Returned: the button sits beside the reason; the dialog lists both proofs, newest first.
     workflow()->rejectPayment($this->request, $this->registrar, 'The reference does not match our record.');
@@ -88,7 +89,9 @@ test('REQ-04-21 the uploaded proofs open from a Payment History button beside th
 
     $html = Str::after($page()->assertDontSee('Uploaded Proofs of Payment')->html(), 'Your last proof of payment was not accepted');
     expect(Str::before($html, 'data-payment-history-button'))->toContain('Still unreadable.')
-        ->and(Str::after($html, 'data-payment-history>'))->toMatch('/second\.jpg.*Remarks: Still unreadable\..*receipt\.jpg.*Remarks: The reference does not match our record\./s');
+        ->and(Str::after($html, 'data-payment-history>'))->toMatch('/second\.jpg.*Remarks: Still unreadable\..*receipt\.jpg.*Remarks: The reference does not match our record\./s')
+        // A reference given with an older proof is still listed (REQ-04-12).
+        ->and($html)->toContain('Ref REF-456');
 });
 
 test('REQ-04-13 the cashier rejects a proof with remarks', function () {
@@ -134,7 +137,6 @@ function newProof(): Testable
 {
     return Livewire::actingAs(test()->owner)->test(RequesterShow::class, ['credentialRequest' => test()->request->fresh()])
         ->set('receipt', UploadedFile::fake()->image('receipt.jpg'))
-        ->set('paymentReference', 'UPHSL-456')
         ->set('amountPaid', '530')
         ->set('paidOn', now()->format('Y-m-d'));
 }

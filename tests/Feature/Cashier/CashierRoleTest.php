@@ -104,7 +104,7 @@ test('REQ-25-05 the cashier sees the proof and approves: the request is accepted
     $request = paidOnline($this);
 
     $this->actingAs($this->cashier)->get(route('cashier.payments.show', $request))->assertOk()
-        ->assertSee('Proof of Payment')->assertSee('Payment Details')->assertSee('REF-123')
+        ->assertSee('Proof of Payment')->assertSee('Payment Details')
         ->assertSee('Decline')->assertSee('Return to Requester')->assertSee('Approve');
 
     Livewire::actingAs($this->cashier)->test(Show::class, ['credentialRequest' => $request])

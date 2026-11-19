@@ -144,8 +144,7 @@
                             <p class="text-sm">{{ __('Upload your proof of payment (JPG, PNG, WebP or PDF, up to 5 MB).') }}</p>
                             {{-- The valid ID's picker: the chosen file's name opens the viewer (REQ-04-12). --}}
                             <x-file-picker model="receipt" :label="__('Proof of payment')" data-receipt-picker />
-                            <div class="grid gap-4 md:grid-cols-3">
-                                <flux:input wire:model="paymentReference" :label="__('Payment reference no.')" required />
+                            <div class="grid gap-4 md:grid-cols-2">
                                 <flux:input wire:model="amountPaid" type="number" step="0.01" min="0" inputmode="decimal" :label="__('Amount paid (₱)')" required />
                                 <flux:input wire:model="paidOn" type="date" :max="now()->format('Y-m-d')" :label="__('Date paid')" required />
                             </div>

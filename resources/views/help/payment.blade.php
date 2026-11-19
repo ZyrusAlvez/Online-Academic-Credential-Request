@@ -6,7 +6,7 @@
 <x-faq-item question="How do I pay?">
     <ol>
         <li>Choose <strong>Pay online</strong> on your request page, which opens the UPHSL payment portal (<a href="{{ config('uphsl.payment_url') }}" target="_blank" rel="noopener">{{ config('uphsl.payment_url') }}</a>), and pay. Keep your receipt.</li>
-        <li>Back on your request page, upload your proof of payment (a JPG, PNG, WebP or PDF of up to 5 MB) with the payment reference number, the amount paid and the date paid, then choose <strong>Submit proof of payment</strong>.</li>
+        <li>Back on your request page, upload your proof of payment (a screenshot or the payment email, as a JPG, PNG, WebP or PDF of up to 5 MB) with the amount paid and the date paid, then choose <strong>Submit proof of payment</strong>.</li>
     </ol>
 </x-faq-item>
 

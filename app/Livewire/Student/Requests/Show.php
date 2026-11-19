@@ -44,8 +44,6 @@ class Show extends Component
     /** @var UploadedFile|null */
     public $receipt = null;
 
-    public string $paymentReference = '';
-
     public string $amountPaid = '';
 
     public string $paidOn = '';
@@ -74,18 +72,18 @@ class Show extends Component
         $this->authorize('uploadPayment', $this->credentialRequest);
 
         $this->validate([
+            // No payment reference number: the screenshot carries it (REQ-04-12, pilot consultation §8).
             'receipt' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
-            'paymentReference' => ['required', 'string', 'max:100'],
             'amountPaid' => ['required', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'],
             'paidOn' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'paymentNote' => ['nullable', 'string', 'max:500'],
-        ], attributes: ['receipt' => 'proof of payment', 'paymentReference' => 'payment reference no.', 'amountPaid' => 'amount paid', 'paidOn' => 'date paid', 'paymentNote' => 'note']);
+        ], attributes: ['receipt' => 'proof of payment', 'amountPaid' => 'amount paid', 'paidOn' => 'date paid', 'paymentNote' => 'note']);
 
         // The note is offered only once a proof was returned (REQ-04-20).
         $returned = $this->credentialRequest->paymentProofs()->where('status', PaymentStatus::Rejected)->exists();
 
         try {
-            $workflow->submitPaymentProof($this->credentialRequest, $this->owner(), $this->receipt, $this->paymentReference, $this->amountPaid, $this->paidOn,
+            $workflow->submitPaymentProof($this->credentialRequest, $this->owner(), $this->receipt, null, $this->amountPaid, $this->paidOn,
                 $returned ? $this->paymentNote : null);
         } catch (InvalidTransition $e) {
             $this->addError('receipt', $e->getMessage());
@@ -93,8 +91,9 @@ class Show extends Component
             return;
         }
 
-        $this->reset('receipt', 'paymentReference', 'amountPaid', 'paidOn', 'paymentNote');
-        $this->dispatch('notify', message: 'Proof of payment uploaded. The Office of the Registrar will verify it against the payment record.');
+        $this->reset('receipt', 'amountPaid', 'paidOn', 'paymentNote');
+        // Online payments are the Cashier's to verify (REQ-25-04).
+        $this->dispatch('notify', message: 'Proof of payment uploaded. The Cashier will verify it against the payment record.');
     }
 
     public function cancel(RequestWorkflow $workflow): void

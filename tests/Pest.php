@@ -154,8 +154,9 @@ function walkIn(CredentialRequest $request): CredentialRequest
 
 function uploadPayment(CredentialRequest $request): void
 {
+    // No reference number, as on the requester's page (REQ-04-12).
     workflow()->submitPaymentProof($request, $request->student()->firstOrFail(), UploadedFile::fake()->image('receipt.jpg'),
-        'REF-123', (string) $request->amount_due, now()->format('Y-m-d'));
+        null, (string) $request->amount_due, now()->format('Y-m-d'));
 }
 
 /**
