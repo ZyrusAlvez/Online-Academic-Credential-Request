@@ -20,7 +20,7 @@ final class MonthlySummaryReport implements Report
 
     public function description(): string
     {
-        return 'Requests due each month: ready for release on time, late and still pending.';
+        return 'January to December of the year: requests due each month, ready on time, late and still pending.';
     }
 
     public function columns(): array
@@ -45,12 +45,9 @@ final class MonthlySummaryReport implements Report
 
     public function rows(ReportFilter $filter): iterable
     {
+        // Every month of the chosen year is listed; only what happened up to now is counted (REQ-34-08).
         $start = $filter->start;
         $end = $filter->judgedUntil();
-
-        if ($start->greaterThan($end)) {
-            return [];
-        }
 
         $received = $this->byMonth($filter->requests()->whereBetween('submitted_at', [$start, $end]), 'submitted_at')
             ->get()
@@ -70,7 +67,7 @@ final class MonthlySummaryReport implements Report
 
         $rows = [];
 
-        for ($month = $start->startOfMonth(); $month->lessThanOrEqualTo($end); $month = $month->addMonth()) {
+        for ($month = $start->startOfMonth(); $month->lessThanOrEqualTo($filter->end); $month = $month->addMonth()) {
             $key = $month->format('Y-m');
             $row = $due->get($key);
             $total = (int) ($row?->getAttribute('n') ?? 0);

@@ -268,11 +268,11 @@ test('REQ-16-23 staff see where a request is in the requester\'s terms, the requ
         ->and($this->request->staffWhereabouts())->toBe($this->request->whereabouts());
 });
 
-test('REQ-16-08 there is no CSV download of requests or reports', function () {
+test('REQ-16-08 there is no CSV download of the requests; Reports have one (REQ-34-16)', function () {
     $this->actingAs($this->registrar)->get('/registrar/requests/export')->assertNotFound();
     $this->actingAs($this->registrar)->get('/registrar/reports/daily/export')->assertNotFound();
-    $this->actingAs(User::factory()->admin()->create())->get(route('admin.reports'))->assertOk()->assertDontSee('Export CSV');
     $this->actingAs($this->registrar)->get(route('records'))->assertOk()->assertDontSee('Export CSV');
+    $this->actingAs(User::factory()->admin()->create())->get(route('admin.reports'))->assertOk()->assertSee('Export CSV');
 });
 
 // ── The evaluation lock ─────────────────────────────────────────────────────────────────────

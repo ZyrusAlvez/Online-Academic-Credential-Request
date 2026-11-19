@@ -416,8 +416,8 @@ test('REQ-17-18 the dashboard office table and the office report count it at the
         ->and($rows->has('College of Computer Studies') ? $rows['College of Computer Studies'][4] : 0)->toBe(0);
 
     $this->actingAs(User::factory()->admin()->create())->get(route('admin.dashboard'))   // the Admin's dashboard (REQ-18-02)
-        ->assertSee('report=office-documents&office='.$this->org->registrarOffice->id.'&show=pending')
-        ->assertDontSee('report=office-documents&office='.$this->org->ccs->id.'&show=pending');
+        ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->registrarOffice->id]))
+        ->assertDontSee(route('records', ['status' => 'processing', 'office' => $this->org->ccs->id]));
 });
 
 test('REQ-32-02 a done paper shows it has not been forwarded yet', function () {

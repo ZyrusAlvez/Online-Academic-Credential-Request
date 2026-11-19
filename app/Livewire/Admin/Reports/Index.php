@@ -8,6 +8,7 @@ use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\User;
+use App\Reports\MonthlySummaryReport;
 use App\Reports\Report;
 use App\Reports\ReportFilter;
 use Illuminate\Contracts\View\View;
@@ -17,10 +18,11 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * The reports, each with its own filters (REQ-34-05, REQ-34-13, REQ-07-20), sortable by any column
- * and 50 rows per page (REQ-34-14). There is no CSV (REQ-16-08).
+ * The reports of the Registrar's performance, each with its own filters (REQ-34-05, REQ-34-13,
+ * REQ-07-20), sortable by any column, 50 rows per page (REQ-34-14), exported as CSV (REQ-34-16).
  */
 #[Title('Reports')]
 class Index extends Component
@@ -37,6 +39,10 @@ class Index extends Component
 
     #[Url(except: '')]
     public string $to = '';
+
+    /** The Monthly Summary's year, in place of From and To (REQ-34-08). */
+    #[Url(except: '')]
+    public string $year = '';
 
     #[Url(except: '')]
     public string $type = '';
@@ -66,6 +72,50 @@ class Index extends Component
         $this->report = (ReportKind::tryFrom($this->report) ?? ReportKind::Office)->value;
         $this->from = $this->from !== '' ? $this->from : now()->startOfMonth()->format('Y-m-d');
         $this->to = $this->to !== '' ? $this->to : now()->endOfMonth()->format('Y-m-d');
+        $this->year = ctype_digit($this->year) ? $this->year : now()->format('Y');
+    }
+
+    /**
+     * The current report as CSV: its columns and every row, with its filters and sort (REQ-34-16).
+     */
+    public function export(): StreamedResponse
+    {
+        $this->authorize('viewAny', CredentialRequest::class);
+
+        $kind = ReportKind::tryFrom($this->report) ?? ReportKind::Office;
+        $current = $kind->report();
+        $filter = $this->filter($current);
+        $rows = $this->sorted(collect($current->rows($filter))->values(), count($current->columns()));
+        $name = $kind === ReportKind::Monthly
+            ? "monthly-{$this->year}.csv"
+            : "{$kind->value}-{$filter->start->format('Y-m-d')}-{$filter->end->format('Y-m-d')}.csv";
+
+        return response()->streamDownload(function () use ($current, $rows): void {
+            $out = fopen('php://output', 'w');
+
+            if ($out === false) {
+                return;
+            }
+
+            fputcsv($out, $current->columns(), escape: '');
+            foreach ($rows as $row) {
+                fputcsv($out, $row, escape: '');
+            }
+            fclose($out);
+        }, $name, ['Content-Type' => 'text/csv']);
+    }
+
+    /**
+     * The years the Monthly Summary can show: the first request's year to this year (REQ-34-08).
+     *
+     * @return list<string>
+     */
+    private function years(): array
+    {
+        $first = CredentialRequest::min('submitted_at');
+        $from = $first === null ? (int) now()->format('Y') : (int) substr((string) $first, 0, 4);
+
+        return array_map('strval', range((int) now()->format('Y'), min($from, (int) now()->format('Y'))));
     }
 
     /** The own filter and the sort belong to one report (REQ-34-13, 14). */
@@ -79,7 +129,7 @@ class Index extends Component
     /** A new filter starts from the first page (REQ-34-14). */
     public function updated(string $property): void
     {
-        if (in_array($property, ['report', 'from', 'to', 'type', 'evaluator', 'office', 'show'], true)) {
+        if (in_array($property, ['report', 'from', 'to', 'year', 'type', 'evaluator', 'office', 'show'], true)) {
             $this->resetPage();
         }
     }
@@ -100,8 +150,8 @@ class Index extends Component
         $page = max(1, min($this->getPage(), (int) ceil(max(1, $rows->count()) / self::PER_PAGE)));
 
         return view('livewire.admin.reports.index', [
-            // The four listed reports, and an unlisted one while it is open (REQ-34-05).
-            'kinds' => in_array($kind, ReportKind::listed(), true) ? ReportKind::listed() : [...ReportKind::listed(), $kind],
+            'kinds' => ReportKind::cases(),
+            'years' => $this->years(),
             'kind' => $kind,
             // Not "report": the public $report property (the slug) would shadow it in the view.
             'current' => $current,
@@ -151,10 +201,13 @@ class Index extends Component
     private function filter(Report $report): ReportFilter
     {
         $uses = fn (string $name): bool => in_array($name, $report->filters(), true);
+        // The Monthly Summary is chosen by year (REQ-34-08).
+        $byYear = $report instanceof MonthlySummaryReport;
+        $year = ctype_digit($this->year) ? $this->year : now()->format('Y');
 
         return new ReportFilter(
-            $this->from,
-            $this->to,
+            $byYear ? "{$year}-01-01" : $this->from,
+            $byYear ? "{$year}-12-31" : $this->to,
             $uses('type') ? $this->type : '',
             $uses('evaluator') ? $this->evaluator : '',
             $uses('office') ? $this->office : '',
