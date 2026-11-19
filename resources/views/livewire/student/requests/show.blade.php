@@ -18,7 +18,8 @@
         <x-slot:actions>
             @can('cancel', $request)
                 <flux:modal.trigger name="cancel-request">
-                    <flux:button variant="ghost" icon="x-circle">{{ __('Cancel request') }}</flux:button>
+                    {{-- Outlined in red so it is easy to find, but not a filled danger button (user's request, 2026-11-19). --}}
+                    <flux:button icon="x-circle" class="border-red-300! text-red-700! hover:bg-red-50!" data-cancel-request-button>{{ __('Cancel request') }}</flux:button>
                 </flux:modal.trigger>
             @endcan
         </x-slot:actions>

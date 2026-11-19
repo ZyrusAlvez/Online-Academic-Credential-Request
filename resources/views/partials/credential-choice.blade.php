@@ -25,7 +25,10 @@
         @endforeach
 
         @if (count($form->more) + 1 < $room)
-            <flux:button icon="plus" wire:click="addCredential" data-add-credential>{{ __('Add another credential') }}</flux:button>
+            {{-- On the right, in the brand colour, so it is easy to find. --}}
+            <div class="flex justify-end">
+                <flux:button icon="plus" wire:click="addCredential" class="border-primary! bg-primary-50! font-semibold text-primary! hover:bg-primary-100!" data-add-credential>{{ __('Add another credential') }}</flux:button>
+            </div>
         @endif
     @endif
 </section>

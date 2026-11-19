@@ -26,12 +26,6 @@
     {{-- Hidden, not removed, on the summary: the file inputs keep the chosen files for "Back to edit".
          novalidate: the browser's popups would stop the submit before the errors modal (REQ-01-26). --}}
     <form wire:submit="review" novalidate @class(['space-y-8', 'hidden' => $reviewing])>
-        {{-- At most OPEN_LIMIT open requests at a time (REQ-33-04). --}}
-        @if (! $editing && $room === 0)
-            <flux:callout icon="exclamation-triangle" color="amber" data-request-limit
-                :heading="__('You have :limit open requests, the most allowed at a time. You can request again once one is released, declined or cancelled.', ['limit' => \App\Models\CredentialRequest::OPEN_LIMIT])" />
-        @endif
-
         {{-- Edit Request keeps the credentials the application has (REQ-27-10); New Request offers
              only as many as the requester has room for (REQ-33-04). --}}
         @include('partials.credential-choice', ['several' => ! $editing, 'room' => $room])

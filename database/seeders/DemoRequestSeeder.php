@@ -172,7 +172,7 @@ class DemoRequestSeeder extends Seeder
 
             // Accepted, received by the Registrar for preparation: not yet in progress (REQ-16-18).
             $this->at(8, function () use ($juan, $type): void {
-                $request = $this->accepted($juan, $type('Diploma / Certificate for Non-Degree Programs'), 'Personal copy');
+                $request = $this->accepted($juan, $type('Diploma / Certificate for Non-Degree Programs'), 'Employment');
                 $this->advanceUntil($request, Department::REGISTRAR_CODE, receive: true);
             });
 

@@ -18,7 +18,7 @@ account, and walk-ins go through `submitWalkIn()` anyway (REQ-33-05).
   `ValidationException` on `form.credential_type_id`, rolled back like any other.
 - `addCredential()` adds a credential only while the form holds fewer than the room left; the
   view's "Add another credential" button follows the same number (`room`, REQ-33-04).
-- The view shows a callout (`data-request-limit`) above the form when the room is 0.
+- No notice in advance: the limit's message shows only on Review or Submit (REQ-33-04).
 
 ## Messages
 - Full: "You have 5 open requests, the most allowed at a time. You can request again once one is
