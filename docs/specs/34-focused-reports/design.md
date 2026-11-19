@@ -45,9 +45,15 @@ The months run from the period's start to `min(end, now)`.
 - Average processing: by the month of `released_at`, as in REQ-07-11.
 
 ## PerformanceMetrics
-Keeps `received`, `eligible`, `onTime`, `overdue` and `avgProcessingDays`. The secondary
-indicators are dropped, because nothing shows them any more (REQ-34-04).
+Keeps `received`, `eligible`, `onTime` and `overdue`. The secondary indicators and the overall
+`avgProcessingDays` are dropped, because nothing shows them any more (REQ-34-04).
+
+`PerformanceMetrics::byCredential(ReportFilter)` returns, per credential type, the requests
+released in the period that have `processing_working_days`: `name`, `released` (count), `days`
+(average, 1 decimal) and `standard` (`credential_types.processing_days`). Longest average first,
+then by name (REQ-34-09).
 
 ## Dashboard
-`Admin\Dashboard` passes `metrics`, `offices` and `causes`. The view has the header, the period
-inputs and the Reports button, then the four tiles, the office table and the causes.
+`Admin\Dashboard` passes `metrics`, `offices`, `credentials` and `causes`. The view has the header,
+the period inputs and the Reports button, then the three tiles, the office table, the credential
+table (an average above its standard is red and marked `data-over-standard`) and the causes.

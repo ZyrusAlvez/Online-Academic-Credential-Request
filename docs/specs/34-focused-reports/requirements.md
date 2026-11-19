@@ -8,8 +8,15 @@ percentage, totals that tie, and a per-transaction record.
 User's decisions the same day: Reports keeps four reports: Office Performance, Delay Analysis,
 Transaction Record and Monthly Summary. The Daily, Weekly, Evaluator, Signatory, Credential
 Tracking, Customer Compliance and Release reports are removed. This deliberately departs from the
-ten reports in Proposed Workflow IX-B. The Dashboard keeps only the four indicators, the office
+ten reports in Proposed Workflow IX-B. The Dashboard keeps only the indicators, the office
 table and the causes of delay.
+
+User's decision, later on 2026-11-19: the dashboard drops the office table's oldest-pending column
+and the single Average processing time tile. One average over every credential mixes 1-day and
+10-day documents, so it is replaced by the average per credential type, as Proposed Workflow
+XIII.2 defines the indicator ("average number of working days required to process each type of
+credential"). The Monthly Summary keeps its overall average, and Office Performance keeps its
+longest-pending column.
 
 ## User stories
 
@@ -22,13 +29,13 @@ table and the causes of delay.
 ## Acceptance criteria
 
 ### Dashboard
-- **REQ-34-01** THE Dashboard SHALL show, for a chosen period (this month by default), four
-  indicators: Total requests (received in the period); Released on time and Overdue, each as a
-  count and a percentage of the eligible requests (REQ-07-11); and the Average processing time.
+- **REQ-34-01** THE Dashboard SHALL show, for a chosen period (this month by default), three
+  indicators: Total requests (received in the period); and Released on time and Overdue, each as
+  a count and a percentage of the eligible requests (REQ-07-11). The average processing time is
+  per credential (REQ-34-09).
 - **REQ-34-02** THE Dashboard SHALL show one office table, sorted by the longest average first.
   For each office it shows: the average working days per document finished in the period, the
-  documents done, the documents pending now, and the oldest pending document in working days. A
-  document forwarded but not yet received is pending at the office that sent it (REQ-17-18). THE
+  documents done, and the documents pending now. A document forwarded but not yet received is pending at the office that sent it (REQ-17-18). THE
   slowest office SHALL be highlighted. Each pending count SHALL link to Records filtered to that
   office.
 - **REQ-34-03** THE Dashboard SHALL show the causes of delay for overdue requests due in the
@@ -36,7 +43,13 @@ table and the causes of delay.
   SHALL link to that report.
 - **REQ-34-04** THE Dashboard SHALL NOT show the status-count tiles, the secondary indicators
   (overdue workload, returns, average time per office, initial evaluation time), the separate
-  "Where Requests Are Waiting" and "Most Overdue" lists, or helper lines under its headings.
+  "Where Requests Are Waiting" and "Most Overdue" lists, a single overall average processing
+  time, an oldest-pending column, or helper lines under its headings.
+- **REQ-34-09** THE Dashboard SHALL show the processing time by credential. For each credential
+  type with a request released in the period, it shows the requests released, their average
+  working days from acceptance to release (REQ-07-11's formula, per credential; Proposed Workflow
+  XIII.2), and the credential's standard processing days. Longest average first. An average above
+  the standard SHALL be marked.
 
 ### Reports
 - **REQ-34-05** Reports SHALL offer exactly four reports: Office Performance (the default),
