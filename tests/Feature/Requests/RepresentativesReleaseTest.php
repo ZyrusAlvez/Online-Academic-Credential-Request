@@ -273,6 +273,15 @@ test('REQ-11-07 no release to an unverified representative; a verified one can c
     workflow()->release($request, $this->registrar, RecipientType::Representative, $representative->id);
 
     expect($request->release()->sole())->request_representative_id->toBe($representative->id)->recipient_name->toBe('Rosa Dela Cruz');
+
+    // Not declared: checked at the counter, released under the name typed in (REQ-16-28).
+    $other = readyRequest();
+    expect(fn () => workflow()->release($other, $this->registrar, RecipientType::Representative))
+        ->toThrow(InvalidTransition::class, "Enter the representative's full name.");
+
+    workflow()->release($other, $this->registrar, RecipientType::Representative, representativeName: ' Pedro Santos ');
+    expect($other->release()->sole())->request_representative_id->toBeNull()->recipient_name->toBe('Pedro Santos')
+        ->recipient_type->toBe(RecipientType::Representative);
 });
 
 test('REQ-11-08 the processing time in working days is stored when the credential is ready for release', function () {

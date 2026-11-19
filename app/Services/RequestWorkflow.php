@@ -944,24 +944,38 @@ class RequestWorkflow
     }
 
     /**
-     * Mark the credential released to the owner or a verified representative; the name comes from
-     * them, the time and staff member are recorded (REQ-16-20, REQ-11-07, 08).
+     * Mark the credential released to the owner, a verified representative, or a representative
+     * whose SPA and IDs the registrar checked at the counter (no id, their name typed); the time and
+     * staff member are recorded (REQ-16-20, REQ-16-28, REQ-11-07, 08).
      */
-    public function release(CredentialRequest $request, User $registrar, RecipientType $recipientType, ?int $representativeId = null, ?string $remarks = null): void
+    public function release(CredentialRequest $request, User $registrar, RecipientType $recipientType, ?int $representativeId = null, ?string $remarks = null, ?string $representativeName = null): void
     {
-        DB::transaction(function () use ($request, $registrar, $recipientType, $representativeId, $remarks): void {
+        DB::transaction(function () use ($request, $registrar, $recipientType, $representativeId, $remarks, $representativeName): void {
             $locked = $this->lock($request, [RequestStatus::ReadyForRelease], 'Only credentials that are ready for release can be released.');
             $representative = null;
+            $atCounter = false;
 
-            if ($recipientType === RecipientType::Representative) {
-                $representative = $locked->representatives()->whereKey($representativeId ?? 0)->first();
+            if ($recipientType === RecipientType::Representative && $representativeId !== null) {
+                $representative = $locked->representatives()->whereKey($representativeId)->first();
 
                 if ($representative === null || $representative->status !== ReviewStatus::Verified) {
                     throw new InvalidTransition("The representative's SPA and IDs must be verified before the credential is released to them.");
                 }
+            } elseif ($recipientType === RecipientType::Representative) {
+                $representativeName = trim((string) $representativeName);
+
+                if ($representativeName === '') {
+                    throw new InvalidTransition("Enter the representative's full name.");
+                }
+
+                $atCounter = true;
             }
 
-            $recipientName = $representative !== null ? $representative->full_name : $locked->requester_name;
+            $recipientName = match (true) {
+                $representative !== null => $representative->full_name,
+                $atCounter => (string) $representativeName,
+                default => $locked->requester_name,
+            };
 
             $locked->release()->create([
                 'recipient_type' => $recipientType,
@@ -980,7 +994,7 @@ class RequestWorkflow
                 : null;
 
             $this->transition($locked, $request, RequestStatus::Released, $registrar, RequestEventType::Released,
-                "Received by {$recipientName} ({$recipientType->label()})");
+                "Received by {$recipientName} ({$recipientType->label()})".($atCounter ? '; SPA and IDs checked at release' : ''));
         });
     }
 

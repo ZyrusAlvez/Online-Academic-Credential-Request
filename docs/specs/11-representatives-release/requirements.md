@@ -54,8 +54,9 @@ claiming procedure).
 - ~~REQ-11-06~~ *Superseded by REQ-16-20:* release records who claimed the credential (the owner or
   a verified representative), the time and the staff member, without the ID presented or the
   checkboxes.
-- **REQ-11-07** IF the claimant is a representative who is not verified THEN THE SYSTEM SHALL NOT
-  mark the credential released.
+- **REQ-11-07** IF the claimant is a declared representative who is not verified THEN THE SYSTEM
+  SHALL NOT mark the credential released to them. A representative who was not declared is
+  checked by the registrar at the counter instead (REQ-16-28, user's decision 2026-11-20).
 - **REQ-11-08** WHEN a credential is marked ready for release THE SYSTEM SHALL store its
   processing time in working days from acceptance to ready for release; releasing it does not
   change it (REQ-34-11). *(Changed 2026-11-20: it used to be counted to the release.)*
