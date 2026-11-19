@@ -118,7 +118,10 @@ class Create extends Component
     /** Another credential in the same application (REQ-27-10). */
     public function addCredential(): void
     {
-        $this->form->addCredential();
+        // Only as many credentials as the requester has room for (REQ-33-04).
+        if (count($this->form->more) + 1 < $this->owner()->openRequestRoom()) {
+            $this->form->addCredential();
+        }
     }
 
     public function removeCredential(int $index): void
@@ -151,6 +154,10 @@ class Create extends Component
             $documents = $representative !== null ? $this->representativeDocuments() : null;
 
             $request = DB::transaction(function () use ($owner, $data, $representative, $documents, $workflow, $submitIdentity, &$stored): CredentialRequest {
+                // The owner's row is locked so two submissions at once cannot pass the limit together (REQ-33-03).
+                User::query()->whereKey($owner->id)->lockForUpdate()->first();
+                $this->checkRequestLimit();
+
                 $chosen = $this->profile->save($owner, $this->mayReplaceSavedId());
 
                 if ($chosen !== null) {
@@ -206,6 +213,34 @@ class Create extends Component
             'summary' => $this->reviewing ? $this->profile->summary() : [],
             // Edit Request (spec 20) shows the same form for a returned request.
             'editing' => null,
+            'room' => $owner->openRequestRoom(),
+        ]);
+    }
+
+    /**
+     * At most OPEN_LIMIT open online requests, each credential one; checked on review and again,
+     * under a lock, on submit (REQ-33-02, 03).
+     *
+     * @throws ValidationException on the first credential
+     */
+    protected function checkRequestLimit(): void
+    {
+        $owner = $this->owner();
+        $room = $owner->openRequestRoom();
+
+        if (count($this->form->more) + 1 <= $room) {
+            return;
+        }
+
+        $limit = CredentialRequest::OPEN_LIMIT;
+
+        throw ValidationException::withMessages(['form.credential_type_id' => $room === 0
+            ? __('You have :limit open requests, the most allowed at a time. You can request again once one is released, declined or cancelled.', ['limit' => $limit])
+            : trans_choice(
+                'You can request only :room more credential while you have :open open requests (at most :limit at a time).|You can request only :room more credentials while you have :open open requests (at most :limit at a time).',
+                $room,
+                ['room' => $room, 'open' => $limit - $room, 'limit' => $limit],
+            ),
         ]);
     }
 
@@ -232,7 +267,8 @@ class Create extends Component
      */
     protected function extraChecks(): array
     {
-        return [];
+        // Edit Request overrides this: a resubmission is not a new request (REQ-33-05).
+        return [fn () => $this->checkRequestLimit()];
     }
 
     /**

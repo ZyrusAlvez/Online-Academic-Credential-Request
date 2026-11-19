@@ -72,6 +72,9 @@ class CredentialRequest extends Model
         'receiving_institution',
     ];
 
+    /** At most this many open online requests per requester account (REQ-33-01). */
+    public const OPEN_LIMIT = 5;
+
     /** Requests are made online unless the Registrar records a walk-in (spec 25). */
     protected $attributes = [
         'channel' => 'online',
