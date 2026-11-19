@@ -181,6 +181,18 @@ test('REQ-26-05 a walk-in request is declined with remarks; the cashier cannot v
         ->and(fn () => workflow()->verifyPaymentAndAccept($other, $this->registrar))->toThrow(InvalidTransition::class);
 });
 
+test('REQ-26-05 a walk-in payment is never returned: no button, and the workflow refuses it', function () {
+    $request = recordWalkIn();
+
+    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request->fresh()])
+        ->assertSeeHtml('data-validate-payment-button')
+        ->assertDontSeeHtml('data-return-button');
+
+    expect(fn () => workflow()->rejectPayment($request->fresh(), $this->registrar, 'The receipt does not match.'))
+        ->toThrow(InvalidTransition::class, 'A walk-in payment cannot be returned. Validate it or decline the request.');
+    expect($request->fresh()->status)->toBe(RequestStatus::PaymentVerification);
+});
+
 test('REQ-26-06 a walk-in payment shows its receipt number and no file wherever payments are listed', function () {
     $request = recordWalkIn();
     workflow()->verifyWalkInPayment($request, $this->registrar, 'OR-104455', '530');

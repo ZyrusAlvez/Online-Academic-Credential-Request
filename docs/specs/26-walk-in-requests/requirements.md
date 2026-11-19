@@ -55,7 +55,11 @@ There is no other setup for walk-in requests.
   details, then the amount due, the **Official receipt no.** (required, up to 50 characters) and
   the **Amount paid** (required, more than 0), and the buttons Decline (remarks required) and
   **Validate Payment**. Validate Payment SHALL record the payment, with no file, as verified by the
-  Registrar, and accept the request for processing (REQ-04-14). There is no Return to Requester.
+  Registrar, and accept the request for processing (REQ-04-14). There is no Return to Requester:
+  the client is at the counter, so a receipt is sorted out there. THE workflow SHALL refuse to
+  return a walk-in payment wherever it is asked, so a walk-in never waits for a payment.
+  *(Refusal in the workflow added 2026-11-19, user's decision: no "Waiting for payment" tab on the
+  Registrar's Payment Validation.)*
 - **REQ-26-06** THE SYSTEM SHALL show a walk-in payment's receipt number and amount wherever payments are
   listed (Records, the requester's page, an office's page), with no file link.
 
