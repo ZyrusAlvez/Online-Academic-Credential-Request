@@ -39,7 +39,6 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'contact_number' => null,
             'sex' => null,
-            'maiden_name' => null,
             'academic_status' => null,
             'college_id' => null,
             'program' => null,

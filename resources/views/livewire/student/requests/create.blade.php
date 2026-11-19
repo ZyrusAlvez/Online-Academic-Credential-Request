@@ -68,7 +68,7 @@
         <details wire:ignore.self class="group rounded-xl border border-amber-500 bg-amber-50">
             <summary class="flex cursor-pointer list-none items-center gap-3 rounded-xl p-4 font-medium text-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight [&::-webkit-details-marker]:hidden">
                 <flux:icon.exclamation-triangle variant="mini" class="shrink-0 text-amber-600" />
-                <span class="flex-1">{{ __('Important notice: incomplete requirements') }}</span>
+                <span class="flex-1">{{ __('Important notice') }}</span>
                 <flux:icon.chevron-down variant="mini" class="shrink-0 text-amber-700 transition-transform group-open:rotate-180" />
             </summary>
             <div class="space-y-2 px-4 pb-4 text-sm text-amber-950 sm:pl-12">

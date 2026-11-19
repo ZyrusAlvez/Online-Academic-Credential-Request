@@ -16,7 +16,7 @@ the data only, so the dashboard, reports, queues and their page limits can be se
   data below, with no option needed. It SHALL refuse to run in production, changing nothing.
 - **REQ-31-02** THE SYSTEM SHALL create generated requester accounts (default 60, `DEMO_REQUESTERS`)
   on `example.com` with the demo password: Filipino names, every college and its programs, both
-  sexes (some women with a maiden name) and every academic status, each with a complete profile
+  sexes and every academic status, each with a complete profile
   and a saved valid ID. They are not listed in credentials.md. Two more registrars,
   `registrar2@example.com` and `registrar3@example.com`, share the evaluation work.
 - **REQ-31-03** THE SYSTEM SHALL generate applications (default 400, `DEMO_APPLICATIONS`) submitted

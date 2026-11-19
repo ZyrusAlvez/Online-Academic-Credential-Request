@@ -158,7 +158,7 @@ test('REQ-27-01 a walk-in application can have several credentials too', functio
         ['credential_type_id' => $this->org->tor->id, 'purpose' => 'Employment'],
         ['credential_type_id' => $this->org->free->id, 'purpose' => 'Employment'],
     ], [
-        'first_name' => 'Pedro', 'middle_name' => null, 'last_name' => 'Villanueva', 'sex' => 'male', 'maiden_name' => null, 'email' => 'pedro@example.com', 'contact_number' => '09171234567',
+        'first_name' => 'Pedro', 'middle_name' => null, 'last_name' => 'Villanueva', 'sex' => 'male', 'email' => 'pedro@example.com', 'contact_number' => '09171234567',
         'academic_status' => 'graduate', 'college_id' => $this->org->ccs->id, 'program' => 'BS Computer Science', 'student_number' => null,
         'attended_from' => 2018, 'attended_to' => 2022,
     ]);

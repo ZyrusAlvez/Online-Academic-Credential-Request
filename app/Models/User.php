@@ -28,7 +28,6 @@ use Illuminate\Support\Str;
  * @property bool $email_notifications
  * @property ?string $contact_number
  * @property ?Sex $sex
- * @property ?string $maiden_name
  * @property ?AcademicStatus $academic_status
  * @property ?int $college_id
  * @property ?string $program
@@ -52,7 +51,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'middle_name',
         'last_name',
         'sex',
-        'maiden_name',
         'email',
         'contact_number',
         'password',

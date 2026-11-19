@@ -198,7 +198,7 @@ test('REQ-29-07 a credential is free for the statuses it is free for, online, wa
 
     // Walk-in: priced for the client's status.
     $walkIn = workflow()->submitWalkIn($this->registrar, ['credential_type_id' => $this->grades->id, 'purpose' => 'Employment', 'receiving_institution' => null], [
-        'first_name' => 'Pedro', 'middle_name' => null, 'last_name' => 'Villanueva', 'sex' => 'male', 'maiden_name' => null,
+        'first_name' => 'Pedro', 'middle_name' => null, 'last_name' => 'Villanueva', 'sex' => 'male',
         'email' => 'pedro@example.com', 'contact_number' => '09171234567', 'academic_status' => 'graduate',
         'college_id' => $this->org->ccs->id, 'program' => 'BS Computer Science', 'student_number' => null,
         'attended_from' => 2018, 'attended_to' => 2022,

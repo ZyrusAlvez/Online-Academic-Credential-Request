@@ -274,10 +274,11 @@ test('REQ-09-22 the request page lists details as label/value rows, the ID inclu
 
 test('REQ-09-10 the incomplete-requirements notice is collapsed between "Who Will Transact?" and Review request', function () {
     $org = organisation();
-    $heading = 'Important notice: incomplete requirements';
+    $heading = 'Important notice';
 
     $html = $this->actingAs(requester($org->ccs))->get(route('student.requests.create'))->assertOk()
         ->assertSeeInOrder(['5. Who Will Transact?', $heading, 'Review request'])
+        ->assertDontSee('Important notice: incomplete requirements')
         ->getContent();
 
     $notice = Str::between($html, '<details', '</details>');

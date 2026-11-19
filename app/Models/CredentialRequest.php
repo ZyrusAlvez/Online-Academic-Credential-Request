@@ -32,7 +32,6 @@ use Illuminate\Support\Carbon;
  * @property ?int $user_id null for a walk-in request not linked to an account yet (spec 26)
  * @property string $requester_name
  * @property ?Sex $sex null on requests made before spec 28
- * @property ?string $maiden_name
  * @property ?string $contact_number
  * @property ?string $requester_email a walk-in client's email, to link the request (REQ-26-07)
  * @property ?int $recorded_by the registrar who recorded a walk-in request

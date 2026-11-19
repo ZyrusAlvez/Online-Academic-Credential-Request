@@ -47,7 +47,6 @@ test('REQ-31-02 generated requesters cover every college, both sexes and every s
         ->and($requesters->pluck('college_id')->unique()->sort()->values()->all())->toBe($colleges->sort()->values()->all())
         ->and($requesters->pluck('sex')->unique()->sortBy('value')->values()->all())->toBe([Sex::Female, Sex::Male])
         ->and($requesters->pluck('academic_status')->map->value->unique()->sort()->values()->all())->toBe(collect(AcademicStatus::cases())->map->value->sort()->values()->all())
-        ->and($requesters->whereNotNull('maiden_name')->every(fn (User $user): bool => $user->sex === Sex::Female))->toBeTrue()
         ->and(User::whereIn('email', ['registrar2@example.com', 'registrar3@example.com'])->where('role', Role::Registrar)->count())->toBe(2);
 });
 

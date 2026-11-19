@@ -39,7 +39,6 @@ class CredentialRequestFactory extends Factory
             // The owner's copy, as RequestWorkflow::submit() takes it (REQ-15-06).
             'requester_name' => fn (array $attributes) => User::find($attributes['user_id'])?->requesterName() ?: fake()->name(),
             'sex' => fn (array $attributes) => User::find($attributes['user_id'])?->sex,
-            'maiden_name' => fn (array $attributes) => User::find($attributes['user_id'])?->maiden_name,
             'contact_number' => fn (array $attributes) => User::find($attributes['user_id'])?->contact_number,
             'identity_status' => ReviewStatus::Pending,
             'credential_type_id' => CredentialType::factory(),

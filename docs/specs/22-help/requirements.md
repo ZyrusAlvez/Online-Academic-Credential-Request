@@ -38,8 +38,9 @@ of their own.
     counter joins the account with the same email, spec 26), signing up with email or
     Google, the email verification code, a forgotten password, changing the email address, a
     deactivated account, deleting an account.
-  - *Your Details & Valid ID:* which details are required (all but the middle name, maiden name
-    and student number; why the maiden name and years attended matter, spec 28); that personal
+  - *Your Details & Valid ID:* which details are required (all but the middle name and student
+    number); why a woman gives her maiden name in the name fields and why the years attended
+    matter, spec 28; that personal
     information, academic information and the valid ID are given once and verified once, then reused; what "Verified" and "For verification" mean;
     that details can still be edited and are then verified again on the next request; why a
     submitted request keeps the details it was sent with; the accepted IDs and files; changing the
