@@ -52,7 +52,9 @@ This replaces:
   (approved, no proof sent yet), oldest first, and show their count. *(User's requests,
   2026-11-11: the requests awaiting payment are added, then moved to their own tab.)*
   *Changed by REQ-25-04 and REQ-25-07 (2026-11-17):* this list, for online requests, is now the
-  Cashier's; the Registrar's Payment Validation lists walk-in requests only.
+  Cashier's; the Registrar's Payment Validation lists walk-in requests only. "Oldest first" in both
+  tabs means by when the request entered its status (the proof sent, or the request approved), as
+  the history records it, not by its last edit (2026-11-20).
 - **REQ-16-04** THE In Progress queue SHALL list the requests in progress or returned for correction
   between offices (not those sent for the final check), with the office holding the document now,
   whether it has been received there, since when, the due date and an overdue mark, and SHALL let

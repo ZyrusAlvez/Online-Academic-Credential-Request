@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Notifications\RequestActivity;
 use App\Services\RequestWorkflow;
 use Database\Seeders\DemoSeeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -98,6 +99,22 @@ test('REQ-25-04 the cashier lists online proofs to verify, and the online reques
         ->set('waiting', false)
         ->set('search', 'no-such-request')
         ->assertDontSee($online->reference_no);
+});
+
+test('REQ-16-03 the cashier\'s list is oldest first by when the proof came in, whatever was edited since', function () {
+    Carbon::setTestNow('2026-11-02 09:00:00');
+    $first = paidOnline($this);
+    Carbon::setTestNow('2026-11-03 09:00:00');
+    $second = paidOnline($this);
+
+    // A later edit of the first request does not move it down the list.
+    Carbon::setTestNow('2026-11-04 09:00:00');
+    $first->touch();
+
+    Livewire::actingAs($this->cashier)->test(Payments::class)
+        ->assertSeeInOrder([$first->reference_no, $second->reference_no]);
+
+    Carbon::setTestNow();
 });
 
 test('REQ-25-05 the cashier sees the proof and approves: the request is accepted', function () {
