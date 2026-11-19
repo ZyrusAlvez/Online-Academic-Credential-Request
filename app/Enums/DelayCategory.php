@@ -32,16 +32,28 @@ enum DelayCategory: string
         };
     }
 
+    /**
+     * The four causes a delay is classified under (REQ-34-10). The other cases stay only for the
+     * reasons recorded before REQ-24-09.
+     *
+     * @return list<self>
+     */
+    public static function inferred(): array
+    {
+        return [self::RegistrarEvaluation, self::PendingSignature, self::DocumentaryStamp, self::DocumentCorrection];
+    }
+
+    /** What the cause covers: the tooltip of the dashboard's information icon (REQ-34-03). */
     public function description(): string
     {
         return match ($this) {
-            self::RegistrarEvaluation => 'Academic record verification, incomplete information or document preparation',
+            self::RegistrarEvaluation => 'Held at the Office of the Registrar: verifying the records, preparing the credential or the final quality check.',
             self::CustomerCompliance => 'Admission requirements, clearance, affidavit of loss or other documents still to submit',
             self::PaymentVerification => 'Payment not yet confirmed or needs clarification',
             self::AcademicDepartment => 'Pending review, correction or approval',
-            self::DocumentaryStamp => 'Documentary stamp processing or related clarification',
-            self::PendingSignature => 'Dean, Chancellor or President signature pending',
-            self::DocumentCorrection => 'Errors in the document, academic details or remarks',
+            self::DocumentaryStamp => 'Held at the Office of the VP for Finance for the documentary stamp.',
+            self::PendingSignature => 'Held at the Dean, the Chancellor or the President for a signature.',
+            self::DocumentCorrection => 'An office returned the document and it is being corrected internally.',
             self::SystemIssue => 'System downtime or unavailable electronic records',
             self::Other => 'Explained in the reason',
         };

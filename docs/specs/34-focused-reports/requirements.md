@@ -39,8 +39,9 @@ longest-pending column.
   slowest office SHALL be highlighted. Each pending count SHALL link to Records filtered to that
   office.
 - **REQ-34-03** THE Dashboard SHALL show the causes of delay for overdue requests due in the
-  period: the count per cause, using the same causes as the Delay Analysis report (REQ-07-18). It
-  SHALL link to that report.
+  period: the count per cause, using the same causes as the Delay Analysis report (REQ-07-18), all
+  four causes of REQ-34-10 listed, largest first. Each cause SHALL have an information icon to the
+  left of its name whose tooltip states what the cause covers. It SHALL link to that report.
 - **REQ-34-04** THE Dashboard SHALL NOT show the status-count tiles, the secondary indicators
   (overdue workload, returns, average time per office, initial evaluation time), the separate
   "Where Requests Are Waiting" and "Most Overdue" lists, a single overall average processing
@@ -50,6 +51,18 @@ longest-pending column.
   working days from acceptance to release (REQ-07-11's formula, per credential; Proposed Workflow
   XIII.2), and the credential's standard processing days. Longest average first. An average above
   the standard SHALL be marked.
+- **REQ-34-10** THE cause of a delay SHALL be one of four, decided by the office holding the
+  document (or, once it has left the offices, the office where it stayed longest):
+  - Registrar / evaluation: the Office of the Registrar (verifying records, preparing the
+    credential, the final quality check), or no office visit yet;
+  - Pending signature: the Dean, the Chancellor or the President;
+  - VP Finance documentary stamp: the Office of the VP for Finance;
+  - Document correction: a document an office returned, being corrected.
+
+  *(User's decision, 2026-11-20: the clock runs from payment and acceptance to ready for release,
+  and nothing in that time is asked of the requester, so customer compliance is not a cause; the
+  Dean's step is a signature like the Chancellor's and President's; a correction is internal.
+  Reasons recorded before REQ-24-09 still show as text, but no longer set the cause.)*
 
 ### Reports
 - **REQ-34-05** Reports SHALL offer exactly four reports: Office Performance (the default),

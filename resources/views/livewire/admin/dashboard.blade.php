@@ -116,14 +116,21 @@
             <flux:button size="sm" variant="ghost" icon-trailing="arrow-right" :href="$delayUrl" wire:navigate>{{ __('Delay Analysis') }}</flux:button>
         </div>
 
-        @if ($causes->isEmpty())
+        @if ($causes->sum('count') === 0)
             <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('Nothing is overdue.') }}</p>
         @else
             <ul class="divide-y divide-secondary/40 rounded-xl border border-secondary/50">
-                @foreach ($causes as $cause => $count)
+                @foreach ($causes as $cause)
                     <li class="flex items-center justify-between gap-3 p-3 text-sm">
-                        <span class="text-ink">{{ $cause }}</span>
-                        <span class="font-semibold text-ink tabular-nums">{{ $count }}</span>
+                        <span class="flex items-center gap-2 text-ink">
+                            <flux:tooltip :content="__($cause['scope'])" position="top">
+                                <button type="button" class="text-zinc-500 hover:text-primary" aria-label="{{ __('About :cause', ['cause' => $cause['label']]) }}" data-cause-scope="{{ $cause['scope'] }}">
+                                    <flux:icon.information-circle variant="mini" class="size-4" />
+                                </button>
+                            </flux:tooltip>
+                            {{ $cause['label'] }}
+                        </span>
+                        <span class="font-semibold text-ink tabular-nums">{{ $cause['count'] }}</span>
                     </li>
                 @endforeach
             </ul>
