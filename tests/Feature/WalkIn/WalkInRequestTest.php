@@ -290,6 +290,23 @@ test('REQ-26-10 queues, Records and the record mark a walk-in request and show i
     $this->get(route('records.show', $online))->assertDontSeeHtml('data-walk-in-badge');
 });
 
+test('REQ-26-10 Request Details says whether the request was made online or as a walk-in, on every page', function () {
+    $channel = fn (string $html): string => trim(strip_tags(Str::before(Str::after($html, 'data-channel'), '</div>')));
+    $owner = requester($this->org->ccs);
+    $walkIn = recordWalkIn(client: ['email' => $owner->email]);
+    $online = submitRequest($owner, $this->org->tor);
+
+    // The Registrar's record, the requester's page and the Cashier's page.
+    expect($channel($this->actingAs($this->registrar)->get(route('records.show', $walkIn))->getContent()))->toContain('Walk-in')
+        ->and($channel($this->actingAs($this->registrar)->get(route('records.show', $online))->getContent()))->toContain('Online')
+        ->and($channel($this->actingAs($owner)->get(route('student.requests.show', $walkIn))->getContent()))->toContain('Walk-in')
+        ->and($channel($this->actingAs($owner)->get(route('student.requests.show', $online))->getContent()))->toContain('Online');
+
+    uploadPayment(evaluate($online, $this->registrar));
+    $cashier = User::factory()->cashier()->create();
+    expect($channel($this->actingAs($cashier)->get(route('cashier.payments.show', $online))->getContent()))->toContain('Online');
+});
+
 test('REQ-26-11 the demo data has a walk-in request with no account and one linked to a demo requester', function () {
     $this->seed(DemoRequestSeeder::class);
 
