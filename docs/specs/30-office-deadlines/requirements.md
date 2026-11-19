@@ -23,7 +23,8 @@ changed by anything here.
   or it is seeded, THE SYSTEM SHALL split the period automatically: each step gets the period
   divided by the number of steps (rounded down), and the days left over go one at a time to the
   steps in route order (e.g. 7 days over 4 offices → 2, 2, 2, 1; 6 over 3 → 2, 2, 2). Moving a
-  step keeps its days.
+  step keeps its days. Exception: the two TOR types are seeded with Registrar 1, Dean 2, VP for
+  Finance 2, Chancellor 2 *(user's decision, 2026-11-20)*.
 - **REQ-30-03** THE route page SHALL let the Admin change each step's days (0 to 60) and SHALL
   refuse a set whose total is not the processing period.
 - **REQ-30-04** WHEN a request is accepted THE SYSTEM SHALL copy each step's allotted days onto the

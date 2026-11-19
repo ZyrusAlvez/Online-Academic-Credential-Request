@@ -36,6 +36,16 @@ class CredentialTypeSeeder extends Seeder
         'Certificate of Grades' => ['free_for' => [AcademicStatus::Graduate->value]],
     ];
 
+    /**
+     * Seeded office days that differ from the automatic split (REQ-30-02), in route order.
+     *
+     * @var array<string, list<int>>
+     */
+    private const SPLITS = [
+        'Transcript of Records (TOR)' => [1, 2, 2, 2],
+        'TOR for Transfer Credentials' => [1, 2, 2, 2],
+    ];
+
     /** code => [task, instructions] */
     private const STEPS = [
         'REG' => [RouteTask::Prepare, 'Verify academic records and prepare the credential.'],
@@ -124,6 +134,7 @@ class CredentialTypeSeeder extends Seeder
     private function createSteps(CredentialType $type, array $route): void
     {
         $departments = Department::pluck('id', 'code');
+        $split = self::SPLITS[$type->name] ?? CredentialType::splitDays($type->processing_days, count($route));
 
         foreach ($route as $index => $code) {
             [$task, $instructions] = self::STEPS[$code];
@@ -134,9 +145,8 @@ class CredentialTypeSeeder extends Seeder
                 'is_student_college' => $code === self::DEAN,
                 'task' => $task,
                 'instructions' => $instructions,
+                'allotted_days' => $split[$index],
             ]);
         }
-
-        $type->resplitDays();
     }
 }

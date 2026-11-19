@@ -14,7 +14,8 @@ Existing requests keep no office deadlines; they still have the request's due da
 ## The split
 `CredentialType::splitDays(int $days, int $steps): list<int>` is the one rule (REQ-30-02);
 `CredentialType::resplitDays()` writes it to the type's steps with a query update (the action that
-caused it is already logged). Called by `CredentialTypeSeeder` after creating a route, by
+caused it is already logged). `CredentialTypeSeeder` creates each route's steps with `splitDays()`,
+or with its fixed TOR split (1-2-2-2). Called by
 `AddWorkflowStep` and `RemoveWorkflowStep`, and by `CredentialTypeForm::save()` when the processing
 period changes. `MoveWorkflowStep` keeps each step's days.
 
