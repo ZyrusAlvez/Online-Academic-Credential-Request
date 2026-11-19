@@ -11,6 +11,6 @@
 - [x] Dashboard: three tiles, no oldest-pending column (REQ-34-01, 02, 04)
 - [x] `PerformanceMetrics::byCredential()` and the credential table (REQ-34-09)
 - [x] Pest tests for REQ-34-09; update REQ-34-01, 02, 04
-- [ ] Four delay causes by office, notes no longer set the cause (REQ-34-10, REQ-07-18)
-- [ ] Information icon with the cause's scope on the dashboard (REQ-34-03)
-- [ ] Pest tests for REQ-34-10; update REQ-34-03
+- [x] Four delay causes by office, notes no longer set the cause (REQ-34-10, REQ-07-18)
+- [x] Information icon with the cause's scope on the dashboard (REQ-34-03)
+- [x] Pest tests for REQ-34-10; update REQ-34-03

@@ -8,7 +8,6 @@ use App\Enums\RequestStatus;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use App\Models\CredentialRequest;
-use App\Models\Department;
 use App\Models\OfficeVisit;
 use App\Services\WorkingCalendar;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,7 +26,7 @@ final class DelayReport implements Report
 
     public function description(): string
     {
-        return 'Overdue requests due in the period: where they are, how late, how often returned, the recorded or inferred cause and the corrective action.';
+        return 'Overdue requests due in the period: where they are, how late, how often returned and the cause.';
     }
 
     public function columns(): array
@@ -80,39 +79,35 @@ final class DelayReport implements Report
     }
 
     /**
-     * The causes of the period's delays, largest first (REQ-34-03).
+     * The four causes with the period's count of each, zeros included, largest first (REQ-34-03).
      *
-     * @return Collection<string, int>
+     * @return Collection<int, array{label: string, scope: string, count: int}>
      */
     public static function causeCounts(ReportFilter $filter): Collection
     {
-        return self::overdue($filter)->get()
-            ->countBy(fn (CredentialRequest $request): string => self::causeOf($request)->label())
-            ->sortDesc();
+        $counts = self::overdue($filter)->get()
+            ->countBy(fn (CredentialRequest $request): string => self::causeOf($request)->value);
+
+        return collect(DelayCategory::inferred())
+            ->map(fn (DelayCategory $cause): array => [
+                'label' => $cause->label(),
+                'scope' => $cause->description(),
+                'count' => (int) $counts->get($cause->value, 0),
+            ])
+            ->sortByDesc('count')
+            ->values();
     }
 
     /**
-     * The latest recorded reason's category, otherwise the cause inferred from the stage. Needs
-     * openVisit.department, visits.department and delayNotes loaded.
+     * The cause, from the office holding the document or, once it has left the offices, the
+     * office where it stayed longest (REQ-34-10). Needs openVisit.department and
+     * visits.department loaded.
      */
     public static function causeOf(CredentialRequest $request): DelayCategory
     {
-        return $request->delayNotes->first()->category ?? self::inferredCause($request);
-    }
-
-    /**
-     * Without a recorded reason, the stage tells the likely cause: the office holding the
-     * document, or — once it has left the offices — the office where it stayed longest.
-     */
-    private static function inferredCause(CredentialRequest $request): DelayCategory
-    {
-        if ($request->status === RequestStatus::ReturnedForCustomerAction) {
-            return DelayCategory::CustomerCompliance;
-        }
-
         $visit = $request->openVisit ?? $request->visits->sortByDesc('working_days')->first();
 
-        return $visit === null ? DelayCategory::Other : self::causeAt($visit);
+        return $visit === null ? DelayCategory::RegistrarEvaluation : self::causeAt($visit);
     }
 
     private static function causeAt(OfficeVisit $visit): DelayCategory
@@ -122,11 +117,10 @@ final class DelayReport implements Report
         }
 
         return match (true) {
-            $visit->department->type === DepartmentType::College => DelayCategory::AcademicDepartment,
-            $visit->department->code === 'VPF' => DelayCategory::DocumentaryStamp,
+            $visit->department->type === DepartmentType::College,
             in_array($visit->department->code, ['CHAN', 'PRES'], true) => DelayCategory::PendingSignature,
-            $visit->department->code === Department::REGISTRAR_CODE => DelayCategory::RegistrarEvaluation,
-            default => DelayCategory::Other,
+            $visit->department->code === 'VPF' => DelayCategory::DocumentaryStamp,
+            default => DelayCategory::RegistrarEvaluation,
         };
     }
 }

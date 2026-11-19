@@ -22,6 +22,7 @@ use App\Reports\PerformanceMetrics;
 use App\Reports\Report;
 use App\Reports\ReportFilter;
 use App\Reports\TransactionReport;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
@@ -178,11 +179,39 @@ test('REQ-34-02 the dashboard\'s office table, longest first, with what each off
 });
 
 test('REQ-34-03 the dashboard counts the causes of delay and links to the delay analysis', function () {
-    expect(DelayReport::causeCounts($this->filter)->sortKeys()->all())->toBe(['Pending signature' => 1, 'VP Finance documentary stamp' => 1]);
+    expect(DelayReport::causeCounts($this->filter)->mapWithKeys(fn ($cause) => [$cause['label'] => $cause['count']])->sortKeys()->all())->toBe([
+        'Document correction' => 0, 'Pending signature' => 1, 'Registrar / evaluation' => 0, 'VP Finance documentary stamp' => 1,
+    ]);
 
     $this->actingAs($this->admin)->get(route('admin.dashboard', ['from' => '2026-10-01', 'to' => '2026-10-31']))
         ->assertSee('Causes of Delay')->assertSee('Pending signature')->assertSee('VP Finance documentary stamp')
+        ->assertSee('Registrar / evaluation')->assertSee('Document correction')
+        // An information icon with each cause's scope.
+        ->assertSee(DelayCategory::PendingSignature->description())->assertSeeHtml('aria-label="About Pending signature"')
         ->assertSee(route('admin.reports', ['report' => 'delay', 'from' => '2026-10-01', 'to' => '2026-10-31']));
+});
+
+test('REQ-34-10 a delay has one of four causes, from the office holding the document', function () {
+    $cause = function (?Department $office, VisitPurpose $purpose = VisitPurpose::Route): string {
+        $visit = null;
+        if ($office !== null) {
+            $visit = (new OfficeVisit)->forceFill(['purpose' => $purpose, 'working_days' => 1]);
+            $visit->setRelation('department', $office);
+        }
+        $request = (new CredentialRequest)->setRelation('openVisit', $visit)
+            ->setRelation('visits', new Collection($visit === null ? [] : [$visit]));
+
+        return DelayReport::causeOf($request)->label();
+    };
+
+    expect(collect(DelayCategory::inferred())->map->label()->all())
+        ->toBe(['Registrar / evaluation', 'Pending signature', 'VP Finance documentary stamp', 'Document correction'])
+        ->and($cause($this->org->ccs))->toBe('Pending signature')            // the Dean signs too
+        ->and($cause($this->org->chancellor))->toBe('Pending signature')
+        ->and($cause($this->org->vpf))->toBe('VP Finance documentary stamp')
+        ->and($cause($this->org->registrarOffice))->toBe('Registrar / evaluation')
+        ->and($cause($this->org->ccs, VisitPurpose::Correction))->toBe('Document correction')
+        ->and($cause(null))->toBe('Registrar / evaluation');
 });
 
 test('REQ-34-04 the dashboard shows nothing else', function () {
