@@ -42,7 +42,7 @@ final class PerformanceMetrics
      * from acceptance to ready for release of the requests made ready in the period (REQ-34-11),
      * longest first.
      *
-     * @return Collection<int, array{name: string, ready: int, days: float, standard: int}>
+     * @return Collection<int, array{id: int<0, max>, name: string, ready: int, days: float, standard: int}>
      */
     public static function byCredential(ReportFilter $filter): Collection
     {
@@ -62,6 +62,7 @@ final class PerformanceMetrics
                 $row = $rows->get($type->id);
 
                 return [
+                    'id' => $type->id,
                     'name' => $type->name,
                     'ready' => (int) $row?->getAttribute('ready'),
                     'days' => round((float) $row?->getAttribute('days'), 1),

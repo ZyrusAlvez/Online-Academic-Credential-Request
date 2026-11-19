@@ -416,8 +416,8 @@ test('REQ-17-18 the dashboard office table and the office report count it at the
         ->and($rows->has('College of Computer Studies') ? $rows['College of Computer Studies'][4] : 0)->toBe(0);
 
     $this->actingAs(User::factory()->admin()->create())->get(route('admin.dashboard'))   // the Admin's dashboard (REQ-18-02)
-        ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->registrarOffice->id]))
-        ->assertDontSee(route('records', ['status' => 'processing', 'office' => $this->org->ccs->id]));
+        ->assertSee('report=office-documents&office='.$this->org->registrarOffice->id.'&show=pending')
+        ->assertDontSee('report=office-documents&office='.$this->org->ccs->id.'&show=pending');
 });
 
 test('REQ-32-02 a done paper shows it has not been forwarded yet', function () {
@@ -540,7 +540,7 @@ test('REQ-17-15 a done paper still counts as in the office', function () {
     Livewire::actingAs($this->dean)->test(OfficeQueue::class, ['queue' => 'outgoing'])
         ->assertSee($request->reference_no)->assertSee('Outgoing');
 
-    // The department report's "Pending now" counts it for the Dean's office.
+    // The department report's "Pending" counts it for the Dean's office.
     $row = collect((new DepartmentReport)->rows(new ReportFilter))->firstWhere(0, $this->org->ccs->name);
     expect($row[4])->toBe(1);
 });

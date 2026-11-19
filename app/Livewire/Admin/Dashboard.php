@@ -42,8 +42,8 @@ class Dashboard extends Component
             'offices' => DepartmentReport::offices($period),
             'credentials' => PerformanceMetrics::byCredential($period),
             'causes' => DelayReport::causeCounts($period),
-            'reportsUrl' => route('admin.reports', ['report' => 'office', ...$period->toArray()]),
-            'delayUrl' => route('admin.reports', ['report' => 'delay', ...$period->toArray()]),
+            // The period the drill-down links carry to Reports (REQ-34-01..03, 09).
+            'period' => $period->toArray(),
         ]);
     }
 }

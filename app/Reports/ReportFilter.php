@@ -26,6 +26,8 @@ final class ReportFilter
         public readonly string $type = '',
         public readonly string $evaluator = '',
         public readonly string $office = '',
+        /** The report's own Show option (REQ-34-13); each report reads its own values. */
+        public readonly string $show = '',
     ) {
         $this->start = self::date($from)?->startOfDay() ?? CarbonImmutable::now()->startOfMonth();
         $this->end = self::date($to)?->endOfDay() ?? CarbonImmutable::now()->endOfMonth();
@@ -44,6 +46,7 @@ final class ReportFilter
             'type' => $this->type,
             'evaluator' => $this->evaluator,
             'office' => $this->office,
+            'show' => $this->show,
         ], fn (string $value) => $value !== '');
     }
 

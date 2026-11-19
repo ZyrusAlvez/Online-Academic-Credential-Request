@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Reports\DelayReport;
 use App\Reports\DepartmentReport;
 use App\Reports\MonthlySummaryReport;
+use App\Reports\OfficeDocumentsReport;
 use App\Reports\PerformanceMetrics;
 use App\Reports\Report;
 use App\Reports\ReportFilter;
@@ -128,9 +129,19 @@ test('REQ-34-01 the three indicators of a period', function () {
         ->and($metrics->onTimeRate())->toBe(33.3)
         ->and($metrics->overdueRate())->toBe(66.7);
 
-    $this->actingAs($this->admin)->get(route('admin.dashboard', ['from' => '2026-10-01', 'to' => '2026-10-31']))
+    $period = ['from' => '2026-10-01', 'to' => '2026-10-31'];
+    $this->actingAs($this->admin)->get(route('admin.dashboard', $period))
         ->assertOk()
-        ->assertSeeInOrder(['Total requests', '7', 'Ready on time', '1', '33.3%', 'Overdue', '2', '66.7%']);
+        ->assertSeeInOrder(['Total requests', '7', 'Ready on time', '1', '33.3%', 'Overdue', '2', '66.7%'])
+        // Each tile opens the requests behind it.
+        ->assertSee(route('admin.reports', [...$period, 'report' => 'transactions']))
+        ->assertSee(route('admin.reports', [...$period, 'report' => 'transactions', 'show' => 'on_time']))
+        ->assertSee(route('admin.reports', [...$period, 'report' => 'delay']));
+
+    // The rows behind the tiles are as many as the tiles say.
+    expect(reportRows(new TransactionReport))->toHaveCount(7)
+        ->and(collect(reportRows(new TransactionReport, new ReportFilter('2026-10-01', '2026-10-31', show: 'on_time')))->pluck(0)->all())->toBe([$this->a->reference_no])
+        ->and(reportRows(new DelayReport))->toHaveCount(2);
 });
 
 test('REQ-34-09 the dashboard shows the average processing time per credential, longest first', function () {
@@ -143,16 +154,21 @@ test('REQ-34-09 the dashboard shows the average processing time per credential, 
 
     // A (6) and B (10) are Transcripts ready in October; E (September) is outside the period.
     expect(PerformanceMetrics::byCredential($this->filter)->all())->toBe([
-        ['name' => 'Transcript of Records', 'ready' => 2, 'days' => 8.0, 'standard' => 7],
-        ['name' => 'Certificate of Enrollment', 'ready' => 1, 'days' => 1.0, 'standard' => 3],
+        ['id' => $this->org->tor->id, 'name' => 'Transcript of Records', 'ready' => 2, 'days' => 8.0, 'standard' => 7],
+        ['id' => $certificate->id, 'name' => 'Certificate of Enrollment', 'ready' => 1, 'days' => 1.0, 'standard' => 3],
     ]);
 
     $response = $this->actingAs($this->admin)->get(route('admin.dashboard', ['from' => '2026-10-01', 'to' => '2026-10-31']))
         ->assertSeeInOrder(['Processing Time by Credential', 'Transcript of Records', '2', '8 working days', '7 working days',
-            'Certificate of Enrollment', '1', '1 working day', '3 working days']);
+            'Certificate of Enrollment', '1', '1 working day', '3 working days'])
+        // The credential's numbers open its requests made ready in the period.
+        ->assertSee(route('admin.reports', ['from' => '2026-10-01', 'to' => '2026-10-31', 'report' => 'transactions', 'type' => $this->org->tor->id, 'show' => 'ready']));
 
     // Only the Transcript's 8 days are over its 7-day standard.
-    expect(substr_count($response->getContent(), 'data-over-standard'))->toBe(1);
+    expect(substr_count($response->getContent(), 'data-over-standard'))->toBe(1)
+        ->and(collect(reportRows(new TransactionReport, new ReportFilter('2026-10-01', '2026-10-31', type: (string) $this->org->tor->id, show: 'ready')))
+            ->map(fn (array $row) => [$row[0], $row[8]])->all())
+        ->toBe([[$this->a->reference_no, 6], [$this->b->reference_no, 10]]);
 });
 
 test('REQ-07-11 requests within their period are not overdue; open past-due ones are in the delay analysis', function () {
@@ -173,7 +189,7 @@ test('REQ-34-11 the clock stops at ready for release: an unclaimed credential re
 
     expect(PerformanceMetrics::for($this->filter))->eligible->toBe(4)->onTime->toBe(2)->overdue->toBe(2)
         ->and(collect(reportRows(new DelayReport))->pluck(0)->all())->not->toContain($unclaimed->reference_no)
-        ->and(collect(reportRows(new TransactionReport))->keyBy(0)[$unclaimed->reference_no][9])->toBe('Yes');
+        ->and(collect(reportRows(new TransactionReport))->keyBy(0)[$unclaimed->reference_no][10])->toBe('Yes');
 });
 
 test('REQ-34-02 the dashboard\'s office table, longest first, with what each office holds now', function () {
@@ -184,12 +200,21 @@ test('REQ-34-02 the dashboard\'s office table, longest first, with what each off
         ['Office of the Chancellor', null, 0, 1, 5],   // C since Wed Oct 14: Thu, Fri, Sat, Mon, Tue
     ]);
 
+    $documents = fn (Department $office, string $show = '') => route('admin.reports', array_filter(
+        ['from' => '2026-10-01', 'to' => '2026-10-31', 'report' => 'office-documents', 'office' => $office->id, 'show' => $show]));
+
     $this->actingAs($this->admin)->get(route('admin.dashboard', ['from' => '2026-10-01', 'to' => '2026-10-31']))
         ->assertSeeInOrder(['Processing Time by Office', 'College of Computer Studies', '3 working days', 'Office of the VP for Finance', '2 working days',
             'Office of the Registrar', 'Office of the Chancellor', 'Processing Time by Credential'])
-        ->assertDontSee('Oldest pending')
-        ->assertSeeHtml('data-slowest')
-        ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->chancellor->id]));
+        ->assertSeeInOrder(['Office', 'Avg per document', 'Done', 'Pending'])
+        ->assertDontSee('Oldest pending')->assertDontSee('Pending now')
+        ->assertDontSeeHtml('data-slowest')->assertDontSeeHtml('bg-amber')
+        // The name, average, Done and Pending open the office's documents.
+        ->assertSee($documents($this->org->ccs))
+        ->assertSee($documents($this->org->ccs, 'finished'))
+        ->assertSee($documents($this->org->ccs, 'done'))
+        ->assertSee($documents($this->org->chancellor, 'pending'))
+        ->assertDontSee($documents($this->org->vpf, 'done'));   // nothing done: no link
 });
 
 test('REQ-34-03 the dashboard counts the causes of delay and links to the delay analysis', function () {
@@ -202,7 +227,13 @@ test('REQ-34-03 the dashboard counts the causes of delay and links to the delay 
         ->assertSee('Registrar / evaluation')->assertSee('Document correction')
         // An information icon with each cause's scope.
         ->assertSee(DelayCategory::PendingSignature->description())->assertSeeHtml('aria-label="About Pending signature"')
-        ->assertSee(route('admin.reports', ['report' => 'delay', 'from' => '2026-10-01', 'to' => '2026-10-31']));
+        ->assertSee(route('admin.reports', ['from' => '2026-10-01', 'to' => '2026-10-31', 'report' => 'delay']))
+        // A cause with requests opens Delay Analysis filtered to it; one without has no link.
+        ->assertSee(route('admin.reports', ['from' => '2026-10-01', 'to' => '2026-10-31', 'report' => 'delay', 'show' => 'pending_signature']))
+        ->assertDontSee(route('admin.reports', ['from' => '2026-10-01', 'to' => '2026-10-31', 'report' => 'delay', 'show' => 'document_correction']));
+
+    expect(collect(reportRows(new DelayReport, new ReportFilter('2026-10-01', '2026-10-31', show: 'pending_signature')))->pluck(0)->all())
+        ->toBe([$this->c->reference_no]);
 });
 
 test('REQ-34-10 a delay has one of four causes, from the office holding the document', function () {
@@ -234,11 +265,17 @@ test('REQ-34-04 the dashboard shows nothing else', function () {
         ->assertDontSee('Overdue workload')->assertDontSee('Returned for correction')->assertDontSee('Average initial evaluation time')
         ->assertDontSee('Where Requests Are Waiting')->assertDontSee('Most Overdue')
         ->assertDontSee('Average processing time')->assertDontSee('Oldest pending')
-        ->assertDontSee('Every credential request at a glance.');
+        ->assertDontSee('Every credential request at a glance.')
+        ->assertDontSee(route('admin.reports', ['report' => 'office']));   // no Reports button
 });
 
 test('REQ-34-05 the four reports render with their filters; a removed report opens Office Performance', function () {
-    expect(collect(ReportKind::cases())->map->value->all())->toBe(['office', 'delay', 'transactions', 'monthly']);
+    expect(collect(ReportKind::listed())->map->value->all())->toBe(['office', 'delay', 'transactions', 'monthly'])
+        ->and(collect(ReportKind::cases())->map->value->all())->toContain('office-documents');
+
+    // Office Documents is not in the list, except while it is open.
+    $this->actingAs($this->admin)->get(route('admin.reports'))->assertDontSee('Office Documents');
+    $this->actingAs($this->admin)->get(route('admin.reports', ['report' => 'office-documents']))->assertSee('Office Documents');
 
     foreach (ReportKind::cases() as $kind) {
         $this->actingAs($this->admin)->get(route('admin.reports', ['report' => $kind->value, 'from' => '2026-10-01', 'to' => '2026-10-31']))
@@ -286,13 +323,13 @@ test('REQ-34-07 the transaction record lists each request of the period, on time
         ->merge(CredentialRequest::whereIn('purpose', ['F', 'D', 'G', 'H'])->orderBy('submitted_at')->pluck('reference_no'))->all())
         ->and($rows[$this->a->reference_no])->toBe([
             $this->a->reference_no, '2026-10-02', '2026-10-10', $this->a->requester_name, $this->a->program,
-            'Transcript of Records', '2026-10-08', '2026-10-09', 'Eva Luator', 'Yes', null,
+            'Transcript of Records', '2026-10-08', '2026-10-09', 6, 'Eva Luator', 'Yes', null,
         ])
-        ->and(array_slice($rows[$this->b->reference_no], 9))->toBe(['Late', 'VP Finance documentary stamp'])
-        ->and(array_slice($rows[$this->c->reference_no], 9))->toBe(['Overdue', 'Pending signature'])
-        ->and(array_slice($rows[$this->d->reference_no], 9))->toBe(['Pending', null])
-        ->and($rows[$this->g->reference_no][9])->toBe('Pending')
-        ->and($rows->firstWhere(9, 'Cancelled'))->not->toBeNull();
+        ->and(array_slice($rows[$this->b->reference_no], 10))->toBe(['Late', 'VP Finance documentary stamp'])
+        ->and(array_slice($rows[$this->c->reference_no], 10))->toBe(['Overdue', 'Pending signature'])
+        ->and(array_slice($rows[$this->d->reference_no], 10))->toBe(['Pending', null])
+        ->and($rows[$this->g->reference_no][10])->toBe('Pending')
+        ->and($rows->firstWhere(10, 'Cancelled'))->not->toBeNull();
 
     $byEvaluator = new ReportFilter('2026-10-01', '2026-10-31', evaluator: (string) $this->registrar->id);
     expect(collect(reportRows(new TransactionReport, $byEvaluator))->pluck(0)->all())
@@ -320,6 +357,52 @@ test('REQ-07-18 the delay analysis separates the holding office from the cause',
             $this->c->reference_no, 'Transcript of Records', '2026-10-05', '2026-10-14', null, 'Office of the Chancellor', 'In progress',
             5, 0, 'Pending signature', 'The Chancellor is abroad', 'Sign on return',
         ]);
+});
+
+test('REQ-34-12 office documents list the documents behind each office\'s numbers', function () {
+    $tor = 'Transcript of Records';
+    $rows = fn (string $office = '', string $show = '') => reportRows(new OfficeDocumentsReport,
+        new ReportFilter('2026-10-01', '2026-10-31', office: $office, show: $show));
+
+    expect($rows())->toBe([
+        [$this->a->reference_no, $tor, 'Office of the Registrar', '2026-10-02', '2026-10-03', 1, 'Done'],
+        [$this->a->reference_no, $tor, 'College of Computer Studies', '2026-10-03', '2026-10-06', 3, 'Done'],
+        [$this->a->reference_no, $tor, 'Office of the VP for Finance', '2026-10-06', '2026-10-08', 2, 'Returned'],
+        [$this->c->reference_no, $tor, 'Office of the Chancellor', '2026-10-14', null, 5, 'Pending'],   // up to now
+    ]);
+
+    // As many rows as the office table's numbers (REQ-34-02).
+    foreach (DepartmentReport::offices($this->filter) as $office) {
+        expect($rows((string) $office['id'], 'done'))->toHaveCount($office['done'])
+            ->and($rows((string) $office['id'], 'pending'))->toHaveCount($office['pending'])
+            ->and($rows((string) $office['id'], 'finished'))->toHaveCount($office['done'] + $office['returned']);
+    }
+
+    expect(collect($rows((string) $this->org->vpf->id, 'returned'))->pluck(6)->all())->toBe(['Returned'])
+        ->and($rows((string) $this->org->vpf->id, 'done'))->toBe([]);
+});
+
+test('REQ-34-13 the Reports page shows only the chosen report\'s filters, and only those narrow it', function () {
+    $page = fn (array $query) => $this->actingAs($this->admin)->get(route('admin.reports', ['from' => '2026-10-01', 'to' => '2026-10-31', ...$query]))->assertOk();
+
+    $page(['report' => 'office'])->assertSee('All credentials')->assertDontSee('All evaluators')->assertDontSee('All offices');
+    $page(['report' => 'transactions'])->assertSee('All credentials')->assertSee('All evaluators')->assertSee('All offices')
+        ->assertSee('Ready for release in the period');
+    $page(['report' => 'delay'])->assertSee('All offices')->assertDontSee('All evaluators')->assertSee('Cause');
+    $page(['report' => 'monthly'])->assertSee('All evaluators')->assertSee('All offices')->assertDontSee('Ready for release in the period');
+    $page(['report' => 'office-documents'])->assertSee('All offices')->assertDontSee('All evaluators')->assertSee('Finished (done or returned)');
+
+    // A filter Office Performance does not show does not narrow it.
+    $page(['report' => 'office', 'office' => $this->org->chancellor->id, 'evaluator' => $this->registrar->id])
+        ->assertSee('College of Computer Studies')->assertSee('Office of the Chancellor');
+
+    // A Show option belongs to its report.
+    Livewire::actingAs($this->admin)->test(Index::class)
+        ->set('report', 'delay')->set('from', '2026-10-01')->set('to', '2026-10-31')
+        ->set('show', 'pending_signature')
+        ->assertSee($this->c->reference_no)->assertDontSee($this->b->reference_no)
+        ->set('report', 'transactions')
+        ->assertSet('show', '');
 });
 
 test('REQ-07-20 reports are for the admin only', function () {

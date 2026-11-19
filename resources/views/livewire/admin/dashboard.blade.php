@@ -4,26 +4,35 @@
             <div class="flex flex-wrap items-end gap-2">
                 <flux:input wire:model.live="from" type="date" size="sm" :label="__('From')" />
                 <flux:input wire:model.live="to" type="date" size="sm" :label="__('To')" />
-                <flux:button size="sm" icon="chart-bar" :href="$reportsUrl" wire:navigate>{{ __('Reports') }}</flux:button>
             </div>
         </x-slot:actions>
     </x-page-header>
 
+    {{-- Every number opens the report rows behind it (REQ-34-01..03, 09). --}}
+    @php($report = fn (string $kind, array $params = []): string => route('admin.reports', [...$period, 'report' => $kind, ...$params]))
+    @php($linkClass = 'font-semibold text-highlight underline underline-offset-2 hover:no-underline')
+
     {{-- The three indicators (REQ-34-01). --}}
-    <dl class="grid gap-3 sm:grid-cols-3">
-        <div class="rounded-xl bg-primary-50 p-4">
-            <dt class="text-sm text-zinc-600">{{ __('Total requests') }}</dt>
-            <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->received }}</dd>
-        </div>
-        <div class="rounded-xl bg-primary-50 p-4">
-            <dt class="text-sm text-zinc-600">{{ __('Ready on time') }}</dt>
-            <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->onTime }} <span class="text-base font-semibold">/ {{ $metrics->onTimeRate() === null ? '—' : $metrics->onTimeRate().'%' }}</span></dd>
-        </div>
-        <div @class(['rounded-xl p-4', 'bg-red-50' => $metrics->overdue > 0, 'bg-primary-50' => $metrics->overdue === 0])>
-            <dt @class(['text-sm', 'text-red-800' => $metrics->overdue > 0, 'text-zinc-600' => $metrics->overdue === 0])>{{ __('Overdue') }}</dt>
-            <dd @class(['text-2xl font-bold tabular-nums', 'text-red-800' => $metrics->overdue > 0, 'text-primary' => $metrics->overdue === 0])>{{ $metrics->overdue }} <span class="text-base font-semibold">/ {{ $metrics->overdueRate() === null ? '—' : $metrics->overdueRate().'%' }}</span></dd>
-        </div>
-    </dl>
+    <div class="grid gap-3 sm:grid-cols-3">
+        <a href="{{ $report('transactions') }}" wire:navigate class="block cursor-pointer rounded-xl bg-primary-50 p-4 ring-primary/40 transition hover:ring-2" data-tile="total">
+            <dl>
+                <dt class="text-sm text-zinc-600">{{ __('Total requests') }}</dt>
+                <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->received }}</dd>
+            </dl>
+        </a>
+        <a href="{{ $report('transactions', ['show' => 'on_time']) }}" wire:navigate class="block cursor-pointer rounded-xl bg-primary-50 p-4 ring-primary/40 transition hover:ring-2" data-tile="on-time">
+            <dl>
+                <dt class="text-sm text-zinc-600">{{ __('Ready on time') }}</dt>
+                <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->onTime }} <span class="text-base font-semibold">/ {{ $metrics->onTimeRate() === null ? '—' : $metrics->onTimeRate().'%' }}</span></dd>
+            </dl>
+        </a>
+        <a href="{{ $report('delay') }}" wire:navigate @class(['block cursor-pointer rounded-xl p-4 transition hover:ring-2', 'bg-red-50 ring-red-300' => $metrics->overdue > 0, 'bg-primary-50 ring-primary/40' => $metrics->overdue === 0]) data-tile="overdue">
+            <dl>
+                <dt @class(['text-sm', 'text-red-800' => $metrics->overdue > 0, 'text-zinc-600' => $metrics->overdue === 0])>{{ __('Overdue') }}</dt>
+                <dd @class(['text-2xl font-bold tabular-nums', 'text-red-800' => $metrics->overdue > 0, 'text-primary' => $metrics->overdue === 0])>{{ $metrics->overdue }} <span class="text-base font-semibold">/ {{ $metrics->overdueRate() === null ? '—' : $metrics->overdueRate().'%' }}</span></dd>
+            </dl>
+        </a>
+    </div>
 
     {{-- Where the time goes, longest first (REQ-34-02). --}}
     <section aria-labelledby="offices-heading" class="space-y-3">
@@ -33,7 +42,6 @@
             <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No documents in the offices in this period.') }}</p>
         @else
             @php($maxDays = max(1, (float) $offices->max('days')))
-            @php($slowest = $offices->count() > 1 && $offices->first()['days'] !== null ? $offices->first()['id'] : null)
             <div class="overflow-x-auto rounded-xl border border-secondary/50">
                 <table class="w-full min-w-[30rem] text-sm">
                     <thead class="bg-primary-50 text-start text-zinc-600">
@@ -41,29 +49,38 @@
                             <th scope="col" class="p-3 text-start font-medium">{{ __('Office') }}</th>
                             <th scope="col" class="p-3 text-start font-medium">{{ __('Avg per document') }}</th>
                             <th scope="col" class="p-3 text-end font-medium">{{ __('Done') }}</th>
-                            <th scope="col" class="p-3 text-end font-medium">{{ __('Pending now') }}</th>
+                            <th scope="col" class="p-3 text-end font-medium">{{ __('Pending') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-secondary/40">
                         @foreach ($offices as $office)
-                            <tr @class(['bg-amber-50' => $office['id'] === $slowest]) @if ($office['id'] === $slowest) data-slowest @endif>
-                                <th scope="row" class="p-3 text-start font-medium text-ink">{{ $office['name'] }}</th>
+                            @php($documents = fn (string $show = ''): string => $report('office-documents', array_filter(['office' => $office['id'], 'show' => $show])))
+                            <tr>
+                                <th scope="row" class="p-3 text-start font-medium">
+                                    <a href="{{ $documents() }}" wire:navigate class="text-ink underline-offset-2 hover:text-highlight hover:underline">{{ $office['name'] }}</a>
+                                </th>
                                 <td class="p-3">
                                     @if ($office['days'] === null)
                                         <span class="text-zinc-500">—</span>
                                     @else
                                         <span class="flex items-center gap-3">
                                             <span class="h-3 w-full max-w-48 rounded-e bg-primary/10" aria-hidden="true">
-                                                <span @class(['block h-3 rounded-e', 'bg-amber-600' => $office['id'] === $slowest, 'bg-primary' => $office['id'] !== $slowest]) style="width: {{ round($office['days'] / $maxDays * 100, 1) }}%"></span>
+                                                <span class="block h-3 rounded-e bg-primary" style="width: {{ round($office['days'] / $maxDays * 100, 1) }}%"></span>
                                             </span>
-                                            <span class="shrink-0 font-semibold text-ink tabular-nums">{{ trans_choice(':count working day|:count working days', $office['days']) }}</span>
+                                            <a href="{{ $documents('finished') }}" wire:navigate class="shrink-0 tabular-nums {{ $linkClass }}">{{ trans_choice(':count working day|:count working days', $office['days']) }}</a>
                                         </span>
                                     @endif
                                 </td>
-                                <td class="p-3 text-end tabular-nums">{{ $office['done'] }}</td>
+                                <td class="p-3 text-end tabular-nums">
+                                    @if ($office['done'] > 0)
+                                        <a href="{{ $documents('done') }}" wire:navigate class="{{ $linkClass }}">{{ $office['done'] }}</a>
+                                    @else
+                                        0
+                                    @endif
+                                </td>
                                 <td class="p-3 text-end tabular-nums">
                                     @if ($office['pending'] > 0)
-                                        <a href="{{ route('records', ['status' => 'processing', 'office' => $office['id']]) }}" wire:navigate class="font-semibold text-highlight underline underline-offset-2 hover:no-underline">{{ $office['pending'] }}</a>
+                                        <a href="{{ $documents('pending') }}" wire:navigate class="{{ $linkClass }}">{{ $office['pending'] }}</a>
                                     @else
                                         0
                                     @endif
@@ -96,10 +113,17 @@
                     <tbody class="divide-y divide-secondary/40">
                         @foreach ($credentials as $credential)
                             @php($over = $credential['days'] > $credential['standard'])
+                            @php($ready = $report('transactions', ['type' => $credential['id'], 'show' => 'ready']))
                             <tr>
-                                <th scope="row" class="p-3 text-start font-medium text-ink">{{ $credential['name'] }}</th>
-                                <td class="p-3 text-end tabular-nums">{{ $credential['ready'] }}</td>
-                                <td @class(['p-3 text-end font-semibold tabular-nums', 'text-red-700' => $over, 'text-ink' => ! $over]) @if ($over) data-over-standard @endif>{{ trans_choice(':count working day|:count working days', $credential['days']) }}</td>
+                                <th scope="row" class="p-3 text-start font-medium">
+                                    <a href="{{ $ready }}" wire:navigate class="text-ink underline-offset-2 hover:text-highlight hover:underline">{{ $credential['name'] }}</a>
+                                </th>
+                                <td class="p-3 text-end tabular-nums">
+                                    <a href="{{ $ready }}" wire:navigate class="{{ $linkClass }}">{{ $credential['ready'] }}</a>
+                                </td>
+                                <td class="p-3 text-end tabular-nums" @if ($over) data-over-standard @endif>
+                                    <a href="{{ $ready }}" wire:navigate @class(['font-semibold underline underline-offset-2 hover:no-underline', 'text-red-700' => $over, 'text-highlight' => ! $over])>{{ trans_choice(':count working day|:count working days', $credential['days']) }}</a>
+                                </td>
                                 <td class="p-3 text-end tabular-nums text-zinc-600">{{ trans_choice(':count working day|:count working days', $credential['standard']) }}</td>
                             </tr>
                         @endforeach
@@ -113,7 +137,7 @@
     <section aria-labelledby="causes-heading" class="space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
             <h2 id="causes-heading" class="text-lg font-semibold text-primary">{{ __('Causes of Delay') }}</h2>
-            <flux:button size="sm" variant="ghost" icon-trailing="arrow-right" :href="$delayUrl" wire:navigate>{{ __('Delay Analysis') }}</flux:button>
+            <flux:button size="sm" variant="ghost" icon-trailing="arrow-right" :href="$report('delay')" wire:navigate>{{ __('Delay Analysis') }}</flux:button>
         </div>
 
         @if ($causes->sum('count') === 0)
@@ -121,6 +145,7 @@
         @else
             <ul class="divide-y divide-secondary/40 rounded-xl border border-secondary/50">
                 @foreach ($causes as $cause)
+                    @php($byCause = $report('delay', ['show' => $cause['value']]))
                     <li class="flex items-center justify-between gap-3 p-3 text-sm">
                         <span class="flex items-center gap-2 text-ink">
                             <flux:tooltip :content="__($cause['scope'])" position="top">
@@ -128,9 +153,17 @@
                                     <flux:icon.information-circle variant="mini" class="size-4" />
                                 </button>
                             </flux:tooltip>
-                            {{ $cause['label'] }}
+                            @if ($cause['count'] > 0)
+                                <a href="{{ $byCause }}" wire:navigate class="underline-offset-2 hover:text-highlight hover:underline">{{ $cause['label'] }}</a>
+                            @else
+                                {{ $cause['label'] }}
+                            @endif
                         </span>
-                        <span class="font-semibold text-ink tabular-nums">{{ $cause['count'] }}</span>
+                        @if ($cause['count'] > 0)
+                            <a href="{{ $byCause }}" wire:navigate class="tabular-nums {{ $linkClass }}">{{ $cause['count'] }}</a>
+                        @else
+                            <span class="font-semibold text-ink tabular-nums">0</span>
+                        @endif
                     </li>
                 @endforeach
             </ul>

@@ -29,7 +29,17 @@ final class DepartmentReport implements Report
 
     public function columns(): array
     {
-        return ['Office', 'Avg working days per document', 'Done', 'Returned', 'Pending now', 'Longest pending (working days)', 'On time %'];
+        return ['Office', 'Avg working days per document', 'Done', 'Returned', 'Pending', 'Longest pending (working days)', 'On time %'];
+    }
+
+    public function filters(): array
+    {
+        return ['type'];
+    }
+
+    public function shows(): array
+    {
+        return [];
     }
 
     public function rows(ReportFilter $filter): iterable

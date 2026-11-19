@@ -28,6 +28,16 @@ final class MonthlySummaryReport implements Report
         return ['Month', 'Received', 'Due', 'On time', 'Late', 'Still pending', 'On time %', 'Overdue %', 'Avg processing (working days)'];
     }
 
+    public function filters(): array
+    {
+        return ['type', 'evaluator', 'office'];
+    }
+
+    public function shows(): array
+    {
+        return [];
+    }
+
     public function rows(ReportFilter $filter): iterable
     {
         $start = $filter->start;

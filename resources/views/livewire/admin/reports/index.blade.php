@@ -1,32 +1,48 @@
 <div class="space-y-6">
     <x-page-header title="Reports" description="Performance and monitoring reports." />
 
-    <div class="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <flux:select wire:model.live="report" :label="__('Report')" class="xl:col-span-2">
+    {{-- Only the chosen report's filters (REQ-34-13). --}}
+    @php($uses = $current->filters())
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <flux:select wire:model.live="report" :label="__('Report')">
             @foreach ($kinds as $option)
                 <flux:select.option :value="$option->value">{{ $option->report()->title() }}</flux:select.option>
             @endforeach
         </flux:select>
         <flux:input wire:model.live="from" type="date" :label="__('From')" />
         <flux:input wire:model.live="to" type="date" :label="__('To')" />
-        <flux:select wire:model.live="type" :label="__('Credential')">
-            <flux:select.option value="">{{ __('All credentials') }}</flux:select.option>
-            @foreach ($types as $option)
-                <flux:select.option :value="$option->id">{{ $option->name }}</flux:select.option>
-            @endforeach
-        </flux:select>
-        <flux:select wire:model.live="evaluator" :label="__('Evaluator')">
-            <flux:select.option value="">{{ __('All evaluators') }}</flux:select.option>
-            @foreach ($evaluators as $option)
-                <flux:select.option :value="$option->id">{{ $option->name }}</flux:select.option>
-            @endforeach
-        </flux:select>
-        <flux:select wire:model.live="office" :label="__('Office')" class="md:col-span-3 xl:col-span-2">
-            <flux:select.option value="">{{ __('All offices') }}</flux:select.option>
-            @foreach ($offices as $option)
-                <flux:select.option :value="$option->id">{{ $option->name }}</flux:select.option>
-            @endforeach
-        </flux:select>
+        @if (in_array('type', $uses, true))
+            <flux:select wire:model.live="type" :label="__('Credential')">
+                <flux:select.option value="">{{ __('All credentials') }}</flux:select.option>
+                @foreach ($types as $option)
+                    <flux:select.option :value="$option->id">{{ $option->name }}</flux:select.option>
+                @endforeach
+            </flux:select>
+        @endif
+        @if (in_array('evaluator', $uses, true))
+            <flux:select wire:model.live="evaluator" :label="__('Evaluator')">
+                <flux:select.option value="">{{ __('All evaluators') }}</flux:select.option>
+                @foreach ($evaluators as $option)
+                    <flux:select.option :value="$option->id">{{ $option->name }}</flux:select.option>
+                @endforeach
+            </flux:select>
+        @endif
+        @if (in_array('office', $uses, true))
+            <flux:select wire:model.live="office" :label="__('Office')">
+                <flux:select.option value="">{{ __('All offices') }}</flux:select.option>
+                @foreach ($offices as $option)
+                    <flux:select.option :value="$option->id">{{ $option->name }}</flux:select.option>
+                @endforeach
+            </flux:select>
+        @endif
+        @if ($current->shows() !== [])
+            <flux:select wire:model.live="show" :label="$kind === \App\Enums\ReportKind::Delay ? __('Cause') : __('Show')">
+                <flux:select.option value="">{{ __('All') }}</flux:select.option>
+                @foreach ($current->shows() as $value => $label)
+                    <flux:select.option :value="$value">{{ $label }}</flux:select.option>
+                @endforeach
+            </flux:select>
+        @endif
     </div>
 
     <section aria-labelledby="report-heading" class="space-y-3">
