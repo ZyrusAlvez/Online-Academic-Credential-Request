@@ -52,7 +52,15 @@
         <form wire:submit="save" class="space-y-6">
             <flux:heading size="lg">{{ $form->day ? __('Edit non-working day') : __('Add non-working day') }}</flux:heading>
 
-            <flux:input wire:model="form.date" type="date" :label="__('Date')" required />
+            @if ($form->day)
+                <flux:input wire:model="form.date" type="date" :label="__('Date')" required />
+            @else
+                {{-- A whole period at once, e.g. a Christmas break (REQ-10-09). --}}
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <flux:input wire:model="form.date" type="date" :label="__('Date')" required />
+                    <flux:input wire:model="form.until" type="date" :label="__('Until')" badge="Optional" data-until-input />
+                </div>
+            @endif
             <flux:input wire:model="form.name" :label="__('Name')" :placeholder="__('e.g. Eid\'l Fitr, Typhoon closure')" required />
             <flux:select wire:model="form.kind" :label="__('Kind')">
                 @foreach ($kinds as $option)

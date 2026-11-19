@@ -36,6 +36,13 @@ Read "the registrar" as "the Admin" in REQ-10-06 and REQ-10-08 (REQ-18-04).*
 - **REQ-10-06** THE SYSTEM SHALL let the registrar list the non-working days of a year, and add,
   edit and delete a non-working day (date, name, kind: regular holiday, special non-working day
   or office closure); a date can appear only once.
+- **REQ-10-09** WHEN adding, THE registrar MAY give an optional "Until" date to mark a whole period
+  (e.g. a Christmas break) at once: THE SYSTEM SHALL add one non-working day per day of the work
+  week from the date to the "Until" date, with the same name and kind, skipping the dates already
+  in the calendar (which keep their own name). The period SHALL be at most 60 days and SHALL NOT
+  end before it starts; IF every day of it is already in the calendar THEN nothing is added and THE
+  SYSTEM SHALL say so. Each day can then be edited or deleted on its own. *(Pilot consultation §6,
+  2026-11-19. Showing these periods to requesters is on hold, user's decision.)*
 - **REQ-10-07** THE SYSTEM SHALL seed the fixed-date Philippine regular holidays and special
   non-working days, and Holy Week, for 2026 and 2027, without creating duplicates when run again.
 - **REQ-10-08** IF a user who is not a registrar opens the working calendar THEN THE SYSTEM SHALL

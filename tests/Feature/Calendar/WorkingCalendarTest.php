@@ -127,6 +127,48 @@ test('REQ-10-06 a date can appear only once', function () {
         ->assertHasErrors(['form.date' => 'unique']);
 });
 
+test('REQ-10-09 a period adds each working day not yet in the calendar, with the same name and kind', function () {
+    $admin = User::factory()->admin()->create();
+    NonWorkingDay::factory()->create(['date' => '2026-12-25', 'name' => 'Christmas Day', 'kind' => 'holiday']);
+
+    // Mon Dec 21 to Sat Dec 26: Christmas Day is kept, the other five days are added; no Sunday.
+    Livewire::actingAs($admin)->test(Index::class, ['year' => 2026])
+        ->call('create')
+        ->assertSeeHtml('data-until-input')
+        ->set('form.date', '2026-12-20')
+        ->set('form.until', '2026-12-26')
+        ->set('form.name', 'Christmas break')
+        ->set('form.kind', 'closure')
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertDispatched('notify', message: 'Christmas break saved: 5 days.');
+
+    $break = NonWorkingDay::where('name', 'Christmas break')->orderBy('date')->get();
+    expect($break->map(fn ($day) => $day->date->format('Y-m-d'))->all())->toBe(['2026-12-21', '2026-12-22', '2026-12-23', '2026-12-24', '2026-12-26'])
+        ->and($break->every(fn ($day) => $day->kind === NonWorkingDayKind::Closure && $day->created_by === $admin->id))->toBeTrue()
+        ->and(NonWorkingDay::whereDate('date', '2026-12-25')->sole()->name)->toBe('Christmas Day');
+
+    // Each day is edited on its own: no Until there.
+    Livewire::actingAs($admin)->test(Index::class, ['year' => 2026])
+        ->call('edit', $break->first()->id)
+        ->assertDontSeeHtml('data-until-input');
+});
+
+test('REQ-10-09 a period cannot end before it starts, exceed 60 days, or add nothing', function () {
+    $page = fn () => Livewire::actingAs(User::factory()->admin()->create())->test(Index::class)
+        ->call('create')->set('form.name', 'Break')->set('form.kind', 'closure');
+
+    $page()->set('form.date', '2026-12-20')->set('form.until', '2026-12-19')->call('save')
+        ->assertHasErrors(['form.until' => 'after_or_equal']);
+    $page()->set('form.date', '2026-12-01')->set('form.until', '2027-01-30')->call('save')
+        ->assertHasErrors('form.until');
+
+    // Only a Sunday, which is never a working day: nothing to add.
+    $page()->set('form.date', '2026-12-20')->set('form.until', '2026-12-20')->call('save')
+        ->assertHasErrors('form.until');
+    expect(NonWorkingDay::count())->toBe(0);
+});
+
 test('REQ-10-07 the seeder adds the Philippine holidays for 2026 and 2027 once', function () {
     $this->seed(NonWorkingDaySeeder::class);
     $this->seed(NonWorkingDaySeeder::class);
