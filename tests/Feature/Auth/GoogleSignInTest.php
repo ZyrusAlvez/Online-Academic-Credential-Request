@@ -37,6 +37,11 @@ test('REQ-01-24 the Google button sends the user to Google', function () {
         ->toContain(urlencode(url('/auth/google/callback')));
 });
 
+test('REQ-01-24 Google asks which account to use every time', function () {
+    expect($this->get(route('auth.google.redirect'))->headers->get('Location'))
+        ->toContain('prompt=select_account');
+});
+
 test('REQ-01-24 a new Google account becomes a verified requester with the name pre-filled', function () {
     googleReturns([]);
 

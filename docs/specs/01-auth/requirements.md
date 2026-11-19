@@ -48,7 +48,9 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   the user out on their next request.
 
 - **REQ-01-24** WHERE Google sign-in is configured THE SYSTEM SHALL offer "Continue with Google"
-  on the log-in page and "Sign up with Google" on the sign-up page. WHEN Google returns an account
+  on the log-in page and "Sign up with Google" on the sign-up page, and Google SHALL ask the user
+  which Google account to use every time, even when the browser is already signed in to one (so
+  logging out and back in can switch accounts). WHEN Google returns an account
   with a verified email THE SYSTEM SHALL sign in the account linked to that Google ID or, failing
   that, the account with that email (linking it), or else create a requester account with the email
   marked verified, no password and the name pre-filled from Google. IF Google has not verified the
