@@ -275,12 +275,20 @@ test('REQ-11-07 no release to an unverified representative; a verified one can c
     expect($request->release()->sole())->request_representative_id->toBe($representative->id)->recipient_name->toBe('Rosa Dela Cruz');
 });
 
-test('REQ-11-08 the processing time in working days is stored at release', function () {
+test('REQ-11-08 the processing time in working days is stored when the credential is ready for release', function () {
     Carbon::setTestNow('2026-10-09 10:00:00');   // Friday
-    $request = readyRequest();
+    $request = acceptRequest(submitRequest($this->owner, $this->org->free), $this->registrar);
+    passOffice($request, $this->registrar);   // prepare
 
     Carbon::setTestNow('2026-10-14 15:00:00');   // Wednesday
-    workflow()->release($request, $this->registrar, RecipientType::Owner);
+    passOffice($request, $this->registrar);   // final check: ready for release
 
-    expect($request->fresh()->processing_working_days)->toBe(4);   // Sat, Mon, Tue, Wed
+    expect($request->fresh())->status->toBe(RequestStatus::ReadyForRelease)
+        ->processing_working_days->toBe(4);   // Sat, Mon, Tue, Wed
+
+    // Claimed a week later: the claim date does not count (REQ-34-11).
+    Carbon::setTestNow('2026-10-21 09:00:00');
+    workflow()->release($request->fresh(), $this->registrar, RecipientType::Owner);
+
+    expect($request->fresh()->processing_working_days)->toBe(4);
 });

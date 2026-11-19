@@ -31,7 +31,7 @@ final class DelayReport implements Report
 
     public function columns(): array
     {
-        return ['Tracking no.', 'Credential', 'Accepted', 'Due', 'Released', 'Holding office', 'Stage', 'Working days late', 'Returns', 'Cause', 'Recorded reason', 'Corrective action'];
+        return ['Tracking no.', 'Credential', 'Accepted', 'Due', 'Ready for release', 'Holding office', 'Stage', 'Working days late', 'Returns', 'Cause', 'Recorded reason', 'Corrective action'];
     }
 
     public function rows(ReportFilter $filter): iterable
@@ -51,10 +51,10 @@ final class DelayReport implements Report
                     $request->credentialType->name,
                     $request->accepted_at?->format('Y-m-d'),
                     $request->effective_due_at?->format('Y-m-d'),
-                    $request->released_at?->format('Y-m-d'),
-                    $request->status === RequestStatus::Released ? '—' : $holding,
+                    $request->ready_at?->format('Y-m-d'),
+                    $request->ready_at !== null ? '—' : $holding,
                     $request->status->label(),
-                    $request->effective_due_at === null ? null : $calendar->workingDaysBetween($request->effective_due_at, $request->released_at ?? now()),
+                    $request->effective_due_at === null ? null : $calendar->workingDaysBetween($request->effective_due_at, $request->ready_at ?? now()),
                     $request->visits->where('status', VisitStatus::Returned)->count(),
                     self::causeOf($request)->label(),
                     $note?->reason,
@@ -65,15 +65,15 @@ final class DelayReport implements Report
     }
 
     /**
-     * Eligible requests not released by their due date (REQ-07-18), most overdue first, with
-     * what causeOf() needs.
+     * Eligible requests not ready for release by their due date (REQ-07-18, REQ-34-11), most
+     * overdue first, with what causeOf() needs.
      *
      * @return Builder<CredentialRequest>
      */
     public static function overdue(ReportFilter $filter): Builder
     {
         return PerformanceMetrics::eligible($filter)
-            ->where(fn ($q) => $q->whereNull('released_at')->orWhereColumn('released_at', '>', 'effective_due_at'))
+            ->where(fn ($q) => $q->whereNull('ready_at')->orWhereColumn('ready_at', '>', 'effective_due_at'))
             ->with(['openVisit.department', 'visits.department', 'delayNotes'])
             ->orderBy('effective_due_at');
     }

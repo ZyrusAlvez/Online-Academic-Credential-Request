@@ -16,7 +16,7 @@
             <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->received }}</dd>
         </div>
         <div class="rounded-xl bg-primary-50 p-4">
-            <dt class="text-sm text-zinc-600">{{ __('Released on time') }}</dt>
+            <dt class="text-sm text-zinc-600">{{ __('Ready on time') }}</dt>
             <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->onTime }} <span class="text-base font-semibold">/ {{ $metrics->onTimeRate() === null ? '—' : $metrics->onTimeRate().'%' }}</span></dd>
         </div>
         <div @class(['rounded-xl p-4', 'bg-red-50' => $metrics->overdue > 0, 'bg-primary-50' => $metrics->overdue === 0])>
@@ -81,14 +81,14 @@
         <h2 id="credentials-heading" class="text-lg font-semibold text-primary">{{ __('Processing Time by Credential') }}</h2>
 
         @if ($credentials->isEmpty())
-            <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No credentials released in this period.') }}</p>
+            <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No credentials ready for release in this period.') }}</p>
         @else
             <div class="overflow-x-auto rounded-xl border border-secondary/50">
                 <table class="w-full min-w-[30rem] text-sm">
                     <thead class="bg-primary-50 text-start text-zinc-600">
                         <tr>
                             <th scope="col" class="p-3 text-start font-medium">{{ __('Credential') }}</th>
-                            <th scope="col" class="p-3 text-end font-medium">{{ __('Released') }}</th>
+                            <th scope="col" class="p-3 text-end font-medium">{{ __('Ready') }}</th>
                             <th scope="col" class="p-3 text-end font-medium">{{ __('Avg processing') }}</th>
                             <th scope="col" class="p-3 text-end font-medium">{{ __('Standard') }}</th>
                         </tr>
@@ -98,7 +98,7 @@
                             @php($over = $credential['days'] > $credential['standard'])
                             <tr>
                                 <th scope="row" class="p-3 text-start font-medium text-ink">{{ $credential['name'] }}</th>
-                                <td class="p-3 text-end tabular-nums">{{ $credential['released'] }}</td>
+                                <td class="p-3 text-end tabular-nums">{{ $credential['ready'] }}</td>
                                 <td @class(['p-3 text-end font-semibold tabular-nums', 'text-red-700' => $over, 'text-ink' => ! $over]) @if ($over) data-over-standard @endif>{{ trans_choice(':count working day|:count working days', $credential['days']) }}</td>
                                 <td class="p-3 text-end tabular-nums text-zinc-600">{{ trans_choice(':count working day|:count working days', $credential['standard']) }}</td>
                             </tr>

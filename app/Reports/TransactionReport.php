@@ -7,7 +7,7 @@ use App\Models\CredentialRequest;
 
 /**
  * The per-transaction record (REQ-34-07, pilot consultation §10): every request submitted in the
- * period, whether it was released on time, and the cause when it was not. It replaces the
+ * period, whether it was ready for release on time, and the cause when it was not. It replaces the
  * evaluators' logbook and monthly accomplishment report.
  */
 final class TransactionReport implements Report
@@ -24,7 +24,7 @@ final class TransactionReport implements Report
 
     public function columns(): array
     {
-        return ['Tracking no.', 'Requested', 'Expected release', 'Requester', 'Program', 'Credential', 'Released', 'Evaluator', 'On time', 'Cause of delay'];
+        return ['Tracking no.', 'Requested', 'Expected release', 'Requester', 'Program', 'Credential', 'Ready for release', 'Released', 'Evaluator', 'On time', 'Cause of delay'];
     }
 
     public function rows(ReportFilter $filter): iterable
@@ -45,6 +45,7 @@ final class TransactionReport implements Report
                     $request->requester_name,
                     $request->program,
                     $request->credentialType->name,
+                    $request->ready_at?->format('Y-m-d'),
                     $request->released_at?->format('Y-m-d'),
                     $request->evaluator?->name,
                     $timeliness,
@@ -53,12 +54,13 @@ final class TransactionReport implements Report
             });
     }
 
+    /** Judged when the credential was ready for release (REQ-34-11). */
     private static function timeliness(CredentialRequest $request): string
     {
         $due = $request->effective_due_at;
 
         return match (true) {
-            $request->released_at !== null => $due === null || $request->released_at->lessThanOrEqualTo($due) ? 'Yes' : 'Late',
+            $request->ready_at !== null => $due === null || $request->ready_at->lessThanOrEqualTo($due) ? 'Yes' : 'Late',
             in_array($request->status, [RequestStatus::Declined, RequestStatus::Cancelled], true) => $request->status->label(),
             $due !== null && $due->isPast() => 'Overdue',
             default => 'Pending',

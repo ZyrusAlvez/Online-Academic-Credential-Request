@@ -25,7 +25,8 @@ final class PerformanceMetrics
     public static function for(ReportFilter $filter): self
     {
         $eligible = self::eligible($filter);
-        $onTime = (clone $eligible)->whereNotNull('released_at')->whereColumn('released_at', '<=', 'effective_due_at')->count();
+        // On time = ready for release by the due date (REQ-34-11).
+        $onTime = (clone $eligible)->whereNotNull('ready_at')->whereColumn('ready_at', '<=', 'effective_due_at')->count();
         $eligibleCount = $eligible->count();
 
         return new self(
@@ -38,19 +39,20 @@ final class PerformanceMetrics
 
     /**
      * Average processing time per credential (REQ-34-09; Proposed Workflow XIII.2): working days
-     * from acceptance to release of the requests released in the period, longest first.
+     * from acceptance to ready for release of the requests made ready in the period (REQ-34-11),
+     * longest first.
      *
-     * @return Collection<int, array{name: string, released: int, days: float, standard: int}>
+     * @return Collection<int, array{name: string, ready: int, days: float, standard: int}>
      */
     public static function byCredential(ReportFilter $filter): Collection
     {
         $rows = $filter->requests()
-            ->whereBetween('credential_requests.released_at', [$filter->start, $filter->end])
+            ->whereBetween('credential_requests.ready_at', [$filter->start, $filter->end])
             ->whereNotNull('credential_requests.processing_working_days')
             ->groupBy('credential_requests.credential_type_id')
             ->get([
                 'credential_requests.credential_type_id',
-                DB::raw('COUNT(*) as released'),
+                DB::raw('COUNT(*) as ready'),
                 DB::raw('AVG(credential_requests.processing_working_days) as days'),
             ])
             ->keyBy('credential_type_id');
@@ -61,7 +63,7 @@ final class PerformanceMetrics
 
                 return [
                     'name' => $type->name,
-                    'released' => (int) $row?->getAttribute('released'),
+                    'ready' => (int) $row?->getAttribute('ready'),
                     'days' => round((float) $row?->getAttribute('days'), 1),
                     'standard' => $type->processing_days,
                 ];
