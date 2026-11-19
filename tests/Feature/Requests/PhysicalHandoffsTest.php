@@ -21,8 +21,6 @@ use App\Models\User;
 use App\Notifications\RequestActivity;
 use App\Reports\DepartmentReport;
 use App\Reports\ReportFilter;
-use App\Reports\SignatoryReport;
-use App\Reports\TrackingReport;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -409,20 +407,17 @@ test('REQ-32-09 a paper the Registrar brings back to its own office is received 
     $this->actingAs($this->owner)->get(route('student.requests.show', $request))->assertSee('Currently with Office of the Registrar.');
 });
 
-test('REQ-17-18 the dashboard office counts and the office reports count it at the sender', function () {
+test('REQ-17-18 the dashboard office table and the office report count it at the sender', function () {
     $request = preparedAtRegistrar();
     workflow()->forwardDocument(openVisit($request), $this->registrar);
-
-    $this->actingAs(User::factory()->admin()->create())->get(route('admin.dashboard'))   // the Admin's dashboard (REQ-18-02)
-        ->assertSeeInOrder(['Where Requests Are Waiting', 'Office of the Registrar', '1 forwarded, not yet received']);
 
     $rows = collect((new DepartmentReport)->rows(new ReportFilter))->keyBy(0);
     expect($rows['Office of the Registrar'][4])->toBe(1)
         ->and($rows->has('College of Computer Studies') ? $rows['College of Computer Studies'][4] : 0)->toBe(0);
 
-    $pending = collect((new SignatoryReport)->rows(new ReportFilter))->firstWhere(1, $request->reference_no);
-    expect($pending[0])->toBe('Office of the Registrar')
-        ->and($pending[4])->toBe('Forwarded to College of Computer Studies, not yet received');
+    $this->actingAs(User::factory()->admin()->create())->get(route('admin.dashboard'))   // the Admin's dashboard (REQ-18-02)
+        ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->registrarOffice->id]))
+        ->assertDontSee(route('records', ['status' => 'processing', 'office' => $this->org->ccs->id]));
 });
 
 test('REQ-32-02 a done paper shows it has not been forwarded yet', function () {
@@ -530,10 +525,9 @@ test('REQ-17-14 the paper\'s stops are "Time in Each Office", never "office visi
         ->assertDontSee('Office Visits');
 
     $this->actingAs(User::factory()->admin()->create())->get(route('admin.dashboard'))
-        ->assertSee('Average time per office')->assertDontSee('office visit');
+        ->assertSee('Processing Time by Office')->assertDontSee('office visit');
 
-    expect((new DepartmentReport)->columns())->toContain('Avg working days per document')
-        ->and((new TrackingReport)->columns())->toContain('Pass')->not->toContain('Visit');
+    expect((new DepartmentReport)->columns())->toContain('Avg working days per document')->not->toContain('Visits');
 });
 
 test('REQ-17-15 a done paper still counts as in the office', function () {

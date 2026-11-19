@@ -271,7 +271,7 @@ test('REQ-30-08 an office is reminded by its own deadline; registrars and the re
     Notification::assertSentToTimes($this->dean, DueReminder::class, 2);   // not again for the request's date
 });
 
-test('REQ-30-09 the department report shows the share of documents done by the office deadline', function () {
+test('REQ-30-09 the office performance report shows the share of documents done by the office deadline', function () {
     torAtDean($this);
 
     Carbon::setTestNow('2026-10-10 09:00:00');

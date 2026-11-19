@@ -4,6 +4,8 @@ use App\Enums\RequestStatus;
 use App\Livewire\Registrar\Records\Index;
 use App\Models\CredentialRequest;
 use App\Models\User;
+use App\Reports\DepartmentReport;
+use App\Reports\ReportFilter;
 use Database\Seeders\DemoRequestSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -45,41 +47,34 @@ test('REQ-07-02 requests being processed past their due date are overdue and fil
     $this->actingAs($this->registrar)->get(route('records.show', $late))->assertSee('Overdue since');
 });
 
-test('REQ-07-03 REQ-18-08 the dashboard shows the work-queue counts; online payments are not the Registrar\'s', function () {
-    submitRequest($this->owner, $this->org->free);                          // needs the Registrar
-    evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar); // awaiting payment
-    acceptedAt('2026-01-05 09:00:00');                                      // overdue
+test('REQ-18-08 Records\' "Needs the Registrar" has walk-in payments, not online ones', function () {
+    $new = submitRequest($this->owner, $this->org->free);
     // A proof to verify: an online one is the Cashier's, a walk-in one the Registrar's.
-    uploadPayment(evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar));
+    $online = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    uploadPayment($online);
     $walkIn = walkIn(evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar));
     uploadPayment($walkIn);
 
-    $this->actingAs($this->admin)->get(route('admin.dashboard'))
-        ->assertOk()
-        ->assertSeeInOrder(['Needs the Registrar', '2', 'Waiting for the requester', '0', 'Awaiting payment', '1', 'Being processed', '1', 'Ready for release', '0', 'Overdue', '1']);
-
     Livewire::actingAs($this->registrar)->test(Index::class)->set('status', 'needs_registrar')
-        ->assertSee($walkIn->reference_no);
+        ->assertSee($new->reference_no)
+        ->assertSee($walkIn->reference_no)
+        ->assertDontSee($online->reference_no);
 });
 
-test('REQ-07-05 the dashboard shows which offices hold documents, largest first', function () {
+test('REQ-34-02 the office table\'s pending counts follow the paper', function () {
     acceptedAt(now()->toDateTimeString(), $this->org->tor);
     acceptedAt(now()->toDateTimeString(), $this->org->tor);
     $atDean = acceptedAt(now()->toDateTimeString(), $this->org->tor);
     passOffice($atDean, $this->registrar);
     workflow()->acceptReceipt(openVisit($atDean), User::factory()->departmentStaff($this->org->ccs)->create());   // delivered (REQ-17-18)
 
+    $pending = DepartmentReport::offices(new ReportFilter)->pluck('pending', 'name');
+    expect($pending['Office of the Registrar'])->toBe(2)
+        ->and($pending['College of Computer Studies'])->toBe(1);
+
     $this->actingAs($this->admin)->get(route('admin.dashboard'))
-        ->assertSeeInOrder(['Where Requests Are Waiting', 'Office of the Registrar', '2', 'College of Computer Studies', '1'])
+        ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->registrarOffice->id]))
         ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->ccs->id]));
-});
-
-test('REQ-07-06 the dashboard lists the most overdue requests', function () {
-    $late = acceptedAt('2026-01-05 09:00:00');
-
-    $this->actingAs($this->admin)->get(route('admin.dashboard'))
-        ->assertSeeInOrder(['Most Overdue', $late->reference_no])
-        ->assertSee(route('records.show', $late), false);   // the read-only record (REQ-18-08)
 });
 
 test('REQ-07-07 the request list can be filtered by the office holding the document', function () {

@@ -23,7 +23,7 @@ final class RegistrarRequestFilter
     /** The paper is past its office's deadline (REQ-30-10). */
     public const OFFICE_OVERDUE = 'office_overdue';
 
-    /** The dashboard's "Needs the Registrar" and "Waiting for the requester" tiles (REQ-18-08). */
+    /** Records' "Needs the Registrar" and "Waiting for the requester" filters (REQ-18-08). */
     public const NEEDS_REGISTRAR = 'needs_registrar';
 
     public const WAITING_FOR_REQUESTER = 'waiting_for_requester';

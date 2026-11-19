@@ -67,19 +67,14 @@ This replaces:
   ID, SPA and IDs, and proof of payment. Everyone else keeps the rules of REQ-01-20 and spec 11.
 
 ### Dashboard
-- **REQ-18-08** THE Admin's Dashboard SHALL keep:
-  - the status counts. "Needs the Registrar" SHALL count the requests submitted or under
-    evaluation and the **walk-in** payments to validate, not online payments, which are the
-    Cashier's (REQ-25-04); "Waiting for the requester" SHALL count those returned for
-    clarification, pending compliance or returned for customer action. *(Corrected 2026-11-19:
-    the first counted online payments too, and the second was labelled "Pending compliance".)*
-  - the performance indicators for a period and the link to Reports;
-  - where requests are waiting, by office;
-  - the most overdue requests.
-
-  Its links SHALL open Records (filtered by status or office) or a request's record. It SHALL
-  NOT show the Office of the Registrar queue: the Registrar works those papers from In Progress
-  (REQ-17-12).
+- **REQ-18-08** THE Admin's Dashboard SHALL be spec 34's (REQ-34-01..04), and its links SHALL
+  open Records filtered by office, or Reports. It SHALL NOT show the Office of the Registrar
+  queue: the Registrar works those papers from In Progress (REQ-17-12). Records' "Needs the
+  Registrar" filter SHALL include the requests submitted or under evaluation and the **walk-in**
+  payments to validate, but not online payments, which are the Cashier's (REQ-25-04). Its "Waiting
+  for the requester" filter SHALL include those returned for clarification, pending compliance or
+  returned for customer action. *(2026-11-19: the dashboard's status counts moved to these
+  filters, spec 34.)*
 
 ### Accounts
 - **REQ-18-09** THE Admin SHALL create staff accounts as Department Staff, Registrar or Admin. THE

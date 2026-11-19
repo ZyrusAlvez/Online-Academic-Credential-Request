@@ -24,53 +24,42 @@ office filter (REQ-07-07) serve both the Registrar and the Admin, at `/records` 
 - **REQ-07-02** WHILE a request is being processed past its effective due date (REQ-05-12) THE
   SYSTEM SHALL flag it as overdue in the registrar's Records and In Progress lists and request
   page, and offer an "Overdue" filter in Records (REQ-16-04, 07).
-- **REQ-07-03** THE SYSTEM SHALL show the registrar counts of requests needing the Registrar,
-  pending compliance, awaiting payment, being processed and ready for release, and overdue requests.
-- **REQ-07-05** THE SYSTEM SHALL show, per office, how many documents it currently holds
-  (forwarded or received), largest first, each linking to Records filtered to that office.
-- **REQ-07-06** THE SYSTEM SHALL list the most overdue requests (up to 5) on the dashboard.
+- ~~REQ-07-03~~ *Superseded by REQ-34-04 (2026-11-19):* the dashboard has no status counts; the
+  statuses are Records filters (REQ-18-08).
+- ~~REQ-07-05~~ *Superseded by REQ-34-02:* the documents each office holds are the office
+  table's "Pending now".
+- ~~REQ-07-06~~ *Superseded by REQ-34-04:* no most-overdue list; overdue requests are in the Delay
+  Analysis report.
 - **REQ-07-07** THE SYSTEM SHALL let the registrar filter Records and the In Progress queue by the
   office currently holding the document.
 - ~~REQ-07-08~~ *Superseded by REQ-16-08:* there is no CSV download.
 
 ### Performance indicators
-- **REQ-07-04** THE SYSTEM SHALL show the registrar, for a chosen period (this month by default):
-  the requests received; the requests released on time and overdue, each as a count and a
-  percentage of the eligible requests; the average processing time; the open overdue workload; the
-  documents returned for correction; and the average initial evaluation time.
+- ~~REQ-07-04~~ *Superseded by REQ-34-01 (2026-11-19):* four indicators only.
 - **REQ-07-11** THE SYSTEM SHALL compute the indicators with the client's formulas: eligible
   requests are accepted requests (not cancelled or declined) whose effective due date falls in the
   period and not after today; on-time % = released on or before the due date ÷ eligible × 100;
   overdue % = not released by the due date ÷ eligible × 100; average processing time = working days
   from acceptance to release ÷ requests released in the period; average office time = working days
   across completed office visits ÷ completed visits. Requests still within their period SHALL NOT
-  count as overdue; open requests past their due date are reported separately as overdue workload.
-- **REQ-07-12** THE SYSTEM SHALL show the average working days per office for visits completed in
-  the period, longest first (bottleneck analysis).
+  count as overdue; open requests past their due date are listed in the Delay Analysis report
+  (REQ-07-18) and counted as "still pending" in the Monthly Summary (REQ-34-08).
+- ~~REQ-07-12~~ *Superseded by REQ-34-02:* the office table, longest first.
 
 ### Reports
-- **REQ-07-13** THE SYSTEM SHALL offer the registrar the client's ten reports — daily monitoring,
-  weekly performance, monthly performance, evaluator performance, department performance,
-  signatory monitoring, credential tracking, delay analysis, customer compliance and release —
-  filtered by date range, credential type, evaluator and office.
-- **REQ-07-14** THE periodic reports SHALL show, per day, week or month: requests received,
-  accepted, released, released on time, overdue, pending at the end of the period, and the average
-  processing time.
-- **REQ-07-15** THE evaluator performance report SHALL show, per evaluator: requests evaluated,
-  still pending evaluation, sent for compliance, average initial evaluation time and workload.
-- **REQ-07-16** THE department performance report SHALL show, per office: documents received and
-  released, returns, documents pending now and the average working days per completed visit; THE
-  signatory monitoring report SHALL list the documents pending at each office and for how long.
-- **REQ-07-17** THE credential tracking report SHALL show each request's complete routing history
-  (office, received, released, working days, returns).
+- ~~REQ-07-13~~ *Superseded by REQ-34-05 (2026-11-19, user's decision against Proposed Workflow
+  IX-B):* four reports instead of ten.
+- ~~REQ-07-14~~ *Superseded by REQ-34-08:* the Monthly Summary; no daily or weekly report.
+- ~~REQ-07-15~~ *Removed by REQ-34-05:* no evaluator report; the Transaction Record filters by
+  evaluator.
+- ~~REQ-07-16~~ *Superseded by REQ-34-06:* the Office Performance report; no signatory report.
+- ~~REQ-07-17~~ *Removed by REQ-34-05:* a request's routing history is on its record (REQ-17-14).
 - **REQ-07-18** THE delay analysis report SHALL show, for overdue requests: tracking number,
   credential, acceptance and due dates, the office holding it, the stage, days overdue, the number
   of returns, the recorded cause (the latest delay reason, otherwise inferred from the stage) and
   the corrective action, distinguishing the holding office from the cause.
-- **REQ-07-19** THE customer compliance report SHALL list requests waiting for office-visit
-  requirements, clarification or payment, with what is still required and since when; THE release report
-  SHALL list credentials ready for release, released (and to whom) and unclaimed (ready for more
-  than 10 working days).
+- ~~REQ-07-19~~ *Removed by REQ-34-05:* no compliance or release report; those requests are
+  Records filters.
 - **REQ-07-20** THE SYSTEM SHALL refuse reports to other roles. *(The CSV download of each report
   was removed by REQ-16-08.)*
 

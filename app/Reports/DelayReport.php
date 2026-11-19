@@ -11,6 +11,8 @@ use App\Models\CredentialRequest;
 use App\Models\Department;
 use App\Models\OfficeVisit;
 use App\Services\WorkingCalendar;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 /**
  * Delay analysis (REQ-07-18): requests not released by their due date in the period, where the
@@ -37,10 +39,8 @@ final class DelayReport implements Report
     {
         $calendar = app(WorkingCalendar::class);
 
-        return PerformanceMetrics::eligible($filter)
-            ->where(fn ($q) => $q->whereNull('released_at')->orWhereColumn('released_at', '>', 'effective_due_at'))
-            ->with(['credentialType', 'openVisit.department', 'openVisit.fromDepartment', 'visits.department', 'delayNotes'])
-            ->orderBy('effective_due_at')
+        return self::overdue($filter)
+            ->with(['credentialType', 'openVisit.department', 'openVisit.fromDepartment'])
             ->get()
             ->map(function (CredentialRequest $request) use ($calendar): array {
                 $note = $request->delayNotes->first();   // latest first
@@ -57,7 +57,7 @@ final class DelayReport implements Report
                     $request->status->label(),
                     $request->effective_due_at === null ? null : $calendar->workingDaysBetween($request->effective_due_at, $request->released_at ?? now()),
                     $request->visits->where('status', VisitStatus::Returned)->count(),
-                    ($note->category ?? $this->inferredCause($request))->label(),
+                    self::causeOf($request)->label(),
                     $note?->reason,
                     $note?->corrective_action,
                 ];
@@ -66,10 +66,45 @@ final class DelayReport implements Report
     }
 
     /**
+     * Eligible requests not released by their due date (REQ-07-18), most overdue first, with
+     * what causeOf() needs.
+     *
+     * @return Builder<CredentialRequest>
+     */
+    public static function overdue(ReportFilter $filter): Builder
+    {
+        return PerformanceMetrics::eligible($filter)
+            ->where(fn ($q) => $q->whereNull('released_at')->orWhereColumn('released_at', '>', 'effective_due_at'))
+            ->with(['openVisit.department', 'visits.department', 'delayNotes'])
+            ->orderBy('effective_due_at');
+    }
+
+    /**
+     * The causes of the period's delays, largest first (REQ-34-03).
+     *
+     * @return Collection<string, int>
+     */
+    public static function causeCounts(ReportFilter $filter): Collection
+    {
+        return self::overdue($filter)->get()
+            ->countBy(fn (CredentialRequest $request): string => self::causeOf($request)->label())
+            ->sortDesc();
+    }
+
+    /**
+     * The latest recorded reason's category, otherwise the cause inferred from the stage. Needs
+     * openVisit.department, visits.department and delayNotes loaded.
+     */
+    public static function causeOf(CredentialRequest $request): DelayCategory
+    {
+        return $request->delayNotes->first()->category ?? self::inferredCause($request);
+    }
+
+    /**
      * Without a recorded reason, the stage tells the likely cause: the office holding the
      * document, or — once it has left the offices — the office where it stayed longest.
      */
-    private function inferredCause(CredentialRequest $request): DelayCategory
+    private static function inferredCause(CredentialRequest $request): DelayCategory
     {
         if ($request->status === RequestStatus::ReturnedForCustomerAction) {
             return DelayCategory::CustomerCompliance;
@@ -77,10 +112,10 @@ final class DelayReport implements Report
 
         $visit = $request->openVisit ?? $request->visits->sortByDesc('working_days')->first();
 
-        return $visit === null ? DelayCategory::Other : $this->causeAt($visit);
+        return $visit === null ? DelayCategory::Other : self::causeAt($visit);
     }
 
-    private function causeAt(OfficeVisit $visit): DelayCategory
+    private static function causeAt(OfficeVisit $visit): DelayCategory
     {
         if ($visit->purpose === VisitPurpose::Correction) {
             return DelayCategory::DocumentCorrection;
