@@ -2,8 +2,8 @@
 
 namespace App\Queries;
 
-use App\Enums\RequestChannel;
 use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Models\CredentialRequest;
 use App\Models\OfficeVisit;
 use Illuminate\Database\Eloquent\Builder;
@@ -127,7 +127,7 @@ final class RegistrarRequestFilter
             ->whereIn('status', [RequestStatus::Submitted, RequestStatus::UnderEvaluation])
             ->orWhere(fn (Builder $walkIn) => $walkIn
                 ->where('status', RequestStatus::PaymentVerification)
-                ->where('channel', RequestChannel::WalkIn)));
+                ->where('request_type', RequestType::WalkIn)));
     }
 
     /**

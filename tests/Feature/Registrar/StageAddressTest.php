@@ -2,8 +2,8 @@
 
 use App\Enums\CheckStage;
 use App\Enums\RegistrarQueue;
-use App\Enums\RequestChannel;
 use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Livewire\Registrar\Queue;
 use App\Livewire\Registrar\Requests\Show;
 use App\Models\CredentialRequest;
@@ -238,11 +238,11 @@ test('REQ-16-26 a request\'s queue follows its status', function () {
         'released' => null, 'declined' => null, 'cancelled' => null,
     ] as $status => $queue) {
         $request->status = RequestStatus::from($status);
-        $request->channel = RequestChannel::WalkIn;
+        $request->request_type = RequestType::WalkIn;
         expect(RegistrarQueue::forRequest($request))->toBe($queue, $status);
 
         // An online payment is the cashier's, in no registrar queue (REQ-25-07).
-        $request->channel = RequestChannel::Online;
+        $request->request_type = RequestType::Online;
         expect(RegistrarQueue::forRequest($request))->toBe($queue === RegistrarQueue::Payment ? null : $queue, $status);
     }
 });

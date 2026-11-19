@@ -47,7 +47,7 @@ test('REQ-18-02 the admin has Overview and Administration in the sidebar and lan
     $this->actingAs($this->admin)->get('/dashboard')->assertRedirect(route('admin.dashboard'));
 
     $this->get(route('admin.dashboard'))->assertOk()->assertSeeInOrder([
-        'Overview', 'Dashboard', 'Records', 'Reports',
+        'Overview', 'Dashboard', 'Reports', 'Records',
         'Administration', 'Credential Types', 'Departments', 'Programs', 'Purposes', 'Accounts', 'Working Calendar', 'Logs',
     ])->assertDontSee(route('registrar.evaluation'));
 });

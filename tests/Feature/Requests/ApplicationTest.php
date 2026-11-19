@@ -3,9 +3,9 @@
 use App\Enums\CheckStage;
 use App\Enums\RecipientType;
 use App\Enums\RegistrarQueue;
-use App\Enums\RequestChannel;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Enums\VisitStatus;
 use App\Exceptions\InvalidTransition;
 use App\Models\CredentialRequest;
@@ -95,7 +95,7 @@ test('REQ-27-03 until acceptance the application is evaluated once, on its first
     // One payment for the application, validated by the cashier.
     uploadPayment($lead);
     expect($other->fresh()->status)->toBe(RequestStatus::PaymentVerification)
-        ->and(StageQueue::for(RegistrarQueue::Payment, channel: RequestChannel::Online)->pluck('id')->all())->toBe([$lead->id]);
+        ->and(StageQueue::for(RegistrarQueue::Payment, requestType: RequestType::Online)->pluck('id')->all())->toBe([$lead->id]);
 });
 
 test('REQ-27-03 declining or cancelling the application ends every credential', function () {

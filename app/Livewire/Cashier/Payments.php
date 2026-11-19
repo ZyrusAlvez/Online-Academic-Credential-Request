@@ -3,7 +3,7 @@
 namespace App\Livewire\Cashier;
 
 use App\Enums\RegistrarQueue;
-use App\Enums\RequestChannel;
+use App\Enums\RequestType;
 use App\Enums\Role;
 use App\Queries\StageQueue;
 use Illuminate\Contracts\View\View;
@@ -47,10 +47,10 @@ class Payments extends Component
         return view('livewire.registrar.queue', [
             'queue' => $queue,
             'description' => __('Online payments to validate.'),
-            'requests' => StageQueue::for($queue, $this->waiting, '', $this->search, RequestChannel::Online)->paginate(20),
+            'requests' => StageQueue::for($queue, $this->waiting, '', $this->search, RequestType::Online)->paginate(20),
             'hasWaitingTab' => true,
             'showWaiting' => $this->waiting,
-            'waitingCount' => StageQueue::for($queue, true, channel: RequestChannel::Online)->count(),
+            'waitingCount' => StageQueue::for($queue, true, requestType: RequestType::Online)->count(),
             'offices' => collect(),
             'linkRoute' => 'cashier.payments.show',
         ]);

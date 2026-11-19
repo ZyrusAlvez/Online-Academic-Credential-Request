@@ -3,9 +3,9 @@
 use App\Actions\Auth\ConfirmVerificationCode;
 use App\Enums\AcademicStatus;
 use App\Enums\PaymentStatus;
-use App\Enums\RequestChannel;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Enums\ReviewStatus;
 use App\Enums\Role;
 use App\Exceptions\InvalidTransition;
@@ -122,7 +122,7 @@ test('REQ-26-04 a submitted walk-in request goes straight to Payment Validation,
     $page->assertRedirect(route('registrar.payments.show', $request));
 
     expect($request)
-        ->channel->toBe(RequestChannel::WalkIn)
+        ->request_type->toBe(RequestType::WalkIn)
         ->status->toBe(RequestStatus::PaymentVerification)
         ->reference_no->toBe(sprintf('rc%s-%05d-1', now()->format('y'), $request->application_id))
         ->user_id->toBeNull()
@@ -290,27 +290,31 @@ test('REQ-26-10 queues, Records and the record mark a walk-in request and show i
     $this->get(route('records.show', $online))->assertDontSeeHtml('data-walk-in-badge');
 });
 
-test('REQ-26-10 Request Details says whether the request was made online or as a walk-in, on every page', function () {
-    $channel = fn (string $html): string => trim(strip_tags(Str::before(Str::after($html, 'data-channel'), '</div>')));
+test('REQ-26-10 Request Details shows the request type, online or walk-in, on every page', function () {
+    // The row's label and value.
+    $row = fn (string $html): string => preg_replace('/\s+/', ' ', trim(strip_tags(Str::before(Str::after($html, 'data-request-type'), '</div>'))));
     $owner = requester($this->org->ccs);
     $walkIn = recordWalkIn(client: ['email' => $owner->email]);
     $online = submitRequest($owner, $this->org->tor);
 
     // The Registrar's record, the requester's page and the Cashier's page.
-    expect($channel($this->actingAs($this->registrar)->get(route('records.show', $walkIn))->getContent()))->toContain('Walk-in')
-        ->and($channel($this->actingAs($this->registrar)->get(route('records.show', $online))->getContent()))->toContain('Online')
-        ->and($channel($this->actingAs($owner)->get(route('student.requests.show', $walkIn))->getContent()))->toContain('Walk-in')
-        ->and($channel($this->actingAs($owner)->get(route('student.requests.show', $online))->getContent()))->toContain('Online');
+    expect($row($this->actingAs($this->registrar)->get(route('records.show', $walkIn))->getContent()))->toContain('Request type')->toContain('Walk-in request')
+        ->and($row($this->actingAs($this->registrar)->get(route('records.show', $online))->getContent()))->toContain('Online request')
+        ->and($row($this->actingAs($owner)->get(route('student.requests.show', $walkIn))->getContent()))->toContain('Walk-in request')
+        ->and($row($this->actingAs($owner)->get(route('student.requests.show', $online))->getContent()))->toContain('Online request');
 
     uploadPayment(evaluate($online, $this->registrar));
     $cashier = User::factory()->cashier()->create();
-    expect($channel($this->actingAs($cashier)->get(route('cashier.payments.show', $online))->getContent()))->toContain('Online');
+    expect($row($this->actingAs($cashier)->get(route('cashier.payments.show', $online))->getContent()))->toContain('Online request')
+        // Stored as request_type (REQ-26-10).
+        ->and($walkIn->fresh()->request_type)->toBe(RequestType::WalkIn)
+        ->and($online->application()->value('request_type'))->toBe(RequestType::Online->value);
 });
 
 test('REQ-26-11 the demo data has a walk-in request with no account and one linked to a demo requester', function () {
     $this->seed(DemoRequestSeeder::class);
 
-    $walkIns = CredentialRequest::where('channel', RequestChannel::WalkIn)->get();
+    $walkIns = CredentialRequest::where('request_type', RequestType::WalkIn)->get();
     expect($walkIns->whereNull('user_id'))->toHaveCount(1)
         ->and($walkIns->whereNotNull('user_id'))->toHaveCount(1)
         ->and(User::find($walkIns->whereNotNull('user_id')->first()->user_id)->email)->toBe('ana@example.com');

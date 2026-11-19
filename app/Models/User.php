@@ -5,8 +5,8 @@ namespace App\Models;
 use App\Actions\Auth\SendVerificationCode;
 use App\Enums\AcademicStatus;
 use App\Enums\ActivityCategory;
-use App\Enums\RequestChannel;
 use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Enums\Role;
 use App\Enums\Sex;
 use App\Models\Concerns\LogsActivity;
@@ -208,7 +208,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
         return CredentialRequest::query()
             ->where('user_id', $this->id)
-            ->where('channel', RequestChannel::Online->value)
+            ->where('request_type', RequestType::Online->value)
             ->whereNotIn('status', $final)
             ->count();
     }

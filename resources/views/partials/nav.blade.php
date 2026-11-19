@@ -33,11 +33,11 @@
             <flux:navlist.item icon="credit-card" :href="route('cashier.payments')" :current="request()->routeIs('cashier.payments*')" wire:navigate>{{ __('Payment Validation') }}</flux:navlist.item>
         </flux:navlist.group>
     @elseif ($role === \App\Enums\Role::Admin)
-        {{-- The dashboard, Records and Reports, and the Administration pages (REQ-18-02). --}}
+        {{-- The dashboard, Reports and Records, and the Administration pages (REQ-18-02). --}}
         <flux:navlist.group :heading="__('Overview')" class="grid">
             <flux:navlist.item icon="home" :href="route('admin.dashboard')" :current="request()->routeIs('admin.dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
-            <flux:navlist.item icon="archive-box" :href="route('records')" :current="request()->routeIs('records*')" wire:navigate>{{ __('Records') }}</flux:navlist.item>
             <flux:navlist.item icon="chart-bar" :href="route('admin.reports')" :current="request()->routeIs('admin.reports*')" wire:navigate>{{ __('Reports') }}</flux:navlist.item>
+            <flux:navlist.item icon="archive-box" :href="route('records')" :current="request()->routeIs('records*')" wire:navigate>{{ __('Records') }}</flux:navlist.item>
         </flux:navlist.group>
         <flux:navlist.group :heading="__('Administration')" class="grid">
             <flux:navlist.item icon="document-duplicate" :href="route('admin.credential-types')" :current="request()->routeIs('admin.credential-types*')" wire:navigate>{{ __('Credential Types') }}</flux:navlist.item>

@@ -1,8 +1,8 @@
 <?php
 
 use App\Enums\AcademicStatus;
-use App\Enums\RequestChannel;
 use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Enums\Role;
 use App\Enums\Sex;
 use App\Enums\VisitStatus;
@@ -61,7 +61,7 @@ test('REQ-31-03 generated applications span the past months, mostly finished whe
     expect($generated->count())->toBeGreaterThan(80)
         ->and($generated->min('submitted_at')->lt(now()->subDays(60)))->toBeTrue()
         ->and($old->where('status', RequestStatus::Released)->count())->toBeGreaterThan($old->count() / 2)
-        ->and(CredentialRequest::where('channel', RequestChannel::WalkIn)->count())->toBeGreaterThan(2)
+        ->and(CredentialRequest::where('request_type', RequestType::WalkIn)->count())->toBeGreaterThan(2)
         ->and(CredentialRequest::where('item_no', 2)->count())->toBeGreaterThan(1)
         ->and(CredentialRequest::whereNotNull('academic_year')->exists())->toBeTrue()
         ->and(DB::table('request_checks')->distinct()->pluck('checked_by')->count())->toBeGreaterThanOrEqual(2);
