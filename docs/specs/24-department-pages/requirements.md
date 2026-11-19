@@ -78,9 +78,10 @@ This replaces:
   with that list's sidebar item current and the list as the breadcrumb. Opened under another
   list, or at the former `/department/requests/{tracking no.}` (in notifications and emails), it
   SHALL redirect to the right one. WHEN an action moves the request out of the list it was opened
-  under THE SYSTEM SHALL go back to that list with the action's message (e.g. Acknowledge receipt
-  returns to Incoming, Approve or Return to To Validate). *(User's request, 2026-11-16: no longer
-  follow the request to its new list.)* A request that has never been sent to the office SHALL
+  under THE SYSTEM SHALL go back to that list, as the user left it (search, filters and page), with
+  the action's message (e.g. Acknowledge receipt returns to Incoming, Approve or Return to To
+  Validate). *(User's request, 2026-11-16: no longer follow the request to its new list. The list
+  kept as left added 2026-11-19, the same rule for every role, REQ-16-26.)* A request that has never been sent to the office SHALL
   respond 404.
 - **REQ-24-07** THE request page SHALL show, in order: Request Details, Proof of Payment (only
   the verified proof; the section is left out when there is none) and Route, and below them the
