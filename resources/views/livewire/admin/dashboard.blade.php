@@ -41,9 +41,8 @@
         @if ($offices->isEmpty())
             <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No documents in the offices in this period.') }}</p>
         @else
-            @php($maxDays = max(1, (float) $offices->max('days')))
             <div class="overflow-x-auto rounded-xl border border-secondary/50">
-                <table class="w-full min-w-[36rem] text-sm">
+                <table class="w-full min-w-[30rem] text-sm">
                     <thead class="bg-primary-50 text-start text-zinc-600">
                         <tr>
                             <th scope="col" class="p-3 text-start font-medium">{{ __('Office') }}</th>
@@ -63,13 +62,7 @@
                                     @if ($office['days'] === null)
                                         <span class="text-zinc-500">—</span>
                                     @else
-                                        {{-- Every bar's track and label have the same width, so the bars compare (user, 2026-11-20). --}}
-                                        <span class="mx-auto flex w-fit items-center gap-3">
-                                            <span class="h-3 w-32 shrink-0 rounded-e bg-primary/10" aria-hidden="true" data-bar-track>
-                                                <span class="block h-3 rounded-e bg-primary" style="width: {{ round($office['days'] / $maxDays * 100, 1) }}%"></span>
-                                            </span>
-                                            <a href="{{ $documents('finished') }}" wire:navigate class="w-32 shrink-0 text-start tabular-nums {{ $linkClass }}">{{ trans_choice(':count working day|:count working days', $office['days']) }}</a>
-                                        </span>
+                                        <a href="{{ $documents('finished') }}" wire:navigate class="tabular-nums {{ $linkClass }}">{{ trans_choice(':count working day|:count working days', $office['days']) }}</a>
                                     @endif
                                 </td>
                                 <td class="p-3 text-center tabular-nums">
@@ -101,9 +94,8 @@
         @if ($credentials->isEmpty())
             <p class="rounded-xl border border-dashed border-secondary p-6 text-center text-sm text-zinc-600">{{ __('No credentials ready for release in this period.') }}</p>
         @else
-            @php($maxCredentialDays = max(1, (float) $credentials->max('days')))
             <div class="overflow-x-auto rounded-xl border border-secondary/50">
-                <table class="w-full min-w-[36rem] text-sm">
+                <table class="w-full min-w-[30rem] text-sm">
                     <thead class="bg-primary-50 text-start text-zinc-600">
                         <tr>
                             <th scope="col" class="p-3 text-start font-medium">{{ __('Credential') }}</th>
@@ -124,13 +116,7 @@
                                     <a href="{{ $ready }}" wire:navigate class="{{ $linkClass }}">{{ $credential['ready'] }}</a>
                                 </td>
                                 <td class="p-3 text-center tabular-nums" @if ($over) data-over-standard @endif>
-                                    {{-- The same fixed-width bar as the office table, red over the standard. --}}
-                                    <span class="mx-auto flex w-fit items-center gap-3">
-                                        <span class="h-3 w-32 shrink-0 rounded-e bg-primary/10" aria-hidden="true" data-bar-track>
-                                            <span @class(['block h-3 rounded-e', 'bg-red-600' => $over, 'bg-primary' => ! $over]) style="width: {{ round($credential['days'] / $maxCredentialDays * 100, 1) }}%"></span>
-                                        </span>
-                                        <a href="{{ $ready }}" wire:navigate @class(['w-32 shrink-0 text-start font-semibold underline underline-offset-2 hover:no-underline', 'text-red-700' => $over, 'text-highlight' => ! $over])>{{ trans_choice(':count working day|:count working days', $credential['days']) }}</a>
-                                    </span>
+                                    <a href="{{ $ready }}" wire:navigate @class(['font-semibold underline underline-offset-2 hover:no-underline', 'text-red-700' => $over, 'text-highlight' => ! $over])>{{ trans_choice(':count working day|:count working days', $credential['days']) }}</a>
                                 </td>
                                 <td class="p-3 text-center tabular-nums text-zinc-600">{{ trans_choice(':count working day|:count working days', $credential['standard']) }}</td>
                             </tr>

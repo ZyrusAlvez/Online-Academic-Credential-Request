@@ -42,6 +42,11 @@ final class DepartmentReport implements Report
         return [];
     }
 
+    public function showLabel(): string
+    {
+        return '';
+    }
+
     public function rows(ReportFilter $filter): iterable
     {
         return self::offices($filter)

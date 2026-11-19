@@ -21,6 +21,6 @@
 - [x] Delay cause filter; Transaction Record show filter and processing column (REQ-34-03, 07, 09)
 - [x] Dashboard: no Reports button or highlight, "Pending", every number links (REQ-34-01..04, 09)
 - [x] Pest tests for REQ-34-12, 13; update REQ-34-01..05, 07, 09 and the pending-link tests
-- [ ] No bar graphs on the dashboard (REQ-34-04)
-- [ ] Report filter named for what it chooses, with a meaningful first option (REQ-34-13)
-- [ ] Sort by clicking a column, 50 rows per page (REQ-34-14)
+- [x] No bar graphs on the dashboard (REQ-34-04)
+- [x] Report filter named for what it chooses, with a meaningful first option (REQ-34-13)
+- [x] Sort by clicking a column, 50 rows per page (REQ-34-14)

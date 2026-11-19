@@ -39,12 +39,17 @@ final class DelayReport implements Report
         return ['type', 'office'];
     }
 
-    /** The Show filter is the cause (REQ-34-03, REQ-34-13). */
+    /** The report's own filter is the cause (REQ-34-03, REQ-34-13). */
     public function shows(): array
     {
-        return collect(DelayCategory::inferred())
+        return ['' => 'All causes'] + collect(DelayCategory::inferred())
             ->mapWithKeys(fn (DelayCategory $cause): array => [$cause->value => $cause->label()])
             ->all();
+    }
+
+    public function showLabel(): string
+    {
+        return 'Cause';
     }
 
     public function rows(ReportFilter $filter): iterable

@@ -44,11 +44,17 @@ final class OfficeDocumentsReport implements Report
     public function shows(): array
     {
         return [
+            '' => 'All results',
             self::FINISHED => 'Finished (done or returned)',
             self::DONE => 'Done',
             self::RETURNED => 'Returned',
             self::PENDING => 'Pending',
         ];
+    }
+
+    public function showLabel(): string
+    {
+        return 'Result';
     }
 
     public function rows(ReportFilter $filter): iterable

@@ -164,9 +164,8 @@ test('REQ-34-09 the dashboard shows the average processing time per credential, 
         // The credential's numbers open its requests made ready in the period.
         ->assertSee(route('admin.reports', ['from' => '2026-10-01', 'to' => '2026-10-31', 'report' => 'transactions', 'type' => $this->org->tor->id, 'show' => 'ready']));
 
-    // Only the Transcript's 8 days are over its 7-day standard; both averages have an equal-width bar.
+    // Only the Transcript's 8 days are over its 7-day standard.
     expect(substr_count($response->getContent(), 'data-over-standard'))->toBe(1)
-        ->and(substr_count($response->getContent(), 'data-bar-track'))->toBeGreaterThanOrEqual(2)
         ->and(collect(reportRows(new TransactionReport, new ReportFilter('2026-10-01', '2026-10-31', type: (string) $this->org->tor->id, show: 'ready')))
             ->map(fn (array $row) => [$row[0], $row[8]])->all())
         ->toBe([[$this->a->reference_no, 6], [$this->b->reference_no, 10]]);
@@ -210,9 +209,8 @@ test('REQ-34-02 the dashboard\'s office table, longest first, with what each off
         ->assertSeeInOrder(['Office', 'Avg per document', 'Done', 'Pending'])
         ->assertDontSee('Oldest pending')->assertDontSee('Pending now')
         ->assertDontSeeHtml('data-slowest')->assertDontSeeHtml('bg-amber')
-        // Every bar's track is the same width, whatever the label's length.
-        ->assertSeeHtml('class="h-3 w-32 shrink-0 rounded-e bg-primary/10" aria-hidden="true" data-bar-track')
-        ->assertDontSeeHtml('max-w-48')
+        // No bar graphs (REQ-34-04).
+        ->assertDontSeeHtml('data-bar-track')->assertDontSeeHtml('rounded-e bg-primary')
         // The name, average, Done and Pending open the office's documents.
         ->assertSee($documents($this->org->ccs))
         ->assertSee($documents($this->org->ccs, 'finished'))
@@ -391,11 +389,13 @@ test('REQ-34-13 the Reports page shows only the chosen report\'s filters, and on
 
     $page(['report' => 'office'])->assertSee('All credentials')->assertDontSee('All evaluators')->assertDontSee('All offices')
         ->assertSeeHtml('group/center-align')->assertSeeHtml('text-center');   // every column but the first is centered
+    // The report's own filter is named for what it chooses, its first option for what the report lists without it.
     $page(['report' => 'transactions'])->assertSee('All credentials')->assertSee('All evaluators')->assertSee('All offices')
-        ->assertSee('Ready for release in the period');
-    $page(['report' => 'delay'])->assertSee('All offices')->assertDontSee('All evaluators')->assertSee('Cause');
+        ->assertSeeInOrder(['Requests', 'Requested in the period', 'Due in the period and ready on time', 'Ready for release in the period']);
+    $page(['report' => 'delay'])->assertSee('All offices')->assertDontSee('All evaluators')->assertSeeInOrder(['Cause', 'All causes', 'Registrar / evaluation']);
     $page(['report' => 'monthly'])->assertSee('All evaluators')->assertSee('All offices')->assertDontSee('Ready for release in the period');
-    $page(['report' => 'office-documents'])->assertSee('All offices')->assertDontSee('All evaluators')->assertSee('Finished (done or returned)');
+    $page(['report' => 'office-documents'])->assertSee('All offices')->assertDontSee('All evaluators')
+        ->assertSeeInOrder(['Result', 'All results', 'Finished (done or returned)']);
 
     // A filter Office Performance does not show does not narrow it.
     $page(['report' => 'office', 'office' => $this->org->chancellor->id, 'evaluator' => $this->registrar->id])
@@ -408,6 +408,34 @@ test('REQ-34-13 the Reports page shows only the chosen report\'s filters, and on
         ->assertSee($this->c->reference_no)->assertDontSee($this->b->reference_no)
         ->set('report', 'transactions')
         ->assertSet('show', '');
+});
+
+test('REQ-34-14 a report sorts by the clicked column and shows 50 rows per page', function () {
+    $component = Livewire::actingAs($this->admin)->test(Index::class)
+        ->set('report', 'transactions')->set('from', '2026-10-01')->set('to', '2026-10-31');
+
+    // The Requested column (index 1): ascending, then descending on a second click.
+    $component->call('sortBy', 1)->assertSet('sort', '1')->assertSet('direction', 'asc')
+        ->assertViewHas('rows', fn ($rows) => collect($rows->items())->pluck(1)->all() === collect($rows->items())->pluck(1)->sort()->values()->all());
+    $component->call('sortBy', 1)->assertSet('direction', 'desc')
+        ->assertViewHas('rows', fn ($rows) => $rows->items()[0][0] === $this->h->reference_no);   // H, Oct 19, is the latest
+
+    // Empty cells go last either way: only A and B have a release date (index 7).
+    $component->call('sortBy', 7)
+        ->assertViewHas('rows', fn ($rows) => collect($rows->items())->take(2)->pluck(0)->all() === [$this->a->reference_no, $this->b->reference_no]);
+    $component->call('sortBy', 7)
+        ->assertViewHas('rows', fn ($rows) => collect($rows->items())->take(2)->pluck(0)->all() === [$this->b->reference_no, $this->a->reference_no]);
+
+    // 50 rows a page; a new report starts on page 1 with its own order.
+    CredentialRequest::factory()->count(55)->create(['user_id' => $this->owner->id, 'credential_type_id' => $this->org->tor->id,
+        'college_id' => $this->org->ccs->id, 'status' => RequestStatus::Submitted, 'submitted_at' => '2026-10-16 08:00']);
+
+    $paged = Livewire::actingAs($this->admin)->test(Index::class)
+        ->set('report', 'transactions')->set('from', '2026-10-01')->set('to', '2026-10-31');
+    $paged->assertViewHas('rows', fn ($rows) => $rows->count() === 50 && $rows->total() === 62 && $rows->lastPage() === 2);
+    $paged->call('nextPage')->assertViewHas('rows', fn ($rows) => $rows->count() === 12 && $rows->currentPage() === 2);
+    $paged->call('sortBy', 0)->set('report', 'delay')
+        ->assertSet('sort', '')->assertViewHas('rows', fn ($rows) => $rows->currentPage() === 1);
 });
 
 test('REQ-07-20 reports are for the admin only', function () {
