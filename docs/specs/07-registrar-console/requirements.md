@@ -51,8 +51,7 @@ office filter (REQ-07-07) serve both the Registrar and the Admin, at `/records` 
 - ~~REQ-07-13~~ *Superseded by REQ-34-05 (2026-11-19, user's decision against Proposed Workflow
   IX-B):* four reports instead of ten.
 - ~~REQ-07-14~~ *Superseded by REQ-34-08:* the Monthly Summary; no daily or weekly report.
-- ~~REQ-07-15~~ *Removed by REQ-34-05:* no evaluator report; the Transaction Record filters by
-  evaluator.
+- ~~REQ-07-15~~ *Restored as REQ-34-15 (2026-11-20):* the Evaluator Performance report.
 - ~~REQ-07-16~~ *Superseded by REQ-34-06:* the Office Performance report; no signatory report.
 - ~~REQ-07-17~~ *Removed by REQ-34-05:* a request's routing history is on its record (REQ-17-14).
 - **REQ-07-18** THE delay analysis report SHALL show, for overdue requests: tracking number,
@@ -61,8 +60,7 @@ office filter (REQ-07-07) serve both the Registrar and the Admin, at `/records` 
   recorded before REQ-24-09, distinguishing the holding office from the cause.
 - ~~REQ-07-19~~ *Removed by REQ-34-05:* no compliance or release report; those requests are
   Records filters.
-- **REQ-07-20** THE SYSTEM SHALL refuse reports to other roles. *(The CSV download of each report
-  was removed by REQ-16-08.)*
+- **REQ-07-20** THE SYSTEM SHALL refuse reports, and their CSV export (REQ-34-16), to other roles.
 
 ### Demo data & documentation
 - **REQ-07-09** THE SYSTEM SHALL provide a demo seeder (refused in production) that creates one

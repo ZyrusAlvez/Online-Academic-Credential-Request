@@ -24,3 +24,9 @@
 - [x] No bar graphs on the dashboard (REQ-34-04)
 - [x] Report filter named for what it chooses, with a meaningful first option (REQ-34-13)
 - [x] Sort by clicking a column, 50 rows per page (REQ-34-14)
+- [ ] Remove Office Documents; restore Evaluator Performance (REQ-34-12, 15)
+- [ ] Transaction Report: renamed, evaluator filter only, no program column (REQ-34-07, 13)
+- [ ] Monthly Summary by year, January to December (REQ-34-08)
+- [ ] Centered headers; Export CSV (REQ-34-14, 16; REQ-16-08)
+- [ ] Dashboard: Pending opens Records; the other office and credential cells are plain (REQ-34-01, 02, 09)
+- [ ] Pest tests for REQ-34-15, 16; update REQ-34-01, 02, 05, 07, 08, 09, 13, 14 and REQ-16-08
