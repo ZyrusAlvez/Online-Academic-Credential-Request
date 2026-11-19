@@ -164,8 +164,9 @@ test('REQ-34-09 the dashboard shows the average processing time per credential, 
         // The credential's numbers open its requests made ready in the period.
         ->assertSee(route('admin.reports', ['from' => '2026-10-01', 'to' => '2026-10-31', 'report' => 'transactions', 'type' => $this->org->tor->id, 'show' => 'ready']));
 
-    // Only the Transcript's 8 days are over its 7-day standard.
+    // Only the Transcript's 8 days are over its 7-day standard; both averages have an equal-width bar.
     expect(substr_count($response->getContent(), 'data-over-standard'))->toBe(1)
+        ->and(substr_count($response->getContent(), 'data-bar-track'))->toBeGreaterThanOrEqual(2)
         ->and(collect(reportRows(new TransactionReport, new ReportFilter('2026-10-01', '2026-10-31', type: (string) $this->org->tor->id, show: 'ready')))
             ->map(fn (array $row) => [$row[0], $row[8]])->all())
         ->toBe([[$this->a->reference_no, 6], [$this->b->reference_no, 10]]);
