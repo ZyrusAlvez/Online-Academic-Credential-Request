@@ -9,6 +9,7 @@ use App\Enums\StepStatus;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use App\Livewire\Admin\Reports\Index;
+use App\Livewire\Registrar\Records\Index as RecordsIndex;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
@@ -133,14 +134,14 @@ test('REQ-34-01 the three indicators of a period', function () {
     $this->actingAs($this->admin)->get(route('admin.dashboard', $period))
         ->assertOk()
         ->assertSeeInOrder(['Total requests', '7', 'Ready on time', '1', '33.3%', 'Overdue', '2', '66.7%'])
-        // Total requests and Overdue open their reports; Ready on time is not a link.
-        ->assertSee(route('admin.reports', [...$period, 'report' => 'transactions']))
+        // Total requests and Ready on time open Records; Overdue opens Delay Analysis (REQ-34-17).
+        ->assertSee(route('records', ['scope' => 'submitted', ...$period]))
+        ->assertSee(route('records', ['scope' => 'on_time', ...$period]))
         ->assertSee(route('admin.reports', [...$period, 'report' => 'delay']))
-        ->assertDontSee('show=on_time');
+        ->assertDontSee(route('admin.reports', [...$period, 'report' => 'transactions']));
 
-    // The rows behind the tiles are as many as the tiles say.
-    expect(reportRows(new TransactionReport))->toHaveCount(7)
-        ->and(reportRows(new DelayReport))->toHaveCount(2);
+    // The rows behind Overdue are as many as the tile says.
+    expect(reportRows(new DelayReport))->toHaveCount(2);
 });
 
 test('REQ-34-09 the dashboard shows the average processing time per credential, longest first', function () {
@@ -160,8 +161,8 @@ test('REQ-34-09 the dashboard shows the average processing time per credential, 
     $response = $this->actingAs($this->admin)->get(route('admin.dashboard', ['from' => '2026-10-01', 'to' => '2026-10-31']))
         ->assertSeeInOrder(['Processing Time by Credential', 'Transcript of Records', '2', '8 working days', '7 working days',
             'Certificate of Enrollment', '1', '1 working day', '3 working days'])
-        // Its cells are not links.
-        ->assertDontSee('show=ready')->assertDontSee('type='.$this->org->tor->id);
+        // The credential's numbers open Records with its requests made ready in the period (REQ-34-17).
+        ->assertSee(route('records', ['scope' => 'ready', 'from' => '2026-10-01', 'to' => '2026-10-31', 'type' => $this->org->tor->id]));
 
     // Only the Transcript's 8 days are over its 7-day standard.
     expect(substr_count($response->getContent(), 'data-over-standard'))->toBe(1);
@@ -204,10 +205,42 @@ test('REQ-34-02 the dashboard\'s office table, longest first, with what each off
         ->assertDontSeeHtml('data-slowest')->assertDontSeeHtml('bg-amber')
         // No bar graphs (REQ-34-04).
         ->assertDontSeeHtml('data-bar-track')->assertDontSeeHtml('rounded-e bg-primary')
-        // Pending opens Records for the office; the other cells are not links.
+        // Pending opens Records for the office; the name and average its finished requests, Done its completed ones.
         ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->chancellor->id]))
-        ->assertDontSee('office-documents')
-        ->assertDontSee(route('records', ['status' => 'processing', 'office' => $this->org->ccs->id]));   // nothing pending: no link
+        ->assertDontSee(route('records', ['status' => 'processing', 'office' => $this->org->ccs->id]))   // nothing pending: no link
+        ->assertSee(route('records', ['scope' => 'finished', 'from' => '2026-10-01', 'to' => '2026-10-31', 'at' => $this->org->ccs->id]))
+        ->assertSee(route('records', ['scope' => 'done', 'from' => '2026-10-01', 'to' => '2026-10-31', 'at' => $this->org->ccs->id]))
+        ->assertDontSee(route('records', ['scope' => 'done', 'from' => '2026-10-01', 'to' => '2026-10-31', 'at' => $this->org->vpf->id]))   // nothing done
+        ->assertDontSee('office-documents');
+});
+
+test('REQ-34-17 Records lists the requests behind a dashboard number, shown as a chip that clears it', function () {
+    $records = fn (array $query) => Livewire::withQueryParams(['from' => '2026-10-01', 'to' => '2026-10-31', ...$query])
+        ->actingAs($this->admin)->test(RecordsIndex::class);
+    $all = ['a', 'b', 'c', 'd', 'g', 'h', 'r'];
+    $shows = function ($component, array $seen) use ($all) {
+        foreach ($all as $key) {
+            in_array($key, $seen, true)
+                ? $component->assertSee($this->{$key}->reference_no)
+                : $component->assertDontSee($this->{$key}->reference_no);
+        }
+
+        return $component;
+    };
+
+    // Total requests: submitted in October (R in September is not).
+    $shows($records(['scope' => 'submitted']), ['a', 'b', 'c', 'd', 'g', 'h'])->assertSee('Submitted Oct 1 – Oct 31, 2026');
+    // Ready on time: A only (B was ready late).
+    $shows($records(['scope' => 'on_time']), ['a'])->assertSee('Ready on time · due Oct 1 – Oct 31, 2026');
+    // A credential's requests made ready in October with a processing time: A and B.
+    $shows($records(['scope' => 'ready', 'type' => (string) $this->org->tor->id]), ['a', 'b']);
+    // An office's finished and done requests.
+    $shows($records(['scope' => 'finished', 'at' => (string) $this->org->vpf->id]), ['a'])->assertSee('Finished at Office of the VP for Finance');
+    $shows($records(['scope' => 'done', 'at' => (string) $this->org->vpf->id]), []);   // A was returned there
+    $shows($records(['scope' => 'done', 'at' => (string) $this->org->ccs->id]), ['a'])->assertSee('Done at College of Computer Studies');
+
+    // The chip's ✕ shows every request again; without a selection there is no chip.
+    $shows($records(['scope' => 'on_time'])->call('clearScope'), $all)->assertSet('scope', '')->assertDontSeeHtml('data-dashboard-scope');
 });
 
 test('REQ-34-03 the dashboard counts the causes of delay and links to the delay analysis', function () {

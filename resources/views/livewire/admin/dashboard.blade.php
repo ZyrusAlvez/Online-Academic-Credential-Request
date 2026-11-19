@@ -8,24 +8,25 @@
         </x-slot:actions>
     </x-page-header>
 
-    {{-- Period results open their report; what is pending now opens Records (REQ-34-01..03). --}}
+    {{-- The numbers open Records with their requests; Overdue and the causes open Delay Analysis (REQ-34-17). --}}
     @php($report = fn (string $kind, array $params = []): string => route('admin.reports', [...$period, 'report' => $kind, ...$params]))
+    @php($records = fn (string $scope, array $params = []): string => route('records', ['scope' => $scope, ...$period, ...$params]))
     @php($linkClass = 'font-semibold text-highlight underline underline-offset-2 hover:no-underline')
 
     {{-- The three indicators (REQ-34-01). --}}
     <div class="grid gap-3 sm:grid-cols-3">
-        <a href="{{ $report('transactions') }}" wire:navigate class="block cursor-pointer rounded-xl bg-primary-50 p-4 ring-primary/40 transition hover:ring-2" data-tile="total">
+        <a href="{{ $records('submitted') }}" wire:navigate class="block cursor-pointer rounded-xl bg-primary-50 p-4 ring-primary/40 transition hover:ring-2" data-tile="total">
             <dl>
                 <dt class="text-sm text-zinc-600">{{ __('Total requests') }}</dt>
                 <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->received }}</dd>
             </dl>
         </a>
-        <div class="rounded-xl bg-primary-50 p-4" data-tile="on-time">
+        <a href="{{ $records('on_time') }}" wire:navigate class="block cursor-pointer rounded-xl bg-primary-50 p-4 ring-primary/40 transition hover:ring-2" data-tile="on-time">
             <dl>
                 <dt class="text-sm text-zinc-600">{{ __('Ready on time') }}</dt>
                 <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->onTime }} <span class="text-base font-semibold">/ {{ $metrics->onTimeRate() === null ? '—' : $metrics->onTimeRate().'%' }}</span></dd>
             </dl>
-        </div>
+        </a>
         <a href="{{ $report('delay') }}" wire:navigate @class(['block cursor-pointer rounded-xl p-4 transition hover:ring-2', 'bg-red-50 ring-red-300' => $metrics->overdue > 0, 'bg-primary-50 ring-primary/40' => $metrics->overdue === 0]) data-tile="overdue">
             <dl>
                 <dt @class(['text-sm', 'text-red-800' => $metrics->overdue > 0, 'text-zinc-600' => $metrics->overdue === 0])>{{ __('Overdue') }}</dt>
@@ -53,16 +54,29 @@
                     </thead>
                     <tbody class="divide-y divide-secondary/40">
                         @foreach ($offices as $office)
+                            @php($finished = $records('finished', ['at' => $office['id']]))
                             <tr>
-                                <th scope="row" class="p-3 text-start font-medium text-ink">{{ $office['name'] }}</th>
-                                <td class="p-3 text-center font-semibold text-ink tabular-nums">
+                                <th scope="row" class="p-3 text-start font-medium text-ink">
                                     @if ($office['days'] === null)
-                                        <span class="font-normal text-zinc-500">—</span>
+                                        {{ $office['name'] }}
                                     @else
-                                        {{ trans_choice(':count working day|:count working days', $office['days']) }}
+                                        <a href="{{ $finished }}" wire:navigate class="underline-offset-2 hover:text-highlight hover:underline">{{ $office['name'] }}</a>
+                                    @endif
+                                </th>
+                                <td class="p-3 text-center tabular-nums">
+                                    @if ($office['days'] === null)
+                                        <span class="text-zinc-500">—</span>
+                                    @else
+                                        <a href="{{ $finished }}" wire:navigate class="{{ $linkClass }}">{{ trans_choice(':count working day|:count working days', $office['days']) }}</a>
                                     @endif
                                 </td>
-                                <td class="p-3 text-center tabular-nums">{{ $office['done'] }}</td>
+                                <td class="p-3 text-center tabular-nums">
+                                    @if ($office['done'] > 0)
+                                        <a href="{{ $records('done', ['at' => $office['id']]) }}" wire:navigate class="{{ $linkClass }}">{{ $office['done'] }}</a>
+                                    @else
+                                        0
+                                    @endif
+                                </td>
                                 <td class="p-3 text-center tabular-nums">
                                     @if ($office['pending'] > 0)
                                         {{-- Pending is about now: the live list in Records (REQ-34-02). --}}
@@ -99,11 +113,16 @@
                     <tbody class="divide-y divide-secondary/40">
                         @foreach ($credentials as $credential)
                             @php($over = $credential['days'] > $credential['standard'])
+                            @php($ready = $records('ready', ['type' => $credential['id']]))
                             <tr>
-                                <th scope="row" class="p-3 text-start font-medium text-ink">{{ $credential['name'] }}</th>
-                                <td class="p-3 text-center tabular-nums">{{ $credential['ready'] }}</td>
-                                <td @class(['p-3 text-center font-semibold tabular-nums', 'text-red-700' => $over, 'text-ink' => ! $over]) @if ($over) data-over-standard @endif>
-                                    {{ trans_choice(':count working day|:count working days', $credential['days']) }}
+                                <th scope="row" class="p-3 text-start font-medium text-ink">
+                                    <a href="{{ $ready }}" wire:navigate class="underline-offset-2 hover:text-highlight hover:underline">{{ $credential['name'] }}</a>
+                                </th>
+                                <td class="p-3 text-center tabular-nums">
+                                    <a href="{{ $ready }}" wire:navigate class="{{ $linkClass }}">{{ $credential['ready'] }}</a>
+                                </td>
+                                <td class="p-3 text-center tabular-nums" @if ($over) data-over-standard @endif>
+                                    <a href="{{ $ready }}" wire:navigate @class(['font-semibold underline underline-offset-2 hover:no-underline', 'text-red-700' => $over, 'text-highlight' => ! $over])>{{ trans_choice(':count working day|:count working days', $credential['days']) }}</a>
                                 </td>
                                 <td class="p-3 text-center tabular-nums text-zinc-600">{{ trans_choice(':count working day|:count working days', $credential['standard']) }}</td>
                             </tr>

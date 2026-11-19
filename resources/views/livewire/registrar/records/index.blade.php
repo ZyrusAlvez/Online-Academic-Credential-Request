@@ -29,6 +29,16 @@
         </flux:select>
     </div>
 
+    {{-- Opened from a dashboard number: the requests behind it (REQ-34-17). --}}
+    @if ($scopeLabel)
+        <div class="flex flex-wrap items-center gap-2" data-dashboard-scope>
+            <flux:badge color="blue" size="lg">
+                {{ $scopeLabel }}
+                <flux:badge.close wire:click="clearScope" :aria-label="__('Show every request')" class="cursor-pointer" />
+            </flux:badge>
+        </div>
+    @endif
+
     <flux:table :paginate="$requests">
         <flux:table.columns>
             <flux:table.column>{{ __('Request') }}</flux:table.column>

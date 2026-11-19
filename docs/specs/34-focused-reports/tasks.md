@@ -30,3 +30,6 @@
 - [x] Centered headers; Export CSV (REQ-34-14, 16; REQ-16-08)
 - [x] Dashboard: Pending opens Records; the other office and credential cells are plain (REQ-34-01, 02, 09)
 - [x] Pest tests for REQ-34-15, 16; update REQ-34-01, 02, 05, 07, 08, 09, 13, 14 and REQ-16-08
+- [x] `DashboardScope`; Records applies it and shows it as a clearable chip (REQ-34-17)
+- [x] Dashboard numbers open Records; Overdue and the causes stay on Delay Analysis (REQ-34-01, 02, 09)
+- [x] Pest tests for REQ-34-17; update REQ-34-01, 02, 09
