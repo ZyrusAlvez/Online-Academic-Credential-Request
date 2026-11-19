@@ -3,7 +3,7 @@
 ## Where the count lives
 - `CredentialRequest::OPEN_LIMIT = 5`.
 - `User::openRequestRoom(): int` — `max(0, OPEN_LIMIT − open online requests)`, where open means
-  `status` not final (`RequestStatus::isFinal()`) and `channel = online` (REQ-33-01).
+  `status` not final (`RequestStatus::isFinal()`) and `request_type = online` (REQ-33-01).
 
 ## Where it is enforced
 The limit is a rule of the requester's New Request screen, not of `RequestWorkflow::submit()`:

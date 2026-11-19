@@ -2,7 +2,7 @@
 
 namespace App\Actions\Requests;
 
-use App\Enums\RequestChannel;
+use App\Enums\RequestType;
 use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\User;
@@ -27,7 +27,7 @@ class ClaimWalkInRequests
         }
 
         $requests = CredentialRequest::query()
-            ->where('channel', RequestChannel::WalkIn)
+            ->where('request_type', RequestType::WalkIn)
             ->whereNull('user_id')
             ->where('requester_email', Str::lower($user->email))
             ->orderBy('id')

@@ -24,7 +24,7 @@ Migration `2026_11_17_000002_add_walk_in_to_credential_requests`:
   `partials/requester-profile-fields` takes `withId` (default true) and `withEmail` (default
   false); `partials/requester-profile-summary` takes `withId`.
 - `App\Actions\WalkIn\RecordWalkInRequest::handle(User $registrar, array $data, array $details)`
-  calls `RequestWorkflow::submitWalkIn()`, which saves the request (channel `walk_in`, the
+  calls `RequestWorkflow::submitWalkIn()`, which saves the request (`request_type` `walk_in`, the
   snapshot, `requester_email`, `recorded_by`, `evaluated_by`, ID verified, requirements complete),
   links it to a verified requester account with that email, records `WalkInRecorded`, and either
   leaves it at `payment_verification` or accepts it (free credential).

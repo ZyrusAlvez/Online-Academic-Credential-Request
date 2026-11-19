@@ -3,8 +3,8 @@
 namespace App\Queries;
 
 use App\Enums\RegistrarQueue;
-use App\Enums\RequestChannel;
 use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Enums\RouteTask;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
@@ -21,11 +21,11 @@ final class StageQueue
      * @param  bool  $waiting  Initial Evaluation and Payment Validation: the requests waiting for the
      *                         requester instead (returned, or awaiting payment)
      * @param  string  $search  tracking number or requester name, as on Records (REQ-16-25)
-     * @param  RequestChannel  $channel  Payment Validation: walk-in requests are the Registrar's,
-     *                                   online ones the Cashier's (REQ-25-04, 07)
+     * @param  RequestType  $requestType  Payment Validation: walk-in requests are the Registrar's,
+     *                                    online ones the Cashier's (REQ-25-04, 07)
      * @return Builder<CredentialRequest>
      */
-    public static function for(RegistrarQueue $queue, bool $waiting = false, string $office = '', string $search = '', RequestChannel $channel = RequestChannel::WalkIn): Builder
+    public static function for(RegistrarQueue $queue, bool $waiting = false, string $office = '', string $search = '', RequestType $requestType = RequestType::WalkIn): Builder
     {
         $query = RegistrarRequestFilter::matching(CredentialRequest::query(), $search)->with([
             'credentialType:id,name', 'evaluator:id,first_name,middle_name,last_name,email',
@@ -43,7 +43,7 @@ final class StageQueue
                 ->orderBy('submitted_at')->orderBy('id'),
             // Proofs to verify; the requests still awaiting payment wait apart (REQ-16-03).
             RegistrarQueue::Payment => $query
-                ->where('channel', $channel)
+                ->where('request_type', $requestType)
                 ->where('status', $waiting ? RequestStatus::AwaitingPayment : RequestStatus::PaymentVerification)
                 ->orderBy('updated_at')->orderBy('id'),
             // The papers an office finished, waiting for the Registrar to collect (REQ-32-02).

@@ -3,7 +3,7 @@
 ## Data
 
 - New table `request_applications`: `id`, `reference_no` (unique), `user_id` (nullable FK),
-  `channel`, `submitted_at`, timestamps. Model `App\Models\RequestApplication`
+  `channel` (now `request_type`, REQ-26-10), `submitted_at`, timestamps. Model `App\Models\RequestApplication`
   (`credentialRequests()`, ordered by `item_no`; `lead()`).
 - `credential_requests.application_id` (FK) and `item_no` (unsigned small int, 1 = the first). Unique
   (`application_id`, `item_no`).

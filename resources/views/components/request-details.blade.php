@@ -29,7 +29,7 @@
     <x-summary-row :label="__('College')">{{ $request->college->name }}</x-summary-row>
     <x-summary-row :label="__('Program or strand')">{{ $request->program }}</x-summary-row>
     {{-- Made online by the requester, or at the counter by the Registrar (REQ-26-10). --}}
-    <x-summary-row :label="__('Channel')" data-channel>{{ $request->channel->label() }}</x-summary-row>
+    <x-summary-row :label="__('Request type')" data-request-type>{{ __($request->request_type->detailLabel()) }}</x-summary-row>
     <x-summary-row :label="__('Submitted')">{{ $request->submitted_at?->format('M j, Y g:i A') }}</x-summary-row>
     <x-summary-row :label="__('Accepted for processing')">
         @if ($request->accepted_at)

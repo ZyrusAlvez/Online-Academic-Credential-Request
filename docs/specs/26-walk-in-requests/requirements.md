@@ -83,6 +83,8 @@ There is no other setup for walk-in requests.
   (REQ-25-07). Records, the record and the staff emails SHALL show the request's own name and email
   when it has no account. *(Payment Validation exception: user's decision, 2026-11-19.)* EVERY
   page's Request Details (requester, Registrar and Records, office, Cashier) SHALL have a
-  "Channel" row, "Online" or "Walk-in", beside "Submitted". *(User's request, 2026-11-19.)*
+  "Request type" row, "Online request" or "Walk-in request", beside "Submitted". The column is
+  `request_type` on `credential_requests` and `request_applications` (enum `RequestType`).
+  *(User's request, 2026-11-19: "Channel" was unclear, so the row and the column were renamed.)*
 - **REQ-26-11** THE demo data SHALL include walk-in requests: one linked to a demo requester, one not
   linked to any account.

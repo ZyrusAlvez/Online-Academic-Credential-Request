@@ -10,10 +10,10 @@ use App\Enums\CheckStage;
 use App\Enums\DocumentKind;
 use App\Enums\PaymentStatus;
 use App\Enums\RecipientType;
-use App\Enums\RequestChannel;
 use App\Enums\RequesterMode;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Enums\ReviewStatus;
 use App\Enums\Role;
 use App\Enums\RouteTask;
@@ -87,7 +87,7 @@ class RequestWorkflow
         }
 
         return DB::transaction(function () use ($owner, $data, $identity): CredentialRequest {
-            $request = $this->createApplication($data, $owner->id, RequestChannel::Online, [
+            $request = $this->createApplication($data, $owner->id, RequestType::Online, [
                 'requester_name' => $owner->requesterName(),
                 'sex' => $owner->sex,
                 'maiden_name' => $owner->maiden_name,
@@ -120,7 +120,7 @@ class RequestWorkflow
      * @param  CredentialItem|list<CredentialItem>  $data
      * @param  array<string, mixed>  $snapshot  the requester's details and the starting status
      */
-    private function createApplication(array $data, ?int $userId, RequestChannel $channel, array $snapshot): CredentialRequest
+    private function createApplication(array $data, ?int $userId, RequestType $requestType, array $snapshot): CredentialRequest
     {
         $items = $this->items($data, self::status($snapshot['academic_status'] ?? null));
         $paid = $items->filter(fn (array $item): bool => $item['fee'] !== null);
@@ -130,13 +130,13 @@ class RequestWorkflow
         $application = RequestApplication::create([
             'reference_no' => 'tmp-'.Str::random(12),
             'user_id' => $userId,
-            'channel' => $channel,
+            'request_type' => $requestType,
             'submitted_at' => now(),
         ]);
         // The tracking number uses the id, so it is set once the row exists (REQ-04-03).
         $application->update(['reference_no' => CredentialRequest::trackingNumber($application->id, $application->created_at)]);
 
-        $requests = $items->map(function (array $item, int $index) use ($application, $userId, $channel, $snapshot, $total): CredentialRequest {
+        $requests = $items->map(function (array $item, int $index) use ($application, $userId, $requestType, $snapshot, $total): CredentialRequest {
             $type = $item['type'];
             $first = $index === 0;
 
@@ -154,7 +154,7 @@ class RequestWorkflow
                 'item_no' => $index + 1,
                 'reference_no' => $application->reference_no.'-'.($index + 1),
                 'user_id' => $userId,
-                'channel' => $channel,
+                'request_type' => $requestType,
                 'requester_mode' => RequesterMode::Personal,
                 // The application is paid once, on its first credential (REQ-27-03).
                 'requires_payment' => $first ? $total !== null : $item['fee'] !== null,
@@ -603,7 +603,7 @@ class RequestWorkflow
             // Priced for the client's status, so a free credential needs no payment (REQ-29-07).
             $requiresPayment = $this->items($data, self::status($details['academic_status']))->contains(fn (array $item): bool => $item['fee'] !== null);
 
-            $request = $this->createApplication($data, self::requesterAccount($email)?->id, RequestChannel::WalkIn, [
+            $request = $this->createApplication($data, self::requesterAccount($email)?->id, RequestType::WalkIn, [
                 'recorded_by' => $registrar->id,
                 'requester_name' => trim(implode(' ', array_filter([$details['first_name'], $details['middle_name'], $details['last_name']], filled(...)))),
                 'sex' => $details['sex'],

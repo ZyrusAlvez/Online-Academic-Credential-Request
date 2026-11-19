@@ -3,7 +3,7 @@
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
-use App\Enums\RequestChannel;
+use App\Enums\RequestType;
 use App\Enums\RouteTask;
 use App\Enums\VisitStatus;
 use App\Models\CredentialRequest;
@@ -147,7 +147,7 @@ function declareRepresentative(CredentialRequest $request, User $owner, array $d
  */
 function walkIn(CredentialRequest $request): CredentialRequest
 {
-    $request->forceFill(['channel' => RequestChannel::WalkIn])->save();
+    $request->forceFill(['request_type' => RequestType::WalkIn])->save();
 
     return $request->fresh();
 }

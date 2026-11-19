@@ -5,6 +5,8 @@
 - `App\Enums\RequestChannel` (`online`, `walk_in`): how a request was made.
 - Migration `2026_11_17_000001_add_channel_to_credential_requests`: `credential_requests.channel`
   (string 20, default `online`, indexed with `status`). Every existing request stays online.
+  *(Renamed 2026-11-19 to `request_type`, enum `App\Enums\RequestType`, by migration
+  `2026_11_19_000001_rename_channel_to_request_type`; REQ-26-10.)*
 
 ## Role
 

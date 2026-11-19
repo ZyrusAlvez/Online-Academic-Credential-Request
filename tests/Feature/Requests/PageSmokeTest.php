@@ -40,7 +40,7 @@ test('every request page renders in every status for each role that can see it',
     $cashier = User::where('role', Role::Cashier)->firstOrFail();
     $this->actingAs($cashier)->get(route('cashier.payments'))->assertOk();
     $this->actingAs($cashier)->get(route('cashier.payments', ['waiting' => 1]))->assertOk();
-    foreach (CredentialRequest::where('status', 'payment_verification')->where('channel', 'online')->get() as $request) {
+    foreach (CredentialRequest::where('status', 'payment_verification')->where('request_type', 'online')->get() as $request) {
         $this->actingAs($cashier)->get(route('cashier.payments.show', $request))->assertOk();
     }
 
