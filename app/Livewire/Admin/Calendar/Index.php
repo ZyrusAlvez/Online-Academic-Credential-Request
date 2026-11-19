@@ -59,11 +59,15 @@ class Index extends Component
             ? $this->authorize('update', $this->form->day)
             : $this->authorize('create', NonWorkingDay::class);
 
-        $day = $this->form->save($this->user());
+        // One day, or every new day of a period (REQ-10-09).
+        $days = $this->form->save($this->user());
+        $first = $days->firstOrFail();
 
-        $this->year = $day->date->year;
+        $this->year = $first->date->year;
         Flux::modal('day-form')->close();
-        $this->dispatch('notify', message: "{$day->name} saved.");
+        $this->dispatch('notify', message: $days->count() > 1
+            ? "{$first->name} saved: {$days->count()} days."
+            : "{$first->name} saved.");
     }
 
     public function delete(NonWorkingDay $day): void
