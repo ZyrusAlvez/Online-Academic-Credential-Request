@@ -28,6 +28,7 @@ requests, and requests made before this list existed keep their free-text purpos
 
 ## Starter list
 
-Board or licensure examination · Employment · Employment abroad · Further studies · Personal copy ·
+Board or licensure examination · Employment · Employment abroad · Further studies ·
 Scholarship application · Transfer to another school · Visa or immigration. The demo data uses these
-names.
+names. *("Personal copy" removed 2026-11-19: a generic purpose is not accepted, pilot consultation
+§5.)*

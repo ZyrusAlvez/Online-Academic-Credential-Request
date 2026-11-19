@@ -20,8 +20,9 @@ walk-ins encoded by the Registrar (spec 26) never count and are never blocked.
   credential, saving nothing.
 - **REQ-33-03** THE submission check SHALL hold under concurrent submissions by the same account:
   two simultaneous submissions SHALL NOT together exceed the limit.
-- **REQ-33-04** WHEN a requester already has 5 open requests, New Request SHALL say so at the top
-  of the form. "Add another credential" SHALL be offered only while the form holds fewer
-  credentials than the requester has room for.
+- **REQ-33-04** New Request SHALL NOT warn about the limit in advance: the message shows only when
+  the requester reviews or submits beyond it (REQ-33-02). "Add another credential" SHALL be offered
+  only while the form holds fewer credentials than the requester has room for. *(Advance notice
+  removed 2026-11-19, user's decision.)*
 - **REQ-33-05** Edit Request (resubmitting a returned request, spec 20) and the Registrar's
   Walk-in Request SHALL NOT be limited.
