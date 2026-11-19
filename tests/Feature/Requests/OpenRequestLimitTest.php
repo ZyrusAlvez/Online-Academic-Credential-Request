@@ -124,7 +124,7 @@ test('REQ-33-05 Edit Request resubmits at the limit, and the Registrar records w
     expect($lead->fresh()->status)->toBe(RequestStatus::Submitted);
 
     $walkIn = workflow()->submitWalkIn($registrar, ['credential_type_id' => $this->org->tor->id, 'purpose' => 'Employment', 'receiving_institution' => null], [
-        'first_name' => 'Juan', 'middle_name' => null, 'last_name' => 'Dela Cruz', 'sex' => 'male', 'maiden_name' => null,
+        'first_name' => 'Juan', 'middle_name' => null, 'last_name' => 'Dela Cruz', 'sex' => 'male',
         'email' => $this->owner->email, 'contact_number' => '09171234567', 'academic_status' => AcademicStatus::Graduate->value,
         'college_id' => $this->org->ccs->id, 'program' => 'BS Computer Science', 'student_number' => null,
         'attended_from' => 2018, 'attended_to' => 2022,

@@ -55,7 +55,7 @@ class ClaimWalkInRequests
         }
 
         if ($user->sex === null) {
-            $user->forceFill(['sex' => $request->sex, 'maiden_name' => $request->maiden_name]);
+            $user->forceFill(['sex' => $request->sex]);
         }
 
         if ($user->college_id === null) {

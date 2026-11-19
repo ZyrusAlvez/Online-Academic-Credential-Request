@@ -19,22 +19,30 @@
         @endif
     </div>
 
+    {{-- A woman gives her maiden middle and last names (REQ-28-04). --}}
     <div class="grid gap-6 sm:grid-cols-3">
         <flux:input wire:model.live.blur="{{ $prefix }}.first_name" :label="__('First name')" autocomplete="given-name" required />
-        <flux:input wire:model.live.blur="{{ $prefix }}.middle_name" :label="__('Middle name (optional)')" autocomplete="additional-name" />
-        <flux:input wire:model.live.blur="{{ $prefix }}.last_name" :label="__('Last name')" autocomplete="family-name" required />
+        <div>
+            <flux:input wire:model.live.blur="{{ $prefix }}.middle_name" :label="__('Middle name (optional)')" autocomplete="additional-name" />
+            @if ($fields->isFemale())
+                <p class="mt-1 text-right text-xs text-zinc-500" data-maiden-caption>{{ __('Maiden Name') }}</p>
+            @endif
+        </div>
+        <div>
+            <flux:input wire:model.live.blur="{{ $prefix }}.last_name" :label="__('Last name')" autocomplete="family-name" required />
+            @if ($fields->isFemale())
+                <p class="mt-1 text-right text-xs text-zinc-500" data-maiden-caption>{{ __('Maiden Name') }}</p>
+            @endif
+        </div>
     </div>
 
-    {{-- Sex, and a woman's maiden name (REQ-28-03, 04). --}}
+    {{-- REQ-28-03 --}}
     <div class="grid gap-6 sm:grid-cols-3">
         <flux:radio.group wire:model.live="{{ $prefix }}.sex" :label="__('Sex')" data-sex>
             @foreach (\App\Enums\Sex::cases() as $sex)
                 <flux:radio :value="$sex->value" :label="$sex->label()" />
             @endforeach
         </flux:radio.group>
-        @if ($fields->isFemale())
-            <flux:input wire:model.live.blur="{{ $prefix }}.maiden_name" :label="__('Maiden name (optional)')" autocomplete="off" class="sm:col-span-2" data-maiden-name />
-        @endif
     </div>
 
     <div class="grid gap-6 sm:grid-cols-3">

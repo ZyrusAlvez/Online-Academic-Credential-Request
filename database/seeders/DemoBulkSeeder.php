@@ -139,7 +139,6 @@ class DemoBulkSeeder extends Seeder
                 ? $statuses[$i - 1]
                 : fake()->randomElement([...array_fill(0, 14, AcademicStatus::Graduate), ...array_fill(0, 3, AcademicStatus::Current), ...array_fill(0, 3, AcademicStatus::Former)]);
             $to = $status === AcademicStatus::Current ? (int) $this->realNow->year : fake()->numberBetween(2008, (int) $this->realNow->year - 1);
-            $married = $sex === Sex::Female && $status !== AcademicStatus::Current && fake()->boolean(40);
 
             $user = User::firstOrNew(['email' => sprintf('%s.%s.%02d@example.com', Str::slug($first, ''), Str::slug($last, ''), $i)]);
             $user->fill([
@@ -147,7 +146,6 @@ class DemoBulkSeeder extends Seeder
                 'middle_name' => fake()->optional(0.7)->randomElement(self::SURNAMES),
                 'last_name' => $last,
                 'sex' => $sex,
-                'maiden_name' => $married ? fake()->randomElement(self::SURNAMES) : null,
                 'password' => $password,
                 'contact_number' => '09'.fake()->numerify('#########'),
                 'academic_status' => $status,
@@ -530,11 +528,10 @@ class DemoBulkSeeder extends Seeder
             'middle_name' => null,
             'last_name' => (string) fake()->randomElement(self::SURNAMES),
             'sex' => $sex->value,
-            'maiden_name' => null,
             'email' => 'walkin.'.fake()->unique()->numerify('#####').'@example.com',
         ] : [
             'first_name' => (string) $owner->first_name, 'middle_name' => $owner->middle_name, 'last_name' => (string) $owner->last_name,
-            'sex' => $owner->sex->value ?? Sex::Male->value, 'maiden_name' => $owner->maiden_name, 'email' => $owner->email,
+            'sex' => $owner->sex->value ?? Sex::Male->value, 'email' => $owner->email,
         ];
 
         $request = $this->workflow->submitWalkIn($this->registrar, $items, [

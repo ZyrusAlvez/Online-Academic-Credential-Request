@@ -5,9 +5,9 @@
 </x-faq-item>
 
 <x-faq-item question="Which details are required?">
-    <p>All of them except your middle name, your maiden name and your student number. The Office of the Registrar finds your record by your name, college, program and the years you attended.</p>
+    <p>All of them except your middle name and your student number. The Office of the Registrar finds your record by your name, college, program and the years you attended.</p>
     <ul>
-        <li><strong>Maiden name:</strong> shown for women. Older records are filed under the maiden name, so give it if you studied under it.</li>
+        <li><strong>Maiden name:</strong> women enter their maiden middle and last names in the Middle name and Last name fields, since records are filed under the name you had as a student.</li>
         <li><strong>Student number:</strong> give it if you have one. Many alumni don't; your years attended are enough.</li>
     </ul>
 </x-faq-item>

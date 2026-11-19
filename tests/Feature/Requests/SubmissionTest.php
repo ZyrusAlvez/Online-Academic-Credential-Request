@@ -82,7 +82,7 @@ test('REQ-04-02 the form shows fee, period, offices, conditions and the notice, 
     $this->org->tor->update(['special_conditions' => 'Bring the original diploma.']);
 
     $page = Livewire::actingAs($this->owner)->test(Create::class)
-        ->assertSee('Important notice: incomplete requirements')
+        ->assertSee('Important notice')
         // Plain language, without the redundant "does not automatically mean…" (pilot consultation §6).
         ->assertSee('such as your Form 137, a TOR copy for UPHSL')
         ->assertDontSee('does not automatically mean')

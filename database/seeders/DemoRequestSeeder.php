@@ -243,7 +243,6 @@ class DemoRequestSeeder extends Seeder
             'middle_name' => $client['middle_name'],
             'last_name' => $client['last_name'],
             'sex' => $client['sex'],
-            'maiden_name' => null,
             'email' => $client['email'],
             'contact_number' => '0917'.fake()->numerify('#######'),
             'academic_status' => AcademicStatus::Graduate->value,

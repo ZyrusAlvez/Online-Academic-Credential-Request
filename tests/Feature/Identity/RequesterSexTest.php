@@ -10,12 +10,13 @@ use App\Livewire\Student\Requests\Create;
 use App\Models\User;
 use App\Services\RequestWorkflow;
 use App\Support\VerifiedDetails;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
 /*
-| Spec 28: the requester's sex and maiden name, and the wording of the statuses and the landing page.
+| Spec 28: the requester's sex and the maiden name captions, and the wording of the statuses and the landing page.
 */
 
 beforeEach(function () {
@@ -60,59 +61,59 @@ test('REQ-28-03 New Request, Settings → Profile and Walk-in Request ask for th
     reviewSex(['sex' => 'female'])->assertHasNoErrors();
 });
 
-test('REQ-28-04 the maiden name is asked only of a woman, and never saved for a man', function () {
-    Livewire::actingAs($this->owner)->test(Profile::class)
-        ->set('form.sex', 'male')->assertDontSeeHtml('data-maiden-name')
-        ->set('form.sex', 'female')->assertSeeHtml('data-maiden-name')->assertSee('Maiden name (optional)');
+test('REQ-28-04 a woman sees "Maiden Name" under the middle and last name, with no separate field', function () {
+    $html = Livewire::actingAs($this->owner)->test(Profile::class)
+        ->set('form.sex', 'male')->assertDontSeeHtml('data-maiden-caption')
+        ->set('form.sex', 'female')->assertSeeInOrder(['Middle name (optional)', 'Maiden Name', 'Last name', 'Maiden Name', 'Sex'])
+        ->assertDontSee('Maiden name (optional)')
+        ->html();
 
-    reviewSex(['sex' => 'female', 'maiden_name' => 'Bautista'])->set('form.privacy_consent', true)->call('save')->assertHasNoErrors();
-    expect($this->owner->fresh())->sex->toBe(Sex::Female)->maiden_name->toBe('Bautista');
+    expect(substr_count($html, 'data-maiden-caption'))->toBe(2);
 
-    reviewSex(['sex' => 'male', 'maiden_name' => 'Bautista'])->set('form.privacy_consent', true)->call('save')->assertHasNoErrors();
-    expect($this->owner->fresh())->sex->toBe(Sex::Male)->maiden_name->toBeNull();
+    Livewire::actingAs($this->registrar)->test(WalkIn::class)
+        ->set('profile.sex', 'female')->assertSeeHtml('data-maiden-caption');
+
+    expect(Schema::hasColumn('users', 'maiden_name'))->toBeFalse()
+        ->and(Schema::hasColumn('credential_requests', 'maiden_name'))->toBeFalse();
 });
 
-test('REQ-28-05 the summary shows the sex and, for a woman, the maiden name', function () {
-    reviewSex(['sex' => 'female', 'maiden_name' => 'Bautista'])->assertSeeInOrder(['Sex', 'Female', 'Maiden name', 'Bautista']);
-    reviewSex(['sex' => 'female', 'maiden_name' => ''])->assertSeeInOrder(['Maiden name', 'Not provided']);
-    reviewSex(['sex' => 'male'])->assertSeeInOrder(['Sex', 'Male'])->assertDontSee('Maiden name');
+test('REQ-28-05 the summary shows the sex', function () {
+    reviewSex(['sex' => 'female'])->assertSeeInOrder(['Sex', 'Female']);
+    reviewSex(['sex' => 'male'])->assertSeeInOrder(['Sex', 'Male']);
 });
 
-test('REQ-28-06 each request keeps its own copy of the sex and maiden name, shown to the registrar', function () {
-    $this->owner->update(['sex' => Sex::Female, 'maiden_name' => 'Bautista']);
+test('REQ-28-06 each request keeps its own copy of the sex, shown to the registrar', function () {
+    $this->owner->update(['sex' => Sex::Female]);
     $request = submitRequest($this->owner, $this->org->tor);
 
-    $this->owner->update(['maiden_name' => 'Changed']);
+    $this->owner->update(['sex' => Sex::Male]);
 
-    expect($request->fresh())->sex->toBe(Sex::Female)->maiden_name->toBe('Bautista');
+    expect($request->fresh())->sex->toBe(Sex::Female);
 
     workflow()->startEvaluation($request, $this->registrar);
     Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request->fresh()])
-        ->assertSeeInOrder(['Sex', 'Female', 'Maiden name', 'Bautista']);
+        ->assertSeeInOrder(['Sex', 'Female']);
 });
 
-test('REQ-28-06 a walk-in request keeps the sex and maiden name the registrar entered', function () {
+test('REQ-28-06 a walk-in request keeps the sex the registrar entered', function () {
     $request = workflow()->submitWalkIn($this->registrar, ['credential_type_id' => $this->org->tor->id, 'purpose' => 'Employment', 'receiving_institution' => null], [
-        'first_name' => 'Ana', 'middle_name' => null, 'last_name' => 'Reyes', 'sex' => 'female', 'maiden_name' => 'Cruz',
+        'first_name' => 'Ana', 'middle_name' => 'Cruz', 'last_name' => 'Reyes', 'sex' => 'female',
         'email' => 'ana.reyes@example.com', 'contact_number' => '09171234567', 'academic_status' => 'graduate',
         'college_id' => $this->org->ccs->id, 'program' => 'BS Computer Science', 'student_number' => null,
         'attended_from' => 2018, 'attended_to' => 2022,
     ]);
 
-    expect($request->fresh())->sex->toBe(Sex::Female)->maiden_name->toBe('Cruz');
+    expect($request->fresh())->sex->toBe(Sex::Female);
 });
 
-test('REQ-28-07 changing the sex or maiden name sends the personal information back for verification', function () {
-    $this->owner->update(['sex' => Sex::Female, 'maiden_name' => null]);
+test('REQ-28-07 changing the sex sends the personal information back for verification', function () {
+    $this->owner->update(['sex' => Sex::Female]);
     evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
     $verified = fn (): bool => VerifiedDetails::current($this->owner->fresh(), CheckItem::Identity) !== null;
 
     expect($verified())->toBeTrue();
 
-    $this->owner->update(['maiden_name' => 'Bautista']);
+    $this->owner->update(['sex' => Sex::Male]);
     expect($verified())->toBeFalse()
         ->and(VerifiedDetails::sections($this->owner->fresh())['personal'])->toBeFalse();
-
-    $this->owner->update(['maiden_name' => null, 'sex' => Sex::Male]);
-    expect($verified())->toBeFalse();
 });

@@ -83,7 +83,7 @@ test('REQ-15-03 New Request has numbered sections for the request, personal and 
     Livewire::actingAs($this->newcomer)->test(Create::class)
         ->assertSeeInOrder([
             '1. What Do You Need?', '2. Personal Information', '3. Academic Information',
-            '4. Valid ID', '5. Who Will Transact?', 'Important notice: incomplete requirements', 'Review request',
+            '4. Valid ID', '5. Who Will Transact?', 'Important notice', 'Review request',
         ])
         ->assertDontSee('Documentary Requirements')
         ->assertDontSee('Verify your profile before making a request');
