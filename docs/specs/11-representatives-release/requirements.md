@@ -56,5 +56,6 @@ claiming procedure).
   checkboxes.
 - **REQ-11-07** IF the claimant is a representative who is not verified THEN THE SYSTEM SHALL NOT
   mark the credential released.
-- **REQ-11-08** WHEN a credential is released THE SYSTEM SHALL store its processing time in working
-  days from acceptance to release.
+- **REQ-11-08** WHEN a credential is marked ready for release THE SYSTEM SHALL store its
+  processing time in working days from acceptance to ready for release; releasing it does not
+  change it (REQ-34-11). *(Changed 2026-11-20: it used to be counted to the release.)*
