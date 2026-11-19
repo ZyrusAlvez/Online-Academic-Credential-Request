@@ -43,13 +43,13 @@
         @else
             @php($maxDays = max(1, (float) $offices->max('days')))
             <div class="overflow-x-auto rounded-xl border border-secondary/50">
-                <table class="w-full min-w-[30rem] text-sm">
+                <table class="w-full min-w-[36rem] text-sm">
                     <thead class="bg-primary-50 text-start text-zinc-600">
                         <tr>
                             <th scope="col" class="p-3 text-start font-medium">{{ __('Office') }}</th>
-                            <th scope="col" class="p-3 text-start font-medium">{{ __('Avg per document') }}</th>
-                            <th scope="col" class="p-3 text-end font-medium">{{ __('Done') }}</th>
-                            <th scope="col" class="p-3 text-end font-medium">{{ __('Pending') }}</th>
+                            <th scope="col" class="p-3 text-center font-medium">{{ __('Avg per document') }}</th>
+                            <th scope="col" class="p-3 text-center font-medium">{{ __('Done') }}</th>
+                            <th scope="col" class="p-3 text-center font-medium">{{ __('Pending') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-secondary/40">
@@ -59,26 +59,27 @@
                                 <th scope="row" class="p-3 text-start font-medium">
                                     <a href="{{ $documents() }}" wire:navigate class="text-ink underline-offset-2 hover:text-highlight hover:underline">{{ $office['name'] }}</a>
                                 </th>
-                                <td class="p-3">
+                                <td class="p-3 text-center">
                                     @if ($office['days'] === null)
                                         <span class="text-zinc-500">—</span>
                                     @else
-                                        <span class="flex items-center gap-3">
-                                            <span class="h-3 w-full max-w-48 rounded-e bg-primary/10" aria-hidden="true">
+                                        {{-- Every bar's track and label have the same width, so the bars compare (user, 2026-11-20). --}}
+                                        <span class="mx-auto flex w-fit items-center gap-3">
+                                            <span class="h-3 w-32 shrink-0 rounded-e bg-primary/10" aria-hidden="true" data-bar-track>
                                                 <span class="block h-3 rounded-e bg-primary" style="width: {{ round($office['days'] / $maxDays * 100, 1) }}%"></span>
                                             </span>
-                                            <a href="{{ $documents('finished') }}" wire:navigate class="shrink-0 tabular-nums {{ $linkClass }}">{{ trans_choice(':count working day|:count working days', $office['days']) }}</a>
+                                            <a href="{{ $documents('finished') }}" wire:navigate class="w-32 shrink-0 text-start tabular-nums {{ $linkClass }}">{{ trans_choice(':count working day|:count working days', $office['days']) }}</a>
                                         </span>
                                     @endif
                                 </td>
-                                <td class="p-3 text-end tabular-nums">
+                                <td class="p-3 text-center tabular-nums">
                                     @if ($office['done'] > 0)
                                         <a href="{{ $documents('done') }}" wire:navigate class="{{ $linkClass }}">{{ $office['done'] }}</a>
                                     @else
                                         0
                                     @endif
                                 </td>
-                                <td class="p-3 text-end tabular-nums">
+                                <td class="p-3 text-center tabular-nums">
                                     @if ($office['pending'] > 0)
                                         <a href="{{ $documents('pending') }}" wire:navigate class="{{ $linkClass }}">{{ $office['pending'] }}</a>
                                     @else
@@ -105,9 +106,9 @@
                     <thead class="bg-primary-50 text-start text-zinc-600">
                         <tr>
                             <th scope="col" class="p-3 text-start font-medium">{{ __('Credential') }}</th>
-                            <th scope="col" class="p-3 text-end font-medium">{{ __('Ready') }}</th>
-                            <th scope="col" class="p-3 text-end font-medium">{{ __('Avg processing') }}</th>
-                            <th scope="col" class="p-3 text-end font-medium">{{ __('Standard') }}</th>
+                            <th scope="col" class="p-3 text-center font-medium">{{ __('Ready') }}</th>
+                            <th scope="col" class="p-3 text-center font-medium">{{ __('Avg processing') }}</th>
+                            <th scope="col" class="p-3 text-center font-medium">{{ __('Standard') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-secondary/40">
@@ -118,13 +119,13 @@
                                 <th scope="row" class="p-3 text-start font-medium">
                                     <a href="{{ $ready }}" wire:navigate class="text-ink underline-offset-2 hover:text-highlight hover:underline">{{ $credential['name'] }}</a>
                                 </th>
-                                <td class="p-3 text-end tabular-nums">
+                                <td class="p-3 text-center tabular-nums">
                                     <a href="{{ $ready }}" wire:navigate class="{{ $linkClass }}">{{ $credential['ready'] }}</a>
                                 </td>
-                                <td class="p-3 text-end tabular-nums" @if ($over) data-over-standard @endif>
+                                <td class="p-3 text-center tabular-nums" @if ($over) data-over-standard @endif>
                                     <a href="{{ $ready }}" wire:navigate @class(['font-semibold underline underline-offset-2 hover:no-underline', 'text-red-700' => $over, 'text-highlight' => ! $over])>{{ trans_choice(':count working day|:count working days', $credential['days']) }}</a>
                                 </td>
-                                <td class="p-3 text-end tabular-nums text-zinc-600">{{ trans_choice(':count working day|:count working days', $credential['standard']) }}</td>
+                                <td class="p-3 text-center tabular-nums text-zinc-600">{{ trans_choice(':count working day|:count working days', $credential['standard']) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
