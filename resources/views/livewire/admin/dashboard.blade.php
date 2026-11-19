@@ -8,7 +8,7 @@
         </x-slot:actions>
     </x-page-header>
 
-    {{-- Every number opens the report rows behind it (REQ-34-01..03, 09). --}}
+    {{-- Period results open their report; what is pending now opens Records (REQ-34-01..03). --}}
     @php($report = fn (string $kind, array $params = []): string => route('admin.reports', [...$period, 'report' => $kind, ...$params]))
     @php($linkClass = 'font-semibold text-highlight underline underline-offset-2 hover:no-underline')
 
@@ -20,12 +20,12 @@
                 <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->received }}</dd>
             </dl>
         </a>
-        <a href="{{ $report('transactions', ['show' => 'on_time']) }}" wire:navigate class="block cursor-pointer rounded-xl bg-primary-50 p-4 ring-primary/40 transition hover:ring-2" data-tile="on-time">
+        <div class="rounded-xl bg-primary-50 p-4" data-tile="on-time">
             <dl>
                 <dt class="text-sm text-zinc-600">{{ __('Ready on time') }}</dt>
                 <dd class="text-2xl font-bold text-primary tabular-nums">{{ $metrics->onTime }} <span class="text-base font-semibold">/ {{ $metrics->onTimeRate() === null ? '—' : $metrics->onTimeRate().'%' }}</span></dd>
             </dl>
-        </a>
+        </div>
         <a href="{{ $report('delay') }}" wire:navigate @class(['block cursor-pointer rounded-xl p-4 transition hover:ring-2', 'bg-red-50 ring-red-300' => $metrics->overdue > 0, 'bg-primary-50 ring-primary/40' => $metrics->overdue === 0]) data-tile="overdue">
             <dl>
                 <dt @class(['text-sm', 'text-red-800' => $metrics->overdue > 0, 'text-zinc-600' => $metrics->overdue === 0])>{{ __('Overdue') }}</dt>
@@ -53,28 +53,20 @@
                     </thead>
                     <tbody class="divide-y divide-secondary/40">
                         @foreach ($offices as $office)
-                            @php($documents = fn (string $show = ''): string => $report('office-documents', array_filter(['office' => $office['id'], 'show' => $show])))
                             <tr>
-                                <th scope="row" class="p-3 text-start font-medium">
-                                    <a href="{{ $documents() }}" wire:navigate class="text-ink underline-offset-2 hover:text-highlight hover:underline">{{ $office['name'] }}</a>
-                                </th>
-                                <td class="p-3 text-center">
+                                <th scope="row" class="p-3 text-start font-medium text-ink">{{ $office['name'] }}</th>
+                                <td class="p-3 text-center font-semibold text-ink tabular-nums">
                                     @if ($office['days'] === null)
-                                        <span class="text-zinc-500">—</span>
+                                        <span class="font-normal text-zinc-500">—</span>
                                     @else
-                                        <a href="{{ $documents('finished') }}" wire:navigate class="tabular-nums {{ $linkClass }}">{{ trans_choice(':count working day|:count working days', $office['days']) }}</a>
+                                        {{ trans_choice(':count working day|:count working days', $office['days']) }}
                                     @endif
                                 </td>
-                                <td class="p-3 text-center tabular-nums">
-                                    @if ($office['done'] > 0)
-                                        <a href="{{ $documents('done') }}" wire:navigate class="{{ $linkClass }}">{{ $office['done'] }}</a>
-                                    @else
-                                        0
-                                    @endif
-                                </td>
+                                <td class="p-3 text-center tabular-nums">{{ $office['done'] }}</td>
                                 <td class="p-3 text-center tabular-nums">
                                     @if ($office['pending'] > 0)
-                                        <a href="{{ $documents('pending') }}" wire:navigate class="{{ $linkClass }}">{{ $office['pending'] }}</a>
+                                        {{-- Pending is about now: the live list in Records (REQ-34-02). --}}
+                                        <a href="{{ route('records', ['status' => 'processing', 'office' => $office['id']]) }}" wire:navigate class="{{ $linkClass }}">{{ $office['pending'] }}</a>
                                     @else
                                         0
                                     @endif
@@ -107,16 +99,11 @@
                     <tbody class="divide-y divide-secondary/40">
                         @foreach ($credentials as $credential)
                             @php($over = $credential['days'] > $credential['standard'])
-                            @php($ready = $report('transactions', ['type' => $credential['id'], 'show' => 'ready']))
                             <tr>
-                                <th scope="row" class="p-3 text-start font-medium">
-                                    <a href="{{ $ready }}" wire:navigate class="text-ink underline-offset-2 hover:text-highlight hover:underline">{{ $credential['name'] }}</a>
-                                </th>
-                                <td class="p-3 text-center tabular-nums">
-                                    <a href="{{ $ready }}" wire:navigate class="{{ $linkClass }}">{{ $credential['ready'] }}</a>
-                                </td>
-                                <td class="p-3 text-center tabular-nums" @if ($over) data-over-standard @endif>
-                                    <a href="{{ $ready }}" wire:navigate @class(['font-semibold underline underline-offset-2 hover:no-underline', 'text-red-700' => $over, 'text-highlight' => ! $over])>{{ trans_choice(':count working day|:count working days', $credential['days']) }}</a>
+                                <th scope="row" class="p-3 text-start font-medium text-ink">{{ $credential['name'] }}</th>
+                                <td class="p-3 text-center tabular-nums">{{ $credential['ready'] }}</td>
+                                <td @class(['p-3 text-center font-semibold tabular-nums', 'text-red-700' => $over, 'text-ink' => ! $over]) @if ($over) data-over-standard @endif>
+                                    {{ trans_choice(':count working day|:count working days', $credential['days']) }}
                                 </td>
                                 <td class="p-3 text-center tabular-nums text-zinc-600">{{ trans_choice(':count working day|:count working days', $credential['standard']) }}</td>
                             </tr>

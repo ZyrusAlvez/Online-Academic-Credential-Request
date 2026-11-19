@@ -95,8 +95,9 @@ This replaces:
   of addressing them: "Waiting for the requester to complete the requirements", "Waiting for the
   requester's response" and "Waiting for the requester's payment". The requester's own pages and
   emails keep "you" and "your". *Changed by REQ-20-11:* the wording of the two returns.
-- **REQ-16-08** THE SYSTEM SHALL NOT offer a CSV download of the requests or of any report; the
-  former download addresses SHALL respond 404.
+- **REQ-16-08** THE SYSTEM SHALL NOT offer a CSV download of the requests (Records); the former
+  download addresses SHALL respond 404. *Changed by REQ-34-16 (2026-11-20):* Reports offer
+  "Export CSV".
 
 ### The evaluation lock
 - **REQ-16-09** WHEN a registrar starts the evaluation of a submitted request THE SYSTEM SHALL make
