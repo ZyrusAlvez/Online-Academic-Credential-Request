@@ -33,7 +33,9 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
 - **REQ-06-02** THE SYSTEM SHALL show the requester a history of their request built from the
   ledger, newest first, naming offices but never individual staff, and leaving out internal
   entries (forwarding, internal returns and delay notes); an internal return SHALL show as
-  "In progress".
+  "In progress". *(Since 2026-11-21, REQ-16-32: the Request Details on the same page show the
+  evaluator's name, the one staff member the requester sees; the history still names offices
+  only.)*
 - **REQ-06-03** THE SYSTEM SHALL show the registrar the full ledger of a request, including who
   performed each action, and the office visits with the date received, date released, working days
   spent and status.
