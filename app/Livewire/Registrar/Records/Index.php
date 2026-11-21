@@ -91,7 +91,6 @@ class Index extends Component
                 'application.credentialRequests.credentialType:id,name',
                 'application.credentialRequests.openVisit.department:id,name',
                 'application.credentialRequests.openVisit.fromDepartment:id,name',
-                'evaluator:id,first_name,middle_name,last_name,email',
             ])
             ->when(RegistrarRequestFilter::sortsByDueDate($this->status), fn ($q) => $q->orderBy('effective_due_at'), fn ($q) => $q->latest('id'))
             ->paginate(20);

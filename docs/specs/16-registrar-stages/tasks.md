@@ -53,3 +53,5 @@
 - [x] Records: Evaluator column and filter, `RegistrarRequestFilter` `evaluator` (REQ-16-30)
 - [x] Initial Evaluation: college filter, `StageQueue::for(..., college)` (REQ-16-31)
 - [x] Pest tests for REQ-16-29..32 and the changed REQ-16-25 layout
+- [x] Records: remove the Evaluator column, keep the filter (REQ-16-30)
+- [x] Pest test for the changed REQ-16-30

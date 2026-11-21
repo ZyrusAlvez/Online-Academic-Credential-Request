@@ -205,8 +205,8 @@ a resubmission) or who entered it as a walk-in (`evaluated_by`). The Evaluator P
 (REQ-34-15) keeps counting by it. *(User's request, 2026-11-21.)*
 - **REQ-16-29** A record's Request Details SHALL show the Evaluator by name. WHILE a request has no
   evaluator yet THE SYSTEM SHALL NOT show the row.
-- **REQ-16-30** THE Records list SHALL show each application's evaluator and SHALL filter by
-  evaluator, offering every user who has evaluated a request.
+- **REQ-16-30** THE Records list SHALL filter by evaluator, offering every user who has evaluated
+  a request. It SHALL NOT have an Evaluator column. *(Column removed 2026-11-21, user's decision.)*
 - **REQ-16-31** THE Initial Evaluation queue SHALL filter by the request's college (department), on
   both tabs and together with the search.
 - **REQ-16-32** THE requester's request page SHALL show the Evaluator row as REQ-16-29 does.

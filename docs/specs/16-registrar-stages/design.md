@@ -124,5 +124,5 @@ walk-in entry, so nothing new is stored. An "Evaluator" `x-summary-row` follows 
 `partials.request-record` (record and working page) and on the requester's page, only when there
 is one. On Records, `RegistrarRequestFilter` takes an `evaluator` user id (`?evaluator=`). The
 select lists the users found in `evaluated_by`, so a former registrar's requests stay findable.
-The list gets an Evaluator column. On Initial Evaluation, `StageQueue::for()` takes a `college`
+The list has no Evaluator column (removed 2026-11-21). On Initial Evaluation, `StageQueue::for()` takes a `college`
 department id (`?college=`, colleges only), applied to both tabs.
