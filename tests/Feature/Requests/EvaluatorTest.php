@@ -50,7 +50,7 @@ test('REQ-16-29 a record shows the evaluator: who took it up, or who entered the
         ->assertSeeInOrder(['Evaluator', 'Walter Counterman']);
 });
 
-test('REQ-16-30 the Records list shows each evaluator and filters by evaluator', function () {
+test('REQ-16-30 the Records list filters by evaluator, without an Evaluator column', function () {
     $other = User::factory()->registrar()->create(['first_name' => 'Bruno', 'middle_name' => null, 'last_name' => 'Otrovaluador']);
     $hers = submitRequest($this->owner, $this->org->free);
     workflow()->startEvaluation($this->request, $this->registrar);
@@ -58,8 +58,9 @@ test('REQ-16-30 the Records list shows each evaluator and filters by evaluator',
     $waiting = submitRequest($this->owner, $this->org->free);
 
     Livewire::actingAs($this->registrar)->test(RecordsIndex::class)
-        ->assertSeeHtml('data-records-evaluator')
+        ->assertDontSeeHtml('data-records-evaluator')
         ->assertSeeHtml('data-evaluator-filter')
+        // Offered in the filter.
         ->assertSee('Amparo Evaluadora')->assertSee('Bruno Otrovaluador')
         ->assertSee($waiting->reference_no)
         ->set('evaluator', (string) $other->id)

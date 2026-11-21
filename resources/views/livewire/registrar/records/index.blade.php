@@ -50,7 +50,6 @@
             <flux:table.column>{{ __('Request') }}</flux:table.column>
             <flux:table.column class="max-md:hidden">{{ __('Requester') }}</flux:table.column>
             <flux:table.column class="max-lg:hidden">{{ __('Currently at') }}</flux:table.column>
-            <flux:table.column class="max-xl:hidden">{{ __('Evaluator') }}</flux:table.column>
             <flux:table.column>{{ __('Status') }}</flux:table.column>
             <flux:table.column class="max-sm:hidden">{{ __('Submitted') }}</flux:table.column>
         </flux:table.columns>
@@ -78,7 +77,6 @@
                             <div>{{ $credential->staffWhereabouts() }}</div>
                         @endforeach
                     </flux:table.cell>
-                    <flux:table.cell class="max-xl:hidden whitespace-normal text-zinc-700" data-records-evaluator>{{ $lead->evaluator?->name ?? '—' }}</flux:table.cell>
                     <flux:table.cell>
                         <div class="flex flex-col items-start gap-1">
                             @foreach ($credentials as $credential)
@@ -99,7 +97,7 @@
                 </flux:table.row>
             @empty
                 <flux:table.row>
-                    <flux:table.cell colspan="6" class="py-8 text-center text-zinc-500">{{ __('No requests match your filters.') }}</flux:table.cell>
+                    <flux:table.cell colspan="5" class="py-8 text-center text-zinc-500">{{ __('No requests match your filters.') }}</flux:table.cell>
                 </flux:table.row>
             @endforelse
         </flux:table.rows>
