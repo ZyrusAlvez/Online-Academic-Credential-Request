@@ -116,3 +116,13 @@ The ledger is always shown at the bottom.
 
 The requester's page, while pending compliance, shows the rejected parts with the remarks, the
 existing new-ID form, the representative form, a note and Resubmit.
+
+## Evaluator (REQ-16-29..32)
+
+The evaluator is `credential_requests.evaluated_by`, already set by `startEvaluation()` and by the
+walk-in entry, so nothing new is stored. An "Evaluator" `x-summary-row` follows Valid ID in
+`partials.request-record` (record and working page) and on the requester's page, only when there
+is one. On Records, `RegistrarRequestFilter` takes an `evaluator` user id (`?evaluator=`). The
+select lists the users found in `evaluated_by`, so a former registrar's requests stay findable.
+The list gets an Evaluator column. On Initial Evaluation, `StageQueue::for()` takes a `college`
+department id (`?college=`, colleges only), applied to both tabs.
