@@ -142,15 +142,20 @@ test('REQ-06-02 the requester history names offices, never staff, and hides inte
     workflow()->returnVisit(openVisit($request), $this->vpf, $this->org->ccs, 'Missing signature', 'Sign page 2');
     workflow()->forwardDocument(openVisit($request), $this->registrar);
 
-    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])
+    $page = Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $request->fresh()])
         ->assertSee('Received by College of Computer Studies')
         ->assertSee('Signed by College of Computer Studies')
         ->assertSee('In progress')
         ->assertDontSee('Returned for correction')
         ->assertDontSee('Forwarded to')
-        ->assertDontSee('Missing signature')
-        ->assertDontSee('Dina Dean')
-        ->assertDontSee('Rhea Registrar');
+        ->assertDontSee('Missing signature');
+
+    // The Evaluator row of Request Details is the one staff name the requester sees (REQ-16-32).
+    $outsideEvaluator = preg_replace('/<div[^>]*data-request-evaluator[^>]*>.*?<\/div>/s', '', $page->html());
+
+    expect($page->html())->toContain('data-request-evaluator')
+        ->and($outsideEvaluator)->not->toContain('Dina Dean')
+        ->and($outsideEvaluator)->not->toContain('Rhea Registrar');
 });
 
 test('REQ-06-03 the registrar sees the full ledger with actors and the office visits table', function () {
