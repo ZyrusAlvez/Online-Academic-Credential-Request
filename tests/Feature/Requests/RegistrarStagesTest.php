@@ -244,6 +244,15 @@ test('REQ-16-07 Records lists every request, searchable and filterable, and a re
     $this->actingAs($this->owner)->get(route('records.show', $this->request))->assertForbidden();
 });
 
+test('REQ-16-07 a record shows the email and the contact number on rows of their own', function () {
+    $request = $this->request->fresh();
+
+    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
+        ->assertSeeHtml('data-record-email')->assertSeeHtml('data-record-contact')
+        ->assertSeeInOrder(['Email', $request->requesterEmail(), 'Contact number', $request->contact_number])
+        ->assertDontSee('Email and contact number');
+});
+
 test('REQ-16-23 staff see where a request is in the requester\'s terms, the requester in their own', function () {
     $paying = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar)->fresh();
     $returned = underEvaluation(submitRequest($this->owner, $this->org->free), [CheckItem::Identity->value => CheckResult::Rejected]);
