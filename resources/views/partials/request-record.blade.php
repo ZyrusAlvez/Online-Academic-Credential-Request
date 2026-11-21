@@ -11,7 +11,8 @@
         <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
         {{-- One list of rows, field left and value right (REQ-09-22). --}}
         <x-request-details :request="$request">
-            <x-summary-row :label="__('Email and contact number')" class="[&_dd]:break-all">{{ $request->requesterEmail() ?? '—' }}@if ($request->contact_number) · {{ $request->contact_number }}@endif</x-summary-row>
+            <x-summary-row :label="__('Email')" class="[&_dd]:break-all" data-record-email>{{ $request->requesterEmail() ?? '—' }}</x-summary-row>
+            <x-summary-row :label="__('Contact number')" data-record-contact>{{ $request->contact_number ?: '—' }}</x-summary-row>
             <x-summary-row :label="__('Valid ID')" data-record-id>
                 @if ($request->identityDocument)
                     <x-file-link :href="route('identity-documents.show', $request->identityDocument)" :name="$request->identityDocument->id_type.' – '.$request->requester_name" :type="$request->identityDocument->mime_type">
