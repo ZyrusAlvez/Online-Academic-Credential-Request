@@ -39,7 +39,7 @@ class Show extends Component
     public function render(): View
     {
         $relations = [
-            'student', 'identityDocument', 'credentialType', 'college', 'openVisit.department', 'openVisit.fromDepartment',
+            'student', 'identityDocument', 'credentialType', 'college', 'evaluator', 'openVisit.department', 'openVisit.fromDepartment',
             'paymentProofs.reviewer', 'deficiencies', 'representatives.documents', 'release.releaser',
             'steps.department', 'visits.department', 'visits.step', 'visits.returnedTo', 'visits.receiver', 'visits.doer', 'visits.completer',
             'delayNotes.department', 'delayNotes.recorder', 'pauses',

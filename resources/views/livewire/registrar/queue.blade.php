@@ -9,6 +9,9 @@
     $pageIds ??= [];
     $selected ??= [];
     $allTicked = $pageIds !== [] && array_diff($pageIds, array_map('strval', $selected)) === [];
+    // Initial Evaluation filters by the request's college (REQ-16-31).
+    $colleges ??= collect();
+    $byCollege = $colleges->isNotEmpty();
 @endphp
 
 <div class="space-y-6" data-queue="{{ $queue->value }}">
@@ -26,7 +29,8 @@
 
         <div @class([
             'grid w-full gap-3',
-            'sm:ml-auto sm:w-72' => $hasWaitingTab,
+            'sm:ml-auto sm:w-72' => $hasWaitingTab && ! $byCollege,
+            'sm:ml-auto sm:w-[36rem] sm:grid-cols-2' => $hasWaitingTab && $byCollege,
             'md:grid-cols-2 xl:grid-cols-3' => ! $hasWaitingTab,
         ]) data-queue-search>
             <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" label:sr-only :placeholder="__('Tracking no. or name')" clearable />
@@ -35,6 +39,14 @@
                     <flux:select.option value="">{{ __('Any office') }}</flux:select.option>
                     @foreach ($offices as $option)
                         <flux:select.option :value="$option->id">{{ __('At :office', ['office' => $option->name]) }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+            @endif
+            @if ($byCollege)
+                <flux:select wire:model.live="college" :label="__('Department')" label:sr-only data-college-filter>
+                    <flux:select.option value="">{{ __('All departments') }}</flux:select.option>
+                    @foreach ($colleges as $option)
+                        <flux:select.option :value="$option->id">{{ $option->name }}</flux:select.option>
                     @endforeach
                 </flux:select>
             @endif

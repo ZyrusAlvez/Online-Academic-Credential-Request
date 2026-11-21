@@ -36,6 +36,8 @@ final class RegistrarRequestFilter
         public string $status = '',
         public string $type = '',
         public string $office = '',
+        /** The user who evaluated it (REQ-16-30). */
+        public string $evaluator = '',
     ) {}
 
     /**
@@ -53,6 +55,7 @@ final class RegistrarRequestFilter
             ->when(RequestStatus::tryFrom($this->status), fn (Builder $q, RequestStatus $status) => $q->where('status', $status))
             ->when($this->type !== '', fn (Builder $q) => $q->where('credential_type_id', (int) $this->type))
             ->when($this->office !== '', fn (Builder $q) => self::heldBy($q, (int) $this->office))
+            ->when($this->evaluator !== '', fn (Builder $q) => $q->where('evaluated_by', (int) $this->evaluator))
             ->when(
                 self::sortsByDueDate($this->status),
                 fn (Builder $q) => $q->orderBy('effective_due_at'),   // most overdue first

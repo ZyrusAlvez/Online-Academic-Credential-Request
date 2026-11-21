@@ -118,13 +118,13 @@ class Show extends Component
     public function render(): View
     {
         $request = $this->credentialRequest->load([
-            'application', 'credentialType', 'college', 'identityDocument', 'openVisit.department', 'openVisit.fromDepartment', 'paymentProofs', 'deficiencies',
+            'application', 'credentialType', 'college', 'identityDocument', 'evaluator:id,first_name,middle_name,last_name,email', 'openVisit.department', 'openVisit.fromDepartment', 'paymentProofs', 'deficiencies',
             'representatives.documents', 'release', 'steps.department', 'checks',
         ]);
 
         $credentials = CredentialRequest::query()
             ->where('application_id', $request->application_id)
-            ->with(['credentialType', 'college', 'identityDocument', 'openVisit.department', 'openVisit.fromDepartment', 'release', 'steps.department'])
+            ->with(['credentialType', 'college', 'identityDocument', 'evaluator:id,first_name,middle_name,last_name,email', 'openVisit.department', 'openVisit.fromDepartment', 'release', 'steps.department'])
             ->orderBy('item_no')
             ->get();
         $current = $credentials->firstWhere('item_no', $this->tab) ?? $credentials->first() ?? $request;
