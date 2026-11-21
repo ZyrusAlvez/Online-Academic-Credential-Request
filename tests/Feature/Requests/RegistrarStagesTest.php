@@ -220,7 +220,8 @@ test('REQ-16-25 every stage queue, Release included, searches by tracking number
 test('REQ-16-25 on the queues with a waiting tab the search sits right of the tabs, on their line', function () {
     $order = ['justify-between', 'data-queue-tabs', 'sm:ml-auto sm:w-72', 'data-queue-search'];
 
-    queuePage('evaluation')->assertSeeHtmlInOrder($order);
+    // Initial Evaluation's is wider: the search and the department filter (REQ-16-31).
+    queuePage('evaluation')->assertSeeHtmlInOrder(['justify-between', 'data-queue-tabs', 'sm:ml-auto sm:w-[36rem] sm:grid-cols-2', 'data-queue-search']);
     // The cashier's Payment Validation has the waiting tab (REQ-25-04).
     Livewire::actingAs(User::factory()->cashier()->create())->test(CashierPayments::class)->assertSeeHtmlInOrder($order);
 });

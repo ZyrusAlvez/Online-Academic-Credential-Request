@@ -218,6 +218,10 @@
                     </x-file-link>
                 </x-summary-row>
             @endif
+            {{-- Who evaluates the request, once it is taken up (REQ-16-32). --}}
+            @if ($current->evaluator)
+                <x-summary-row :label="__('Evaluator')" data-request-evaluator>{{ $current->evaluator->name }}</x-summary-row>
+            @endif
         </x-request-details>
     </section>
 

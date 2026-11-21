@@ -36,6 +36,10 @@ class Queue extends Component
     #[Url(except: '')]
     public string $office = '';
 
+    /** Initial Evaluation: the request's college (REQ-16-31). */
+    #[Url(except: '')]
+    public string $college = '';
+
     /** Every queue: tracking number or requester name (REQ-16-25). */
     #[Url(except: '')]
     public string $search = '';
@@ -59,7 +63,7 @@ class Queue extends Component
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['waiting', 'office', 'search'], true)) {
+        if (in_array($property, ['waiting', 'office', 'college', 'search'], true)) {
             $this->resetPage();
             $this->selected = [];
         }
@@ -151,7 +155,9 @@ class Queue extends Component
         $hasWaitingTab = $stage->hasWaitingTab();
         $waiting = $hasWaitingTab && $this->waiting;
         $office = $stage->tracksOffices() ? $this->office : '';
-        $requests = StageQueue::for($stage, $waiting, $office, $this->search)->paginate(20);
+        $byCollege = $stage === RegistrarQueue::Evaluation;
+        $college = $byCollege ? $this->college : '';
+        $requests = StageQueue::for($stage, $waiting, $office, $this->search, college: $college)->paginate(20);
 
         return view('livewire.registrar.queue', [
             'queue' => $stage,
@@ -160,6 +166,7 @@ class Queue extends Component
             'showWaiting' => $waiting,
             'waitingCount' => $hasWaitingTab ? StageQueue::for($stage, true)->count() : 0,
             'offices' => $stage->tracksOffices() ? Department::active()->orderBy('name')->get(['id', 'name']) : collect(),
+            'colleges' => $byCollege ? Department::active()->colleges()->orderBy('name')->get(['id', 'name']) : collect(),
             // The working page under this queue, so the sidebar keeps it current (REQ-16-26).
             'linkRoute' => $stage->showRouteName(),
             'pageIds' => $stage === RegistrarQueue::Outgoing ? $requests->getCollection()->pluck('id')->map(fn ($id): string => (string) $id)->all() : [],

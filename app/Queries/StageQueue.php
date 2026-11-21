@@ -24,9 +24,10 @@ final class StageQueue
      * @param  string  $search  tracking number or requester name, as on Records (REQ-16-25)
      * @param  RequestType  $requestType  Payment Validation: walk-in requests are the Registrar's,
      *                                    online ones the Cashier's (REQ-25-04, 07)
+     * @param  string  $college  Initial Evaluation: the request's college (REQ-16-31)
      * @return Builder<CredentialRequest>
      */
-    public static function for(RegistrarQueue $queue, bool $waiting = false, string $office = '', string $search = '', RequestType $requestType = RequestType::WalkIn): Builder
+    public static function for(RegistrarQueue $queue, bool $waiting = false, string $office = '', string $search = '', RequestType $requestType = RequestType::WalkIn, string $college = ''): Builder
     {
         $query = RegistrarRequestFilter::matching(CredentialRequest::query(), $search)->with([
             'credentialType:id,name', 'evaluator:id,first_name,middle_name,last_name,email',
@@ -41,6 +42,7 @@ final class StageQueue
         return match ($queue) {
             RegistrarQueue::Evaluation => $query
                 ->whereIn('status', $waiting ? RequestStatus::waitingForRequester() : [RequestStatus::Submitted, RequestStatus::UnderEvaluation])
+                ->when($college !== '', fn (Builder $q) => $q->where('college_id', (int) $college))
                 ->orderBy('submitted_at')->orderBy('id'),
             // Proofs to verify; the requests still awaiting payment wait apart (REQ-16-03). Oldest
             // first by when each entered its status, from the ledger: `updated_at` moves on any edit.

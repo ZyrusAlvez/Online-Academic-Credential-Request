@@ -1,7 +1,7 @@
 <div class="space-y-6">
     <x-page-header title="Records" description="Every credential request." />
 
-    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+    <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :label="__('Search')" label:sr-only :placeholder="__('Tracking no., name or student number')" clearable />
         <flux:select wire:model.live="status" :label="__('Status')" label:sr-only>
             <flux:select.option value="">{{ __('All statuses') }}</flux:select.option>
@@ -27,6 +27,12 @@
                 <flux:select.option :value="$option->id">{{ __('At :office', ['office' => $option->name]) }}</flux:select.option>
             @endforeach
         </flux:select>
+        <flux:select wire:model.live="evaluator" :label="__('Evaluator')" label:sr-only data-evaluator-filter>
+            <flux:select.option value="">{{ __('All evaluators') }}</flux:select.option>
+            @foreach ($evaluators as $option)
+                <flux:select.option :value="$option->id">{{ $option->name }}</flux:select.option>
+            @endforeach
+        </flux:select>
     </div>
 
     {{-- Opened from a dashboard number: the requests behind it (REQ-34-17). --}}
@@ -44,6 +50,7 @@
             <flux:table.column>{{ __('Request') }}</flux:table.column>
             <flux:table.column class="max-md:hidden">{{ __('Requester') }}</flux:table.column>
             <flux:table.column class="max-lg:hidden">{{ __('Currently at') }}</flux:table.column>
+            <flux:table.column class="max-xl:hidden">{{ __('Evaluator') }}</flux:table.column>
             <flux:table.column>{{ __('Status') }}</flux:table.column>
             <flux:table.column class="max-sm:hidden">{{ __('Submitted') }}</flux:table.column>
         </flux:table.columns>
@@ -71,6 +78,7 @@
                             <div>{{ $credential->staffWhereabouts() }}</div>
                         @endforeach
                     </flux:table.cell>
+                    <flux:table.cell class="max-xl:hidden whitespace-normal text-zinc-700" data-records-evaluator>{{ $lead->evaluator?->name ?? '—' }}</flux:table.cell>
                     <flux:table.cell>
                         <div class="flex flex-col items-start gap-1">
                             @foreach ($credentials as $credential)
@@ -91,7 +99,7 @@
                 </flux:table.row>
             @empty
                 <flux:table.row>
-                    <flux:table.cell colspan="5" class="py-8 text-center text-zinc-500">{{ __('No requests match your filters.') }}</flux:table.cell>
+                    <flux:table.cell colspan="6" class="py-8 text-center text-zinc-500">{{ __('No requests match your filters.') }}</flux:table.cell>
                 </flux:table.row>
             @endforelse
         </flux:table.rows>

@@ -7,6 +7,7 @@ use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
+use App\Models\User;
 use App\Queries\DashboardScope;
 use App\Queries\RegistrarRequestFilter;
 use Illuminate\Contracts\View\View;
@@ -38,6 +39,10 @@ class Index extends Component
     #[Url(except: '')]
     public string $office = '';
 
+    /** The user who evaluated the request (REQ-16-30). */
+    #[Url(except: '')]
+    public string $evaluator = '';
+
     /** The dashboard number this list was opened from, with its period and office (REQ-34-17). */
     #[Url(except: '')]
     public string $scope = '';
@@ -58,7 +63,7 @@ class Index extends Component
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['search', 'status', 'type', 'office'], true)) {
+        if (in_array($property, ['search', 'status', 'type', 'office', 'evaluator'], true)) {
             $this->resetPage();
         }
     }
@@ -75,7 +80,7 @@ class Index extends Component
         $scope = new DashboardScope($this->scope, $this->from, $this->to, $this->at);
 
         // One row per application with a credential that matches the filters (REQ-27-08).
-        $matching = (new RegistrarRequestFilter($this->search, $this->status, $this->type, $this->office))->query()
+        $matching = (new RegistrarRequestFilter($this->search, $this->status, $this->type, $this->office, $this->evaluator))->query()
             ->when($scope->active(), fn ($q) => $scope->apply($q))
             ->reorder()->select('application_id');
 
@@ -86,6 +91,7 @@ class Index extends Component
                 'application.credentialRequests.credentialType:id,name',
                 'application.credentialRequests.openVisit.department:id,name',
                 'application.credentialRequests.openVisit.fromDepartment:id,name',
+                'evaluator:id,first_name,middle_name,last_name,email',
             ])
             ->when(RegistrarRequestFilter::sortsByDueDate($this->status), fn ($q) => $q->orderBy('effective_due_at'), fn ($q) => $q->latest('id'))
             ->paginate(20);
@@ -96,6 +102,11 @@ class Index extends Component
             'statuses' => RequestStatus::cases(),
             'types' => CredentialType::active()->orderBy('name')->get(['id', 'name']),
             'offices' => Department::active()->orderBy('name')->get(['id', 'name']),
+            // Everyone who has evaluated a request, former registrars too (REQ-16-30).
+            'evaluators' => User::query()
+                ->whereIn('id', CredentialRequest::query()->whereNotNull('evaluated_by')->select('evaluated_by'))
+                ->orderBy('first_name')->orderBy('last_name')
+                ->get(['id', 'first_name', 'middle_name', 'last_name', 'email']),
             'overdueCount' => CredentialRequest::overdue()->count(),
             'officeOverdueCount' => RegistrarRequestFilter::officeOverdue(CredentialRequest::query())->count(),
         ]);
