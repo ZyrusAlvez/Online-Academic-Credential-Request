@@ -7,6 +7,7 @@ use App\Livewire\NotificationBell;
 use App\Livewire\Notifications\Index;
 use App\Models\User;
 use App\Notifications\RequestActivity;
+use App\Support\RequestRegistrars;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -114,9 +115,12 @@ test('REQ-06-06 other milestones are emailed too; internal entries and own actio
 
 test('REQ-06-07 offices are told in-app and by email when a document is forwarded or returned to them', function () {
     Notification::fake();
+    $other = User::factory()->registrar()->create();
     $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
 
+    // At the Office of the Registrar, only the request's evaluator (REQ-06-21).
     Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "{$request->reference_no} was forwarded to your office");
+    Notification::assertNotSentTo($other, RequestActivity::class, fn ($n) => str_contains($n->title, 'forwarded to your office'));
     Notification::assertNotSentTo($this->inactiveRegistrar, RequestActivity::class);
 
     passOffice($request, $this->registrar);
@@ -134,12 +138,13 @@ test('REQ-06-07 offices are told in-app and by email when a document is forwarde
     Notification::assertSentTo($this->vpf, RequestActivity::class, fn ($n) => $n->title === "{$request->reference_no} was corrected and sent back to you");
 });
 
-test('REQ-06-08 registrars are told in-app and by email about new and resubmitted requests and representatives; cashiers about payments', function () {
+test('REQ-06-08 every registrar is told about a new request, its evaluator about resubmissions and representatives; cashiers about payments', function () {
     Notification::fake();
     $cashier = User::factory()->cashier()->create();
+    $other = User::factory()->registrar()->create();
 
     $request = submitRequest($this->owner, $this->org->tor);
-    Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "New request {$request->reference_no} to evaluate"
+    Notification::assertSentTo([$this->registrar, $other], RequestActivity::class, fn ($n) => $n->title === "New request {$request->reference_no} to evaluate"
         && $n->via($this->registrar) === ['database', 'mail']);
 
     evaluate($request, $this->registrar);
@@ -150,13 +155,31 @@ test('REQ-06-08 registrars are told in-app and by email about new and resubmitte
 
     declareRepresentative($request, $this->owner, ['full_name' => 'Rosa']);
     Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "Representative to verify for {$request->reference_no}");
+    Notification::assertNotSentTo($other, RequestActivity::class, fn ($n) => $n->title === "Representative to verify for {$request->reference_no}");
 
-    $other = submitRequest($this->owner, $this->org->tor);
-    workflow()->startEvaluation($other, $this->registrar);
-    workflow()->recordCheck($other, $this->registrar, CheckItem::CredentialRequest, CheckResult::Rejected);
-    workflow()->returnForClarification($other, $this->registrar, 'Give the full name of the school.');
-    workflow()->resubmit($other, $this->owner, 'Done');
-    Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "{$other->reference_no} was resubmitted for evaluation");
+    $returned = submitRequest($this->owner, $this->org->tor);
+    workflow()->startEvaluation($returned, $this->registrar);
+    workflow()->recordCheck($returned, $this->registrar, CheckItem::CredentialRequest, CheckResult::Rejected);
+    workflow()->returnForClarification($returned, $this->registrar, 'Give the full name of the school.');
+    workflow()->resubmit($returned, $this->owner, 'Done');
+    Notification::assertSentTo($this->registrar, RequestActivity::class, fn ($n) => $n->title === "{$returned->reference_no} was resubmitted for evaluation");
+    Notification::assertNotSentTo($other, RequestActivity::class, fn ($n) => $n->title === "{$returned->reference_no} was resubmitted for evaluation");
+    Notification::assertNotSentTo($this->inactiveRegistrar, RequestActivity::class);
+});
+
+test('REQ-06-21 a request whose evaluator is inactive, or that has none, goes to every active registrar', function () {
+    Notification::fake();
+    $other = User::factory()->registrar()->create();
+
+    expect(RequestRegistrars::for(submitRequest($this->owner, $this->org->tor))->modelKeys())
+        ->toEqualCanonicalizing([$this->registrar->id, $other->id]);
+
+    $request = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
+    expect(RequestRegistrars::for($request->fresh())->modelKeys())->toBe([$this->registrar->id]);
+
+    $this->registrar->forceFill(['is_active' => false])->save();
+    declareRepresentative($request, $this->owner, ['full_name' => 'Rosa']);
+    Notification::assertSentTo($other, RequestActivity::class, fn ($n) => $n->title === "Representative to verify for {$request->reference_no}");
     Notification::assertNotSentTo($this->inactiveRegistrar, RequestActivity::class);
 });
 
