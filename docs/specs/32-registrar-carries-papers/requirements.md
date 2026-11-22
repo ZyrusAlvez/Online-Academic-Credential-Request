@@ -90,7 +90,7 @@ This replaces:
 - **REQ-32-11** WHEN department staff approve their office's task, return a document for
   correction, or finish a correction, and the paper waits in Outgoing for the Registrar to carry
   it (not when it moves on at once: after the final quality check, or to the same office) THE
-  SYSTEM SHALL notify every active registrar, in-app and, if they want it, by email (REQ-06-16):
+  SYSTEM SHALL notify the request's registrar (its evaluator, REQ-06-21), in-app and, if they want it, by email (REQ-06-16):
   "<tracking no.> is ready to collect from <office>". A registrar's own task at the Office of the
   Registrar SHALL NOT notify. *(User's request, 2026-11-20: the Registrar must forward it to the
   next office.)*
