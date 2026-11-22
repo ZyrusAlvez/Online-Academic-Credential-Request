@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Notifications\DueReminder;
 use App\Services\WorkingCalendar;
 use App\Support\OfficeStaff;
+use App\Support\RequestRegistrars;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -79,9 +80,9 @@ class SendDueReminders extends Command
             $sent += $this->remindOffice($request, $visit, $overdue);
         }
 
-        // Every registrar, once per request for each kind, wherever the paper is (REQ-06-20).
+        // The request's registrar, once per request for each kind, wherever the paper is (REQ-06-20, 21).
         if ($this->firstTime($overdue ? 'registrar_overdue' : 'registrar_due_soon', $request->id, $request)) {
-            $registrars = User::query()->where('role', Role::Registrar)->where('is_active', true)->get();
+            $registrars = RequestRegistrars::for($request);
 
             if ($registrars->isNotEmpty()) {
                 Notification::send($registrars, new DueReminder($request, $overdue));

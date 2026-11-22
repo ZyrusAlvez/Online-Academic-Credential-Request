@@ -178,7 +178,7 @@ test('REQ-32-07 a return keeps the document in the returning office, in Outgoing
     registrarOutgoing()->assertSeeInOrder([$request->reference_no, 'Office of the VP for Finance', 'Return to College of Computer Studies']);
 });
 
-test('REQ-32-11 registrars are told when an office approves, returns or corrects a paper waiting in Outgoing', function () {
+test('REQ-32-11 the evaluator is told when an office approves, returns or corrects a paper waiting in Outgoing', function () {
     Notification::fake();
     $other = User::factory()->registrar()->create();
     $inactive = User::factory()->registrar()->create(['is_active' => false]);
@@ -189,10 +189,11 @@ test('REQ-32-11 registrars are told when an office approves, returns or corrects
     passOffice($request, $this->registrar);
     Notification::assertNotSentTo($this->registrar, RequestActivity::class, fn (RequestActivity $n) => str_contains($n->title, 'ready to collect'));
 
-    // The Dean approves: every active registrar hears of it.
+    // The Dean approves: the request's evaluator hears of it, not the other registrars (REQ-06-21).
     workflow()->acceptReceipt(openVisit($request), $this->dean);
     workflow()->completeVisit(openVisit($request), $this->dean);
-    Notification::assertSentTo([$this->registrar, $other], RequestActivity::class, $collect($request, 'College of Computer Studies'));
+    Notification::assertSentTo($this->registrar, RequestActivity::class, $collect($request, 'College of Computer Studies'));
+    Notification::assertNotSentTo($other, RequestActivity::class, $collect($request, 'College of Computer Studies'));
     Notification::assertNotSentTo($inactive, RequestActivity::class);
 
     // VP Finance returns it; the Dean corrects it: each waits in Outgoing.

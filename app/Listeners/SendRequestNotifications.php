@@ -11,13 +11,14 @@ use App\Models\RequestEvent;
 use App\Models\User;
 use App\Notifications\RequestActivity;
 use App\Support\OfficeStaff;
+use App\Support\RequestRegistrars;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Notification;
 
 /**
  * Decides who hears about a ledger event (spec 06): the requester, the office a document was
  * just forwarded or returned to, and registrars (cashiers for a proof of payment) when something
- * needs them.
+ * needs them: every registrar for a new request, otherwise its evaluator (REQ-06-21).
  */
 class SendRequestNotifications
 {
@@ -76,7 +77,7 @@ class SendRequestNotifications
 
         $office = $visit->department()->value('name');
 
-        $this->send(User::where('role', Role::Registrar)->where('is_active', true)->get(), $event,
+        $this->send(RequestRegistrars::for($request), $event,
             "{$request->reference_no} is ready to collect from {$office}");
     }
 
@@ -106,7 +107,13 @@ class SendRequestNotifications
             return;
         }
 
+        // At the Office of the Registrar: its department staff and the request's registrar (REQ-06-21).
         $recipients = OfficeStaff::of($visit->department()->firstOrFail());
+
+        if ($recipients->contains(fn (User $user): bool => $user->hasRole(Role::Registrar))) {
+            $recipients = $recipients->reject(fn (User $user): bool => $user->hasRole(Role::Registrar))
+                ->merge(RequestRegistrars::for($request));
+        }
 
         $title = match ($visit->purpose) {
             VisitPurpose::Correction => "{$request->reference_no} was returned to your office for correction",
@@ -134,10 +141,15 @@ class SendRequestNotifications
             default => "Representative to verify for {$request->reference_no}",
         };
 
-        // A proof of payment is the cashier's to validate (REQ-25-08).
-        $role = $event->type === RequestEventType::PaymentSubmitted ? Role::Cashier : Role::Registrar;
+        // A proof of payment is the cashier's to validate (REQ-25-08); a new request is for any
+        // registrar to take up; the rest go to the request's evaluator (REQ-06-21).
+        $recipients = match ($event->type) {
+            RequestEventType::PaymentSubmitted => User::where('role', Role::Cashier)->where('is_active', true)->get(),
+            RequestEventType::Submitted => RequestRegistrars::all(),
+            default => RequestRegistrars::for($request),
+        };
 
-        $this->send(User::where('role', $role)->where('is_active', true)->get(), $event, $title);
+        $this->send($recipients, $event, $title);
     }
 
     /**

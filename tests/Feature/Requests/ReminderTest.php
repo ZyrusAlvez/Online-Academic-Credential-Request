@@ -76,7 +76,7 @@ test('REQ-06-13 the requester is told once, in-app and by email, when the reques
         ->and($notification->toMail($this->owner)->actionUrl)->toBe(route('student.requests.show', $this->request));
 });
 
-test('REQ-06-20 every registrar is alerted once when any request is due soon and once when overdue, wherever it is', function () {
+test('REQ-06-20 the evaluator is alerted once when a request is due soon and once when overdue, wherever it is', function () {
     $otherRegistrar = User::factory()->registrar()->create();
     $inactive = User::factory()->registrar()->inactive()->create();
 
@@ -85,9 +85,8 @@ test('REQ-06-20 every registrar is alerted once when any request is due soon and
     remindAt('2026-10-19 07:00:00');   // overdue
     remindAt('2026-10-20 07:00:00');
 
-    foreach ([$this->registrar, $otherRegistrar] as $registrar) {
-        Notification::assertSentToTimes($registrar, DueReminder::class, 2);
-    }
+    Notification::assertSentToTimes($this->registrar, DueReminder::class, 2);
+    Notification::assertNotSentTo($otherRegistrar, DueReminder::class);   // REQ-06-21
     Notification::assertNotSentTo($inactive, DueReminder::class);
 
     workflow()->acceptReceipt(openVisit($this->request), $this->dean);   // the paper is now at the Dean

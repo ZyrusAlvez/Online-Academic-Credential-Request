@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notification;
 
 /**
  * A request is due soon or overdue (REQ-06-11..13, REQ-06-20): to the holding office's staff,
- * every registrar, and (overdue only) the requester; in-app, and by email unless switched off.
+ * the request's registrar (REQ-06-21), and (overdue only) the requester; in-app, and by email unless switched off.
  */
 class DueReminder extends Notification implements ShouldQueue
 {

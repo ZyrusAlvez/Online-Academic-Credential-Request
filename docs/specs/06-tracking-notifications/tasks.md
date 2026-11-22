@@ -28,3 +28,7 @@
       process from `composer dev` and `queue:restart` from the deploy; deployment docs without a
       worker (REQ-06-10, 2026-11-13)
 - [x] Pest test for the changed REQ-06-10
+- [x] Registrars hear only about the requests they evaluate, except new submissions:
+      `RequestRegistrars`, used by the listener and the reminders (REQ-06-07, 08, 20, 21,
+      REQ-32-11; user's decision, 2026-11-22)
+- [x] Pest tests for the changed REQ-06-07, 08, 20, REQ-32-11 and the new REQ-06-21
