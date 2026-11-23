@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\OverrideStep;
 use App\Enums\RequestStatus;
 use App\Enums\Role;
 use App\Models\CredentialRequest;
@@ -102,6 +103,15 @@ class CredentialRequestPolicy
         }
 
         return $request->isWalkIn() ? $user->hasRole(Role::Registrar) : $user->hasRole(Role::Cashier);
+    }
+
+    /**
+     * Record the credential's next step for whoever couldn't: the Admin, while there is one
+     * (REQ-35-01..06).
+     */
+    public function override(User $user, CredentialRequest $request): bool
+    {
+        return $user->hasRole(Role::Admin) && OverrideStep::for($request) !== null;
     }
 
     /**

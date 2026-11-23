@@ -30,6 +30,12 @@ final class RecordRequestEvent
             $description .= ": {$event->remarks}";
         }
 
+        // Logged when it was recorded, saying when it happened and why (REQ-35-11). The marker comes
+        // first, so the log's length limit can only cut the reason, which the ledger keeps whole.
+        if ($event->isOverride()) {
+            $description = "Admin override (happened {$event->created_at->format('M j, Y g:i A')}) – {$description} · Reason: {$event->override_reason}";
+        }
+
         $this->record->handle(
             $actor,
             ActivityCategory::Request,

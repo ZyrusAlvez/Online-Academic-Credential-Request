@@ -38,7 +38,9 @@ use App\Models\RequestRepresentative;
 use App\Models\RequestStep;
 use App\Models\User;
 use App\Support\VerifiedDetails;
+use Carbon\CarbonInterface;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -57,12 +59,47 @@ use Throwable;
  */
 class RequestWorkflow
 {
+    /** On a copy made by asOverride(): the Admin's reason (spec 35). */
+    private ?string $overrideReason = null;
+
+    /** On a copy made by asOverride(): when the step happened (REQ-35-09). */
+    private ?Carbon $overrideAt = null;
+
     public function __construct(private readonly WorkingCalendar $calendar) {}
 
     /** Private disk for receipts, IDs and SPAs: local or Cloudflare R2 (config uphsl.receipts_disk). */
     public static function proofDisk(): string
     {
         return (string) config('uphsl.receipts_disk', 'local');
+    }
+
+    /**
+     * A copy of the service that records its steps as an Admin override: every time it stamps is
+     * when the step happened, and each ledger entry it writes keeps the reason and when it was
+     * recorded (REQ-35-09, 10). The instance it is called on is left as it is.
+     */
+    public function asOverride(string $reason, CarbonInterface $at): static
+    {
+        if (blank($reason)) {
+            throw new InvalidTransition('Give the reason for the override.');
+        }
+
+        $copy = clone $this;
+        $copy->overrideReason = $reason;
+        $copy->overrideAt = Carbon::instance($at)->setTimezone(now()->getTimezone());
+
+        return $copy;
+    }
+
+    public function isOverride(): bool
+    {
+        return $this->overrideAt !== null;
+    }
+
+    /** When the step happens: now, or an override's time (REQ-35-09). */
+    private function now(): Carbon
+    {
+        return $this->overrideAt?->copy() ?? now();
     }
 
     // ── Submission (spec 04) ───────────────────────────────────────────────────────────────
@@ -130,7 +167,7 @@ class RequestWorkflow
             'reference_no' => 'tmp-'.Str::random(12),
             'user_id' => $userId,
             'request_type' => $requestType,
-            'submitted_at' => now(),
+            'submitted_at' => $this->now(),
         ]);
         // The tracking number uses the id, so it is set once the row exists (REQ-04-03).
         $application->update(['reference_no' => CredentialRequest::trackingNumber($application->id, $application->created_at)]);
@@ -159,7 +196,7 @@ class RequestWorkflow
                 'requires_payment' => $first ? $total !== null : $item['fee'] !== null,
                 'fee' => $item['fee'],
                 'amount_due' => $first ? $total : $item['fee'],
-                'submitted_at' => now(),
+                'submitted_at' => $this->now(),
             ])->save();
 
             return $request;
@@ -256,7 +293,7 @@ class RequestWorkflow
         DB::transaction(function () use ($request, $registrar): void {
             $locked = $this->lock($request, [RequestStatus::Submitted], 'Only submitted requests can be taken up for evaluation.');
 
-            $locked->forceFill(['evaluation_started_at' => $locked->evaluation_started_at ?? now(), 'evaluated_by' => $registrar->id]);
+            $locked->forceFill(['evaluation_started_at' => $locked->evaluation_started_at ?? $this->now(), 'evaluated_by' => $registrar->id]);
             $this->transition($locked, $request, RequestStatus::UnderEvaluation, $registrar, RequestEventType::EvaluationStarted);
         });
     }
@@ -277,7 +314,7 @@ class RequestWorkflow
             // The evaluator's own result replaces one carried from an earlier verification (REQ-21-05).
             RequestCheck::query()->updateOrInsert(
                 ['credential_request_id' => $locked->id, 'item' => $item->value],
-                ['result' => $result->value, 'checked_by' => $registrar->id, 'checked_at' => now(), 'carried_from_request_id' => null],
+                ['result' => $result->value, 'checked_by' => $registrar->id, 'checked_at' => $this->now(), 'carried_from_request_id' => null],
             );
         });
     }
@@ -325,7 +362,7 @@ class RequestWorkflow
                 $locked->forceFill([
                     'identity_status' => ReviewStatus::Rejected,
                     'identity_reviewed_by' => $registrar->id,
-                    'identity_reviewed_at' => now(),
+                    'identity_reviewed_at' => $this->now(),
                     'identity_remarks' => $remarks,
                 ]);
             }
@@ -392,7 +429,7 @@ class RequestWorkflow
                 throw new InvalidTransition('This was already received.');
             }
 
-            $current->forceFill(['resolved_at' => now(), 'resolved_by' => $registrar->id])->save();
+            $current->forceFill(['resolved_at' => $this->now(), 'resolved_by' => $registrar->id])->save();
             $deficiency->setRawAttributes($current->getAttributes(), sync: true);
 
             $this->record($locked, $registrar, RequestEventType::DeficiencyResolved, null, null, $current->description);
@@ -415,7 +452,7 @@ class RequestWorkflow
             foreach (CheckItem::for(CheckStage::Evaluation, $locked) as $item) {
                 RequestCheck::query()->updateOrInsert(
                     ['credential_request_id' => $locked->id, 'item' => $item->value],
-                    ['result' => CheckResult::Confirmed->value, 'checked_by' => $registrar->id, 'checked_at' => now(), 'carried_from_request_id' => null],
+                    ['result' => CheckResult::Confirmed->value, 'checked_by' => $registrar->id, 'checked_at' => $this->now(), 'carried_from_request_id' => null],
                 );
             }
 
@@ -504,7 +541,7 @@ class RequestWorkflow
             }
 
             $this->closeOpenVisit($locked, $registrar);
-            $locked->forceFill(['declined_at' => now(), 'decline_reason' => $reason]);
+            $locked->forceFill(['declined_at' => $this->now(), 'decline_reason' => $reason]);
             $this->transition($locked, $request, RequestStatus::Declined, $registrar, RequestEventType::Declined, $reason);
         });
     }
@@ -617,11 +654,11 @@ class RequestWorkflow
                 // Seen in person and validated by the registrar who records it (REQ-26-03).
                 'identity_status' => ReviewStatus::Verified,
                 'identity_reviewed_by' => $registrar->id,
-                'identity_reviewed_at' => now(),
+                'identity_reviewed_at' => $this->now(),
                 'status' => $requiresPayment ? RequestStatus::PaymentVerification : RequestStatus::Submitted,
-                'evaluation_started_at' => now(),
+                'evaluation_started_at' => $this->now(),
                 'evaluated_by' => $registrar->id,
-                'requirements_completed_at' => now(),
+                'requirements_completed_at' => $this->now(),
             ]);
 
             $this->record($request, $registrar, RequestEventType::WalkInRecorded, null, $request->status);
@@ -654,13 +691,13 @@ class RequestWorkflow
             $proof = $locked->paymentProofs()->make([
                 'uploaded_by' => $registrar->id,
                 'amount' => $amount,
-                'paid_on' => now()->toDateString(),
+                'paid_on' => $this->now()->toDateString(),
                 'status' => PaymentStatus::Verified,
             ]);
             $proof->forceFill([
                 'official_receipt_no' => $receiptNo,
                 'reviewed_by' => $registrar->id,
-                'reviewed_at' => now(),
+                'reviewed_at' => $this->now(),
             ])->save();
 
             $this->record($locked, $registrar, RequestEventType::PaymentVerified, null, null, "Official receipt no. {$receiptNo}");
@@ -722,7 +759,7 @@ class RequestWorkflow
             }
 
             $this->closeOpenVisit($locked, $actor);
-            $locked->forceFill(['cancelled_at' => now(), 'cancel_reason' => filled($reason) ? $reason : null]);
+            $locked->forceFill(['cancelled_at' => $this->now(), 'cancel_reason' => filled($reason) ? $reason : null]);
             $this->transition($locked, $request, RequestStatus::Cancelled, $actor, RequestEventType::Cancelled, $reason);
         });
     }
@@ -845,7 +882,7 @@ class RequestWorkflow
 
             $current->forceFill([
                 'status' => VisitStatus::Done,
-                'done_at' => now(),
+                'done_at' => $this->now(),
                 'done_by' => $actor->id,
                 'returned_to_department_id' => $to->id,
                 'return_reason' => $reason,
@@ -933,7 +970,7 @@ class RequestWorkflow
             $current->forceFill([
                 'status' => $verified ? ReviewStatus::Verified : ReviewStatus::Rejected,
                 'reviewed_by' => $registrar->id,
-                'reviewed_at' => now(),
+                'reviewed_at' => $this->now(),
                 'remarks' => filled($remarks) ? $remarks : null,
             ])->save();
             $representative->setRawAttributes($current->getAttributes(), sync: true);
@@ -983,18 +1020,39 @@ class RequestWorkflow
                 'recipient_name' => $recipientName,
                 'acknowledged' => true,
                 'released_by' => $registrar->id,
-                'released_at' => now(),
+                'released_at' => $this->now(),
                 'remarks' => filled($remarks) ? $remarks : null,
             ]);
 
-            $locked->released_at = now();
+            $locked->released_at = $this->now();
             // Counted when it was made ready (REQ-11-08); only a request without one gets it here.
             $locked->processing_working_days ??= $locked->accepted_at !== null
-                ? $this->calendar->workingDaysBetween($locked->accepted_at, $locked->ready_at ?? now())
+                ? $this->calendar->workingDaysBetween($locked->accepted_at, $locked->ready_at ?? $this->now())
                 : null;
 
             $this->transition($locked, $request, RequestStatus::Released, $registrar, RequestEventType::Released,
                 "Received by {$recipientName} ({$recipientType->label()})".($atCounter ? '; SPA and IDs checked at release' : ''));
+        });
+    }
+
+    // ── Admin override (spec 35) ───────────────────────────────────────────────────────────
+
+    /**
+     * Hand a request held by an absent evaluator back to Initial Evaluation, where any registrar
+     * can start it and becomes its evaluator (REQ-35-05). Only as an Admin override. The checks
+     * recorded so far stay; the evaluator stays recorded until the next one starts, as after a
+     * resubmission.
+     */
+    public function unlockEvaluation(CredentialRequest $request, User $admin): void
+    {
+        if (! $this->isOverride()) {
+            throw new InvalidTransition('Only an Admin override unlocks an evaluation.');
+        }
+
+        DB::transaction(function () use ($request, $admin): void {
+            $locked = $this->lock($request, [RequestStatus::UnderEvaluation], 'Only a request under evaluation can be unlocked.');
+
+            $this->transition($locked, $request, RequestStatus::Submitted, $admin, RequestEventType::EvaluationUnlocked);
         });
     }
 
@@ -1050,7 +1108,7 @@ class RequestWorkflow
                 $representative->forceFill([
                     'status' => $status,
                     'reviewed_by' => $registrar->id,
-                    'reviewed_at' => now(),
+                    'reviewed_at' => $this->now(),
                     'remarks' => $status === ReviewStatus::Rejected ? $remarks : null,
                 ])->save();
             });
@@ -1065,9 +1123,9 @@ class RequestWorkflow
         $locked->forceFill([
             'identity_status' => ReviewStatus::Verified,
             'identity_reviewed_by' => $registrar->id,
-            'identity_reviewed_at' => now(),
+            'identity_reviewed_at' => $this->now(),
             'identity_remarks' => null,
-            'requirements_completed_at' => now(),
+            'requirements_completed_at' => $this->now(),
         ]);
         $this->reviewPendingRepresentatives($locked, $registrar, ReviewStatus::Verified);
         $this->recordVerifications($locked, $registrar);
@@ -1098,7 +1156,7 @@ class RequestWorkflow
             }
 
             RequesterVerification::query()->upsert(
-                [['user_id' => $owner->id, 'part' => $part->value, 'credential_request_id' => $locked->id, 'verified_by' => $registrar->id, 'verified_at' => now()]],
+                [['user_id' => $owner->id, 'part' => $part->value, 'credential_request_id' => $locked->id, 'verified_by' => $registrar->id, 'verified_at' => $this->now()]],
                 ['user_id', 'part'],
                 ['credential_request_id', 'verified_by', 'verified_at'],
             );
@@ -1280,9 +1338,9 @@ class RequestWorkflow
         }
 
         $locked->forceFill([
-            'accepted_at' => now(),
+            'accepted_at' => $this->now(),
             'accepted_by' => $registrar->id,
-            'due_at' => $this->calendar->addWorkingDays(now(), $type->processing_days),
+            'due_at' => $this->calendar->addWorkingDays($this->now(), $type->processing_days),
         ]);
         $this->transition($locked, $original, RequestStatus::AcceptedForProcessing, $registrar, RequestEventType::Accepted, $remarks);
 
@@ -1311,9 +1369,9 @@ class RequestWorkflow
         }
 
         // The processing clock stops here (REQ-34-11, REQ-11-08).
-        $locked->ready_at = now();
+        $locked->ready_at = $this->now();
         $locked->processing_working_days = $locked->accepted_at !== null
-            ? $this->calendar->workingDaysBetween($locked->accepted_at, now())
+            ? $this->calendar->workingDaysBetween($locked->accepted_at, $this->now())
             : null;
         $this->transition($locked, $locked, RequestStatus::ReadyForRelease, $actor, RequestEventType::ReadyForRelease);
     }
@@ -1329,10 +1387,10 @@ class RequestWorkflow
         // The office's own deadline, counted from this receipt; none for a correction or the final
         // check, where the request's due date applies (REQ-30-05, 06).
         $deadline = $current->purpose !== VisitPurpose::Correction && $step->allotted_days !== null
-            ? $this->calendar->addWorkingDays(now(), $step->allotted_days)
+            ? $this->calendar->addWorkingDays($this->now(), $step->allotted_days)
             : null;
 
-        $current->forceFill(['status' => VisitStatus::Received, 'received_at' => now(), 'received_by' => $actor->id, 'due_at' => $deadline])->save();
+        $current->forceFill(['status' => VisitStatus::Received, 'received_at' => $this->now(), 'received_by' => $actor->id, 'due_at' => $deadline])->save();
 
         if ($current->purpose === VisitPurpose::Correction) {
             $this->record($locked, $actor, RequestEventType::ReceiptAccepted, null, null, null, visit: $current);
@@ -1363,12 +1421,12 @@ class RequestWorkflow
         $step = $current->step()->with('department')->firstOrFail();
         $correction = $current->purpose === VisitPurpose::Correction;
 
-        $current->forceFill(['status' => VisitStatus::Done, 'done_at' => now(), 'done_by' => $actor->id, 'remarks' => filled($remarks) ? $remarks : null])->save();
+        $current->forceFill(['status' => VisitStatus::Done, 'done_at' => $this->now(), 'done_by' => $actor->id, 'remarks' => filled($remarks) ? $remarks : null])->save();
 
         if ($correction) {
             $this->record($locked, $actor, RequestEventType::Corrected, null, null, $remarks, visit: $current);
         } else {
-            $step->forceFill(['status' => StepStatus::Completed, 'completed_at' => now()])->save();
+            $step->forceFill(['status' => StepStatus::Completed, 'completed_at' => $this->now()])->save();
             $this->record($locked, $actor, RequestEventType::StepCompleted, null, null, $remarks, $step, $current);
         }
 
@@ -1416,7 +1474,7 @@ class RequestWorkflow
             'purpose' => $purpose,
             'status' => VisitStatus::InTransit,
             'from_department_id' => $from?->id,
-            'forwarded_at' => now(),
+            'forwarded_at' => $this->now(),
             'forwarded_by' => $actor->id,
         ])->save();
 
@@ -1439,9 +1497,9 @@ class RequestWorkflow
     {
         $visit->forceFill($attributes + [
             'status' => $status,
-            'completed_at' => now(),
+            'completed_at' => $this->now(),
             'completed_by' => $actor->id,
-            'working_days' => $visit->received_at !== null ? $this->calendar->workingDaysBetween($visit->received_at, now()) : null,
+            'working_days' => $visit->received_at !== null ? $this->calendar->workingDaysBetween($visit->received_at, $this->now()) : null,
         ])->save();
     }
 
@@ -1500,6 +1558,11 @@ class RequestWorkflow
             throw new InvalidTransition('Act on the application\'s first credential, '.$locked->application()->value('reference_no').'-1.');
         }
 
+        // An override's step can't come before what the history already holds (REQ-35-08, 13).
+        if ($this->overrideAt !== null && $locked->events()->where('created_at', '>', $this->overrideAt)->exists()) {
+            throw new InvalidTransition('The request has moved on since the Override was opened.');
+        }
+
         return $locked;
     }
 
@@ -1547,6 +1610,7 @@ class RequestWorkflow
         CredentialRequest::query()
             ->where('application_id', $lead->application_id)
             ->whereKeyNot($lead->getKey())
+            // Bookkeeping, not when the step happened: the real time, even on an override.
             ->update([...$values, 'updated_at' => now()]);
     }
 
@@ -1560,7 +1624,7 @@ class RequestWorkflow
         ?RequestStep $step = null,
         ?OfficeVisit $visit = null,
     ): RequestEvent {
-        $event = $request->events()->create([
+        $event = $request->events()->make([
             'actor_id' => $actor?->id,
             'type' => $type,
             'from_status' => $from,
@@ -1569,7 +1633,12 @@ class RequestWorkflow
             'office_visit_id' => $visit?->id,
             'department_id' => $visit->department_id ?? $step?->department_id,
             'remarks' => filled($remarks) ? $remarks : null,
+            // An override's entries keep why, and when they were really recorded (REQ-35-10).
+            'override_reason' => $this->overrideReason,
+            'recorded_at' => $this->isOverride() ? now() : null,
         ]);
+        // When the step happened: now, or an override's time (REQ-35-09).
+        $event->forceFill(['created_at' => $this->now()])->save();
 
         app(RecordRequestEvent::class)->handle($event, $request, $actor);   // REQ-14-01
 
@@ -1590,7 +1659,7 @@ class RequestWorkflow
         $proof->forceFill([
             'status' => $status,
             'reviewed_by' => $registrar->id,
-            'reviewed_at' => now(),
+            'reviewed_at' => $this->now(),
             'remarks' => filled($remarks) ? $remarks : null,
         ])->save();
     }

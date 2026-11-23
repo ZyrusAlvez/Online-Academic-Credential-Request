@@ -115,6 +115,23 @@ class CredentialRequest extends Model
     }
 
     /**
+     * The credential the workflow acts on for this one: until acceptance the application's first,
+     * which carries it (REQ-27-03); afterwards this one.
+     */
+    public function actingCredential(): self
+    {
+        return $this->status->isBeforeAcceptance() && ! $this->isLead()
+            ? $this->application()->firstOrFail()->lead()->firstOrFail()
+            : $this;
+    }
+
+    /** The id of its latest history entry, 0 for none: whether anything was recorded since (REQ-35-13). */
+    public function latestEventId(): int
+    {
+        return (int) $this->events()->max('id');
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

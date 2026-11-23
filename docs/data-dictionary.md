@@ -381,20 +381,24 @@ The release acknowledgment, one per released request (spec 11).
 
 ## request_events
 
-The append-only ledger: every action on a request. Rows are never updated or deleted.
+The append-only ledger: every action on a request. Rows are never updated or deleted. An entry
+written by an Admin override (spec 35) has `override_reason` and `recorded_at`, and its
+`created_at` is when the step happened.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
 | credential_request_id | bigint unsigned | No | FK → credential_requests, IX (with id) | | |
-| actor_id | bigint unsigned | Yes | FK → users | | Who did it |
+| actor_id | bigint unsigned | Yes | FK → users | | Who did it (the Admin, for an override) |
 | type | varchar(40) | No | IX (with created_at) | | See [RequestEventType](#requesteventtype) |
 | from_status, to_status | varchar(30) | Yes | | | Set when the request status changed |
 | request_step_id | bigint unsigned | Yes | FK → request_steps | | |
 | office_visit_id | bigint unsigned | Yes | FK → office_visits | | |
 | department_id | bigint unsigned | Yes | FK → departments | | Office involved |
 | remarks | text | Yes | | | |
-| created_at | timestamp | No | | CURRENT_TIMESTAMP | |
+| override_reason | varchar(500) | Yes | | | Why the Admin recorded the step for someone else (REQ-35-10); null on every other entry |
+| recorded_at | timestamp | Yes | | | When an override's entry was really recorded; null on every other entry |
+| created_at | timestamp | No | | CURRENT_TIMESTAMP | When it happened: the time recorded, or an override's time (REQ-35-09) |
 
 ## activity_logs
 
@@ -586,8 +590,9 @@ from before spec 16 only, `deficiency_resolved`, `customer_action_requested`, `c
 `payment_verified`, `accepted`. Routing: `document_forwarded`, `receipt_accepted`,
 `step_completed`, `document_returned`, `document_resubmitted`, `delay_recorded`, `step_bypassed`
 (before spec 16 only), `ready_for_release`. Representatives and release: `representative_declared`,
-`representative_verified`, `representative_rejected`, `released`. And `cancelled`. Internal
-entries hidden from requesters: forwarding, returns, resubmissions, delay notes, bypasses.
+`representative_verified`, `representative_rejected`, `released`. And `cancelled`. Admin override:
+`evaluation_unlocked` (REQ-35-05). Internal entries hidden from requesters: forwarding, returns,
+resubmissions, delay notes, bypasses, unlocks.
 
 ### CheckItem
 

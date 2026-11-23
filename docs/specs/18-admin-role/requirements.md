@@ -62,7 +62,9 @@ This replaces:
   SHALL stay the Registrar's. IF the Admin opens one, or calls one of its actions, THEN THE
   SYSTEM SHALL respond 403.
 - **REQ-18-06** THE SYSTEM SHALL serve Records at `/records` and a request's read-only record at
-  `/records/{id}`, to the Registrar and the Admin only. Other roles SHALL get 403.
+  `/records/{id}`, to the Registrar and the Admin only. Other roles SHALL get 403. *Since
+  REQ-35-01 (2026-11-23):* the Admin's record has the Override, which records a stuck request's
+  next step.
 - **REQ-18-07** THE SYSTEM SHALL let the Registrar and the Admin open a request's uploaded valid
   ID, SPA and IDs, and proof of payment. Everyone else keeps the rules of REQ-01-20 and spec 11.
 

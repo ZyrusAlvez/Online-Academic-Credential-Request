@@ -52,7 +52,8 @@ the TOR routing example, and section X (return and reprocessing control, deadlin
 - ~~REQ-05-10~~ *Superseded by REQ-16-21:* the registrar does not bypass offices.
 - **REQ-05-11** THE SYSTEM SHALL let only the staff of the office concerned act on a visit, and
   registrar accounts on the Office of the Registrar's visits; the first action wins when two people
-  act at once.
+  act at once. *Changed by REQ-35-02 (2026-11-23):* the Admin also acts on a visit, through an
+  override.
 
 ### Due dates and pauses
 - **REQ-05-12** WHILE a request is being processed and past its effective due date THE SYSTEM SHALL

@@ -34,7 +34,17 @@
         </div>
     @endif
 
-    <p class="text-sm text-zinc-600">{{ __('Where it is now: :where', ['where' => $request->staffWhereabouts()]) }}</p>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="text-sm text-zinc-600">{{ __('Where it is now: :where', ['where' => $request->staffWhereabouts()]) }}</p>
+        {{-- The Admin records a stuck credential's next step (REQ-35-01). --}}
+        @can('override', $request)
+            <flux:button size="sm" icon="bolt" wire:click="openOverride" data-override-button>{{ __('Override') }}</flux:button>
+        @endcan
+    </div>
 
     @include('partials.request-record', ['hide' => [], 'events' => $events])
+
+    @can('override', $request)
+        @include('partials.override-dialog')
+    @endcan
 </div>
