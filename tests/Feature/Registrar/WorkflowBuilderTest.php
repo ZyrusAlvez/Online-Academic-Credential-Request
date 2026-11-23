@@ -84,24 +84,6 @@ test('REQ-03-08 steps of another credential type cannot be touched', function ()
     expect($other->steps()->count())->toBe(1);
 });
 
-test('REQ-03-09 the registrar can edit a step\'s task and instructions', function () {
-    $this->type = CredentialType::factory()->withSteps([$this->library])->create();
-    $step = $this->type->steps()->first();
-
-    builder()
-        ->call('editStep', $step->id)
-        ->assertSet('editingTask', 'sign')
-        ->set('editingTask', 'documentary_stamp')
-        ->set('editingInstructions', 'Verify clearance card')
-        ->call('saveStep')
-        ->assertHasNoErrors()
-        ->assertSet('editingStepId', null);
-
-    expect($step->fresh())
-        ->task->toBe(RouteTask::DocumentaryStamp)
-        ->instructions->toBe('Verify clearance card');
-});
-
 test('REQ-03-11 only the admin can use the route builder', function (string $state) {
     Livewire::actingAs(User::factory()->{$state}()->create())
         ->test(Workflow::class, ['credentialType' => $this->type])

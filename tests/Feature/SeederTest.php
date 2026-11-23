@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\Role;
-use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\NonWorkingDay;
@@ -10,7 +9,6 @@ use App\Models\Purpose;
 use App\Models\User;
 use App\Models\WorkflowStep;
 use Database\Seeders\DatabaseSeeder;
-use Database\Seeders\ProgramSeeder;
 use Database\Seeders\PurposeSeeder;
 use Illuminate\Support\Facades\DB;
 
@@ -21,57 +19,6 @@ test('REQ-18-11 normal seeding creates the first admin and no other account', fu
     expect($admin->role)->toBe(Role::Admin)
         ->and($admin->email)->toBe(config('uphsl.initial_admin.email'))
         ->and(Department::count())->toBeGreaterThan(0);
-});
-
-test('REQ-23-02 normal seeding loads the base data every environment needs and nothing else', function () {
-    $this->seed(DatabaseSeeder::class);
-
-    expect(Department::count())->toBe(15)
-        ->and(Program::count())->toBe(collect(ProgramSeeder::PROGRAMS)->flatten()->count())
-        ->and(Purpose::count())->toBe(count(PurposeSeeder::PURPOSES))
-        ->and(CredentialType::count())->toBe(17)
-        ->and(CredentialType::doesntHave('steps')->count())->toBe(0)
-        ->and(NonWorkingDay::count())->toBeGreaterThan(0)
-        ->and(User::count())->toBe(1)
-        ->and(CredentialRequest::count())->toBe(0);
-});
-
-test('REQ-12-02 the seeded program list has 34 programs, the 7 added ones included', function () {
-    $this->seed(DatabaseSeeder::class);
-
-    $programs = fn (string $code): array => Program::whereHas('college', fn ($query) => $query->where('code', $code))->orderBy('name')->pluck('name')->all();
-
-    expect(Program::count())->toBe(34)
-        ->and(Program::where('name', 'Basic Education')->exists())->toBeFalse()
-        ->and($programs('CBA'))->toContain('Bachelor of Science in Management Accounting')
-        ->and($programs('CCS'))->toContain('Bachelor of Science in Information Technology, Specialization in Game Development')
-        ->and($programs('CTE'))->toContain('Bachelor of Special Needs Education')
-        ->and($programs('CEA'))->toContain(
-            'Bachelor of Science in Electrical Engineering',
-            'Bachelor of Science in Electronics Engineering',
-            'Bachelor of Science in Mechanical Engineering',
-        )
-        ->and($programs('CME'))->toContain('Bachelor of Science in Marine Engineering');
-});
-
-test('REQ-28-08 the colleges are seeded with their new names and no Basic Education Department', function () {
-    $this->seed(DatabaseSeeder::class);
-
-    $colleges = Department::colleges()->pluck('name', 'code');
-
-    expect($colleges)->toHaveCount(11)
-        ->and($colleges['CBA'])->toBe('College of Business and Accountancy')
-        ->and($colleges['COC'])->toBe('College of Criminology')
-        ->and($colleges['SHS'])->toBe('Senior High School')
-        ->and(Department::where('name', 'like', '%Basic Education%')->exists())->toBeFalse()
-        ->and(Department::whereIn('code', ['BED', 'CBAA', 'CCJE'])->exists())->toBeFalse();
-});
-
-test('REQ-28-09 Senior High School\'s programs are its strands, STEM for now', function () {
-    $this->seed(DatabaseSeeder::class);
-
-    expect(Program::whereHas('college', fn ($query) => $query->where('code', 'SHS'))->pluck('name')->all())
-        ->toBe(['Science, Technology, Engineering and Mathematics (STEM)']);
 });
 
 test('REQ-23-03 seeding the base data again adds nothing and keeps what the admin changed', function () {

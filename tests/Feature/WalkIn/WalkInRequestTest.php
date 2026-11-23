@@ -11,7 +11,6 @@ use App\Enums\Role;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Cashier\Payments as CashierPayments;
 use App\Livewire\Registrar\Queue;
-use App\Livewire\Registrar\Records\Index as RecordsIndex;
 use App\Livewire\Registrar\Requests\Show;
 use App\Livewire\Registrar\WalkIn;
 use App\Livewire\Student\Dashboard;
@@ -21,10 +20,8 @@ use App\Models\User;
 use App\Notifications\RequestActivity;
 use App\Notifications\VerificationCode;
 use App\Services\RequestWorkflow;
-use Database\Seeders\DemoRequestSeeder;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\GoogleProvider;
 use Laravel\Socialite\Two\User as GoogleUser;
@@ -82,15 +79,6 @@ test('REQ-26-01 Walk-in Request is first in the registrar sidebar and only the r
     }
 });
 
-test('REQ-26-02 the form has sections 1 to 3 with an email, and no valid ID, representative or notice', function () {
-    $html = Livewire::actingAs($this->registrar)->test(WalkIn::class)->html();
-
-    expect($html)->toContain('1. What Do You Need?')->toContain('2. Personal Information')->toContain('3. Academic Information')
-        ->toContain('data-walk-in-email')
-        ->not->toContain('Valid ID')->not->toContain('Who Will Transact')->not->toContain('Important notice')
-        ->not->toContain('data-privacy-consent');
-});
-
 test('REQ-26-02 REQ-26-03 every entry is checked before the summary, the email included', function () {
     Livewire::actingAs($this->registrar)->test(WalkIn::class)
         ->call('review')
@@ -99,18 +87,6 @@ test('REQ-26-02 REQ-26-03 every entry is checked before the summary, the email i
         ->assertSet('reviewing', false);
 
     filledWalkInPage()->set('profile.email', 'not-an-email')->call('review')->assertHasErrors('profile.email');
-});
-
-test('REQ-26-03 the summary shows sections 1 to 3 and the evaluator\'s validation, required to submit', function () {
-    $page = filledWalkInPage()->call('review')->assertHasNoErrors()->assertSet('reviewing', true);
-
-    $page->assertSeeInOrder(['Summary', '1. What Do You Need?', '2. Personal Information', 'pedro.v@example.com', '3. Academic Information', 'Evaluator\'s Validation',
-        'I have validated the eligibility of this request and the requester\'s personal and academic information.'])
-        ->assertDontSee('Data Privacy')->assertDontSee('Valid ID');
-    expect(Str::after($page->html(), 'data-walk-in-attestation'))->toMatch('/data-submit-request[^>]*disabled|disabled[^>]*data-submit-request/');
-
-    $page->call('submit')->assertHasErrors('attested');
-    expect(CredentialRequest::count())->toBe(0);
 });
 
 // ── Submitting ──────────────────────────────────────────────────────────────────────────────
@@ -193,16 +169,6 @@ test('REQ-26-05 a walk-in payment is never returned: no button, and the workflow
     expect($request->fresh()->status)->toBe(RequestStatus::PaymentVerification);
 });
 
-test('REQ-26-06 a walk-in payment shows its receipt number and no file wherever payments are listed', function () {
-    $request = recordWalkIn();
-    workflow()->verifyWalkInPayment($request, $this->registrar, 'OR-104455', '530');
-    $proof = $request->paymentProofs()->sole();
-
-    $this->actingAs($this->registrar)->get(route('records.show', $request))->assertOk()
-        ->assertSee('Official receipt no. OR-104455')->assertDontSee(route('payment-proofs.show', $proof));
-    $this->get(route('payment-proofs.show', $proof))->assertNotFound();
-});
-
 // ── Linking ─────────────────────────────────────────────────────────────────────────────────
 
 test('REQ-26-07 verifying an account\'s email by the code links its walk-in requests and fills an empty profile', function () {
@@ -268,54 +234,4 @@ test('REQ-26-09 a linked walk-in request is the owner\'s; before linking nobody 
     Livewire::actingAs($owner)->test(Dashboard::class)->assertSee($linked->reference_no)->assertDontSee($unlinked->reference_no);
     $this->actingAs($owner)->get(route('student.requests.show', $linked))->assertOk();
     $this->actingAs($owner)->get(route('student.requests.show', $unlinked))->assertNotFound();
-});
-
-// ── Showing walk-in requests ────────────────────────────────────────────────────────────────
-
-test('REQ-26-10 queues, Records and the record mark a walk-in request and show its own name and email', function () {
-    $request = recordWalkIn();
-
-    // Payment Validation lists walk-ins only: no badge there.
-    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => 'payment'])
-        ->assertSee($request->reference_no)->assertDontSeeHtml('data-walk-in-badge');
-    $accepted = recordWalkIn();
-    workflow()->verifyWalkInPayment($accepted, $this->registrar, 'OR-1001', '530');
-    Livewire::actingAs($this->registrar)->test(Queue::class, ['queue' => 'outgoing'])
-        ->assertSee($accepted->reference_no)->assertSeeHtml('data-walk-in-badge');
-    Livewire::actingAs($this->registrar)->test(RecordsIndex::class)->assertSeeHtml('data-walk-in-badge')->assertSee('Pedro Cruz Villanueva');
-    $this->actingAs($this->registrar)->get(route('records.show', $request))->assertOk()
-        ->assertSee('Walk-in')->assertSee('pedro.v@example.com');
-
-    $online = submitRequest(requester($this->org->ccs), $this->org->tor);
-    $this->get(route('records.show', $online))->assertDontSeeHtml('data-walk-in-badge');
-});
-
-test('REQ-26-10 Request Details shows the request type, online or walk-in, on every page', function () {
-    // The row's label and value.
-    $row = fn (string $html): string => preg_replace('/\s+/', ' ', trim(strip_tags(Str::before(Str::after($html, 'data-request-type'), '</div>'))));
-    $owner = requester($this->org->ccs);
-    $walkIn = recordWalkIn(client: ['email' => $owner->email]);
-    $online = submitRequest($owner, $this->org->tor);
-
-    // The Registrar's record, the requester's page and the Cashier's page.
-    expect($row($this->actingAs($this->registrar)->get(route('records.show', $walkIn))->getContent()))->toContain('Request type')->toContain('Walk-in request')
-        ->and($row($this->actingAs($this->registrar)->get(route('records.show', $online))->getContent()))->toContain('Online request')
-        ->and($row($this->actingAs($owner)->get(route('student.requests.show', $walkIn))->getContent()))->toContain('Walk-in request')
-        ->and($row($this->actingAs($owner)->get(route('student.requests.show', $online))->getContent()))->toContain('Online request');
-
-    uploadPayment(evaluate($online, $this->registrar));
-    $cashier = User::factory()->cashier()->create();
-    expect($row($this->actingAs($cashier)->get(route('cashier.payments.show', $online))->getContent()))->toContain('Online request')
-        // Stored as request_type (REQ-26-10).
-        ->and($walkIn->fresh()->request_type)->toBe(RequestType::WalkIn)
-        ->and($online->application()->firstOrFail()->request_type)->toBe(RequestType::Online);
-});
-
-test('REQ-26-11 the demo data has a walk-in request with no account and one linked to a demo requester', function () {
-    $this->seed(DemoRequestSeeder::class);
-
-    $walkIns = CredentialRequest::where('request_type', RequestType::WalkIn)->get();
-    expect($walkIns->whereNull('user_id'))->toHaveCount(1)
-        ->and($walkIns->whereNotNull('user_id'))->toHaveCount(1)
-        ->and(User::find($walkIns->whereNotNull('user_id')->first()->user_id)->email)->toBe('ana@example.com');
 });

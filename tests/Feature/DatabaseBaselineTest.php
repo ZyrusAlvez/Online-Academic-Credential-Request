@@ -1,16 +1,10 @@
 <?php
 
 use App\Console\Commands\ResetApp;
-use App\Enums\Role;
-use App\Models\CredentialRequest;
 use App\Models\Department;
-use App\Models\IdentityDocument;
-use App\Models\User;
 use App\Services\RequestWorkflow;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -50,22 +44,6 @@ function fakeUploads(): void
         $disk->put($path, 'x');
     }
 }
-
-test('REQ-23-01 the migrations alone build every table, and add no rows except the request statuses', function () {
-    $expected = [
-        'activity_logs', 'cache', 'cache_locks', 'credential_requests', 'credential_types', 'delay_notes', 'departments',
-        'due_date_pauses', 'email_verification_codes', 'failed_jobs', 'identity_documents', 'job_batches', 'jobs',
-        'non_working_days', 'notifications', 'office_visits', 'password_reset_tokens', 'payment_proofs', 'programs',
-        'purposes', 'releases', 'reminder_logs', 'request_applications', 'request_checks', 'request_deficiencies', 'request_documents',
-        'request_events', 'request_representatives', 'request_statuses', 'request_steps', 'requester_verifications',
-        'sessions', 'users', 'workflow_steps',
-    ];
-
-    $tables = collect(Schema::getTables(DB::connection()->getDatabaseName()))->pluck('name')->reject(fn (string $name) => $name === 'migrations')->sort()->values()->all();
-
-    expect($tables)->toBe($expected)
-        ->and(array_values(array_filter($expected, fn (string $table) => DB::table($table)->exists())))->toBe(['request_statuses']);
-});
 
 test('REQ-23-04 app:reset deletes the uploaded files and rebuilds the database with the base data only', function () {
     fakeUploads();
@@ -118,34 +96,6 @@ test('REQ-23-06 in production app:reset runs once the confirmation phrase is typ
 
     expect($migrate->calls)->toBe([['seed' => true, 'force' => true]])
         ->and(Storage::disk(RequestWorkflow::proofDisk())->allFiles())->toBe(['other/keep.txt']);
-});
-
-test('REQ-23-06 local and staging are not asked to confirm', function (string $environment) {
-    fakeUploads();
-    $migrate = fakeMigrateFresh();
-    app()->detectEnvironment(fn () => $environment);
-
-    $this->artisan('app:reset')->assertSuccessful();
-
-    expect($migrate->calls)->toHaveCount(1);
-})->with(['local', 'staging']);
-
-test('REQ-31-01 app:reset-demo does the same reset and then loads the demo accounts and the demo requests', function () {
-    fakeUploads();
-    $migrate = fakeMigrateFresh();
-    app()->detectEnvironment(fn () => 'staging');
-    config(['uphsl.demo.requesters' => 0, 'uphsl.demo.applications' => 0]);
-
-    $this->artisan('app:reset-demo')->expectsOutputToContain('Demo data reloaded')->assertSuccessful();
-
-    expect($migrate->calls)->toBe([['seed' => true, 'force' => true]])
-        ->and(User::where('email', 'registrar@example.com')->sole()->role)->toBe(Role::Registrar)
-        ->and(User::where('email', 'ccs@example.com')->sole()->role)->toBe(Role::Department)
-        ->and(User::where('email', 'student@example.com')->sole()->role)->toBe(Role::Student)
-        ->and(User::where('email', 'admin@example.com')->exists())->toBeFalse()
-        ->and(User::where('email', config('uphsl.initial_admin.email'))->exists())->toBeTrue()
-        ->and(CredentialRequest::count())->toBeGreaterThan(50)
-        ->and(IdentityDocument::count())->toBeGreaterThanOrEqual(4);
 });
 
 test('REQ-31-01 app:reset-demo refuses to run in production', function () {

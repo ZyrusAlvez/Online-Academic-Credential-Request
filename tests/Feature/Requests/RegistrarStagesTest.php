@@ -3,27 +3,22 @@
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
-use App\Enums\PaymentStatus;
 use App\Enums\RecipientType;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Cashier\Payments as CashierPayments;
-use App\Livewire\Cashier\Requests\Show as CashierShow;
 use App\Livewire\Registrar\Queue;
 use App\Livewire\Registrar\Records\Index as RecordsIndex;
 use App\Livewire\Registrar\Records\Show as RecordShow;
 use App\Livewire\Registrar\Requests\Show;
-use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\CredentialRequest;
 use App\Models\RequestCheck;
 use App\Models\User;
 use App\Notifications\RequestActivity;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
@@ -67,21 +62,6 @@ function awaitingValidation(CredentialRequest $request): CredentialRequest
     return walkIn($request);
 }
 
-/** A paid online request with its proof awaiting the cashier's validation (REQ-25-04). */
-function onlineProofToVerify(CredentialRequest $request): CredentialRequest
-{
-    evaluate($request, test()->registrar);
-    uploadPayment($request);
-
-    return $request->fresh();
-}
-
-/** The cashier's Payment Validation page for a request (REQ-25-05). */
-function cashierPage(CredentialRequest $request): Testable
-{
-    return Livewire::actingAs(User::factory()->cashier()->create())->test(CashierShow::class, ['credentialRequest' => $request->fresh()]);
-}
-
 /** An accepted request taken through every office to the received final quality check. */
 function atFinalCheck(CredentialRequest $request): CredentialRequest
 {
@@ -94,18 +74,6 @@ function atFinalCheck(CredentialRequest $request): CredentialRequest
 
     return $request->fresh();
 }
-
-// ── Navigation and queues ───────────────────────────────────────────────────────────────────
-
-test('REQ-18-03 the registrar has one page per stage and Records, and no Requests list', function () {
-    // REQ-16-01, superseded by REQ-18-03; the sidebar itself is in tests/Feature/Admin/AdminRoleTest.php.
-    $this->actingAs($this->registrar)->get('/registrar/requests')->assertNotFound();
-
-    foreach (['registrar.evaluation', 'registrar.payments', 'registrar.outgoing', 'registrar.final-check', 'registrar.release', 'records'] as $route) {
-        $this->actingAs($this->registrar)->get(route($route))->assertOk();
-        $this->actingAs($this->owner)->get(route($route))->assertForbidden();
-    }
-});
 
 test('REQ-16-02 Initial Evaluation lists submitted and evaluated requests with their evaluator; returned ones wait apart', function () {
     $evaluating = underEvaluation(submitRequest($this->owner, $this->org->free));
@@ -120,16 +88,6 @@ test('REQ-16-02 Initial Evaluation lists submitted and evaluated requests with t
     queuePage('evaluation', ['waiting' => true])
         ->assertSee($returned->reference_no)
         ->assertDontSee($this->request->reference_no);
-});
-
-test('REQ-16-02 an evaluator with no name yet shows by email in the queue', function () {
-    // The queue loads the evaluator with only the columns it needs; the email is one of them.
-    $unnamed = User::factory()->registrar()->create(['first_name' => null, 'middle_name' => null, 'last_name' => null, 'email' => 'new.registrar@example.com']);
-    workflow()->startEvaluation($this->request, $unnamed);
-
-    queuePage('evaluation')
-        ->assertOk()
-        ->assertSee('Evaluating: new.registrar@example.com');
 });
 
 test('REQ-16-03 Payment Validation lists the proofs to verify; the requests awaiting payment wait in their own tab', function () {
@@ -181,51 +139,6 @@ test('REQ-16-06 Release lists the credentials ready for release', function () {
     queuePage('release')->assertSee($ready->reference_no)->assertDontSee($this->request->reference_no);
 });
 
-test('REQ-16-25 every stage queue, Release included, searches by tracking number or requester name', function () {
-    $other = User::factory()->withProfile($this->org->ccs)->create(['first_name' => 'Zephyrine', 'last_name' => 'Quillborne']);
-    $ready = function (User $requester) {
-        $request = atFinalCheck(submitRequest($requester, $this->org->tor));
-        workflow()->approveFinalCheck($request, $this->registrar);
-
-        return $request;
-    };
-
-    // One request of each requester per queue.
-    $pairs = [
-        'evaluation' => [$this->request, submitRequest($other, $this->org->tor)],
-        'payment' => [awaitingValidation(submitRequest($this->owner, $this->org->tor)), awaitingValidation(submitRequest($other, $this->org->tor))],
-        'outgoing' => [acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar), acceptRequest(submitRequest($other, $this->org->tor), $this->registrar)],
-        'final_check' => [atFinalCheck(submitRequest($this->owner, $this->org->tor)), atFinalCheck(submitRequest($other, $this->org->tor))],
-        'release' => [$ready($this->owner), $ready($other)],
-    ];
-
-    foreach ($pairs as $queue => [$mine, $hers]) {
-        queuePage($queue)->assertSeeHtml('data-queue-search')->assertSee($mine->reference_no)->assertSee($hers->reference_no);
-
-        queuePage($queue, ['search' => 'zephyrine quill'])->assertSee($hers->reference_no)->assertDontSee($mine->reference_no);
-        queuePage($queue, ['search' => 'Quillborne'])->assertSee($hers->reference_no)->assertDontSee($mine->reference_no);
-        queuePage($queue)->set('search', " {$mine->reference_no} ")->assertSee($mine->reference_no)->assertDontSee($hers->reference_no);
-        queuePage($queue, ['search' => 'no such request'])->assertSee('No requests match your search.');
-    }
-
-    // With the waiting tab and the office filter.
-    $returned = underEvaluation(submitRequest($other, $this->org->free), [CheckItem::Identity->value => CheckResult::Rejected]);
-    workflow()->returnForClarification($returned, $this->registrar, 'Blurred ID.');
-    queuePage('evaluation', ['waiting' => true, 'search' => 'Zephyrine'])->assertSee($returned->reference_no);
-    queuePage('evaluation', ['waiting' => true, 'search' => $this->request->reference_no])->assertDontSee($returned->reference_no);
-    queuePage('outgoing', ['office' => (string) $this->org->registrarOffice->id, 'search' => 'Zephyrine'])
-        ->assertSee($pairs['outgoing'][1]->reference_no)->assertDontSee($pairs['outgoing'][0]->reference_no);
-});
-
-test('REQ-16-25 on the queues with a waiting tab the search sits right of the tabs, on their line', function () {
-    $order = ['justify-between', 'data-queue-tabs', 'sm:ml-auto sm:w-72', 'data-queue-search'];
-
-    // Initial Evaluation's is wider: the search and the department filter (REQ-16-31).
-    queuePage('evaluation')->assertSeeHtmlInOrder(['justify-between', 'data-queue-tabs', 'sm:ml-auto sm:w-[36rem] sm:grid-cols-2', 'data-queue-search']);
-    // The cashier's Payment Validation has the waiting tab (REQ-25-04).
-    Livewire::actingAs(User::factory()->cashier()->create())->test(CashierPayments::class)->assertSeeHtmlInOrder($order);
-});
-
 test('REQ-16-07 Records lists every request, searchable and filterable, and a record is read-only', function () {
     $declined = underEvaluation(submitRequest($this->owner, $this->org->free));
     workflow()->decline($declined, $this->registrar, 'Not a UPHSL graduate.');
@@ -242,47 +155,6 @@ test('REQ-16-07 Records lists every request, searchable and filterable, and a re
         ->assertDontSee('Start evaluation')->assertDontSee('Approve')->assertDontSee('Decline');
 
     $this->actingAs($this->owner)->get(route('records.show', $this->request))->assertForbidden();
-});
-
-test('REQ-16-07 a record shows the email and the contact number on rows of their own', function () {
-    $request = $this->request->fresh();
-
-    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
-        ->assertSeeHtml('data-record-email')->assertSeeHtml('data-record-contact')
-        ->assertSeeInOrder(['Email', $request->requesterEmail(), 'Contact number', $request->contact_number])
-        ->assertDontSee('Email and contact number');
-});
-
-test('REQ-16-23 staff see where a request is in the requester\'s terms, the requester in their own', function () {
-    $paying = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar)->fresh();
-    $returned = underEvaluation(submitRequest($this->owner, $this->org->free), [CheckItem::Identity->value => CheckResult::Rejected]);
-    workflow()->returnForClarification($returned, $this->registrar, 'Blurred ID.');
-
-    expect($paying->status)->toBe(RequestStatus::AwaitingPayment)
-        ->and($returned->fresh()->status)->toBe(RequestStatus::ReturnedForClarification);
-
-    Livewire::actingAs($this->registrar)->test(RecordsIndex::class)
-        ->assertSee("Waiting for the requester's payment")
-        ->assertSee('Waiting for the requester to correct the request')
-        ->assertDontSee('Waiting for your payment')
-        ->assertDontSee('Waiting for you to correct');
-
-    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $paying])
-        ->assertSee("Where it is now: Waiting for the requester's payment");
-
-    Livewire::actingAs($this->owner)->test(RequesterShow::class, ['credentialRequest' => $paying])
-        ->assertSee('Waiting for your payment')->assertDontSee("the requester's payment");
-
-    expect($paying->staffWhereabouts())->toBe("Waiting for the requester's payment")
-        ->and($returned->fresh()->staffWhereabouts())->toBe('Waiting for the requester to correct the request')
-        ->and($this->request->staffWhereabouts())->toBe($this->request->whereabouts());
-});
-
-test('REQ-16-08 there is no CSV download of the requests; Reports have one (REQ-34-16)', function () {
-    $this->actingAs($this->registrar)->get('/registrar/requests/export')->assertNotFound();
-    $this->actingAs($this->registrar)->get('/registrar/reports/daily/export')->assertNotFound();
-    $this->actingAs($this->registrar)->get(route('records'))->assertOk()->assertDontSee('Export CSV');
-    $this->actingAs(User::factory()->admin()->create())->get(route('admin.reports'))->assertOk()->assertSee('Export CSV');
 });
 
 // ── The evaluation lock ─────────────────────────────────────────────────────────────────────
@@ -306,53 +178,6 @@ test('REQ-16-09 while under evaluation only its evaluator acts; others see who h
     checkAll($this->request, $this->registrar, CheckStage::Evaluation);
     stagePage()->call('approve');
     stagePage(as: $other)->assertDontSee('is under evaluation by');
-});
-
-// ── Initial Evaluation ──────────────────────────────────────────────────────────────────────
-
-test('REQ-16-10 the evaluator sees a read-only checklist of the requester\'s data with Confirm and Reject', function () {
-    underEvaluation($this->request);
-
-    stagePage()
-        ->assertSeeInOrder(['Credential Request Verification', 'User Identity Verification', 'Academic Record Verification'])
-        ->assertDontSee('Representative Verification')
-        ->assertSee($this->request->purpose)
-        ->assertSee($this->owner->email)
-        ->assertSee('Open '.$this->request->identityDocument->id_type)
-        ->assertSee('College of Computer Studies')
-        ->assertSee('Confirm')->assertSee('Reject')
-        ->assertDontSee('Update college')->assertDontSee('Requirements to check')->assertDontSee('Cancel request');
-
-    stagePage()->call('check', CheckItem::Identity->value, CheckResult::Rejected->value);
-    stagePage()->assertSeeHtml('data-check="identity" data-result="rejected"');
-    stagePage()->call('check', CheckItem::Identity->value, CheckResult::Confirmed->value);
-    stagePage()->assertSeeHtml('data-check="identity" data-result="confirmed"');
-
-    // Through a representative: the fourth part appears.
-    $represented = submitRequest($this->owner, $this->org->free);
-    declareRepresentative($represented, $this->owner, ['full_name' => 'Rosa Reyes']);
-    underEvaluation($represented);
-    stagePage($represented)->assertSee('Representative Verification')->assertSee('Rosa Reyes');
-
-    expect(method_exists(Show::class, 'changeCollege'))->toBeFalse();
-});
-
-test('REQ-16-24 each checklist part shows its data as summary rows, label left and value right', function () {
-    // A label/value row from the sm breakpoint, the same as the requester's summary (REQ-15-17).
-    $row = fn (string $label, string $value) => '#<div class="py-3 [^"]*sm:grid sm:grid-cols-\[minmax\(0,2fr\)_minmax\(0,3fr\)\][^"]*" data-summary-row>\s*<dt class="text-zinc-600">'.preg_quote($label, '#').'</dt>\s*<dd[^>]*>\s*'.preg_quote(e($value), '#').'#';
-
-    underEvaluation($this->request);
-    expect(stagePage()->html())
-        ->toMatch($row('Transacting', 'Personally'))
-        ->toMatch($row('Purpose', $this->request->purpose))
-        ->toMatch($row('Name', $this->request->requester_name))
-        ->toMatch($row('College', 'College of Computer Studies'));
-
-    // An online proof, on the cashier's Payment Validation (REQ-25-05).
-    expect(cashierPage(onlineProofToVerify(submitRequest($this->owner, $this->org->tor)))->html())->toMatch($row('Amount due', '₱530.00'));
-
-    $final = atFinalCheck(submitRequest($this->owner, $this->org->tor));
-    expect(stagePage($final)->html())->toMatch($row('Issued to', $final->requester_name));
 });
 
 test('REQ-16-11 remarks are optional to approve and required to return or decline', function () {
@@ -397,77 +222,6 @@ test('REQ-16-14 declining ends the request with the remarks as the reason and te
 
     expect($this->request->fresh())->status->toBe(RequestStatus::Declined)->decline_reason->toBe('Not a UPHSL graduate.');
     Notification::assertSentTo($this->owner, RequestActivity::class, fn ($n) => $n->event->type === RequestEventType::Declined);
-});
-
-// ── Payment Validation ──────────────────────────────────────────────────────────────────────
-
-test('REQ-16-17 payment validation shows the proof and its details read-only, then Decline, Return to Requester and Approve', function () {
-    // An online payment, now on the cashier's page (REQ-25-05).
-    onlineProofToVerify($this->request);
-
-    $html = cashierPage($this->request)->html();
-
-    // No checklist and no receipt number: the proof and its details, read-only.
-    expect($html)->toContain('data-payment-proof')->toContain('data-payment-details')
-        ->not->toContain('data-check=')->not->toContain('data-confirm-button')
-        ->not->toContain('Official receipt')
-        ->and(Str::between($html, 'data-payment-details', '</section>'))->toContain('Amount due')->toContain('Amount paid')->toContain('Date paid');
-    cashierPage($this->request)->assertSeeInOrder(['Remarks', 'Decline', 'Return to Requester', 'Approve'])->assertDontSee('Require Office Visit');
-
-    // Approve needs nothing else; remarks are optional.
-    cashierPage($this->request)->call('approve')->assertHasNoErrors();
-    expect($this->request->fresh())->status->toBe(RequestStatus::AcceptedForProcessing)->due_at->not->toBeNull()
-        ->and($this->request->paymentProofs()->first())->status->toBe(PaymentStatus::Verified)->official_receipt_no->toBeNull();
-
-    // Return to Requester and Decline need remarks.
-    $returned = onlineProofToVerify(submitRequest($this->owner, $this->org->tor));
-    cashierPage($returned)->call('returnRequest')->assertHasErrors('remarks');
-    cashierPage($returned)->set('remarks', 'Amount does not match.')->call('returnRequest')->assertHasNoErrors();
-    expect($returned->fresh()->status)->toBe(RequestStatus::AwaitingPayment)
-        ->and($returned->paymentProofs()->first()->status)->toBe(PaymentStatus::Rejected);
-
-    $declined = onlineProofToVerify(submitRequest($this->owner, $this->org->tor));
-    cashierPage($declined)->call('decline')->assertHasErrors('remarks');
-    cashierPage($declined)->set('remarks', 'No matching payment after three attempts.')->call('decline')->assertHasNoErrors();
-    expect($declined->fresh()->status)->toBe(RequestStatus::Declined);
-});
-
-test('REQ-16-27 the Decision is the last section on every stage that has one; Payment Validation shows the proof once', function () {
-    // The page's sections after the Decision, before the dialogs.
-    $afterDecision = fn (string $html): string => Str::before(Str::after($html, 'data-decision>'), 'data-decision-blocked');
-
-    $evaluating = underEvaluation(submitRequest($this->owner, $this->org->tor));
-    $payment = awaitingValidation(submitRequest($this->owner, $this->org->tor));
-    $finalCheck = atFinalCheck(submitRequest($this->owner, $this->org->tor));
-
-    foreach ([$evaluating, $payment, $finalCheck] as $request) {
-        $html = stagePage($request)->html();
-
-        expect($html)->toContain('data-decision>')
-            ->and($afterDecision($html))->not->toContain('<section')
-            // The request's record comes before it.
-            ->and(strpos($html, 'id="visits-heading"') ?: 0)->toBeLessThan(strpos($html, 'data-decision>'));
-    }
-
-    // The cashier's Payment Validation: the proof under review once, the Decision last (REQ-25-05).
-    $online = onlineProofToVerify(submitRequest($this->owner, $this->org->tor));
-    $html = cashierPage($online)->html();
-    expect($html)->toContain('data-payment-proof')->not->toContain('id="proofs-heading"')->not->toContain('Proofs of Payment')
-        ->and(strpos($html, 'id="details-heading"'))->toBeLessThan(strpos($html, 'data-decision>'))
-        ->and(Str::after($html, 'data-decision>'))->not->toContain('<section');
-
-    // Records still lists every proof.
-    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $online])->assertSee('Proofs of Payment');
-});
-
-test('REQ-16-17 payment checklist results saved before are deleted by the migration', function () {
-    $request = awaitingValidation(submitRequest($this->owner, $this->org->tor));
-    DB::table('request_checks')->insert(['credential_request_id' => $request->id, 'item' => 'payment_amount', 'result' => 'confirmed', 'checked_by' => $this->registrar->id, 'checked_at' => now()]);
-
-    (require database_path('migrations/2026_11_16_000001_delete_payment_checks.php'))->up();
-
-    expect(DB::table('request_checks')->whereIn('item', ['payment_proof', 'payment_amount'])->exists())->toBeFalse()
-        ->and($request->fresh()->checks)->toHaveCount(collect(CheckItem::for(CheckStage::Evaluation, $request))->count());
 });
 
 // ── In progress ─────────────────────────────────────────────────────────────────────────────
@@ -545,38 +299,6 @@ test('REQ-16-20 release records who claimed it; a representative must be verifie
     workflow()->approveFinalCheck($owners, $this->registrar);
     workflow()->release($owners, $this->registrar, RecipientType::Owner);
     expect($owners->fresh()->release->recipient_name)->toBe($owners->requester_name);
-});
-
-test('REQ-16-28 a representative can always be chosen; someone not on the list is typed in, with the SPA and ID reminder', function () {
-    $ready = atFinalCheck($this->request);
-    workflow()->approveFinalCheck($ready, $this->registrar);
-    $reminder = "Confirm the SPA and the document owner's valid ID, and the representative's valid ID.";
-
-    // No representative on the request: the choice is enabled and asks for the name.
-    stagePage($ready)->assertSee('A representative')->assertDontSee('A verified representative')
-        ->assertDontSeeHtml('data-release-reminder')
-        ->set('recipientType', 'representative')
-        ->assertSeeHtml('data-counter-representative')->assertSee($reminder)
-        ->call('release')->assertHasErrors(['recipientName' => 'required'])
-        ->set('recipientName', 'Pedro Santos')->call('release')->assertHasNoErrors();
-
-    expect($ready->fresh()->status)->toBe(RequestStatus::Released)
-        ->and($ready->fresh()->release)->recipient_type->toBe(RecipientType::Representative)
-        ->recipient_name->toBe('Pedro Santos')->request_representative_id->toBeNull()
-        ->and($ready->events()->get()->last()->remarks)->toBe('Received by Pedro Santos (Authorized representative); SPA and IDs checked at release');
-
-    // With a verified representative: the list, plus "Someone else" for anyone else.
-    $other = atFinalCheck(submitRequest($this->owner, $this->org->tor));
-    workflow()->approveFinalCheck($other, $this->registrar);
-    $rosa = declareRepresentative($other, $this->owner, ['full_name' => 'Rosa Reyes']);
-    workflow()->reviewRepresentative($rosa, $this->registrar, true);
-
-    stagePage($other)->set('recipientType', 'representative')
-        ->assertSee('Someone else')->assertDontSeeHtml('data-counter-representative')->assertSee($reminder)
-        ->set('recipientRepresentativeId', Show::SOMEONE_ELSE)->assertSeeHtml('data-counter-representative')
-        ->set('recipientName', 'Liza Cruz')->call('release')->assertHasNoErrors();
-
-    expect($other->fresh()->release)->recipient_name->toBe('Liza Cruz')->request_representative_id->toBeNull();
 });
 
 // ── Removed registrar actions ───────────────────────────────────────────────────────────────

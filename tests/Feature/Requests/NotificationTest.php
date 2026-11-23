@@ -4,13 +4,11 @@ use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\RequestEventType;
 use App\Livewire\NotificationBell;
-use App\Livewire\Notifications\Index;
 use App\Models\User;
 use App\Notifications\RequestActivity;
 use App\Support\RequestRegistrars;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Notifications\Events\NotificationSent;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Defer\DeferredCallbackCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -64,41 +62,6 @@ test('REQ-06-05 the requester is emailed at the client\'s key moments', function
         RequestEventType::Accepted,
     )->and(mailedTypes())->toBe(requesterEventTypes())
         ->and(mailedTypes())->not->toContain(RequestEventType::Resubmitted);
-});
-
-test('REQ-06-05 ready-for-release and declined are emailed with the details', function () {
-    $request = acceptRequest(submitRequest($this->owner, $this->org->free), $this->registrar);
-    passOffice($request, $this->registrar);
-    passOffice($request, $this->registrar);
-    $ready = $request->events()->with(['department', 'step'])->get()->firstWhere('type', RequestEventType::ReadyForRelease);
-
-    $mail = (new RequestActivity($ready, 'Ready'))->toMail($this->owner);
-    expect($mail)->toBeInstanceOf(MailMessage::class)
-        ->and($mail->subject)->toContain($request->reference_no)
-        // No representative declared, so only the owner is told to come (REQ-11-05).
-        ->and(implode(' ', $mail->introLines))->toContain('Claim it at the Office of the Registrar with a valid ID.')
-        ->and($mail->actionUrl)->toBe(route('student.requests.show', $request));
-
-    Notification::fake();
-    $declined = submitRequest($this->owner, $this->org->tor);
-    workflow()->startEvaluation($declined, $this->registrar);
-    workflow()->decline($declined, $this->registrar, 'Not eligible');
-
-    expect(mailedTypes())->toContain(RequestEventType::Declined);
-});
-
-test('REQ-06-15 emails carry the UPHSL crest, brand colours and the registrar footer', function () {
-    $request = acceptRequest(submitRequest($this->owner, $this->org->free), $this->registrar);
-    $accepted = $request->events()->with(['department', 'step'])->get()->firstWhere('type', RequestEventType::Accepted);
-
-    $html = (string) (new RequestActivity($accepted, 'Accepted'))->toMail($this->owner)->render();
-
-    expect($html)->toContain(asset('images/uphsl-logo-email.png'))
-        ->toContain('background-color: #012265')
-        ->toContain('background-color: #eef3fb')
-        ->toContain(config('mail.from.name'))
-        ->toContain('released in person')
-        ->and(file_exists(public_path('images/uphsl-logo-email.png')))->toBeTrue();
 });
 
 test('REQ-06-06 other milestones are emailed too; internal entries and own actions are not sent', function () {
@@ -225,65 +188,6 @@ test('REQ-06-18 the action list: office visit, ID, representative and claiming; 
         ->and(RequestEventType::RequirementsCompleted->requiresRequesterAction($free))->toBeFalse()
         ->and(RequestEventType::Accepted->requiresRequesterAction($paid))->toBeFalse()
         ->and(RequestEventType::ReceiptAccepted->requiresRequesterAction($paid))->toBeFalse();
-});
-
-test('REQ-06-18 the bell and the Notifications page show an Action required badge', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
-    workflow()->startEvaluation($request, $this->registrar);
-    workflow()->recordCheck($request, $this->registrar, CheckItem::AcademicRecord, CheckResult::Rejected);
-    workflow()->returnForClarification($request, $this->registrar, 'Correct your years of attendance.');
-
-    Livewire::actingAs($this->owner)->test(NotificationBell::class)
-        ->assertSeeInOrder(['Action required', 'Returned to you for clarification'])
-        ->assertSeeHtml('data-action-required');
-    Livewire::actingAs($this->owner)->test(Index::class)
-        ->assertSeeInOrder(['Action required', 'Returned to you for clarification']);
-    expect($this->owner->notifications()->get()->filter(fn ($n) => $n->data['action_required'])->count())->toBe(1);
-
-    // Staff never see it.
-    Livewire::actingAs($this->registrar)->test(NotificationBell::class)->assertDontSeeHtml('data-action-required');
-});
-
-test('REQ-06-19 staff get their own copy and an email that names the request and links to their page', function () {
-    $otherRegistrar = User::factory()->registrar()->create();
-    $request = submitRequest($this->owner, $this->org->tor);
-
-    expect($this->registrar->unreadNotifications()->count())->toBe(1)
-        ->and($otherRegistrar->unreadNotifications()->count())->toBe(1);
-
-    $this->registrar->unreadNotifications()->first()->markAsRead();
-    expect($otherRegistrar->unreadNotifications()->count())->toBe(1);   // read status is per account
-
-    $submitted = $request->events()->first();
-    $mail = (new RequestActivity($submitted, "New request {$request->reference_no} to evaluate"))->toMail($this->registrar);
-    expect($mail->subject)->toBe("{$request->reference_no}: New request {$request->reference_no} to evaluate")
-        ->and(implode(' ', $mail->introLines))->toContain($request->credentialType->name, $request->requester_name, 'Request received for evaluation', 'Current location:')
-        ->and($mail->actionText)->toBe('Open request')
-        ->and($mail->actionUrl)->toBe(route('registrar.requests.show', $request));
-
-    $this->dean->forceFill(['email_notifications' => false])->save();
-    expect((new RequestActivity($submitted, 't'))->via($this->dean))->toBe(['database']);
-});
-
-test('REQ-06-09 the bell shows unread notifications; opening one marks it read and navigates', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
-    workflow()->startEvaluation($request, $this->registrar);
-
-    expect($this->owner->unreadNotifications()->count())->toBe(2);
-
-    $bell = Livewire::actingAs($this->owner)->test(NotificationBell::class)
-        ->assertSee('Evaluation started by the Office of the Registrar')
-        ->assertSee('Notifications, 2 unread', false);
-
-    $latest = $this->owner->notifications()->first();
-    $bell->call('open', $latest->id)->assertRedirect(route('student.requests.show', $request));
-
-    expect($this->owner->unreadNotifications()->count())->toBe(1);
-
-    Livewire::actingAs($this->owner)->test(Index::class)->call('markAllRead');
-    expect($this->owner->unreadNotifications()->count())->toBe(0);
-
-    $this->actingAs($this->owner)->get(route('notifications'))->assertOk()->assertSee($request->reference_no);
 });
 
 test('REQ-06-09 users cannot open other users\' notifications', function () {

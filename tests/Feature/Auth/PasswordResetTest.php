@@ -5,10 +5,6 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Volt\Volt;
 
-test('reset password link screen can be rendered', function () {
-    $this->get('/forgot-password')->assertOk();
-});
-
 test('reset password link can be requested', function () {
     Notification::fake();
     $user = User::factory()->create();

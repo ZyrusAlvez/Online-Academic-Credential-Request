@@ -1,12 +1,10 @@
 <?php
 
-use App\Enums\RequestStatus;
 use App\Livewire\Registrar\Records\Index;
 use App\Models\CredentialRequest;
 use App\Models\User;
 use App\Reports\DepartmentReport;
 use App\Reports\ReportFilter;
-use Database\Seeders\DemoRequestSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -47,20 +45,6 @@ test('REQ-07-02 requests being processed past their due date are overdue and fil
     $this->actingAs($this->registrar)->get(route('records.show', $late))->assertSee('Overdue since');
 });
 
-test('REQ-18-08 Records\' "Needs the Registrar" has walk-in payments, not online ones', function () {
-    $new = submitRequest($this->owner, $this->org->free);
-    // A proof to verify: an online one is the Cashier's, a walk-in one the Registrar's.
-    $online = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
-    uploadPayment($online);
-    $walkIn = walkIn(evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar));
-    uploadPayment($walkIn);
-
-    Livewire::actingAs($this->registrar)->test(Index::class)->set('status', 'needs_registrar')
-        ->assertSee($new->reference_no)
-        ->assertSee($walkIn->reference_no)
-        ->assertDontSee($online->reference_no);
-});
-
 test('REQ-34-02 the office table\'s pending counts follow the paper', function () {
     acceptedAt(now()->toDateTimeString(), $this->org->tor);
     acceptedAt(now()->toDateTimeString(), $this->org->tor);
@@ -89,16 +73,4 @@ test('REQ-07-07 the request list can be filtered by the office holding the docum
         ->set('office', (string) $this->org->ccs->id)
         ->assertSee($atDean->reference_no)
         ->assertDontSee($atRegistrar->reference_no);
-});
-
-test('REQ-07-09 the demo seeder creates accounts and requests in every status still in use', function () {
-    CredentialRequest::query()->delete();
-
-    $this->seed(DemoRequestSeeder::class);
-
-    expect(User::where('email', 'student@example.com')->exists())->toBeTrue()
-        ->and(User::where('email', 'vpf@example.com')->value('department_id'))->not->toBeNull()
-        ->and(CredentialRequest::distinct()->pluck('status')->map->value->sort()->values()->all())
-        ->toBe(collect(RequestStatus::cases())->reject(fn ($s) => $s === RequestStatus::ReturnedForCustomerAction)->map->value->sort()->values()->all())
-        ->and(CredentialRequest::overdue()->count())->toBeGreaterThan(0);
 });

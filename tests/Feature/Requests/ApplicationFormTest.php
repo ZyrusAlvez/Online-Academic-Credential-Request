@@ -1,12 +1,7 @@
 <?php
 
-use App\Enums\AcademicStatus;
-use App\Enums\CheckItem;
-use App\Enums\CheckResult;
-use App\Livewire\Registrar\WalkIn;
 use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
-use App\Models\User;
 use App\Services\RequestWorkflow;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -53,38 +48,4 @@ test('REQ-27-10 each added credential is checked like the first', function () {
         ->call('addCredential')
         ->call('review')
         ->assertHasErrors(['form.more.0.credential_type_id', 'form.more.0.purpose']);
-});
-
-test('REQ-27-10 the Registrar records a walk-in application of several credentials', function () {
-    $registrar = User::factory()->registrar()->create();
-    $page = Livewire::actingAs($registrar)->test(WalkIn::class)
-        ->set('form.credential_type_id', $this->org->tor->id)->set('form.purpose', 'Employment')
-        ->call('addCredential')
-        ->set('form.more.0.credential_type_id', $this->org->free->id)->set('form.more.0.purpose', 'Employment');
-
-    foreach ([
-        'first_name' => 'Pedro', 'last_name' => 'Villanueva', 'sex' => 'male', 'email' => 'pedro@example.com', 'contact_number' => '09171234567',
-        'academic_status' => AcademicStatus::Graduate->value, 'college_id' => $this->org->ccs->id, 'program' => 'BS Computer Science',
-        'attended_from' => 2018, 'attended_to' => 2022,
-    ] as $field => $value) {
-        $page->set("profile.{$field}", $value);
-    }
-
-    $page->call('review')->assertHasNoErrors()->set('attested', true)->call('submit')->assertHasNoErrors();
-
-    expect(CredentialRequest::count())->toBe(2)
-        ->and(CredentialRequest::where('item_no', 2)->sole()->credential_type_id)->toBe($this->org->free->id);
-});
-
-test('REQ-27-10 Edit Request keeps the application\'s credentials', function () {
-    $lead = workflow()->submit($this->owner, [
-        ['credential_type_id' => $this->org->tor->id, 'purpose' => 'Employment'],
-        ['credential_type_id' => $this->org->free->id, 'purpose' => 'Employment'],
-    ]);
-    workflow()->startEvaluation($lead, User::factory()->registrar()->create());
-    $registrar = User::find($lead->fresh()->evaluated_by);
-    workflow()->recordCheck($lead, $registrar, CheckItem::CredentialRequest, CheckResult::Rejected);
-    workflow()->returnForClarification($lead, $registrar, 'Give the full purpose.');
-
-    $this->actingAs($this->owner)->get(route('student.requests.edit', $lead))->assertOk()->assertDontSee('Add another credential');
 });

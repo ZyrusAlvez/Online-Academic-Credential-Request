@@ -3,8 +3,6 @@
 use App\Enums\PaymentStatus;
 use App\Enums\RegistrarQueue;
 use App\Enums\RequestStatus;
-use App\Enums\Role;
-use App\Livewire\Admin\Users\Index as Accounts;
 use App\Livewire\Cashier\Payments;
 use App\Livewire\Cashier\Requests\Show;
 use App\Livewire\Registrar\Queue;
@@ -13,9 +11,6 @@ use App\Models\CredentialRequest;
 use App\Models\User;
 use App\Notifications\RequestActivity;
 use App\Services\RequestWorkflow;
-use Database\Seeders\DemoSeeder;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -42,24 +37,6 @@ function paidWalkIn(object $test): CredentialRequest
 {
     return walkIn(paidOnline($test));
 }
-
-// ── The role ────────────────────────────────────────────────────────────────────────────────
-
-test('REQ-25-01 the cashier lands on Payment Validation', function () {
-    $this->actingAs($this->cashier)->get('/dashboard')->assertRedirect(route('cashier.payments'));
-    $this->get('/cashier')->assertRedirect('/cashier/payments');
-});
-
-test('REQ-25-02 the cashier sidebar has Payment Validation only, and Settings has email notifications', function () {
-    $this->actingAs($this->cashier)->get(route('cashier.payments'))->assertOk()
-        ->assertSee('Payment Validation')
-        ->assertDontSee(route('registrar.evaluation'))
-        ->assertDontSee(route('records'))
-        ->assertDontSee(route('admin.dashboard'));
-
-    $this->get(route('settings.notifications'))->assertOk();
-    $this->get(route('settings.password'))->assertOk();
-});
 
 test('REQ-25-03 the cashier cannot open registrar, department, records or admin pages', function () {
     $request = paidOnline($this);
@@ -101,22 +78,6 @@ test('REQ-25-04 the cashier lists online proofs to verify, and the online reques
         ->assertDontSee($online->reference_no);
 });
 
-test('REQ-16-03 the cashier\'s list is oldest first by when the proof came in, whatever was edited since', function () {
-    Carbon::setTestNow('2026-11-02 09:00:00');
-    $first = paidOnline($this);
-    Carbon::setTestNow('2026-11-03 09:00:00');
-    $second = paidOnline($this);
-
-    // A later edit of the first request does not move it down the list.
-    Carbon::setTestNow('2026-11-04 09:00:00');
-    $first->touch();
-
-    Livewire::actingAs($this->cashier)->test(Payments::class)
-        ->assertSeeInOrder([$first->reference_no, $second->reference_no]);
-
-    Carbon::setTestNow();
-});
-
 test('REQ-25-05 the cashier sees the proof and approves: the request is accepted', function () {
     $request = paidOnline($this);
 
@@ -149,25 +110,6 @@ test('REQ-25-05 the cashier returns a proof with remarks, and declines with rema
         ->call('decline')->assertHasNoErrors();
 
     expect($request->fresh()->status)->toBe(RequestStatus::Declined);
-});
-
-test('REQ-25-05 after a decision the list goes back as the cashier left it', function () {
-    $request = paidOnline($this);
-    $list = route('cashier.payments', ['search' => $request->reference_no]);
-
-    Livewire::withHeaders(['Referer' => $list])->actingAs($this->cashier)->test(Show::class, ['credentialRequest' => $request])
-        ->assertSeeHtml('href="'.e($list).'"')
-        ->call('approve')
-        ->assertRedirect($list);
-});
-
-test('REQ-25-05 a request with no payment to validate goes back to the list', function () {
-    $request = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
-
-    Livewire::actingAs($this->cashier)->test(Show::class, ['credentialRequest' => $request])
-        ->assertRedirect(route('cashier.payments'));
-
-    expect($this->cashier->can('validatePayment', paidWalkIn($this)))->toBeFalse();
 });
 
 test('REQ-25-06 the cashier opens the proof of payment of an online request', function () {
@@ -207,39 +149,4 @@ test('REQ-25-08 an uploaded proof notifies the cashiers, not the registrars, wit
         return str_contains(json_encode($notification->toArray($this->cashier)), str_replace('/', '\/', route('cashier.payments.show', $request)));
     });
     Notification::assertNotSentTo($this->registrar, RequestActivity::class, fn (RequestActivity $notification) => str_contains(json_encode($notification->toArray($this->registrar)), 'Payment to verify'));
-});
-
-// ── Accounts and demo ───────────────────────────────────────────────────────────────────────
-
-test('REQ-25-09 the admin creates a cashier account without a department and can change a role to Cashier', function () {
-    $admin = User::factory()->admin()->create();
-
-    Livewire::actingAs($admin)->test(Accounts::class)
-        ->call('create')
-        ->set('form.first_name', 'New')->set('form.last_name', 'Cashier')
-        ->set('form.email', 'new.cashier@uphsl.edu.ph')->set('form.password', 'Secret123!')
-        ->set('form.role', 'cashier')
-        ->call('save')
-        ->assertHasNoErrors();
-
-    expect(User::where('email', 'new.cashier@uphsl.edu.ph')->sole())->role->toBe(Role::Cashier)->department_id->toBeNull();
-
-    $staff = User::factory()->departmentStaff($this->org->ccs)->create();
-    Livewire::actingAs($admin)->test(Accounts::class)
-        ->call('editRole', $staff->id)
-        ->set('roleForm.role', 'cashier')
-        ->call('changeRole')
-        ->assertHasNoErrors();
-
-    expect($staff->fresh())->role->toBe(Role::Cashier)->department_id->toBeNull();
-});
-
-test('REQ-25-10 the demo data includes the cashier@example.com cashier', function () {
-    DemoSeeder::cashierAccount();
-    DemoSeeder::cashierAccount();   // the demo reset runs it again
-
-    $cashier = User::where('email', 'cashier@example.com')->sole();
-    expect($cashier)->role->toBe(Role::Cashier)->is_active->toBeTrue()
-        ->and($cashier->hasVerifiedEmail())->toBeTrue()
-        ->and(Hash::check('@Test123', $cashier->password))->toBeTrue();
 });

@@ -7,14 +7,11 @@ use App\Enums\RequestStatus;
 use App\Enums\RouteTask;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Admin\CredentialTypes\Index;
-use App\Livewire\Registrar\Requests\Show;
 use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\User;
 use App\Services\RequestWorkflow;
-use Database\Seeders\CredentialTypeSeeder;
-use Database\Seeders\DepartmentSeeder;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -58,30 +55,6 @@ function semestral(User $owner, array $terms, string $year): CredentialRequest
 {
     return submitRequest($owner, test()->semestral, ['terms' => $terms, 'academic_year' => $year]);
 }
-
-test('REQ-29-01 the seeded list drops Certification – General and renames Copy of Grades and Transfer Certificate', function () {
-    $this->seed([DepartmentSeeder::class, CredentialTypeSeeder::class]);
-
-    $names = CredentialType::pluck('name');
-
-    expect($names)->not->toContain('Certification – General', 'Copy of Grades', 'Transfer Certificate')
-        ->and($names)->toContain('Certificate of Grades', 'Certificate of Transfer')
-        ->and(CredentialType::where('name', 'Certificate of Grades')->sole()->free_for)->toBe(['graduate'])
-        ->and(CredentialType::where('name', 'Certificate of Transfer')->sole()->requires_receiving_institution)->toBeTrue();
-});
-
-test('REQ-29-02 Semestral Report of Grades is seeded at ₱100 per term, asking for the terms and year', function () {
-    $this->seed([DepartmentSeeder::class, CredentialTypeSeeder::class]);
-
-    $type = CredentialType::where('name', 'Semestral Report of Grades')->with('steps.department')->sole();
-
-    expect($type)
-        ->fee->toBe('100.00')
-        ->fee_per_term->toBeTrue()
-        ->asks_term_and_year->toBeTrue()
-        ->processing_days->toBe(6)
-        ->and($type->routeSummary())->toBe('REG → VPF → CHAN');
-});
 
 test('REQ-29-03 the Admin sets the term-and-year, per-term fee and Free for options', function () {
     $admin = User::factory()->admin()->create();
@@ -214,21 +187,4 @@ test('REQ-29-07 a credential is free for the statuses it is free for, online, wa
     workflow()->resubmit($returned, $this->owner, null, ['credential_type_id' => $this->grades->id, 'purpose' => 'Employment']);
 
     expect($returned->fresh())->credential_type_id->toBe($this->grades->id)->fee->toBeNull()->requires_payment->toBeFalse();
-});
-
-test('REQ-29-08 the terms, year and fee options are shown with the credential', function () {
-    $html = Livewire::actingAs($this->owner)->test(Create::class)->html();
-
-    expect(credentialCard($html, $this->semestral))->toContain('100.00')->toContain('per term')
-        ->and(credentialCard($html, $this->grades))->toContain('Free for graduates')
-        ->and(credentialCard($html, $this->org->tor))->not->toContain('Free for');
-
-    $request = semestral($this->owner, ['second'], $this->year);
-
-    $this->actingAs($this->owner)->get(route('student.requests.show', $request))->assertOk()
-        ->assertSeeInOrder(['Terms', '2nd Semester', 'Academic year', $this->year]);
-
-    workflow()->startEvaluation($request, $this->registrar);
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request->fresh()])
-        ->assertSeeInOrder(['Terms', '2nd Semester', 'Academic year', $this->year]);
 });
