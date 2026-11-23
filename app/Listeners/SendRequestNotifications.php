@@ -5,6 +5,7 @@ namespace App\Listeners;
 use App\Enums\RequestEventType;
 use App\Enums\Role;
 use App\Enums\VisitPurpose;
+use App\Enums\VisitStatus;
 use App\Events\RequestEventRecorded;
 use App\Models\CredentialRequest;
 use App\Models\RequestEvent;
@@ -49,30 +50,37 @@ class SendRequestNotifications
         $this->notifyOffice($event, $request);
         $this->notifyRegistrars($event, $request);
         $this->notifyOutgoing($event, $request);
+        $this->notifyUnlocked($event, $request);
     }
 
     /**
-     * Department staff finished with the paper and it waits for the Registrar to carry it on;
-     * not when it moves on at once, after the final check or to the same office (REQ-32-11).
+     * The Admin unlocked an absent evaluator's request: it waits in Initial Evaluation for any
+     * registrar, like a new one (REQ-35-12, REQ-06-21).
+     */
+    private function notifyUnlocked(RequestEvent $event, CredentialRequest $request): void
+    {
+        if ($event->type === RequestEventType::EvaluationUnlocked) {
+            $this->send(RequestRegistrars::all(), $event, "{$request->reference_no} is back in Initial Evaluation");
+        }
+    }
+
+    /**
+     * An office's staff finished with the paper, or the Admin recorded that for them through an
+     * override, and it waits in Outgoing for the Registrar to carry it on (REQ-32-11, REQ-35-12).
+     * Not when it moved on at once (after the final check, to the same office, or forwarded in
+     * the same step), and never for a registrar's own task.
      */
     private function notifyOutgoing(RequestEvent $event, CredentialRequest $request): void
     {
         $visit = $event->visit;
 
-        if (! in_array($event->type, self::FOR_OUTGOING, true) || $visit === null || $event->actor_id === null) {
+        // Read after the step was saved: a paper that moved on has its visit completed.
+        if (! in_array($event->type, self::FOR_OUTGOING, true) || $visit?->status !== VisitStatus::Done) {
             return;
         }
 
-        if (! User::whereKey($event->actor_id)->where('role', Role::Department)->exists()) {
+        if (! $event->isOverride() && ! User::whereKey($event->actor_id)->where('role', Role::Department)->exists()) {
             return;
-        }
-
-        if ($event->type === RequestEventType::StepCompleted) {
-            $next = $visit->loadMissing(['step', 'credentialRequest.steps'])->nextStep();
-
-            if ($next === null || $next->department_id === $visit->department_id) {
-                return;
-            }
         }
 
         $office = $visit->department()->value('name');

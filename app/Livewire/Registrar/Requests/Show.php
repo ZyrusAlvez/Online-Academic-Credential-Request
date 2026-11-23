@@ -5,13 +5,13 @@ namespace App\Livewire\Registrar\Requests;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
-use App\Enums\RecipientType;
 use App\Enums\RegistrarQueue;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\ActsOnVisits;
+use App\Livewire\Concerns\ChoosesRecipient;
 use App\Livewire\Concerns\ReturnsToList;
 use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
@@ -37,11 +37,9 @@ class Show extends Component
     use ActsOnVisits {
         attempt as runTransition;
     }
+    use ChoosesRecipient;
     use ReturnsToList;
     use TrimsInput;
-
-    /** The Release choice for a representative not on the request's list (REQ-16-28). */
-    public const SOMEONE_ELSE = 'other';
 
     /** What the page shows, by the request's stage. */
     public const PANEL_LOCKED = 'locked';
@@ -95,13 +93,6 @@ class Show extends Component
     public ?int $rejectingRepresentativeId = null;
 
     public string $representativeRemarks = '';
-
-    public string $recipientType = 'owner';
-
-    public int|string|null $recipientRepresentativeId = null;
-
-    /** A representative not declared on the request, checked at the counter (REQ-16-28). */
-    public string $recipientName = '';
 
     /** The decision that could not run, and why (REQ-17-17). */
     #[Locked]
@@ -372,23 +363,14 @@ class Show extends Component
     {
         $this->authorize('release', $this->credentialRequest);
 
-        // A verified representative is picked from the list; anyone else is typed in (REQ-16-28).
-        $toRepresentative = $this->recipientType === RecipientType::Representative->value;
-        $hasVerified = $this->credentialRequest->representatives()->where('status', ReviewStatus::Verified)->exists();
-        $atCounter = $toRepresentative && ($this->recipientRepresentativeId === self::SOMEONE_ELSE || (! $hasVerified && blank($this->recipientRepresentativeId)));
-
-        $this->validate([
-            'recipientType' => ['required', Rule::enum(RecipientType::class)],
-            'recipientRepresentativeId' => [Rule::requiredIf($toRepresentative && $hasVerified), 'nullable', $atCounter ? 'string' : 'integer'],
-            'recipientName' => [Rule::requiredIf($atCounter), 'nullable', 'string', 'max:150'],
-        ], attributes: ['recipientRepresentativeId' => 'representative', 'recipientName' => "representative's full name"]);
+        $recipient = $this->chosenRecipient($this->credentialRequest);
 
         $this->attempt(fn () => $workflow->release(
             $this->credentialRequest,
             $this->actor(),
-            RecipientType::from($this->recipientType),
-            $toRepresentative && ! $atCounter ? (int) $this->recipientRepresentativeId : null,
-            representativeName: $atCounter ? $this->recipientName : null,
+            $recipient['recipient_type'],
+            $recipient['representative_id'],
+            representativeName: $recipient['representative_name'],
         ), 'Credential marked released.');
     }
 
