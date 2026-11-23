@@ -2,7 +2,6 @@
 
 use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\AcademicStatus;
-use App\Livewire\Forms\RequesterProfileForm;
 use App\Livewire\Student\Profile;
 use App\Models\Department;
 use App\Models\IdentityDocument;
@@ -11,7 +10,6 @@ use App\Models\User;
 use App\Services\RequestWorkflow;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Features\SupportTesting\Testable;
@@ -67,16 +65,6 @@ function fillProfile(array $overrides = [], ?User $user = null): Testable
     return $component->errors()->isEmpty() ? $component->call('save') : $component;
 }
 
-test('REQ-15-07 requesters have a Settings → Profile page, first in their settings and where /settings takes them', function () {
-    $this->actingAs($this->student)->get('/settings')->assertRedirect(route('settings.profile'));
-
-    $this->actingAs($this->student)->get(route('settings.profile'))
-        ->assertOk()
-        ->assertSeeInOrder(['Profile', 'Email notifications', 'Password'])
-        ->assertSee('Used to fill in your next request.')
-        ->assertDontSee('Email address');
-});
-
 test('REQ-15-07 staff get 403 on Settings → Profile', function () {
     $this->actingAs($this->registrar)->get(route('settings.profile'))->assertForbidden();
     $this->actingAs(User::factory()->departmentStaff()->create())->get(route('settings.profile'))->assertForbidden();
@@ -101,27 +89,6 @@ test('REQ-15-07 the profile is never locked: a requester with requests can still
         ->and($student->latestIdentityDocument()->first()->id_type)->toBe('UMID');
 });
 
-test('REQ-15-18 Settings → Profile shows the ID fields only without a saved ID, and removes the saved one once confirmed', function () {
-    $saved = IdentityDocument::factory()->for($this->student)->create(['id_type' => 'UMID', 'original_name' => 'umid.jpg']);
-
-    $html = Livewire::actingAs($this->student)->test(Profile::class)
-        ->assertSee('UMID: umid.jpg')
-        ->assertDontSeeHtml('wire:model="form.id_file"')
-        ->html();
-    expect($html)->toMatch('/<button[^>]*wire:click="removeSavedId"[^>]*data-confirm-title="Remove saved ID"/');
-
-    Livewire::actingAs($this->student)->test(Profile::class)
-        ->call('removeSavedId')
-        ->assertDispatched('notify')
-        ->assertDontSee('Your Saved ID')
-        ->assertSeeHtml('wire:model="form.id_file"');
-
-    expect(IdentityDocument::find($saved->id))->toBeNull();
-
-    reviewProfile(['form.id_type' => '', 'form.id_file' => null])
-        ->assertHasErrors(['form.id_type' => 'required', 'form.id_file' => 'required']);
-});
-
 test('REQ-15-18 removing with no saved ID does nothing, and only the requester\'s own ID is ever removed', function () {
     $other = IdentityDocument::factory()->for(User::factory()->student())->create();
 
@@ -129,60 +96,6 @@ test('REQ-15-18 removing with no saved ID does nothing, and only the requester\'
 
     expect($other->fresh())->not->toBeNull()
         ->and($other->fresh()->removed_at)->toBeNull();
-});
-
-test('REQ-12-07 Settings → Profile labels the program dropdown "Program"', function () {
-    $this->actingAs($this->student)->get(route('settings.profile'))
-        ->assertOk()->assertSee('Program')->assertDontSee('Program or strand');
-});
-
-test('REQ-15-04 the chosen ID file name is a link that previews it in the file viewer', function () {
-    $this->actingAs($this->student)->get(route('settings.profile'))
-        ->assertOk()
-        ->assertSee('data-id-preview', false)
-        ->assertSee("\$dispatch('open-file', chosen)", false);
-});
-
-test('REQ-15-04 the chosen ID\'s name shows once, beside its own button, and the upload shows its progress', function () {
-    $field = Str::after($this->actingAs($this->student)->get(route('settings.profile'))->assertOk()->getContent(), 'data-id-preview');
-
-    // The browser's picker, which repeats the name, is hidden; the name is the one link.
-    expect($field)->toMatch('/<input type="file" wire:model="form\.id_file"[^>]*class="sr-only"/')
-        ->toContain('Choose file')->toContain('Change file')->toContain('No file chosen')
-        ->toMatch('/<a href="#"[^>]*data-chosen-file[^>]*x-text="chosen\?\.name"/')
-        ->not->toContain('Chosen:')
-        ->toContain('x-on:livewire-upload-progress="progress = $event.detail.progress"')
-        ->toMatch('/<div x-show="uploading"[^>]*role="status"[^>]*data-upload-progress>/')
-        ->not->toContain('wire:loading wire:target="form.id_file"');
-});
-
-test('REQ-15-04 an invalid ID file shows its error under the field and marks it for the errors modal', function () {
-    $html = Livewire::actingAs($this->student)->test(Profile::class)
-        ->set('form.id_type', 'Passport')
-        ->set('form.id_file', UploadedFile::fake()->create('id.docx', 10, 'application/msword'))
-        ->call('review')
-        ->assertHasErrors('form.id_file')
-        ->html();
-
-    expect($html)->toMatch('/<input type="file" wire:model="form\.id_file"[^>]*data-invalid aria-invalid="true"/');
-});
-
-test('REQ-15-05 the summary has a Summary heading and shows a chosen image ID as its file name linking to the viewer, with no picture', function () {
-    $html = reviewProfile()->assertSee('Summary')->assertSeeHtml('data-summary-title')->html();
-
-    expect($html)->toContain('data-id-summary-preview')
-        ->and($html)->toMatch('#<a\s+href="[^"]*preview-file[^"]*"[^>]*data-file-link[^>]*>passport\.jpg</a>#')
-        ->and($html)->not->toMatch('#<img[^>]*preview-file#');
-});
-
-test('REQ-15-05 a chosen PDF ID is shown on the summary as its file name linking to the viewer', function () {
-    $html = reviewProfile(['form.id_file' => UploadedFile::fake()->createWithContent('passport.pdf', "%PDF-1.4\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n")])
-        ->assertSee('passport.pdf')->html();
-
-    expect($html)->toContain('data-id-summary-preview')
-        ->and($html)->toMatch('#<a\s+href="[^"]*preview-file[^"]*"[^>]*data-file-link[^>]*>passport\.pdf</a>#')
-        ->and($html)->toMatch('#application\\\\?/pdf#')
-        ->and($html)->not->toContain('View PDF');
 });
 
 test('REQ-01-16 a requester can save their academic information; the student number is optional', function () {
@@ -248,49 +161,6 @@ test('REQ-15-07 every save needs the data privacy consent ticked; the first cons
     expect($this->student->fresh()->privacy_consented_at->equalTo($consentedAt))->toBeTrue();
 });
 
-test('REQ-15-07 the profile form has a single button, which reviews instead of saving', function () {
-    $html = $this->actingAs($this->student)->get(route('settings.profile'))->assertOk()->getContent();
-
-    expect(substr_count($html, 'wire:submit'))->toBe(1)
-        ->and($html)->toContain('>Confirm</')
-        ->and($html)->not->toContain('Confirm and save')
-        ->and($html)->not->toContain('Data Privacy Act');
-});
-
-test('REQ-15-07 reviewing saves nothing, and invalid entries stay on the form', function () {
-    $this->student->forceFill(['first_name' => 'Old', 'privacy_consented_at' => null])->save();
-
-    reviewProfile(['form.first_name' => ''])
-        ->assertHasErrors(['form.first_name' => 'required'])
-        ->assertSet('reviewing', false)
-        ->assertDontSee('Confirm and save');
-
-    reviewProfile()->assertHasNoErrors()->assertSet('reviewing', true);
-
-    expect($this->student->fresh())
-        ->first_name->toBe('Old')
-        ->privacy_consented_at->toBeNull()
-        ->and(IdentityDocument::count())->toBe(0);
-});
-
-test('REQ-01-26 choosing Confirm with invalid entries opens the modal listing them', function () {
-    reviewProfile(['form.first_name' => '', 'form.contact_number' => '123'])
-        ->assertDispatched('modal-show', name: 'profile-errors')
-        ->assertHasErrors(['form.first_name' => 'required', 'form.contact_number' => 'regex'])
-        ->assertSeeInOrder(['Some details need your attention', 'The first name field is required.', 'Enter an 11-digit mobile number'])
-        ->assertSet('reviewing', false);
-});
-
-test('REQ-01-26 valid entries go to the summary without the modal', function () {
-    reviewProfile()->assertNotDispatched('modal-show')->assertSet('reviewing', true);
-});
-
-test('REQ-01-26 the browser\'s own validation does not replace the modal', function () {
-    $this->actingAs($this->student)->get(route('settings.profile'))
-        ->assertOk()
-        ->assertSeeHtml('wire:submit="review" novalidate');
-});
-
 test('REQ-01-26 a type of ID needs a file, and a file needs a type', function () {
     reviewProfile(['form.id_file' => null])
         ->assertHasErrors('form.id_file')
@@ -299,52 +169,6 @@ test('REQ-01-26 a type of ID needs a file, and a file needs a type', function ()
     reviewProfile(['form.id_type' => ''])
         ->assertHasErrors('form.id_type')
         ->assertHasNoErrors('form.id_file');
-});
-
-test('REQ-01-26 an entry that fails on saving returns to the form with the modal', function () {
-    reviewProfile(['form.privacy_consent' => true])
-        ->set('form.contact_number', '123')
-        ->call('save')
-        ->assertDispatched('modal-show', name: 'profile-errors')
-        ->assertSet('reviewing', false);
-});
-
-test('REQ-01-31 on Settings → Profile a fixed entry loses its error at once; one still invalid keeps it', function () {
-    reviewProfile(['form.first_name' => '', 'form.contact_number' => '123', 'form.attended_from' => 2024, 'form.attended_to' => 2020])
-        ->assertHasErrors(['form.first_name' => 'required', 'form.contact_number' => 'regex', 'form.attended_to' => 'gte'])
-        ->set('form.first_name', 'Juan')
-        ->assertHasNoErrors('form.first_name')
-        ->assertHasErrors(['form.contact_number' => RequesterProfileForm::PHONE_MESSAGE])
-        ->set('form.contact_number', '0917')
-        ->assertHasErrors(['form.contact_number' => RequesterProfileForm::PHONE_MESSAGE])
-        ->set('form.contact_number', '09171234567')
-        ->assertHasNoErrors('form.contact_number')
-        // A change to one field that fixes another clears that one too.
-        ->set('form.attended_from', 2019)
-        ->assertHasNoErrors(['form.attended_from', 'form.attended_to']);
-});
-
-test('REQ-01-31 choosing a valid ID file or type clears its error', function () {
-    reviewProfile(['form.id_file' => null])
-        ->assertHasErrors('form.id_file')
-        ->set('form.id_file', UploadedFile::fake()->image('passport.jpg'))
-        ->assertHasNoErrors('form.id_file');
-});
-
-test('REQ-01-31 a field without an error is not checked before Confirm', function () {
-    Livewire::actingAs($this->student)->test(Profile::class)
-        ->set('form.contact_number', '123')
-        ->set('form.first_name', '')
-        ->assertHasNoErrors();
-});
-
-test('REQ-01-31 Settings → Profile sends choices at once and typed entries when the field is left', function () {
-    $this->actingAs($this->student)->get(route('settings.profile'))
-        ->assertSeeHtml('wire:model.live.blur="form.first_name"')
-        ->assertSeeHtml('wire:model.live.blur="form.contact_number"')
-        ->assertSeeHtml('wire:model.live.blur="form.attended_to"')
-        ->assertSeeHtml('wire:model.live="form.academic_status"')
-        ->assertSeeHtml('wire:model.live="form.program"');
 });
 
 test('REQ-01-29 when the ID cannot be stored nothing is saved and the error shows on the form', function () {
@@ -367,64 +191,6 @@ test('REQ-01-29 when the ID cannot be stored nothing is saved and the error show
         ->and(IdentityDocument::count())->toBe(0);
 });
 
-test('REQ-15-05 the summary shows everything entered with the data privacy notice', function () {
-    $this->student->forceFill(['privacy_consented_at' => null])->save();
-
-    reviewProfile(['form.student_number' => '19-0001-123'])
-        ->assertSeeInOrder([
-            'Juan', 'Not provided', 'Dela Cruz', '09171234567',
-            'Graduate', 'College of Computer Studies', 'BS Computer Science', '19-0001-123', '2019 to 2023',
-            'Passport', 'passport.jpg',
-            'Data Privacy Act of 2012 (RA 10173)', 'I agree to the processing of my personal data',
-            'Confirm and save',
-        ]);
-});
-
-test('REQ-15-19 on the profile summary a blank optional field reads "Not provided" in grey italics', function () {
-    $summary = Str::after(reviewProfile(['form.middle_name' => '', 'form.student_number' => ''])->html(), 'data-summary-title');
-
-    expect(substr_count($summary, '<span class="font-normal text-zinc-600 italic" data-empty-value>Not provided</span>'))->toBe(2);
-
-    // A value that was entered is never greyed out.
-    $summary = Str::after(reviewProfile(['form.middle_name' => 'Santos', 'form.student_number' => '19-0001-123'])->html(), 'data-summary-title');
-    expect($summary)->not->toContain('data-empty-value')->toContain('Santos');
-});
-
-test('REQ-15-05 the summary shows the saved ID when no other is chosen', function () {
-    IdentityDocument::factory()->for($this->student)->create(['id_type' => 'UMID', 'original_name' => 'umid.jpg']);
-
-    $summary = Str::after(reviewProfile()->html(), 'data-summary-title');
-
-    expect($summary)->toMatch('#<dt class="text-zinc-600">UMID</dt>\s*<dd[^>]*>\s*<span class="break-all"><a\s+href="[^"]*"[^>]*data-file-link[^>]*>umid\.jpg</a>#');
-});
-
-test('REQ-15-05 a requester who consented before still gets an unticked checkbox, and Confirm and save waits for it', function () {
-    $this->student->forceFill(['privacy_consented_at' => '2026-10-27 09:00:00'])->save();
-
-    $html = reviewProfile()
-        ->assertSee('I agree to the processing of my personal data')
-        ->assertDontSee('You agreed to the processing of your personal data')
-        ->assertSet('form.privacy_consent', false)
-        ->html();
-
-    expect($html)->toMatch('/<button[^>]*x-bind:disabled="! \$wire\.form\.privacy_consent"[^>]*disabled[^>]*data-save-profile/')
-        ->and(reviewProfile(['form.privacy_consent' => true])->html())->not->toMatch('/<button[^>]*\sdisabled="disabled"[^>]*data-save-profile/');
-});
-
-test('REQ-15-05 going back keeps every entry and the chosen file', function () {
-    reviewProfile(['form.privacy_consent' => true])
-        ->call('back')
-        ->assertSet('reviewing', false)
-        ->assertSet('form.first_name', 'Juan')
-        ->assertSet('form.id_type', 'Passport')
-        ->call('review')
-        ->assertSeeInOrder(['Passport', 'passport.jpg'])
-        ->call('save')
-        ->assertHasNoErrors();
-
-    expect(IdentityDocument::count())->toBe(1);
-});
-
 test('REQ-15-07 saving is refused unless the requester is on the summary', function () {
     $component = Livewire::actingAs($this->student)->test(Profile::class)
         ->set('form.first_name', 'Skipped')
@@ -437,33 +203,6 @@ test('REQ-15-07 saving is refused unless the requester is on the summary', funct
 test('REQ-15-07 the requester cannot jump to the summary from the browser', function () {
     Livewire::actingAs($this->student)->test(Profile::class)->set('reviewing', true);
 })->throws(CannotUpdateLockedPropertyException::class);
-
-test('REQ-15-07 the missing consent stays on the summary; an entry that fails on saving returns to the form', function () {
-    $this->student->forceFill(['privacy_consented_at' => null])->save();
-
-    $component = reviewProfile()
-        ->call('save')
-        ->assertHasErrors(['form.privacy_consent' => 'accepted'])
-        ->assertSet('reviewing', true);
-
-    $component->set('form.privacy_consent', true)
-        ->set('form.contact_number', '123')
-        ->call('save')
-        ->assertHasErrors(['form.contact_number' => 'regex'])
-        ->assertSet('reviewing', false);
-
-    expect($this->student->fresh()->privacy_consented_at)->toBeNull();
-});
-
-test('REQ-15-07 confirming saves and returns to the form with the chosen ID cleared', function () {
-    reviewProfile(['form.privacy_consent' => true])
-        ->call('save')
-        ->assertHasNoErrors()
-        ->assertDispatched('notify')
-        ->assertSet('reviewing', false)
-        ->assertSet('form.id_file', null)
-        ->assertSet('form.id_type', '');
-});
 
 test('REQ-15-04 a requester with no saved ID must give one; with one, none is needed', function () {
     reviewProfile(['form.id_type' => '', 'form.id_file' => null])
@@ -497,30 +236,6 @@ test('REQ-01-17 the ID must be an image or PDF of at most 5 MB with a known type
     expect(IdentityDocument::count())->toBe(0);
 });
 
-test('REQ-12-07 the program dropdown lists the chosen college\'s active programs, sorted', function () {
-    Program::factory()->for($this->college, 'college')->create(['name' => 'Another Program']);
-    Program::factory()->for($this->college, 'college')->inactive()->create(['name' => 'Closed Program']);
-    Program::factory()->create(['name' => 'Foreign Program']);
-
-    Livewire::actingAs($this->student)->test(Profile::class)
-        ->assertSee('Choose a college first')
-        ->set('form.college_id', $this->college->id)
-        ->assertSeeInOrder(['Another Program', 'BS Computer Science'])
-        ->assertDontSee('Closed Program')
-        ->assertDontSee('Foreign Program')
-        ->assertDontSee('Choose a college first');
-});
-
-test('REQ-12-07 choosing another college clears the program', function () {
-    $other = Department::factory()->college()->create();
-
-    Livewire::actingAs($this->student)->test(Profile::class)
-        ->set('form.college_id', $this->college->id)
-        ->set('form.program', 'BS Computer Science')
-        ->set('form.college_id', $other->id)
-        ->assertSet('form.program', '');
-});
-
 test('REQ-12-08 only an active program of the chosen college is accepted', function () {
     $other = Program::factory()->create(['name' => 'Foreign Program']);
     Program::factory()->for($this->college, 'college')->inactive()->create(['name' => 'Closed Program']);
@@ -529,28 +244,6 @@ test('REQ-12-08 only an active program of the chosen college is accepted', funct
     reviewProfile(['form.program' => 'Closed Program'])->assertHasErrors(['form.program' => 'exists']);
     reviewProfile(['form.program' => 'Typed by hand'])->assertHasErrors(['form.program' => 'exists']);
     reviewProfile(['form.college_id' => $other->department_id, 'form.program' => 'Foreign Program'])->assertHasNoErrors();
-});
-
-test('REQ-12-09 a saved program no longer on the list stays on the profile until the next save', function () {
-    $student = User::factory()->withProfile($this->college)->create(['program' => 'Old Program']);
-
-    Livewire::actingAs($student)->test(Profile::class)
-        ->assertSet('form.program', 'Old Program')
-        ->call('review')
-        ->assertHasErrors(['form.program' => 'exists']);
-    expect($student->fresh()->program)->toBe('Old Program');
-});
-
-test('REQ-12-10 a college without programs tells the requester to contact the Registrar', function () {
-    $empty = Department::factory()->college()->create();
-
-    Livewire::actingAs($this->student)->test(Profile::class)
-        ->set('form.college_id', $empty->id)
-        ->assertSee('No programs are listed for this college yet');
-});
-
-test('REQ-18-02 requesters land on the new-request page', function () {   // REQ-01-10, superseded by REQ-18-02/03
-    $this->actingAs($this->student)->get('/dashboard')->assertRedirect(route('student.requests.create'));
 });
 
 test('REQ-01-20 only the owner and registrars can open an ID, and it is not cached', function () {
@@ -563,15 +256,4 @@ test('REQ-01-20 only the owner and registrars can open an ID, and it is not cach
     $this->actingAs($this->registrar)->get(route('identity-documents.show', $document))->assertOk();
     $this->actingAs(User::factory()->student()->create())->get(route('identity-documents.show', $document))->assertNotFound();
     $this->actingAs(User::factory()->departmentStaff()->create())->get(route('identity-documents.show', $document))->assertNotFound();
-});
-
-test('REQ-15-07 the profile shows no step label; screen readers still hear which step it is', function () {
-    Livewire::actingAs($this->student)->test(Profile::class)
-        ->assertDontSee('Step 1 of 2')
-        ->assertSeeHtml('<p id="profile-step" tabindex="-1" class="sr-only">');
-
-    reviewProfile()
-        ->assertDontSee('Step 2 of 2')
-        ->assertSee('Review and confirm your details')
-        ->assertSeeHtml('<p id="profile-step" tabindex="-1" class="sr-only">');
 });

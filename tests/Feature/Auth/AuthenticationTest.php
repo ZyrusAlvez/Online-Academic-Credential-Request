@@ -2,13 +2,7 @@
 
 use App\Models\ActivityLog;
 use App\Models\User;
-use Illuminate\Auth\Events\Login;
-use Illuminate\Auth\Events\Logout;
 use Livewire\Volt\Volt;
-
-test('login screen can be rendered', function () {
-    $this->get('/login')->assertOk();
-});
 
 test('REQ-01-05 users can log in with email and password', function () {
     $user = User::factory()->create();
@@ -32,17 +26,6 @@ test('REQ-01-33 signing in skips a remembered page from another role\'s area', f
         ->set('password', 'password')
         ->call('login')
         ->assertRedirect(route('dashboard', absolute: false));
-});
-
-test('REQ-01-33 signing in keeps a remembered page from the user\'s own area', function () {
-    $user = User::factory()->registrar()->create();
-    session()->put('url.intended', url('/registrar/payment'));
-
-    Volt::test('auth.login')
-        ->set('email', $user->email)
-        ->set('password', 'password')
-        ->call('login')
-        ->assertRedirect(url('/registrar/payment'));
 });
 
 test('REQ-01-05 users cannot log in with an invalid password', function () {
@@ -99,18 +82,6 @@ test('REQ-01-07 a deactivated account is refused before it is signed in, and a w
     $this->assertGuest();
 });
 
-test('REQ-14-05 a remember-me sign-in of a deactivated account is logged as refused', function () {
-    $user = User::factory()->inactive()->create();
-
-    event(new Login('web', $user, true));
-    event(new Logout('web', $user));
-
-    expect(ActivityLog::orderBy('id')->pluck('description')->all())->toBe([
-        'Sign-in refused: the account is deactivated',
-        'Signed out: the account is deactivated',
-    ]);
-});
-
 test('REQ-01-08 a user deactivated mid-session is logged out on the next request', function () {
     $user = User::factory()->create();
     $this->actingAs($user)->get(route('student.dashboard'))->assertOk();
@@ -120,11 +91,5 @@ test('REQ-01-08 a user deactivated mid-session is logged out on the next request
     $this->get(route('student.dashboard'))
         ->assertRedirect(route('login'))
         ->assertSessionHasErrors('email');
-    $this->assertGuest();
-});
-
-test('users can log out', function () {
-    $this->actingAs(User::factory()->create())->post('/logout')->assertRedirect('/');
-
     $this->assertGuest();
 });

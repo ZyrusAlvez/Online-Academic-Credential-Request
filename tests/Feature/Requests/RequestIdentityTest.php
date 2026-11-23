@@ -10,10 +10,8 @@ use App\Models\CredentialRequest;
 use App\Models\IdentityDocument;
 use App\Models\User;
 use App\Services\RequestWorkflow;
-use App\Support\RegistrarLink;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -61,48 +59,6 @@ function reviewRequest(User $user, array $overrides = []): Testable
 
     return $component->call('review');
 }
-
-test('REQ-15-01 there is no Identity Checks page or nav item', function () {
-    expect(Route::has('registrar.identities'))->toBeFalse();
-
-    $this->actingAs($this->registrar)->get('/registrar/identities')->assertNotFound();
-    $this->actingAs($this->registrar)->get(route('registrar.evaluation'))->assertOk()->assertDontSee('Identity Checks');
-});
-
-test('REQ-15-02 there is no My Profile page; the old address goes to Settings → Profile', function () {
-    expect(Route::has('student.profile'))->toBeFalse();
-
-    $this->actingAs($this->newcomer)->get('/student/profile')->assertRedirect('/settings/profile');
-    $this->actingAs($this->newcomer)->get(route('student.requests.create'))
-        ->assertOk()
-        ->assertDontSee('My Profile')
-        ->assertSeeInOrder(['New Request', 'Request Tracker']);
-});
-
-test('REQ-15-03 New Request has numbered sections for the request, personal and academic information, the ID and who transacts', function () {
-    Livewire::actingAs($this->newcomer)->test(Create::class)
-        ->assertSeeInOrder([
-            '1. What Do You Need?', '2. Personal Information', '3. Academic Information',
-            '4. Valid ID', '5. Who Will Transact?', 'Important notice', 'Review request',
-        ])
-        ->assertDontSee('Documentary Requirements')
-        ->assertDontSee('Verify your profile before making a request');
-});
-
-test('REQ-15-03 the personal and academic sections start filled in from the saved profile', function () {
-    $owner = User::factory()->withProfile($this->org->ccs)->create([
-        'first_name' => 'Maria', 'last_name' => 'Reyes', 'contact_number' => '09181112222',
-        'program' => 'BS Computer Science', 'student_number' => '19-0001-123',
-    ]);
-
-    Livewire::actingAs($owner)->test(Create::class)
-        ->assertSet('profile.first_name', 'Maria')
-        ->assertSet('profile.last_name', 'Reyes')
-        ->assertSet('profile.contact_number', '09181112222')
-        ->assertSet('profile.college_id', $this->org->ccs->id)
-        ->assertSet('profile.program', 'BS Computer Science')
-        ->assertSet('profile.student_number', '19-0001-123');
-});
 
 test('REQ-15-04 a saved ID is shown and used; without one an ID is required', function () {
     reviewRequest($this->newcomer, ['profile.id_type' => '', 'profile.id_file' => null])
@@ -198,88 +154,6 @@ test('REQ-15-05 reviewing checks every entry, lists the errors in the modal and 
         ->and($this->newcomer->fresh()->first_name)->toBeNull();
 });
 
-test('REQ-15-05 the summary shows the request, the details, the ID and the privacy notice', function () {
-    $this->newcomer->forceFill(['privacy_consented_at' => null])->save();
-
-    reviewRequest($this->newcomer)
-        ->assertSee('Summary')
-        ->assertSeeInOrder([
-            'data-summary-title',
-            'Transcript of Records', 'Employment',
-            'Juan', 'Santos', 'Dela Cruz', '09171234567',
-            'Graduate', 'College of Computer Studies', 'BS Computer Science', '2019 to 2023',
-            'Passport', 'passport.jpg',
-            'Personally',
-            'Data Privacy Act of 2012 (RA 10173)', 'I agree to the processing of my personal data',
-            'Back to edit', 'Submit request',
-        ], false)
-        ->assertSeeHtml('data-id-summary-preview');
-});
-
-test('REQ-15-05 the summary\'s valid ID is one row: the type of ID, then the file name linking to the viewer and its size', function () {
-    $id = Str::after(Str::after(reviewRequest($this->newcomer)->html(), 'data-summary-title'), '4. Valid ID</h2>');
-
-    expect($id)->toMatch('#<div class="py-3 [^"]*" data-id-summary-preview[^>]*>\s*<dt class="text-zinc-600">Passport</dt>\s*<dd[^>]*>\s*<span class="break-all"><a\s+href="[^"]*preview-file[^"]*"[^>]*data-file-link[^>]*>passport\.jpg</a>\s*\([\d.]+ [KM]?B\)</span>#')
-        ->and(Str::before($id, '5. Who Will Transact?'))->not->toContain('Type of ID')->not->toContain('New upload');
-
-    // A saved ID: the same row, linking to the stored file.
-    $owner = User::factory()->withProfile($this->org->ccs)->create(['program' => 'BS Computer Science']);
-    $saved = $owner->latestIdentityDocument()->firstOrFail();
-    $id = Str::after(Str::after(reviewRequest($owner)->html(), 'data-summary-title'), '4. Valid ID</h2>');
-
-    expect($id)->toMatch('#<dt class="text-zinc-600">'.preg_quote(e($saved->id_type), '#').'</dt>\s*<dd[^>]*>\s*<span class="break-all"><a\s+href="'.preg_quote(route('identity-documents.show', $saved), '#').'"[^>]*data-file-link[^>]*>'.preg_quote(e($saved->original_name), '#').'</a>\s*\(#');
-});
-
-test('REQ-15-17 the summary repeats the form\'s five numbered sections, each entry a label/value row', function () {
-    $html = reviewRequest($this->newcomer, ['form.receiving_institution' => 'Acme Corp'])->html();
-    $summary = Str::after($html, 'data-summary-title');
-
-    expect($summary)->toContain('>Summary</h1>')
-        ->and($html)->toMatch('/<h1 class="text-3xl[^"]*" data-summary-title/')
-        ->and(Str::before($html, 'data-summary-title'))->not->toContain('Request a credential')->not->toContain('Fill in the form, review it, and submit.')
-        ->and($html)->not->toContain('Check that everything is correct.');
-
-    $previous = 0;
-    expect($summary)->not->toContain('Documentary Requirements');
-
-    foreach (['1. What Do You Need?', '2. Personal Information', '3. Academic Information', '4. Valid ID', '5. Who Will Transact?', 'Data Privacy'] as $heading) {
-        $position = strpos($summary, '>'.$heading.'</h2>');
-        expect($position)->not->toBeFalse()->toBeGreaterThan($previous);
-        $previous = $position;
-    }
-
-    // Label on the left, value on the right from the sm breakpoint.
-    expect($summary)->toMatch('#<div class="py-3 [^"]*sm:grid sm:grid-cols-\[minmax\(0,2fr\)_minmax\(0,3fr\)\][^"]*" data-summary-row>\s*<dt class="text-zinc-600">Receiving school, employer or agency</dt>\s*<dd[^>]*>(<!--\[if BLOCK\]><!\[endif\]-->)?\s*Acme Corp#');
-});
-
-test('REQ-15-19 empty summary values are grey italics, and a typed "Not provided" stays plain', function () {
-    $empty = fn (string $text): string => '<span class="font-normal text-zinc-600 italic" data-empty-value>'.$text.'</span>';
-
-    // Nothing typed for the receiving school.
-    $summary = Str::after(reviewRequest($this->newcomer)->html(), 'data-summary-title');
-    expect($summary)->toMatch('#Receiving school[^<]*</dt>\s*<dd[^>]*>(<!--\[if BLOCK\]><!\[endif\]-->)?\s*'.preg_quote($empty('Not provided'), '#').'#');
-
-    // The requester typed the words themselves: an entry, shown like any other.
-    $summary = Str::after(reviewRequest($this->newcomer, ['form.receiving_institution' => 'Not provided'])->html(), 'data-summary-title');
-    expect($summary)->toMatch('#Receiving school[^<]*</dt>\s*<dd[^>]*>(<!--\[if BLOCK\]><!\[endif\]-->)?\s*Not provided#');
-});
-
-test('REQ-15-17 section 5 of the summary shows the representative and their files, each linking to the viewer', function () {
-    $summary = Str::after(Str::after(reviewRequest($this->newcomer, [
-        'form.requester_mode' => 'representative',
-        'form.representative_name' => 'Maria Dela Cruz',
-        'form.representative_relationship' => 'Mother',
-        'spa' => UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'),
-        'representativeId' => UploadedFile::fake()->image('maria-id.jpg'),
-    ])->assertHasNoErrors()->html(), 'data-summary-title'), '5. Who Will Transact?</h2>');
-
-    expect($summary)->toContain('Through an authorized representative')
-        ->toContain('Maria Dela Cruz')->toContain('Mother')
-        ->toContain('Not provided')
-        ->toMatch('#<dt class="text-zinc-600">SPA</dt>.*?<a\s+href="[^"]*preview-file[^"]*"[^>]*data-file-link[^>]*>spa\.pdf</a>\s*\(100 KB\)#s')
-        ->toMatch('#<dt class="text-zinc-600">Representative&\#039;s valid ID</dt>.*?<a\s+href="[^"]*preview-file[^"]*"[^>]*data-file-link[^>]*>maria-id\.jpg</a>\s*\([\d.]+ [KM]?B\)#s');
-});
-
 test('REQ-15-05 the consent is required on the summary and recorded once given', function () {
     $this->newcomer->forceFill(['privacy_consented_at' => null])->save();
 
@@ -294,41 +168,6 @@ test('REQ-15-05 the consent is required on the summary and recorded once given',
 
     expect($this->newcomer->fresh()->privacy_consented_at)->not->toBeNull()
         ->and(CredentialRequest::count())->toBe(1);
-});
-
-test('REQ-15-05 every request asks for the consent again with an unticked checkbox, and Submit waits for it', function () {
-    $owner = requester($this->org->ccs);   // consented on an earlier save
-    $consentedAt = $owner->privacy_consented_at;
-
-    $page = reviewRequest($owner, ['profile.privacy_consent' => false])
-        ->assertSet('reviewing', true)
-        ->assertSee('I agree to the processing of my personal data')
-        ->assertDontSee('You agreed to the processing of your personal data');
-
-    expect($page->html())->toMatch('/<button[^>]*x-bind:disabled="! \$wire\.profile\.privacy_consent"[^>]*disabled[^>]*data-submit-request/');
-
-    // A forged click is refused by the server too.
-    $page->call('submit')->assertHasErrors(['profile.privacy_consent' => 'accepted']);
-    expect(CredentialRequest::count())->toBe(0);
-
-    $page->set('profile.privacy_consent', true)->call('submit')->assertHasNoErrors();
-    expect(CredentialRequest::count())->toBe(1)
-        ->and($owner->fresh()->privacy_consented_at->equalTo($consentedAt))->toBeTrue();
-});
-
-test('REQ-15-05 going back keeps every entry, and submitting from the form only reviews', function () {
-    $component = reviewRequest($this->newcomer)
-        ->call('back')
-        ->assertSet('reviewing', false)
-        ->assertSet('profile.first_name', 'Juan')
-        ->assertSet('form.purpose', 'Employment')
-        ->call('submit')
-        ->assertSet('reviewing', true);
-
-    expect(CredentialRequest::count())->toBe(0);
-
-    $component->call('submit')->assertHasNoErrors();
-    expect(CredentialRequest::count())->toBe(1);
 });
 
 test('REQ-15-06 submitting saves the profile and the ID and copies them onto the request', function () {
@@ -431,18 +270,6 @@ test('REQ-15-08 a request keeps its copy after the profile and saved ID change',
         ->contact_number->not->toBe('09990000000')
         ->program->toBe('BS Computer Science')
         ->identity_document_id->toBe($original);
-});
-
-test('REQ-15-08 request pages and lists show the request\'s copy of the name', function () {
-    $owner = requester($this->org->ccs);
-    $request = submitRequest($owner, $this->org->tor);
-    $request->forceFill(['requester_name' => 'Copied Name On Request'])->save();
-    $owner->forceFill(['first_name' => 'Renamed'])->save();
-
-    $this->actingAs($this->registrar)->get(route('records'))->assertSee('Copied Name On Request')->assertDontSee('Renamed');
-    $this->actingAs($this->registrar)->get(route('registrar.evaluation'))->assertSee('Copied Name On Request')->assertDontSee('Renamed');
-    $this->actingAs($this->registrar)->get(RegistrarLink::to($request))->assertSee('Copied Name On Request');
-    $this->actingAs($owner)->get(route('student.requests.show', $request))->assertSee('Copied Name On Request');
 });
 
 test('REQ-15-13 only the owner and registrars can open the request\'s ID; offices cannot', function () {

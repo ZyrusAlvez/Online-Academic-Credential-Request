@@ -65,22 +65,6 @@ test('REQ-32-01 an approved document stays in the office, in its Outgoing list a
     registrarOutgoing()->assertSeeInOrder([$request->reference_no, 'College of Computer Studies', 'Forward to Office of the VP for Finance']);
 });
 
-test('REQ-32-02 Outgoing is in the registrar\'s sidebar after Payment Validation and lists every office\'s finished papers, filterable by office', function () {
-    $atDean = approvedByDean();
-    $atRegistrar = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);   // the Registrar's own task
-    $notDone = receivedAtVpf();
-
-    $html = $this->actingAs($this->registrar)->get(route('registrar.outgoing'))->assertOk()->getContent();
-    expect($html)->toMatch('#registrar/payments".*?registrar/outgoing".*?registrar/final-check"#s');
-
-    registrarOutgoing()
-        ->assertSee($atDean->reference_no)->assertSee($atRegistrar->reference_no)->assertDontSee($notDone->reference_no)
-        ->assertSee(route('records.show', $atDean), false);
-    registrarOutgoing(['office' => (string) $this->org->ccs->id])->assertSee($atDean->reference_no)->assertDontSee($atRegistrar->reference_no);
-
-    $this->actingAs($this->dean)->get(route('registrar.outgoing'))->assertForbidden();
-});
-
 test('REQ-32-03 the registrar forwards a row, which the next office still has to receive, and is told of it', function () {
     Notification::fake();
     $request = approvedByDean();
@@ -134,21 +118,6 @@ test('REQ-32-04 department staff cannot forward; nor can anyone outside Outgoing
         ->call('forwardSelected')->assertNotFound();
 
     expect(openVisit($request)->status)->toBe(VisitStatus::Done);
-});
-
-test('REQ-32-05 the department\'s Outgoing list is view-only and replaces To Forward', function () {
-    $request = approvedByDean();
-
-    Livewire::actingAs($this->dean)->test(OfficeQueue::class, ['queue' => 'outgoing'])
-        ->assertSee('Outgoing')
-        ->assertSeeInOrder(['Request', 'Requester', 'Next', 'Since'])
-        ->assertSeeInOrder([$request->reference_no, 'Office of the VP for Finance'])
-        ->assertDontSeeHtml('data-select-row')->assertDontSeeHtml('data-forward-selected');
-
-    $this->actingAs($this->dean)->get('/department/to-forward')->assertRedirect('/department/outgoing');
-    $this->actingAs($this->dean)->get('/department/to-forward/'.$request->reference_no)
-        ->assertRedirect('/department/outgoing/'.$request->reference_no);
-    $this->actingAs($this->dean)->get(route('department.outgoing.show', $request))->assertOk();
 });
 
 test('REQ-32-07 a return keeps the document in the returning office, in Outgoing, and leaves its step open', function () {

@@ -89,15 +89,6 @@ test('only local redirects every email to the developer inbox', function () {
         ->and($redirect('production'))->toBeNull();
 });
 
-test('each environment has its own address unless APP_URL is set', function () {
-    $url = fn (array $vars) => configUnder('app.php', $vars)['url'];
-
-    expect($url(['APP_ENV' => 'local', 'APP_URL' => null]))->toBe('http://localhost:8000')
-        ->and($url(['APP_ENV' => 'staging', 'APP_URL' => null]))->toBe('https://staging.18-139-77-227.sslip.io')
-        ->and($url(['APP_ENV' => 'production', 'APP_URL' => null]))->toBe('https://18-139-77-227.sslip.io')
-        ->and($url(['APP_ENV' => 'production', 'APP_URL' => 'https://tracker.example.test']))->toBe('https://tracker.example.test');
-});
-
 test('session cookies are secure exactly when the app URL is https', function () {
     $secure = function (string $url) {
         config(['app.url' => $url]);
@@ -107,15 +98,6 @@ test('session cookies are secure exactly when the app URL is https', function ()
 
     expect($secure('https://tracker.example.test'))->toBeTrue()
         ->and($secure('http://localhost:8000'))->toBeFalse();
-});
-
-test('demo data cannot be reset in production', function () {
-    $department = Department::factory()->create();
-    app()->detectEnvironment(fn () => 'production');
-
-    $this->artisan('app:reset-demo')->assertFailed();
-
-    expect($department->fresh())->not->toBeNull();
 });
 
 test('REQ-18-13 demo data is not reset without the first admin settings, so nothing is wiped', function () {

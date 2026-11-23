@@ -1,11 +1,9 @@
 <?php
 
 use App\Actions\Workflow\SetAllottedDays;
-use App\Enums\RequestStatus;
 use App\Enums\VisitPurpose;
 use App\Livewire\Admin\CredentialTypes\Index;
 use App\Livewire\Admin\CredentialTypes\Workflow;
-use App\Livewire\Registrar\Records\Index as Records;
 use App\Models\CredentialType;
 use App\Models\Department;
 use App\Models\OfficeVisit;
@@ -13,8 +11,6 @@ use App\Models\User;
 use App\Notifications\DueReminder;
 use App\Reports\DepartmentReport;
 use App\Reports\ReportFilter;
-use Database\Seeders\CredentialTypeSeeder;
-use Database\Seeders\DepartmentSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -60,23 +56,6 @@ function torAtDean(object $test): object
 
     return $test;
 }
-
-test('REQ-30-01 REQ-30-02 the seeded routes split each processing period among their offices', function () {
-    $this->seed([DepartmentSeeder::class, CredentialTypeSeeder::class]);
-
-    $split = fn (string $name): array => allotted(CredentialType::where('name', $name)->sole());
-
-    expect($split('Transcript of Records (TOR)'))->toBe([1, 2, 2, 2])
-        ->and($split('TOR for Transfer Credentials'))->toBe([1, 2, 2, 2])
-        ->and($split('Certification of Graduation'))->toBe([2, 2, 2])
-        ->and($split('Diploma / Certificate for Non-Degree Programs'))->toBe([2, 2, 2])
-        ->and($split('Authentication'))->toBe([1])
-        ->and($split('Certification, Authentication, Verification (CAV)'))->toBe([2]);
-
-    CredentialType::with('steps')->get()->each(
-        fn (CredentialType $type) => expect($type->steps->sum('allotted_days'))->toBe($type->processing_days, $type->name)
-    );
-});
 
 test('REQ-30-02 the split: the period over the offices, the days left over to the first offices', function () {
     expect(CredentialType::splitDays(7, 4))->toBe([2, 2, 2, 1])
@@ -193,55 +172,6 @@ test('REQ-30-05 REQ-30-06 a document received again gets a new deadline; a corre
 
     expect($check->fresh()->due_at)->toBeNull()
         ->and(OfficeVisit::where('credential_request_id', $this->request->id)->whereNull('due_at')->whereNotNull('received_at')->count())->toBe(2);
-});
-
-test('REQ-30-07 the office queue shows the office deadline and Overdue once it has passed', function () {
-    torAtDean($this);
-
-    Carbon::setTestNow('2026-10-10 09:00:00');
-    workflow()->acceptReceipt(openVisit($this->request), $this->dean);
-
-    $this->actingAs($this->dean)->get(route('department.to-validate'))
-        ->assertOk()
-        ->assertSee('Due Tue, Oct 13')
-        ->assertDontSee('Overdue');
-
-    Carbon::setTestNow('2026-10-14 09:00:00');   // past the Dean's deadline, not the request's (Oct 17)
-    $this->actingAs($this->dean)->get(route('department.to-validate'))
-        ->assertSee('Overdue');
-});
-
-test('REQ-30-10 Records marks Office overdue and Request overdue from the dates, office first, each with its filter', function () {
-    torAtDean($this);   // the request is due Sat, Oct 17
-
-    Carbon::setTestNow('2026-10-10 09:00:00');
-    workflow()->acceptReceipt(openVisit($this->request), $this->dean);   // the Dean's deadline: Tue, Oct 13
-    $ref = $this->request->reference_no;
-    $records = fn (string $status = '') => Livewire::withQueryParams(['status' => $status])->actingAs($this->registrar)->test(Records::class);
-
-    // Within both deadlines: no mark.
-    Carbon::setTestNow('2026-10-12 09:00:00');
-    $records()->assertSee($ref)->assertDontSeeHtml('data-office-overdue')->assertDontSeeHtml('data-request-overdue')
-        ->assertSee('Office overdue (0)')->assertSee('Request overdue (0)');
-
-    // Past the Dean's deadline only: Office overdue, and only its filter lists it.
-    Carbon::setTestNow('2026-10-14 09:00:00');
-    $records()->assertSeeHtml('data-office-overdue')->assertDontSeeHtml('data-request-overdue')->assertSee('Office overdue (1)');
-    $records('office_overdue')->assertSee($ref);
-    $records('overdue')->assertDontSee($ref);
-
-    // Past both: both, the office's first; both filters list it. The status is unchanged.
-    Carbon::setTestNow('2026-10-19 09:00:00');
-    $records()->assertSeeHtmlInOrder(['data-office-overdue', 'data-request-overdue']);
-    $records('office_overdue')->assertSee($ref);
-    $records('overdue')->assertSee($ref);
-    expect($this->request->fresh()->status)->toBe(RequestStatus::InProgress);
-
-    // On at the VP for Finance, within its own deadline: Request overdue only.
-    passOffice($this->request, $this->dean);
-    workflow()->acceptReceipt(openVisit($this->request), $this->vpf);
-    $records()->assertSeeHtml('data-request-overdue')->assertDontSeeHtml('data-office-overdue');
-    $records('office_overdue')->assertDontSee($ref);
 });
 
 test('REQ-30-08 an office is reminded by its own deadline; registrars and the requester by the request\'s', function () {

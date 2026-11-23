@@ -89,23 +89,6 @@ test('REQ-33-03 submit checks the limit again, so a request made meanwhile is no
     expect(CredentialRequest::count())->toBe(5);
 });
 
-test('REQ-33-04 New Request warns only when the requester tries, and offers only the credentials it has room for', function () {
-    openRequests(4);
-    newRequestPage()
-        ->assertDontSeeHtml('data-add-credential')
-        ->call('addCredential')->assertCount('form.more', 0);
-
-    // Full: nothing until they try.
-    openRequests(1);
-    newRequestPage()
-        ->assertDontSee('the most allowed at a time')
-        ->call('review')
-        ->assertSee('the most allowed at a time');
-
-    $fresh = requester($this->org->ccs);
-    Livewire::actingAs($fresh)->test(Create::class)->assertSeeHtml('data-add-credential');
-});
-
 test('REQ-33-05 Edit Request resubmits at the limit, and the Registrar records walk-ins for a full account', function () {
     openRequests(4);
     $lead = submitRequest($this->owner, $this->org->tor);

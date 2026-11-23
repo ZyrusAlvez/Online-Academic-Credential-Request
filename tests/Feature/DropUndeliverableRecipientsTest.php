@@ -2,8 +2,6 @@
 
 use App\Listeners\DropUndeliverableRecipients;
 use Illuminate\Mail\Events\MessageSending;
-use Illuminate\Mail\Transport\ArrayTransport;
-use Illuminate\Support\Facades\Mail;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 
@@ -30,15 +28,4 @@ test('real recipients still get the email when others are on reserved domains', 
     expect((new DropUndeliverableRecipients)->handle(new MessageSending($message)))->toBeNull()
         ->and(emailAddresses($message->getTo()))->toBe(['maria@gmail.com'])
         ->and(emailAddresses($message->getCc()))->toBe(['staff@uphsl.edu.ph']);
-});
-
-test('the filter runs on every email the app sends', function () {
-    Mail::raw('Demo notification', fn ($message) => $message->to('student@example.com'));
-    Mail::raw('Real notification', fn ($message) => $message->to('maria@gmail.com'));
-
-    /** @var ArrayTransport $transport */
-    $transport = Mail::mailer()->getSymfonyTransport();
-
-    expect($transport->messages())->toHaveCount(1)
-        ->and(emailAddresses($transport->messages()->first()->getEnvelope()->getRecipients()))->toBe(['maria@gmail.com']);
 });

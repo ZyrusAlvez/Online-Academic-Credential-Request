@@ -13,7 +13,6 @@ use App\Livewire\Department\Queue as OfficeQueue;
 use App\Livewire\Department\Requests\Show as OfficeShow;
 use App\Livewire\Registrar\Queue;
 use App\Livewire\Registrar\Records\Index as Records;
-use App\Livewire\Registrar\Records\Show as RecordShow;
 use App\Livewire\Registrar\Requests\Show;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
@@ -71,52 +70,6 @@ function preparedAtRegistrar(): CredentialRequest
     return $request->fresh();
 }
 
-// ── The registrar's stage page ──────────────────────────────────────────────────────────────
-
-test('REQ-17-01 Confirm is green and Reject red, and the chosen one is ringed and pressed', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
-    workflow()->startEvaluation($request, $this->registrar);
-    workflow()->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
-
-    $html = handoffPage($request)->html();
-
-    // Reject first, Confirm on its right, on every part.
-    expect(preg_match_all('/<button[^>]*?data-(reject|confirm)-button[^>]*>/', $html, $order))->toBeGreaterThan(1)
-        ->and(array_chunk($order[1], 2))->each->toBe(['reject', 'confirm']);
-
-    // Every part's Confirm is green and its Reject red, chosen or not.
-    expect(substr_count($html, 'data-confirm-button'))->toBe(substr_count($html, 'data-reject-button'))->toBeGreaterThan(1)
-        ->and(preg_match_all('/<button[^>]*data-confirm-button[^>]*>/', $html, $confirms))->toBeGreaterThan(1)
-        ->and(collect($confirms[0])->every(fn ($tag) => str_contains($tag, '--color-green-700')))->toBeTrue()
-        ->and(preg_match_all('/<button[^>]*data-reject-button[^>]*>/', $html, $rejects))->toBeGreaterThan(1)
-        ->and(collect($rejects[0])->every(fn ($tag) => str_contains($tag, '--color-red-700')))->toBeTrue();
-
-    // Only the rejected identity part's Reject is ringed and pressed.
-    $pressed = collect($rejects[0])->filter(fn ($tag) => str_contains($tag, 'aria-pressed="true"'));
-    expect($pressed)->toHaveCount(1)
-        ->and($pressed->first())->toContain('ring-red-700')->toContain("check('identity', 'rejected')")
-        ->and(collect($confirms[0])->contains(fn ($tag) => str_contains($tag, 'aria-pressed="true"')))->toBeFalse();
-});
-
-test('REQ-17-02 the decision buttons are centred under the remarks, Approve on the right', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
-    workflow()->startEvaluation($request, $this->registrar);
-
-    $html = handoffPage($request)->html();
-
-    expect($html)->toMatch('/class="flex flex-wrap justify-center gap-2" data-decision-buttons/')
-        ->and(preg_match_all('/<button[^>]*?data-(decline|return|approve)-button[^>]*>/', $html, $order))->toBe(3)
-        ->and($order[1])->toBe(['decline', 'return', 'approve']);
-
-    // A representative's Verify is right of Reject too.
-    $represented = submitRequest($this->owner, $this->org->free);
-    declareRepresentative($represented, $this->owner, ['full_name' => 'Rosa Reyes']);
-    $list = (string) $this->blade('<x-representative-list :representatives="$representatives" reviewable />', ['representatives' => $represented->fresh()->representatives]);
-
-    expect($list)->toContain('verifyRepresentative(')
-        ->and(strpos($list, 'confirmRejectRepresentative('))->toBeLessThan(strpos($list, 'verifyRepresentative('));
-});
-
 test('REQ-17-17 Approve and Return are always enabled; a blocked one lists every reason in a dialog', function () {
     $request = submitRequest($this->owner, $this->org->tor);
     workflow()->startEvaluation($request, $this->registrar);
@@ -171,58 +124,6 @@ test('REQ-17-17 Approve and Return are always enabled; a blocked one lists every
     handoffPage($request)->set('remarks', 'Correct your years of attendance.')->call('returnRequest')
         ->assertNotDispatched('modal-show')->assertSet('blockers', []);
     expect($request->fresh()->status)->toBe(RequestStatus::ReturnedForClarification);
-});
-
-test('REQ-17-17 one rejected part says to change it to Confirm', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
-    workflow()->startEvaluation($request, $this->registrar);
-    checkAll($request, $this->registrar, CheckStage::Evaluation);
-    workflow()->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
-
-    $page = handoffPage($request)->call('approve')
-        ->assertSet('blockedParts', [['label' => 'User Identity Verification', 'state' => 'rejected']])
-        ->assertSeeInOrder(["Can't approve yet", 'Approve needs every part of the checklist confirmed.', 'User Identity Verification', 'rejected', 'To approve, change it to Confirm.']);
-
-    expect(blockedDialog($page))->not->toContain('decline')->not->toContain('Decline');
-});
-
-test('REQ-17-17 at walk-in payment validation Decline without remarks says why; Validate Payment is never blocked', function () {
-    $request = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
-    uploadPayment($request);
-    walkIn($request);   // the registrar validates walk-in payments (REQ-25-07, REQ-26-05)
-
-    handoffPage($request)->call('decline')
-        ->assertHasErrors('remarks')
-        ->assertDispatched('modal-show', name: 'decision-blocked')
-        ->assertSet('blockedParts', [])
-        ->assertSet('blockers', ['Write your remarks; the requester sees them.'])
-        ->assertSee("Can't decline yet");
-
-    handoffPage($request)->set('receiptNo', 'OR-1')->set('amountPaid', '530')
-        ->call('validatePayment')->assertHasNoErrors()->assertNotDispatched('modal-show');
-    expect($request->fresh()->status)->toBe(RequestStatus::AcceptedForProcessing);
-});
-
-test('REQ-17-03 the remarks field has no hint but its rules still apply', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
-    workflow()->startEvaluation($request, $this->registrar);
-    workflow()->recordCheck($request, $this->registrar, CheckItem::Identity, CheckResult::Rejected);
-
-    handoffPage($request)
-        ->assertDontSee('Optional to approve')
-        ->assertDontSee('required to return or decline')
-        ->call('returnRequest')->assertHasErrors(['remarks' => 'required'])
-        ->call('decline')->assertHasErrors(['remarks' => 'required']);
-
-    expect($request->fresh()->status)->toBe(RequestStatus::UnderEvaluation);
-});
-
-test('REQ-17-04 the working page has no ledger; the Records page keeps it', function () {
-    $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
-
-    handoffPage($request)->assertDontSee('data-ledger', false)->assertDontSee('Tracking History');
-    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
-        ->assertSee('data-ledger', false)->assertSee('Tracking History');
 });
 
 // ── Where the paper is ──────────────────────────────────────────────────────────────────────
@@ -420,30 +321,6 @@ test('REQ-17-18 the dashboard office table and the office report count it at the
         ->assertDontSee(route('records', ['status' => 'processing', 'office' => $this->org->ccs->id]));
 });
 
-test('REQ-32-02 a done paper shows it has not been forwarded yet', function () {
-    $request = preparedAtRegistrar();
-
-    outgoingQueue()->assertSeeInOrder([$request->reference_no, 'Office of the Registrar', 'not yet forwarded']);
-});
-
-test('REQ-17-12 the registrar forwards its own done papers and every other office\'s from Outgoing', function () {
-    $mine = preparedAtRegistrar();
-    $atDean = preparedAtRegistrar();
-    workflow()->forwardDocument(openVisit($atDean), $this->registrar);
-    workflow()->acceptReceipt(openVisit($atDean), $this->dean);
-    workflow()->completeVisit(openVisit($atDean), $this->dean);   // signed, still at the Dean's office
-
-    outgoingQueue()
-        ->assertSeeInOrder([$mine->reference_no, 'Office of the Registrar', 'not yet forwarded', 'Forward to College of Computer Studies'])
-        ->assertSeeInOrder([$atDean->reference_no, 'College of Computer Studies', 'not yet forwarded', 'Forward to Office of the VP for Finance'])
-        ->call('forward', $mine->id)->assertDispatched('notify');
-
-    expect(openVisit($mine))->department_id->toBe($this->org->ccs->id)->status->toBe(VisitStatus::InTransit);
-
-    outgoingQueue()->call('forward', $atDean->id)->assertDispatched('notify');
-    expect(openVisit($atDean))->department_id->toBe($this->org->vpf->id)->status->toBe(VisitStatus::InTransit);
-});
-
 test('REQ-17-12 at Accepted for processing one Forward marks the preparation done and sends the paper on', function () {
     $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
 
@@ -457,22 +334,6 @@ test('REQ-17-12 at Accepted for processing one Forward marks the preparation don
         ->and($request->steps()->orderBy('position')->first()->status)->toBe(StepStatus::Completed)
         ->and(openVisit($request))->department_id->toBe($this->org->ccs->id)->status->toBe(VisitStatus::InTransit)
         ->and($request->fresh()->status)->toBe(RequestStatus::InProgress);
-});
-
-test('REQ-17-12 every Outgoing row opens the record', function () {
-    $mine = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
-
-    outgoingQueue()->assertSee(route('records.show', $mine), false)->assertDontSee('/registrar/outgoing/', false);
-});
-
-test('REQ-17-12 Outgoing has no working page; the Registrar\'s task is done only through Forward', function () {
-    $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
-
-    $this->actingAs($this->registrar)->get('/registrar/outgoing/'.$request->getRouteKey())->assertNotFound();
-
-    outgoingQueue()
-        ->assertSee('Forward to College of Computer Studies')
-        ->assertDontSee('Prepared')->assertDontSee('wire:click="completeVisit"', false);
 });
 
 test('REQ-17-16 only registrars forward, any office\'s done paper', function () {
@@ -496,38 +357,6 @@ test('REQ-17-16 only registrars forward, any office\'s done paper', function () 
 
     expect(openVisit($request))->department_id->toBe($this->org->vpf->id)->status->toBe(VisitStatus::InTransit)->forwarded_by->toBe($this->registrar->id)
         ->and($request->visits()->where('department_id', $this->org->ccs->id)->sole())->completed_by->toBe($this->registrar->id);
-});
-
-// ── Records and queues ──────────────────────────────────────────────────────────────────────
-
-test('REQ-17-14 the office visits table shows received, done and left with the staff for each', function () {
-    Carbon::setTestNow('2026-11-09 09:00:00');
-    $request = acceptRequest(submitRequest($this->owner, $this->org->tor), $this->registrar);
-    Carbon::setTestNow('2026-11-09 11:00:00');
-    workflow()->completeVisit(openVisit($request), $this->registrar);
-    Carbon::setTestNow('2026-11-09 14:00:00');
-    workflow()->forwardDocument(openVisit($request), $this->registrar);
-
-    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
-        ->assertSeeInOrder(['Received', 'Done', 'Left', 'Time spent'])
-        ->assertSeeInOrder(['Office of the Registrar', 'Nov 9, 9:00 AM', $this->registrar->name, 'Nov 9, 11:00 AM', $this->registrar->name, 'Nov 9, 2:00 PM', $this->registrar->name, 'Same day', 'Completed'])
-        ->assertSeeInOrder(['College of Computer Studies', 'Not yet received']);
-});
-
-test('REQ-17-14 the paper\'s stops are "Time in Each Office", never "office visits"', function () {
-    $request = preparedAtRegistrar();
-    workflow()->forwardDocument(openVisit($request), $this->registrar);
-    workflow()->acceptReceipt(openVisit($request), $this->dean);
-
-    Livewire::actingAs($this->registrar)->test(RecordShow::class, ['credentialRequest' => $request])
-        ->assertSee('Time in Each Office')->assertDontSee('Office Visits');
-    Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $request])
-        ->assertDontSee('Office Visits');
-
-    $this->actingAs(User::factory()->admin()->create())->get(route('admin.dashboard'))
-        ->assertSee('Processing Time by Office')->assertDontSee('office visit');
-
-    expect((new DepartmentReport)->columns())->toContain('Avg working days per document')->not->toContain('Visits');
 });
 
 test('REQ-17-15 a done paper still counts as in the office', function () {

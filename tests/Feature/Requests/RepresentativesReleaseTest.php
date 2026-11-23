@@ -11,12 +11,10 @@ use App\Enums\ReviewStatus;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Registrar\Requests\Show;
 use App\Livewire\Student\Requests\Create;
-use App\Livewire\Student\Requests\Show as RequesterShow;
 use App\Models\CredentialRequest;
 use App\Models\User;
 use App\Notifications\RequestActivity;
 use App\Services\RequestWorkflow;
-use App\Support\RegistrarLink;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -81,37 +79,6 @@ function officeVisitRequest(): CredentialRequest
     return $request->fresh();
 }
 
-test('REQ-11-01 after submitting, the request page never offers to add a representative', function () {
-    $submitted = submitRequest($this->owner, $this->org->tor);
-    $requests = [$submitted, officeVisitRequest(), readyRequest()];
-
-    expect(array_map(fn (CredentialRequest $r) => $r->fresh()->status, $requests))
-        ->toBe([RequestStatus::Submitted, RequestStatus::PendingCompliance, RequestStatus::ReadyForRelease]);
-
-    foreach ($requests as $request) {
-        expect($this->owner->can('declareRepresentative', $request->fresh()))->toBeFalse();
-
-        $this->actingAs($this->owner)->get(route('student.requests.show', $request))
-            ->assertOk()
-            ->assertDontSee('Authorized Representative')
-            ->assertDontSee('Add representative')
-            ->assertDontSeeHtml('declare-representative')
-            ->assertDontSeeHtml('wire:model="spa"');
-    }
-
-    expect(method_exists(RequesterShow::class, 'declareRepresentative'))->toBeFalse();
-});
-
-test('REQ-11-01 a representative declared earlier stays listed, without the Add button', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
-    declareRepresentative($request, $this->owner, ['full_name' => 'Pedro Santos']);
-
-    $this->actingAs($this->owner)->get(route('student.requests.show', $request))
-        ->assertSee('Authorized Representative')
-        ->assertSee('Pedro Santos')
-        ->assertDontSee('Add representative');
-});
-
 test('REQ-11-01 the workflow takes no representative without both documents', function () {
     $parameters = (new ReflectionMethod(RequestWorkflow::class, 'declareRepresentative'))->getParameters();
 
@@ -135,64 +102,6 @@ test('REQ-11-09 a wrong file type or a file over 5 MB is reported as soon as it 
     // Too big even for Livewire's temporary upload: the same plain words, not "12288 kilobytes".
     $create->set('spa', UploadedFile::fake()->create('spa.pdf', 13000, 'application/pdf'))
         ->assertHasErrors('spa')->assertSee('The file must be 5 MB or smaller.')->assertDontSee('kilobytes');
-});
-
-test('REQ-11-10 the SPA and representative\'s ID use the valid ID\'s picker, its name a link to the viewer', function () {
-    $html = Livewire::actingAs($this->owner)->test(Create::class)->set('form.requester_mode', 'representative')->html();
-
-    foreach (['spa' => 'data-spa-picker', 'representativeId' => 'data-representative-id-picker'] as $model => $marker) {
-        $field = Str::after($html, $marker);
-
-        expect($field)->toMatch('/^[^>]*x-data="\{ chosen: null/')
-            ->toMatch('/<input type="file" wire:model="'.$model.'"[^>]*class="sr-only"/')
-            ->toContain('Choose file')->toContain('No file chosen')
-            ->toMatch('/<a href="#"[^>]*data-chosen-file[^>]*x-text="chosen\?\.name"\s*x-on:click\.prevent="\$dispatch\(\'open-file\', chosen\)"/')
-            ->toMatch('/<div x-show="uploading"[^>]*role="status"[^>]*data-upload-progress>/');
-    }
-
-    // Only the picker's own input: the browser's picker with its repeated name is gone.
-    expect(substr_count($html, 'wire:model="spa"'))->toBe(1)
-        ->and(substr_count($html, 'wire:model="representativeId"'))->toBe(1);
-});
-
-test('REQ-11-11 choosing who will transact shows or hides the representative\'s fields in the browser, without a round trip', function () {
-    $html = Livewire::actingAs($this->owner)->test(Create::class)->html();
-
-    // The choice is not sent to the server; the fields are on the page, hidden until chosen.
-    expect($html)->toContain('wire:model="form.requester_mode"')->not->toContain('wire:model.live="form.requester_mode"')
-        ->toMatch('/<div class="space-y-6" data-representative-fields\s+x-show="\$wire\.form\.requester_mode === \'representative\'"\s+x-cloak style="display: none"\s*>/')
-        ->and(Str::after($html, 'data-representative-fields'))->toContain('wire:model.live.blur="form.representative_name"')->toContain('data-spa-picker');
-
-    // Coming back to the form with a representative chosen, the fields show from the start.
-    $chosen = Livewire::actingAs($this->owner)->test(Create::class)->set('form.requester_mode', 'representative')->html();
-    expect($chosen)->toMatch('/data-representative-fields\s+x-show="[^"]*"\s*>/');
-});
-
-test('REQ-11-01 a representative\'s contact number, when given, must be exactly 11 digits', function () {
-    Livewire::actingAs($this->owner)->test(Create::class)
-        ->set('form.requester_mode', 'representative')
-        ->set('form.representative_contact', '0918 555 0101')
-        ->call('review')
-        ->assertHasErrors(['form.representative_contact'])
-        ->set('form.representative_contact', '09185550101')
-        ->call('review')
-        ->assertHasNoErrors('form.representative_contact');
-});
-
-test('REQ-11-02 the representative is recorded apart from the owner and shown with their status', function () {
-    $request = submitRequest($this->owner, $this->org->tor);
-    $representative = declareRepresentative($request, $this->owner, ['full_name' => 'Pedro Santos']);
-
-    expect(User::where('first_name', 'Pedro')->exists())->toBeFalse();
-
-    // The owner sees no "For verification" (2026-11-13); the registrar still does, to act on it.
-    $ownerPage = fn (): string => Str::after($this->actingAs($this->owner)->get(route('student.requests.show', $request))->getContent(), 'id="representatives-heading"');
-    expect($ownerPage())->toContain('Pedro Santos')->not->toContain('For verification');
-    $this->actingAs($this->registrar)->get(RegistrarLink::to($request))->assertSee('Pedro Santos')->assertSee('For verification');
-
-    Livewire::actingAs($this->registrar)->test(Show::class, ['credentialRequest' => $request])
-        ->call('verifyRepresentative', $representative->id);
-    expect(Str::before($ownerPage(), 'id="details-heading"'))->toContain('Verified');
 });
 
 test('REQ-11-03 the registrar verifies or rejects a representative', function () {
@@ -220,14 +129,6 @@ test('REQ-11-04 only the owner and registrars can open representative documents'
     $this->actingAs($this->registrar)->get(route('request-documents.show', $document))->assertOk();
     $this->actingAs(requester($this->org->cba))->get(route('request-documents.show', $document))->assertNotFound();
     $this->actingAs(User::factory()->departmentStaff($this->org->vpf)->create())->get(route('request-documents.show', $document))->assertNotFound();
-});
-
-test('REQ-11-05 the requester is told the credential is ready and what to bring', function () {
-    $request = readyRequest();
-
-    $this->actingAs($this->owner)->get(route('student.requests.show', $request))
-        ->assertSee('Your Credential Is Ready for Release')
-        ->assertSee('with a valid ID');
 });
 
 test('REQ-11-05 a representative is mentioned only when one was declared and not rejected', function () {

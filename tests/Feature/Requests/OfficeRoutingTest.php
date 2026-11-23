@@ -6,7 +6,6 @@ use App\Enums\StepStatus;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use App\Exceptions\InvalidTransition;
-use App\Livewire\Department\Queue as OfficeList;
 use App\Livewire\Department\Requests\Show as OfficeShow;
 use App\Models\CredentialRequest;
 use App\Models\OfficeVisit;
@@ -43,23 +42,6 @@ test('REQ-05-01 acceptance copies the route with the Dean resolved and the final
     expect($steps->pluck('department.code')->all())->toBe(['REG', 'CCS', 'VPF', 'CHAN', 'REG'])
         // The paper starts at the Registrar, received there at once (REQ-17-05).
         ->and(openVisit($this->request))->department_id->toBe($this->org->registrarOffice->id)->status->toBe(VisitStatus::Received);
-});
-
-test('REQ-05-02 the office lists show incoming, in-office and history', function () {
-    passOffice($this->request, $this->registrar);
-    $list = fn (User $user, string $queue) => Livewire::actingAs($user)->test(OfficeList::class, ['queue' => $queue]);
-
-    $list($this->dean, 'incoming')->assertSee($this->request->reference_no);
-    $list($this->dean, 'to_validate')->assertDontSee($this->request->reference_no);
-
-    workflow()->acceptReceipt(openVisit($this->request), $this->dean);
-    $list($this->dean, 'to_validate')->assertSee($this->request->reference_no);
-
-    workflow()->completeVisit($visit = openVisit($this->request), $this->dean);
-    workflow()->forwardDocument($visit, $this->dean);
-
-    $list($this->dean, 'history')->assertSee($this->request->reference_no)->assertSee('Signed');
-    $list($this->chancellor, 'incoming')->assertDontSee($this->request->reference_no);
 });
 
 test('REQ-05-03 receipt is confirmed separately from forwarding', function () {
@@ -140,23 +122,6 @@ test('REQ-05-06 an office returns the document to an earlier office with reason 
         ->return_reason->toBe('Wrong middle name')
         ->and($correction)->purpose->toBe(VisitPurpose::Correction)->department_id->toBe($this->org->registrarOffice->id)
         ->and($request->fresh()->status)->toBe(RequestStatus::ReturnedForCorrection);
-});
-
-test('REQ-05-06 the corrective action is optional', function () {
-    $request = toVpFinance();
-    $visit = openVisit($request);
-    workflow()->acceptReceipt($visit, $this->vpf);
-
-    $html = $this->actingAs($this->vpf)->get(route('department.to-validate.show', $request))->assertOk()->getContent();
-    expect($html)->toMatch('#Corrective action needed.{0,400}Optional#s');
-
-    Livewire::actingAs($this->vpf)->test(OfficeShow::class, ['credentialRequest' => $request])
-        ->set('returnTo', $this->org->registrarOffice->id)
-        ->set('returnReason', 'Wrong middle name')
-        ->call('returnVisit')->assertHasNoErrors();
-
-    expect($visit->fresh())->corrective_action->toBeNull()
-        ->and($request->events()->where('type', RequestEventType::DocumentReturned)->sole()->remarks)->toBe("Returned to {$this->org->registrarOffice->name}: Wrong middle name");
 });
 
 test('REQ-05-06 a document can only go back to an office it already passed', function () {

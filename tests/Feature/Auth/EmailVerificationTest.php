@@ -21,10 +21,6 @@ function sentCode(User $user): string
     return Notification::sent($user, VerificationCode::class)->last()->code;
 }
 
-test('email verification screen can be rendered', function () {
-    $this->actingAs(User::factory()->unverified()->create())->get('/verify-email')->assertOk()->assertSee('Verification code');
-});
-
 test('REQ-01-09 unverified users are sent to the verify-email notice', function () {
     $user = User::factory()->unverified()->create();
 

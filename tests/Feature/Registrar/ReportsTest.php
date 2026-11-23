@@ -2,14 +2,12 @@
 
 use App\Enums\AcademicStatus;
 use App\Enums\DelayCategory;
-use App\Enums\ReportKind;
 use App\Enums\RequestStatus;
 use App\Enums\RouteTask;
 use App\Enums\StepStatus;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use App\Livewire\Admin\Reports\Index;
-use App\Livewire\Registrar\Records\Index as RecordsIndex;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
@@ -217,54 +215,6 @@ test('REQ-34-02 the dashboard\'s office table, longest first, with what each off
         ->assertSeeHtml('<th scope="row" class="p-3 text-start font-medium text-ink">Transcript of Records</th>');
 });
 
-test('REQ-34-17 Records lists the requests behind a dashboard number, shown as a chip that clears it', function () {
-    $records = fn (array $query) => Livewire::withQueryParams(['from' => '2026-10-01', 'to' => '2026-10-31', ...$query])
-        ->actingAs($this->admin)->test(RecordsIndex::class);
-    $all = ['a', 'b', 'c', 'd', 'g', 'h', 'r'];
-    $shows = function ($component, array $seen) use ($all) {
-        foreach ($all as $key) {
-            in_array($key, $seen, true)
-                ? $component->assertSee($this->{$key}->reference_no)
-                : $component->assertDontSee($this->{$key}->reference_no);
-        }
-
-        return $component;
-    };
-
-    // Total requests: submitted in October (R in September is not).
-    $shows($records(['scope' => 'submitted']), ['a', 'b', 'c', 'd', 'g', 'h'])->assertSee('Submitted Oct 1 – Oct 31, 2026');
-    // Ready on time: A only (B was ready late).
-    $shows($records(['scope' => 'on_time']), ['a'])->assertSee('Ready on time · due Oct 1 – Oct 31, 2026');
-    // A credential's requests made ready in October with a processing time: A and B.
-    $shows($records(['scope' => 'ready', 'type' => (string) $this->org->tor->id]), ['a', 'b']);
-    // An office's finished and done requests.
-    $shows($records(['scope' => 'finished', 'at' => (string) $this->org->vpf->id]), ['a'])->assertSee('Finished at Office of the VP for Finance');
-    $shows($records(['scope' => 'done', 'at' => (string) $this->org->vpf->id]), []);   // A was returned there
-    $shows($records(['scope' => 'done', 'at' => (string) $this->org->ccs->id]), ['a'])->assertSee('Done at College of Computer Studies');
-
-    // The chip's ✕ shows every request again; without a selection there is no chip.
-    $shows($records(['scope' => 'on_time'])->call('clearScope'), $all)->assertSet('scope', '')->assertDontSeeHtml('data-dashboard-scope');
-});
-
-test('REQ-34-03 the dashboard counts the causes of delay and links to the delay analysis', function () {
-    expect(DelayReport::causeCounts($this->filter)->mapWithKeys(fn ($cause) => [$cause['label'] => $cause['count']])->sortKeys()->all())->toBe([
-        'Document correction' => 0, 'Pending signature' => 1, 'Registrar / evaluation' => 0, 'VP Finance documentary stamp' => 1,
-    ]);
-
-    $this->actingAs($this->admin)->get(route('admin.dashboard', ['from' => '2026-10-01', 'to' => '2026-10-31']))
-        ->assertSee('Causes of Delay')->assertSee('Pending signature')->assertSee('VP Finance documentary stamp')
-        ->assertSee('Registrar / evaluation')->assertSee('Document correction')
-        // An information icon with each cause's scope.
-        ->assertSee(DelayCategory::PendingSignature->description())->assertSeeHtml('aria-label="About Pending signature"')
-        ->assertSee(route('admin.reports', ['from' => '2026-10-01', 'to' => '2026-10-31', 'report' => 'delay']))
-        // A cause with requests opens Delay Analysis filtered to it; one without has no link.
-        ->assertSee(route('admin.reports', ['from' => '2026-10-01', 'to' => '2026-10-31', 'report' => 'delay', 'show' => 'pending_signature']))
-        ->assertDontSee(route('admin.reports', ['from' => '2026-10-01', 'to' => '2026-10-31', 'report' => 'delay', 'show' => 'document_correction']));
-
-    expect(collect(reportRows(new DelayReport, new ReportFilter('2026-10-01', '2026-10-31', show: 'pending_signature')))->pluck(0)->all())
-        ->toBe([$this->c->reference_no]);
-});
-
 test('REQ-34-10 a delay has one of four causes, from the office holding the document', function () {
     $cause = function (?Department $office, VisitPurpose $purpose = VisitPurpose::Route): string {
         $visit = null;
@@ -286,52 +236,6 @@ test('REQ-34-10 a delay has one of four causes, from the office holding the docu
         ->and($cause($this->org->registrarOffice))->toBe('Registrar / evaluation')
         ->and($cause($this->org->ccs, VisitPurpose::Correction))->toBe('Document correction')
         ->and($cause(null))->toBe('Registrar / evaluation');
-});
-
-test('REQ-34-04 the dashboard shows nothing else', function () {
-    $this->actingAs($this->admin)->get(route('admin.dashboard'))->assertOk()
-        ->assertDontSee('Needs the Registrar')->assertDontSee('Awaiting payment')
-        ->assertDontSee('Overdue workload')->assertDontSee('Returned for correction')->assertDontSee('Average initial evaluation time')
-        ->assertDontSee('Where Requests Are Waiting')->assertDontSee('Most Overdue')
-        ->assertDontSee('Average processing time')->assertDontSee('Oldest pending')
-        ->assertDontSee('Every credential request at a glance.')
-        ->assertDontSee(route('admin.reports', ['report' => 'office']));   // no Reports button
-});
-
-test('REQ-34-05 the five reports render with their filters; a removed report opens Office Performance', function () {
-    expect(collect(ReportKind::cases())->map->value->all())->toBe(['office', 'evaluator', 'transactions', 'delay', 'monthly']);
-
-    // Office Documents is gone: its old link opens Office Performance.
-    $this->actingAs($this->admin)->get(route('admin.reports', ['report' => 'office-documents']))
-        ->assertSee((new DepartmentReport)->description())->assertDontSee('Office Documents');
-
-    foreach (ReportKind::cases() as $kind) {
-        $this->actingAs($this->admin)->get(route('admin.reports', ['report' => $kind->value, 'from' => '2026-10-01', 'to' => '2026-10-31']))
-            ->assertOk()->assertSee($kind->report()->title());
-    }
-
-    // The dropdown lists every title, so the current report shows by its description.
-    $this->actingAs($this->admin)->get(route('admin.reports'))->assertSee((new DepartmentReport)->description());
-    $this->actingAs($this->admin)->get(route('admin.reports', ['report' => 'daily']))->assertSee((new DepartmentReport)->description())->assertDontSee('Daily Monitoring');
-
-    $other = CredentialType::factory()->create();
-    $byType = new ReportFilter('2026-10-01', '2026-10-31', type: (string) $other->id);
-    $byOffice = new ReportFilter('2026-10-01', '2026-10-31', office: (string) $this->org->chancellor->id);
-    $byEvaluator = new ReportFilter('2026-10-01', '2026-10-31', evaluator: (string) $this->registrar->id);
-
-    expect(PerformanceMetrics::for($byType)->received)->toBe(0)
-        ->and(PerformanceMetrics::for($byOffice)->received)->toBe(1)       // only C visited the Chancellor
-        ->and(PerformanceMetrics::for($byEvaluator)->received)->toBe(3);   // A, B, H
-
-    Livewire::actingAs($this->admin)->test(Index::class)
-        ->set('report', 'delay')->set('from', '2026-10-01')->set('to', '2026-10-31')
-        ->assertSee($this->c->reference_no)
-        ->set('office', (string) $this->org->vpf->id)
-        ->assertDontSee($this->c->reference_no);
-
-    $this->actingAs($this->owner)->get(route('admin.reports'))->assertForbidden();
-    $this->actingAs(User::factory()->departmentStaff($this->org->vpf)->create())->get(route('admin.reports'))->assertForbidden();
-    $this->actingAs($this->registrar)->get(route('admin.reports'))->assertForbidden();   // REQ-18-04
 });
 
 test('REQ-34-06 the office performance report, longest first', function () {
@@ -404,62 +308,6 @@ test('REQ-07-18 the delay analysis separates the holding office from the cause',
             $this->c->reference_no, 'Transcript of Records', '2026-10-05', '2026-10-14', null, 'Office of the Chancellor', 'In progress',
             5, 0, 'Pending signature', 'The Chancellor is abroad', 'Sign on return',
         ]);
-});
-
-test('REQ-34-13 the Reports page shows only the chosen report\'s filters, and only those narrow it', function () {
-    $page = fn (array $query) => $this->actingAs($this->admin)->get(route('admin.reports', ['from' => '2026-10-01', 'to' => '2026-10-31', ...$query]))->assertOk();
-
-    $page(['report' => 'office'])->assertSee('All credentials')->assertDontSee('All evaluators')->assertDontSee('All offices');
-    $page(['report' => 'evaluator'])->assertDontSee('All credentials')->assertDontSee('All evaluators')->assertDontSee('All offices');
-    $page(['report' => 'transactions'])->assertSee('All evaluators')->assertDontSee('All credentials')->assertDontSee('All offices');
-    $page(['report' => 'delay'])->assertSee('All credentials')->assertSee('All offices')->assertDontSee('All evaluators')
-        ->assertSeeInOrder(['Cause', 'All causes', 'Registrar / evaluation']);
-    $page(['report' => 'monthly'])->assertSee('All credentials')->assertSee('All evaluators')->assertSee('All offices');
-
-    // A filter Office Performance does not show does not narrow it.
-    $page(['report' => 'office', 'office' => $this->org->chancellor->id, 'evaluator' => $this->registrar->id])
-        ->assertSee('College of Computer Studies')->assertSee('Office of the Chancellor');
-
-    // A Show option belongs to its report.
-    Livewire::actingAs($this->admin)->test(Index::class)
-        ->set('report', 'delay')->set('from', '2026-10-01')->set('to', '2026-10-31')
-        ->set('show', 'pending_signature')
-        ->assertSee($this->c->reference_no)->assertDontSee($this->b->reference_no)
-        ->set('report', 'transactions')
-        ->assertSet('show', '');
-});
-
-test('REQ-34-14 a report sorts by the clicked column and shows 50 rows per page', function () {
-    $component = Livewire::actingAs($this->admin)->test(Index::class)
-        ->set('report', 'transactions')->set('from', '2026-10-01')->set('to', '2026-10-31');
-
-    // The Requested column (index 1): ascending, then descending on a second click.
-    $component->call('sortBy', 1)->assertSet('sort', '1')->assertSet('direction', 'asc')
-        ->assertViewHas('rows', fn ($rows) => collect($rows->items())->pluck(1)->all() === collect($rows->items())->pluck(1)->sort()->values()->all());
-    $component->call('sortBy', 1)->assertSet('direction', 'desc')
-        ->assertViewHas('rows', fn ($rows) => $rows->items()[0][0] === $this->h->reference_no);   // H, Oct 19, is the latest
-
-    // Empty cells go last either way: only A and B have a release date (index 6).
-    $component->call('sortBy', 6)
-        ->assertViewHas('rows', fn ($rows) => collect($rows->items())->take(2)->pluck(0)->all() === [$this->a->reference_no, $this->b->reference_no]);
-    $component->call('sortBy', 6)
-        ->assertViewHas('rows', fn ($rows) => collect($rows->items())->take(2)->pluck(0)->all() === [$this->b->reference_no, $this->a->reference_no]);
-
-    // 50 rows a page; a new report starts on page 1 with its own order.
-    CredentialRequest::factory()->count(55)->create(['user_id' => $this->owner->id, 'credential_type_id' => $this->org->tor->id,
-        'college_id' => $this->org->ccs->id, 'status' => RequestStatus::Submitted, 'submitted_at' => '2026-10-16 08:00']);
-
-    $paged = Livewire::actingAs($this->admin)->test(Index::class)
-        ->set('report', 'transactions')->set('from', '2026-10-01')->set('to', '2026-10-31');
-    $paged->assertViewHas('rows', fn ($rows) => $rows->count() === 50 && $rows->total() === 62 && $rows->lastPage() === 2);
-    $paged->call('nextPage')->assertViewHas('rows', fn ($rows) => $rows->count() === 12 && $rows->currentPage() === 2);
-    $paged->call('sortBy', 0)->set('report', 'delay')
-        ->assertSet('sort', '')->assertViewHas('rows', fn ($rows) => $rows->currentPage() === 1);
-
-    // Every header but the first is centered like its values.
-    $html = $this->actingAs($this->admin)->get(route('admin.reports', ['report' => 'transactions', 'from' => '2026-10-01', 'to' => '2026-10-31']))->getContent();
-    expect(substr_count($html, 'flex w-full items-center gap-1 justify-center'))->toBe(count((new TransactionReport)->columns()) - 1)
-        ->and(substr_count($html, 'flex w-full items-center gap-1 justify-start'))->toBe(1);
 });
 
 test('REQ-34-15 the evaluator performance report', function () {

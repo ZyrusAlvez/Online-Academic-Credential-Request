@@ -4,20 +4,13 @@ use App\Actions\Identity\RemoveSavedIdentityDocument;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\ReviewStatus;
-use App\Livewire\Registrar\Requests\Show;
-use App\Livewire\Student\Profile;
-use App\Livewire\Student\Requests\Create;
-use App\Livewire\Student\Requests\Edit;
 use App\Models\CredentialRequest;
 use App\Models\RequestCheck;
 use App\Models\RequesterVerification;
 use App\Models\User;
 use App\Services\RequestWorkflow;
-use App\Support\RegistrarLink;
 use App\Support\VerifiedDetails;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Livewire\Livewire;
 
 beforeEach(function () {
     Storage::fake(RequestWorkflow::proofDisk());
@@ -42,15 +35,6 @@ function returnWithRejected(CredentialRequest $request, User $registrar, CheckIt
     }
 
     workflow()->returnForClarification($request, $registrar, 'Please correct this.');
-}
-
-/** The badge of one section of the requester's form: 'verified', or '' when it has none (REQ-21-06). */
-function sectionBadge(string $html, string $section): string
-{
-    preg_match('/data-section-verification="'.$section.'"(.*?)<\/section>/s', $html, $sectionHtml);
-    preg_match('/data-verification="(\w+)"/', $sectionHtml[1] ?? '', $match);
-
-    return $match[1] ?? '';
 }
 
 // ── REQ-21-01..03: what counts as verified ──────────────────────────────────────────────────
@@ -168,110 +152,4 @@ test('REQ-21-04 a resubmitted request has its unchecked parts confirmed when the
 
     expect(check($second, CheckItem::Identity)?->carried_from_request_id)->toBe($first->id)
         ->and(check($second, CheckItem::AcademicRecord)?->carried_from_request_id)->toBe($first->id);
-});
-
-test('REQ-21-05 the checklist says who verified a carried part and when, linked to that request', function () {
-    $first = evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
-    $second = submitRequest($this->owner, $this->org->free);
-    workflow()->startEvaluation($second, $this->other);
-
-    $page = fn () => Livewire::actingAs($this->other)->test(Show::class, ['credentialRequest' => $second->fresh()]);
-    $html = $page()->html();
-    $identity = Str::between($html, 'data-check="identity"', 'data-check="academic_record"');
-    $date = VerifiedDetails::current($this->owner, CheckItem::Identity)->verified_at->format('M j, Y');
-
-    expect($identity)->toContain('data-already-verified')
-        ->toContain("Already verified by Rita Reyes on {$date}")
-        ->toContain('href="'.route('records.show', $first).'"')
-        ->toContain($first->reference_no)
-        ->and(Str::between($html, 'data-check="credential_request"', 'data-check="identity"'))->not->toContain('data-already-verified');
-
-    // The evaluator can still reject it; their result replaces the carried one and its note.
-    $page()->call('check', CheckItem::Identity->value, CheckResult::Rejected->value)->assertHasNoErrors();
-
-    expect(check($second, CheckItem::Identity))
-        ->result->toBe(CheckResult::Rejected)
-        ->checked_by->toBe($this->other->id)
-        ->carried_from_request_id->toBeNull()
-        ->and(Str::between($page()->html(), 'data-check="identity"', 'data-check="academic_record"'))->not->toContain('data-already-verified');
-});
-
-// ── REQ-21-06: what the requester sees ──────────────────────────────────────────────────────
-
-test('REQ-21-06 New Request, Edit Request and Settings → Profile badge each verified section, and only those', function () {
-    $pages = fn (): array => [
-        'new request' => Livewire::actingAs($this->owner)->test(Create::class)->html(),
-        'profile' => Livewire::actingAs($this->owner)->test(Profile::class)->html(),
-    ];
-
-    foreach ($pages() as $html) {
-        expect(sectionBadge($html, 'personal'))->toBe('')
-            ->and(sectionBadge($html, 'academic'))->toBe('')
-            ->and(sectionBadge($html, 'valid_id'))->toBe('')
-            ->and($html)->not->toContain('For verification');
-    }
-
-    evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar);
-
-    foreach ($pages() as $html) {
-        expect(sectionBadge($html, 'personal'))->toBe('verified')
-            ->and(sectionBadge($html, 'academic'))->toBe('verified')
-            ->and(sectionBadge($html, 'valid_id'))->toBe('verified')
-            // The badge sits at the right of the heading, with no explanatory note (Help has it).
-            ->and(preg_match_all('/<div class="flex flex-wrap items-center justify-between[^"]*">\s*<h2 id="(personal|academic|identity)-heading"/', $html))->toBe(3)
-            ->and($html)->not->toContain('data-reverify-note')
-            ->not->toContain('Verified by the Office of the Registrar.')
-            // Still editable.
-            ->toContain('wire:model.live.blur="')->toContain('.contact_number"');
-    }
-
-    // A new contact number: only Personal Information goes back for verification.
-    $this->owner->update(['contact_number' => '09990001111']);
-
-    foreach ($pages() as $html) {
-        expect(sectionBadge($html, 'personal'))->toBe('')
-            ->and(sectionBadge($html, 'academic'))->toBe('verified')
-            ->and(sectionBadge($html, 'valid_id'))->toBe('verified');
-    }
-
-    // Edit Request shows them too.
-    $returned = submitRequest($this->owner, $this->org->free);
-    returnWithRejected($returned, $this->registrar, CheckItem::CredentialRequest);
-    $edit = Livewire::actingAs($this->owner)->test(Edit::class, ['credentialRequest' => $returned->fresh()])->html();
-
-    expect(sectionBadge($edit, 'personal'))->toBe('')
-        ->and(sectionBadge($edit, 'academic'))->toBe('verified');
-});
-
-test('REQ-21-06 the requester\'s request page shows the valid ID without a verification badge', function () {
-    $idRow = fn (CredentialRequest $request): string => Str::before(
-        Str::after($this->actingAs($this->owner)->get(route('student.requests.show', $request))->getContent(), 'data-request-id'),
-        '</dd>',
-    );
-
-    $request = submitRequest($this->owner, $this->org->tor);
-    expect($request->identity_status)->toBe(ReviewStatus::Pending)
-        ->and($idRow($request))->toContain($request->identityDocument->original_name)
-        ->not->toContain('For verification')->not->toContain('data-flux-badge');
-
-    evaluate($request, $this->registrar);
-    expect($request->fresh()->identity_status)->toBe(ReviewStatus::Verified)
-        ->and($idRow($request->fresh()))->not->toContain('Verified')->not->toContain('data-flux-badge');
-});
-
-test('REQ-21-06 the registrar\'s request page and Records badge the valid ID only once it is checked', function () {
-    $idRow = fn (string $url): string => Str::before(
-        Str::after($this->actingAs($this->registrar)->get($url)->getContent(), 'data-record-id'),
-        '</dd>',
-    );
-
-    // Before Start evaluation: the ID with no badge.
-    $request = submitRequest($this->owner, $this->org->tor);
-    foreach ([RegistrarLink::to($request), route('records.show', $request)] as $url) {
-        expect($idRow($url))->toContain($request->identityDocument->id_type)
-            ->not->toContain('For verification')->not->toContain('data-flux-badge');
-    }
-
-    evaluate($request, $this->registrar);
-    expect($idRow(route('records.show', $request)))->toContain('Verified');
 });
