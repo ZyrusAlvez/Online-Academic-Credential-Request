@@ -20,6 +20,8 @@ reference no. links to the request's record (REQ-18-06).*
 ### What is logged
 - **REQ-14-01** WHEN any action on a request is recorded in its ledger (spec 06) THE SYSTEM SHALL
   also log it, with the person who did it, the request's reference no. and the office involved.
+  *Since REQ-35-11 (2026-11-23):* an Admin override's entries also carry the reason and when the
+  step happened.
 - **REQ-14-02** WHEN a credential type, route step, office, program, purpose or non-working day is
   added, changed or removed THE SYSTEM SHALL log it, with each changed field's old and new value.
 - **REQ-14-03** WHEN an account is created or changed (including activation and deactivation,

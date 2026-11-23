@@ -35,7 +35,8 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
   entries (forwarding, internal returns and delay notes); an internal return SHALL show as
   "In progress". *(Since 2026-11-21, REQ-16-32: the Request Details on the same page show the
   evaluator's name, the one staff member the requester sees; the history still names offices
-  only.)*
+  only.)* *Since spec 35 (2026-11-23):* an Admin override's reason, and an evaluation unlocked by
+  the Admin, are internal too (REQ-35-05, 10).
 - **REQ-06-03** THE SYSTEM SHALL show the registrar the full ledger of a request, including who
   performed each action, and the office visits with the date received, date released, working days
   spent and status.
@@ -80,7 +81,8 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
 - **REQ-06-21** A request's registrar SHALL be its evaluator (`evaluated_by`) while that account is
   active; a request with no evaluator, or whose evaluator is inactive, SHALL go to every active
   registrar account instead. Registrars are notified only about the requests they evaluate, except
-  new submissions, which have no evaluator yet. *(User's decision, 2026-11-22.)*
+  new submissions, which have no evaluator yet. *(User's decision, 2026-11-22.)* *Since REQ-35-12
+  (2026-11-23):* a request the Admin unlocks goes to every active registrar too, like a new one.
 - **REQ-06-19** A staff notification SHALL be sent to each account separately, so each account has
   its own read status, and its email SHALL name the request, the credential and the requester,
   say what happened and where the document is, and link to the staff member's own request page.

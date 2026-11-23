@@ -91,7 +91,8 @@ This replaces:
 - **REQ-16-07** THE Records list SHALL show every request, searchable by tracking number, student
   number or name, and filterable by status (including "Overdue"), credential type and the office
   holding it. A record SHALL open a read-only page with the request's details, route, office visits
-  and ledger, and no actions. The working page does not show the ledger (REQ-17-04).
+  and ledger, and no actions. The working page does not show the ledger (REQ-17-04). *Changed by
+  REQ-35-01 (2026-11-23):* the Admin's view of a record has one action, the Override.
 - **REQ-16-23** WHERE staff see where a request is (the Records list's *Currently at* column, a
   record's "Where it is now" and the Admin dashboard), THE SYSTEM SHALL name the requester instead
   of addressing them: "Waiting for the requester to complete the requirements", "Waiting for the
@@ -106,7 +107,8 @@ This replaces:
   them its evaluator. WHILE the request is under evaluation THE SYSTEM SHALL let only its evaluator
   open its working page and act on it. Any other registrar SHALL see only "<tracking number> is under
   evaluation by <name>", and their actions SHALL be refused (403). The lock SHALL end when the
-  evaluator approves, returns or declines the request.
+  evaluator approves, returns or declines the request. *Changed by REQ-35-05 (2026-11-23):* or
+  when the Admin unlocks it.
 
 ### Initial Evaluation
 - **REQ-16-10** WHILE a request is under evaluation THE SYSTEM SHALL show its evaluator a checklist
@@ -190,7 +192,8 @@ This replaces:
   recipient's name SHALL be filled in from them, and the release time and the staff member
   recorded. A representative not yet verified SHALL be verifiable or rejectable, with a reason, on
   this page. (Representatives are declared on New Request only since 2026-11-13, REQ-11-01, so
-  they are normally verified during the evaluation.)
+  they are normally verified during the evaluation.) *Since REQ-35-04 (2026-11-23):* the Admin
+  can also mark it released, through an override.
 - **REQ-16-28** THE "A representative" choice on Release SHALL always be selectable. WHEN it is
   chosen THE SYSTEM SHALL offer the request's verified representatives, if any, and "Someone else";
   for someone else (or when there is no verified representative) the registrar SHALL type the

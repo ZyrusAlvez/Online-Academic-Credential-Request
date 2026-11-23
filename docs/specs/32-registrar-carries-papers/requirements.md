@@ -44,7 +44,8 @@ This replaces:
   Forwarding SHALL record the registrar as the one who forwarded it, open a visit at the next
   office awaiting its receipt (REQ-17-08) and notify that office (REQ-06-07).
 - **REQ-32-04** ONLY registrars SHALL forward, and only from Outgoing. A forward by department
-  staff, or from any other page, SHALL be refused (403).
+  staff, or from any other page, SHALL be refused (403). *Changed by REQ-35-02 (2026-11-23):* the
+  Admin also forwards, through an override on the request's record.
 - **REQ-32-05** THE department sidebar SHALL show "Outgoing" at `/department/outgoing` in place of
   "To Forward". It SHALL list the documents the office finished and still holds, with Next
   ("<next office>" or "Return to <office>") and no checkboxes or buttons. The former
@@ -93,4 +94,5 @@ This replaces:
   SYSTEM SHALL notify the request's registrar (its evaluator, REQ-06-21), in-app and, if they want it, by email (REQ-06-16):
   "<tracking no.> is ready to collect from <office>". A registrar's own task at the Office of the
   Registrar SHALL NOT notify. *(User's request, 2026-11-20: the Registrar must forward it to the
-  next office.)*
+  next office.)* *Changed by REQ-35-12 (2026-11-23):* also when the Admin recorded the office's
+  step through an override.
