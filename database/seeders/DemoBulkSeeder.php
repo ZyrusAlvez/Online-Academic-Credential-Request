@@ -147,7 +147,7 @@ class DemoBulkSeeder extends Seeder
                 'last_name' => $last,
                 'sex' => $sex,
                 'password' => $password,
-                'contact_number' => '09'.fake()->numerify('#########'),
+                'contact_number' => '+639'.fake()->numerify('#########'),
                 'academic_status' => $status,
                 'college_id' => $college->id,
                 'program' => fake()->randomElement($college->programs->pluck('name')->all()),
@@ -536,7 +536,7 @@ class DemoBulkSeeder extends Seeder
 
         $request = $this->workflow->submitWalkIn($this->registrar, $items, [
             ...$client,
-            'contact_number' => '09'.fake()->numerify('#########'),
+            'contact_number' => '+639'.fake()->numerify('#########'),
             'academic_status' => ($owner->academic_status ?? AcademicStatus::Graduate)->value,
             'college_id' => (int) $owner->college_id,
             'program' => (string) $owner->program,

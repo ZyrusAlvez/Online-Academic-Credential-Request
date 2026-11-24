@@ -62,7 +62,7 @@ Accounts for all three roles.
 | last_name | varchar(100) | Yes | | | Requesters give it on their first request; edited in Settings → Profile |
 | email | varchar(255) | No | UQ | | Login name |
 | google_id | varchar(64) | Yes | UQ | | Google account ID once the user signs in with Google (REQ-01-24) |
-| contact_number | varchar(20) | Yes | | | Requesters: 11 digits, the saved profile's (each request keeps its own copy) |
+| contact_number | varchar(20) | Yes | | | Requesters: a mobile number in E.164 form (`+639171234567`, REQ-36-01), the saved profile's (each request keeps its own copy) |
 | privacy_consented_at | timestamp | Yes | | | When the requester agreed to the Data Privacy Act notice (first request or profile save) |
 | role | varchar(20) | No | IX | `student` | `student`, `registrar`, `department` (see [Role](#role)) |
 | department_id | bigint unsigned | Yes | FK → departments | | Only for `department` staff |
@@ -181,7 +181,7 @@ One row per credential of an application (specs 04, 05, 11, 27). Status changes 
 | student_number | varchar(30) | Yes | | | Snapshot |
 | attended_from, attended_to | smallint unsigned | No | | | Snapshot: years attended |
 | requester_name | varchar(150) | No | | | Snapshot: "First Middle Last" with the full middle name, to compare with the ID (spec 15) |
-| contact_number | varchar(20) | Yes | | | Snapshot of the requester's contact number |
+| contact_number | varchar(20) | Yes | | | Snapshot of the requester's contact number (E.164, REQ-36-01) |
 | requester_email | varchar(255) | Yes | IX (with user_id) | | A walk-in client's email, used to link the request to their account (REQ-26-07) |
 | identity_document_id | bigint unsigned | Yes | FK → identity_documents | | The ID sent with this request (`RESTRICT`); a replacement after a rejection points here |
 | identity_status | varchar(20) | No | IX | pending | The request's identity check: `pending`, `verified`, `rejected` (see [ReviewStatus](#reviewstatus)) |

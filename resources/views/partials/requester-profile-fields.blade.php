@@ -46,7 +46,21 @@
     </div>
 
     <div class="grid gap-6 sm:grid-cols-3">
-        <flux:input wire:model.live.blur="{{ $prefix }}.contact_number" type="tel" :label="__('Contact number')" autocomplete="tel" inputmode="numeric" maxlength="11" x-mask="99999999999" placeholder="09171234567" required />
+        {{-- A country, the Philippines by default, and a mobile number for it (REQ-36-01). --}}
+        <flux:field class="sm:col-span-2" data-contact-number>
+            <flux:label>{{ __('Contact number') }}</flux:label>
+            <div class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-2">
+                <flux:select wire:model.live="{{ $prefix }}.contact_country" :aria-label="__('Country')" autocomplete="tel-country-code">
+                    @foreach (\App\Support\PhoneNumbers::countries() as $code => $country)
+                        <flux:select.option :value="$code">{{ $country }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+                <flux:input wire:model.live.blur="{{ $prefix }}.contact_number" type="tel" :aria-label="__('Mobile number')" autocomplete="tel-national" inputmode="tel" maxlength="30"
+                    :placeholder="$fields->contact_country === \App\Support\PhoneNumbers::DEFAULT_COUNTRY ? '09171234567' : null" required />
+            </div>
+            <flux:error name="{{ $prefix }}.contact_country" />
+            <flux:error name="{{ $prefix }}.contact_number" />
+        </flux:field>
         @if ($withEmail)
             <flux:input wire:model.live.blur="{{ $prefix }}.email" type="email" :label="__('Email')" autocomplete="off" class="sm:col-span-2" required data-walk-in-email />
         @endif

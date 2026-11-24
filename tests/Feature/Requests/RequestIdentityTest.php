@@ -180,7 +180,7 @@ test('REQ-15-06 submitting saves the profile and the ID and copies them onto the
 
     expect($owner)
         ->first_name->toBe('Juan')
-        ->contact_number->toBe('09171234567')
+        ->contact_number->toBe('+639171234567')
         ->college_id->toBe($this->org->ccs->id)
         ->program->toBe('BS Computer Science')
         ->privacy_consented_at->not->toBeNull();
@@ -188,7 +188,7 @@ test('REQ-15-06 submitting saves the profile and the ID and copies them onto the
 
     expect(CredentialRequest::sole())
         ->requester_name->toBe('Juan Santos Dela Cruz')
-        ->contact_number->toBe('09171234567')
+        ->contact_number->toBe('+639171234567')
         ->college_id->toBe($this->org->ccs->id)
         ->program->toBe('BS Computer Science')
         ->attended_from->toBe(2019)

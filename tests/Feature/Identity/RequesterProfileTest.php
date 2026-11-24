@@ -108,21 +108,7 @@ test('REQ-01-16 a requester can save their academic information; the student num
         ->student_number->toBeNull()
         ->attended_from->toBe(2019)
         ->attended_to->toBe(2023)
-        ->contact_number->toBe('09171234567');
-});
-
-test('REQ-01-16 the contact number must be exactly 11 digits', function () {
-    foreach (['0917 123 4567', '+639171234567', '0917123456', '091712345678', '0917-123-4567'] as $number) {
-        fillProfile(['form.contact_number' => $number])->assertHasErrors(['form.contact_number' => 'regex']);
-    }
-
-    fillProfile(['form.contact_number' => '09171234567'])->assertHasNoErrors();
-});
-
-test('REQ-01-16 the contact number field accepts digits only', function () {
-    $this->actingAs($this->student)->get(route('settings.profile'))
-        ->assertOk()
-        ->assertSeeHtml('x-mask="99999999999"');
+        ->contact_number->toBe('+639171234567');   // E.164 (REQ-36-01)
 });
 
 test('REQ-01-16 the years attended and college are validated', function () {
@@ -256,4 +242,29 @@ test('REQ-01-20 only the owner and registrars can open an ID, and it is not cach
     $this->actingAs($this->registrar)->get(route('identity-documents.show', $document))->assertOk();
     $this->actingAs(User::factory()->student()->create())->get(route('identity-documents.show', $document))->assertNotFound();
     $this->actingAs(User::factory()->departmentStaff()->create())->get(route('identity-documents.show', $document))->assertNotFound();
+});
+
+test('REQ-36-01 the contact number is a mobile number of the chosen country, saved in E.164 form', function () {
+    fillProfile(['form.contact_country' => 'US', 'form.contact_number' => '(650) 253-0000'])->assertHasNoErrors();
+    expect($this->student->fresh()->contact_number)->toBe('+16502530000');
+
+    fillProfile(['form.contact_country' => 'PH', 'form.contact_number' => '0917 123 4567'])->assertHasNoErrors();
+    expect($this->student->fresh()->contact_number)->toBe('+639171234567');
+
+    // The Philippines by default, for a requester with no number yet.
+    expect(Livewire::actingAs(User::factory()->student()->create())->test(Profile::class)->get('form.contact_country'))->toBe('PH');
+
+    foreach (['0917123456', '02 8888 8888', 'abc'] as $number) {   // too short, a landline, not a number
+        fillProfile(['form.contact_number' => $number])->assertHasErrors('form.contact_number');
+    }
+    fillProfile(['form.contact_country' => 'US', 'form.contact_number' => '09171234567'])->assertHasErrors('form.contact_number');
+    fillProfile(['form.contact_country' => 'XX'])->assertHasErrors('form.contact_country');
+});
+
+test('REQ-36-01 a saved number comes back as its country and number', function () {
+    $this->student->forceFill(['contact_number' => '+16502530000'])->save();
+
+    Livewire::actingAs($this->student)->test(Profile::class)
+        ->assertSet('form.contact_country', 'US')
+        ->assertSet('form.contact_number', '6502530000');
 });

@@ -53,7 +53,7 @@ class WalkInRequesterForm extends RequesterProfileForm
             'last_name' => (string) $validated['last_name'],
             'sex' => (string) $validated['sex'],
             'email' => Str::lower((string) $validated['email']),
-            'contact_number' => (string) $validated['contact_number'],
+            'contact_number' => $this->e164(),
             'academic_status' => (string) $validated['academic_status'],
             'college_id' => (int) $validated['college_id'],
             'program' => (string) $validated['program'],

@@ -57,6 +57,7 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
   in-app; the requester's page SHALL say that [ACTION REQUIRED] notifications are always emailed.
   Verification codes and password-reset emails are always sent. Admins, who are not notified, do
   not see the setting. *(Staff and the [ACTION REQUIRED] exception: user's decision, 2026-11-12.)*
+  *Since spec 36 (2026-11-24):* [ACTION REQUIRED] notices are also texted, always (REQ-36-04).
 - **REQ-06-06** THE SYSTEM SHALL notify the requester in-app and by email of the other milestones
   shown in their history (evaluation started, compliance recorded, received or completed by an
   office, representative verified), and never about their own actions other than the submission

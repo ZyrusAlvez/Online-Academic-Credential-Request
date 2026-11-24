@@ -107,7 +107,7 @@ class UserFactory extends Factory
         return $this->afterCreating(fn (User $user) => IdentityDocument::factory()->for($user)->create())->state(fn (array $attributes) => [
             'role' => Role::Student,
             'sex' => Sex::Male,
-            'contact_number' => '0917'.fake()->numerify('#######'),
+            'contact_number' => '+63917'.fake()->numerify('#######'),
             'academic_status' => AcademicStatus::Graduate,
             'college_id' => $college ?? Department::factory()->college(),
             'program' => 'BS Computer Science',

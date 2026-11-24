@@ -9,6 +9,7 @@ use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\User;
 use App\Support\EmptyValue;
+use App\Support\PhoneNumbers;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
@@ -22,7 +23,7 @@ use Livewire\Form;
  */
 class RequesterProfileForm extends Form
 {
-    /** Philippine mobile number: exactly 11 digits, e.g. 09171234567. */
+    /** A representative's Philippine mobile number: exactly 11 digits, e.g. 09171234567. */
     public const PHONE_RULE = 'regex:/^[0-9]{11}$/';
 
     public const PHONE_MESSAGE = 'Enter an 11-digit mobile number, e.g. 09171234567.';
@@ -34,6 +35,9 @@ class RequesterProfileForm extends Form
     public string $last_name = '';
 
     public string $sex = '';
+
+    /** The country of the contact number (REQ-36-01). */
+    public string $contact_country = PhoneNumbers::DEFAULT_COUNTRY;
 
     public string $contact_number = '';
 
@@ -69,7 +73,7 @@ class RequesterProfileForm extends Form
         $this->middle_name = $user->middle_name ?? '';
         $this->last_name = $user->last_name ?? '';
         $this->sex = $user->sex->value ?? '';
-        $this->contact_number = $user->contact_number ?? '';
+        [$this->contact_country, $this->contact_number] = PhoneNumbers::split($user->contact_number);
         $this->academic_status = $user->academic_status->value ?? '';
         $this->college_id = $user->college_id;
         $this->program = $user->program ?? '';
@@ -92,7 +96,8 @@ class RequesterProfileForm extends Form
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'sex' => ['required', Rule::enum(Sex::class)],
-            'contact_number' => ['required', 'string', self::PHONE_RULE],
+            'contact_country' => ['required', Rule::in(array_keys(PhoneNumbers::countries()))],
+            'contact_number' => ['required', 'string', 'max:30', PhoneNumbers::rule($this->contact_country)],
             'academic_status' => ['required', Rule::enum(AcademicStatus::class)],
             'college_id' => [
                 'required',
@@ -121,6 +126,7 @@ class RequesterProfileForm extends Form
     protected function validationAttributes(): array
     {
         return [
+            'contact_country' => 'country',
             'academic_status' => 'status',
             'college_id' => 'college',
             'program' => 'program or strand',
@@ -137,7 +143,6 @@ class RequesterProfileForm extends Form
     protected function messages(): array
     {
         return [
-            'contact_number.regex' => self::PHONE_MESSAGE,
             'id_type.prohibited' => 'Remove your saved ID first to use a different one.',
             'id_file.prohibited' => 'Remove your saved ID first to use a different one.',
             'privacy_consent.accepted' => 'Tick the box to agree to the processing of your personal data before you continue.',
@@ -168,7 +173,7 @@ class RequesterProfileForm extends Form
                 'Middle name' => filled($this->middle_name) ? $this->middle_name : EmptyValue::notProvided(),
                 'Last name' => $this->last_name,
                 'Sex' => (string) Sex::tryFrom($this->sex)?->label(),
-                'Contact number' => $this->contact_number,
+                'Contact number' => (string) PhoneNumbers::display(rescue($this->e164(...), $this->contact_number, false)),
             ],
             'Academic Information' => [
                 'Status' => (string) AcademicStatus::tryFrom($this->academic_status)?->label(),
@@ -197,7 +202,7 @@ class RequesterProfileForm extends Form
             'middle_name' => filled($validated['middle_name']) ? $validated['middle_name'] : null,
             'last_name' => $validated['last_name'],
             'sex' => $validated['sex'],
-            'contact_number' => $validated['contact_number'],
+            'contact_number' => $this->e164(),
             'academic_status' => $validated['academic_status'],
             'college_id' => (int) $validated['college_id'],
             'program' => $validated['program'],
@@ -215,6 +220,12 @@ class RequesterProfileForm extends Form
         return $this->id_file instanceof UploadedFile
             ? ['type' => $this->id_type, 'file' => $this->id_file]
             : null;
+    }
+
+    /** The checked contact number in E.164 form (REQ-36-01). */
+    protected function e164(): string
+    {
+        return PhoneNumbers::toE164($this->contact_number, $this->contact_country);
     }
 
     /** A woman gives her maiden middle and last names, captioned so on the form (REQ-28-04). */

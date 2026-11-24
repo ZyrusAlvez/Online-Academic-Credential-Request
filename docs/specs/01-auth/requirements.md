@@ -85,7 +85,7 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 
 ### Requester profile and identity
 - **REQ-01-16** THE SYSTEM SHALL let a requester keep a profile with their first, middle (optional)
-  and last name, contact number (exactly 11 digits, e.g. `09171234567`; the field accepts digits only) and academic information: status (current student, graduate or former student), college, program or
+  and last name, contact number (exactly 11 digits, e.g. `09171234567`; the field accepts digits only; *since REQ-36-01, 2026-11-24: a country, Philippines by default, and a valid mobile number for it, stored as `+639171234567`*) and academic information: status (current student, graduate or former student), college, program or
   strand (from the list of spec 12), student number (optional) and years attended (from and to, not before 1950 nor after the
   current year, from ≤ to).
 - **REQ-01-17** THE SYSTEM SHALL store an uploaded valid ID (type of ID and an image or PDF file of

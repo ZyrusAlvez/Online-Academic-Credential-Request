@@ -7,6 +7,7 @@ use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\RequestEvent;
 use App\Models\User;
+use App\Notifications\Channels\SmsChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -24,16 +25,35 @@ class RequestActivity extends Notification implements ShouldQueue
 
     /**
      * In-app always; by email when the account wants it, and always when the requester must act
-     * (REQ-06-16, REQ-06-18). Admins are never notified, so never emailed.
+     * (REQ-06-16, REQ-06-18). Admins are never notified, so never emailed. [ACTION REQUIRED]
+     * notices are also texted (REQ-36-04).
      *
      * @return list<string>
      */
     public function via(User $notifiable): array
     {
-        $mail = ! $notifiable->hasRole(Role::Admin)
-            && ($notifiable->wantsEmailNotifications() || $this->actionRequired($notifiable));
+        $actionRequired = $this->actionRequired($notifiable);
+        $channels = ['database'];
 
-        return $mail ? ['database', 'mail'] : ['database'];
+        if (! $notifiable->hasRole(Role::Admin) && ($notifiable->wantsEmailNotifications() || $actionRequired)) {
+            $channels[] = 'mail';
+        }
+
+        if ($notifiable->wantsSms($actionRequired)) {
+            $channels[] = SmsChannel::class;
+        }
+
+        return $channels;
+    }
+
+    /**
+     * The text of an [ACTION REQUIRED] notice (REQ-36-08): the reference, what happened and the link.
+     */
+    public function toSms(User $notifiable): string
+    {
+        $request = $this->request();
+
+        return WalkInActionText::text($this->event, $request).' '.$this->url($notifiable, $request);
     }
 
     public function toMail(User $notifiable): MailMessage

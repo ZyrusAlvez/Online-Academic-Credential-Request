@@ -3,6 +3,7 @@
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 abstract class TestCase extends BaseTestCase
@@ -17,6 +18,15 @@ abstract class TestCase extends BaseTestCase
         // Notifications are deferred until after the response in the app (REQ-06-10); tests send
         // them inline so they can be asserted right after the action.
         config(['queue.default' => 'sync']);
+
+        // Never text anyone from a test, whatever keys the local .env holds (spec 36); tests that
+        // check a provider set its key and fake the HTTP call.
+        config([
+            'services.philsms.token' => null,
+            'services.telnyx.key' => null,
+            'services.sms.redirect' => false,
+        ]);
+        Http::preventStrayRequests();
     }
 
     /**

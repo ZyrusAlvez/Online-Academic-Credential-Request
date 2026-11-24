@@ -10,7 +10,9 @@ use App\Events\RequestEventRecorded;
 use App\Models\CredentialRequest;
 use App\Models\RequestEvent;
 use App\Models\User;
+use App\Notifications\Channels\SmsChannel;
 use App\Notifications\RequestActivity;
+use App\Notifications\WalkInActionText;
 use App\Support\OfficeStaff;
 use App\Support\RequestRegistrars;
 use Illuminate\Database\Eloquent\Collection;
@@ -93,8 +95,13 @@ class SendRequestNotifications
     {
         $owner = $request->student;
 
-        // A walk-in request not linked to an account yet has no one to tell (REQ-26-09).
+        // A walk-in request not linked to an account yet: no in-app notice or email (REQ-26-09),
+        // but what the client must act on is texted to the request's number (REQ-36-05).
         if ($owner === null) {
+            if (filled($request->contact_number) && $event->type->requiresRequesterAction($request)) {
+                Notification::route(SmsChannel::class, $request->contact_number)->notify(new WalkInActionText($event));
+            }
+
             return;
         }
 

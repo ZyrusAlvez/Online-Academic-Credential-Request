@@ -256,11 +256,11 @@ test('REQ-20-07 resubmitting saves everything and sends the request back, rechec
     expect($request)
         ->status->toBe(RequestStatus::Submitted)
         ->purpose->toBe('Further studies')
-        ->contact_number->toBe('09998887777')
+        ->contact_number->toBe('+639998887777')
         ->identity_document_id->toBe($newId->id)
         ->identity_status->toBe(ReviewStatus::Pending)
         ->and($newId->id_type)->toBe('UMID')
-        ->and($this->owner->fresh()->contact_number)->toBe('09998887777')
+        ->and($this->owner->fresh()->contact_number)->toBe('+639998887777')
         // Identity was rejected, and the credential request (its purpose) and the contact number
         // changed: only the unchanged academic record stays confirmed.
         ->and($request->checks()->pluck('item')->map->value->all())->toBe([CheckItem::AcademicRecord->value])

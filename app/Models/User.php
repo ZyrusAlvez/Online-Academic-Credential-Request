@@ -140,6 +140,21 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Whether a notice is texted (REQ-36-04, 06): only [ACTION REQUIRED] ones, to requesters with a
+     * contact number, whatever their email setting.
+     */
+    public function wantsSms(bool $actionRequired): bool
+    {
+        return $actionRequired && $this->hasRole(Role::Student) && filled($this->contact_number);
+    }
+
+    /** The number texts go to, in E.164 form (REQ-36-01). */
+    public function routeNotificationForSms(): ?string
+    {
+        return $this->contact_number;
+    }
+
+    /**
      * Email the one-time code that confirms the address (REQ-01-23), sent on sign-up; replaces
      * Laravel's verification link.
      */

@@ -244,7 +244,7 @@ class DemoRequestSeeder extends Seeder
             'last_name' => $client['last_name'],
             'sex' => $client['sex'],
             'email' => $client['email'],
-            'contact_number' => '0917'.fake()->numerify('#######'),
+            'contact_number' => '+63917'.fake()->numerify('#######'),
             'academic_status' => AcademicStatus::Graduate->value,
             'college_id' => $college->id,
             'program' => $client['program'],
