@@ -11,7 +11,8 @@
         <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
         {{-- One list of rows, field left and value right (REQ-09-22). --}}
         <x-request-details :request="$request">
-            <x-summary-row :label="__('Email and contact number')" class="[&_dd]:break-all">{{ $request->student->email }}@if ($request->contact_number) · {{ $request->contact_number }}@endif</x-summary-row>
+            <x-summary-row :label="__('Email')" class="[&_dd]:break-all" data-record-email>{{ $request->requesterEmail() ?? '—' }}</x-summary-row>
+            <x-summary-row :label="__('Contact number')" data-record-contact>{{ $request->contact_number ?: '—' }}</x-summary-row>
             <x-summary-row :label="__('Valid ID')" data-record-id>
                 @if ($request->identityDocument)
                     <x-file-link :href="route('identity-documents.show', $request->identityDocument)" :name="$request->identityDocument->id_type.' – '.$request->requester_name" :type="$request->identityDocument->mime_type">
@@ -25,6 +26,10 @@
                     —
                 @endif
             </x-summary-row>
+            {{-- Who took it up for Initial Evaluation, or entered the walk-in (REQ-16-29). --}}
+            @if ($request->evaluator)
+                <x-summary-row :label="__('Evaluator')" data-record-evaluator>{{ $request->evaluator->name }}</x-summary-row>
+            @endif
             @if ($request->accepted_at)
                 <x-summary-row :label="__('Due date')">{{ $request->due_at->format('M j, Y') }}</x-summary-row>
                 <x-summary-row :label="__('Processing time')">{{ $request->processing_working_days !== null ? trans_choice(':count working day|:count working days', $request->processing_working_days) : '—' }}</x-summary-row>
@@ -117,6 +122,7 @@
 @unless (in_array('ledger', $hide, true))
     <section aria-labelledby="history-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-ledger>
         <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Tracking History') }}</h2>
-        <x-request-timeline :events="$request->events" show-actors />
+        {{-- $events, when given, is the credential's history within its application (REQ-27-08). --}}
+        <x-request-timeline :events="$events ?? $request->events" show-actors />
     </section>
 @endunless

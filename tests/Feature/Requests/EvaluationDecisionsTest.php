@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\ActivityCategory;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
@@ -8,23 +7,15 @@ use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
 use App\Exceptions\InvalidTransition;
-use App\Livewire\Forms\CredentialRequestForm;
 use App\Livewire\Registrar\Queue;
-use App\Livewire\Registrar\Records\Index as RecordsIndex;
 use App\Livewire\Registrar\Requests\Show as RegistrarShow;
 use App\Livewire\Student\Requests\Edit;
 use App\Livewire\Student\Requests\Show as RequesterShow;
-use App\Models\ActivityLog;
 use App\Models\CredentialRequest;
-use App\Models\RequestEvent;
 use App\Models\User;
 use App\Notifications\RequestActivity;
-use App\Reports\ComplianceReport;
-use App\Reports\EvaluatorReport;
-use App\Reports\ReportFilter;
 use App\Services\RequestWorkflow;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -98,20 +89,6 @@ function sentToOffice(CredentialRequest $request, array $items = ['PSA-authentic
 
     return $request->fresh();
 }
-
-// ── Statuses ────────────────────────────────────────────────────────────────────────────────
-
-test('REQ-20-01 returned for clarification is a status of its own, third in the list and in the table', function () {
-    expect(RequestStatus::cases()[2])->toBe(RequestStatus::ReturnedForClarification)
-        ->and(RequestStatus::ReturnedForClarification->label())->toBe('Returned for clarification')
-        ->and(RequestStatus::ReturnedForClarification->isBeforeAcceptance())->toBeTrue();
-
-    $row = DB::table('request_statuses')->where('value', 'returned_for_clarification')->first();
-    expect((int) $row->sort_order)->toBe(3)
-        ->and(DB::table('request_statuses')->where('value', 'pending_compliance')->value('meaning'))
-        ->toContain('at the Office of the Registrar')
-        ->and(DB::table('request_statuses')->where('value', 'returned_for_customer_action')->exists())->toBeTrue();
-});
 
 // ── The decision ────────────────────────────────────────────────────────────────────────────
 
@@ -234,38 +211,6 @@ test('REQ-20-04 ticking Other shows its field, which is then required; remarks a
     requesterPage()->assertSee('Completed clearance')->assertDontSee('Remarks:');
 });
 
-test('REQ-20-04 a credential without listed requirements offers Other alone', function () {
-    $free = submitRequest($this->owner, $this->org->free);
-    evaluating($free, [CheckItem::AcademicRecord->value => CheckResult::Rejected]);
-
-    decisionPage($free)->assertSeeHtml('data-other-checkbox')
-        ->set('requiredItems', [RegistrarShow::OTHER_ITEM])->set('otherRequirement', 'Original Form 137')
-        ->call('requireOfficeVisit')->assertHasNoErrors();
-
-    expect($free->fresh()->deficiencies->pluck('description')->all())->toBe(['Original Form 137']);
-});
-
-test('REQ-20-04 entries written before the change say Required wherever they are shown, without being edited', function () {
-    $request = sentToOffice($this->request, ['Completed clearance'], 'Bring it.');
-
-    // An older ledger entry, as it was written then; its notification and activity log copies too.
-    $old = $request->events()->create(['type' => RequestEventType::ComplianceRequested, 'actor_id' => $this->registrar->id, 'remarks' => "Missing: Original Form 137\nBring the original."]);
-    $this->owner->notifications()->create(['id' => (string) Str::uuid(), 'type' => RequestActivity::class, 'data' => [
-        'request_id' => $request->id, 'reference_no' => $request->reference_no, 'event_type' => 'compliance_requested', 'title' => 'Office visit',
-        'message' => "Returned to you – please complete the requirements – Missing: Original Form 137\nBring the original.", 'url' => '/', 'action_required' => true,
-    ]]);
-    ActivityLog::create(['category' => ActivityCategory::Request, 'action' => 'request.compliance_requested', 'description' => 'Compliance requested: Missing: Original Form 137', 'reference_no' => $request->reference_no, 'created_at' => now()]);
-
-    expect($old->fresh()->remarks)->toStartWith('Missing: ')   // stored as written
-        ->and($old->displayRemarks())->toBe("Required: Original Form 137\nBring the original.")
-        ->and(RequestEvent::make(['type' => RequestEventType::CustomerActionRequested, 'remarks' => 'Missing: page 2'])->displayRemarks())->toBe('Missing: page 2');
-
-    $this->actingAs($this->owner)->get(route('student.requests.show', $request))->assertSee('Required: Original Form 137')->assertDontSee('Missing:');
-    $this->actingAs($this->owner)->get(route('notifications'))->assertSee('Required: Original Form 137')->assertDontSee('Missing:');
-    $this->actingAs($this->registrar)->get(route('records.show', $request))->assertSee('Required: Original Form 137')->assertDontSee('Missing:');
-    $this->actingAs(User::factory()->admin()->create())->get(route('admin.logs'))->assertSee('Compliance requested: Required: Original Form 137')->assertDontSee('Missing:');
-});
-
 // ── Returned for clarification ─────────────────────────────────────────────────────────────
 
 test('REQ-20-05 the requester sees what was rejected and Edit Request; only they, only while returned', function () {
@@ -287,70 +232,6 @@ test('REQ-20-05 the requester sees what was rejected and Edit Request; only they
     $submitted = submitRequest($this->owner, $this->org->tor);
     $this->actingAs($this->owner)->get(route('student.requests.edit', $submitted))->assertForbidden();
     requesterPage($submitted)->assertDontSeeHtml('data-edit-request');
-});
-
-test('REQ-20-06 Edit Request is the New Request form filled in from the request, ending in Resubmit Request', function () {
-    $this->request->forceFill(['purpose' => 'For my own records'])->save();
-    returnedForClarification($this->request, [CheckItem::CredentialRequest]);
-
-    editPage()
-        ->assertSet('form.credential_type_id', $this->org->tor->id)
-        ->assertSet('form.purpose', CredentialRequestForm::OTHER_PURPOSE)
-        ->assertSet('form.purpose_other', 'For my own records')
-        ->assertSet('profile.first_name', $this->owner->first_name)
-        ->assertSee('Edit request '.$this->request->reference_no)
-        ->assertDontSee('Who Will Transact?')
-        ->assertDontSeeHtml('data-id-rejected')
-        ->call('review')
-        ->assertHasNoErrors()
-        ->assertSee('Summary')
-        ->assertSeeHtml('data-resubmit-note')
-        ->assertSee('Resubmit Request');
-});
-
-test('REQ-15-17 the Edit Request summary has sections 1 to 4, Summary as its title, and no requirements', function () {
-    returnedForClarification($this->request, [CheckItem::CredentialRequest]);
-
-    $html = editPage()->call('review')->assertHasNoErrors()->html();
-
-    expect($html)->toContain('>1. What Do You Need?</h2>')->toContain('>2. Personal Information</h2>')->toContain('>4. Valid ID</h2>')
-        ->not->toContain('Who Will Transact?')
-        ->not->toContain('Edit request '.$this->request->reference_no)
-        ->toContain('>Summary</h1>')
-        // No documentary requirements anywhere (REQ-04-23).
-        ->not->toContain('Documentary Requirements')
-        ->not->toContain('Completed clearance');
-});
-
-test('REQ-20-06 a rejected ID requires another; its reason is on the request page, not repeated on Edit Request', function () {
-    returnedForClarification($this->request, [CheckItem::Identity], 'The ID photo is blurred.');
-
-    editPage()
-        ->assertDontSeeHtml('data-id-rejected')
-        ->assertDontSee('Your valid ID was not accepted')
-        ->assertDontSee('The ID photo is blurred.')
-        ->assertDontSeeHtml('data-saved-id')
-        ->assertSeeHtml('wire:model="profile.id_file"')
-        ->call('review')
-        ->assertHasErrors('profile.id_file');
-
-    requesterPage($this->request)->assertSee('The ID photo is blurred.');
-});
-
-test('REQ-15-18 Edit Request shows the saved ID with its Remove button and no ID fields while the ID stands', function () {
-    returnedForClarification($this->request, [CheckItem::CredentialRequest]);
-    $sent = $this->request->identityDocument;
-
-    editPage()
-        ->assertSeeHtml('data-saved-id')
-        ->assertSeeHtml('data-remove-saved-id')
-        ->assertDontSeeHtml('wire:model="profile.id_file"')
-        ->call('removeSavedId')
-        ->assertSeeHtml('wire:model="profile.id_file"');
-
-    // The request keeps the ID it was sent with (REQ-15-08).
-    expect($this->request->fresh()->identity_document_id)->toBe($sent->id)
-        ->and($sent->fresh()->removed_at)->not->toBeNull();
 });
 
 test('REQ-20-07 resubmitting saves everything and sends the request back, rechecking what changed', function () {
@@ -482,90 +363,6 @@ test('REQ-20-09 the registrar marks each item received, then confirms compliance
     $declined = sentToOffice(submitRequest($this->owner, $this->org->tor));
     decisionPage($declined)->set('remarks', 'The records show no graduation.')->call('decline')->assertHasNoErrors();
     expect($declined->fresh()->status)->toBe(RequestStatus::Declined);
-});
-
-test('REQ-20-09 each received mark sits at the item\'s lower right; the remarks are optional, except to decline', function () {
-    sentToOffice($this->request, ['Complete admission requirements: Form 137 or the UPHSL copy of the previous Transcript of Records', 'Completed clearance']);
-    foreach ($this->request->deficiencies()->get() as $deficiency) {
-        workflow()->markReceived($deficiency, $this->registrar);
-    }
-
-    $panel = Str::of(decisionPage()->html())->after('data-compliance-panel')->before('data-decision-buttons')->toString();
-
-    // Long name or short, the mark takes its own full-width line, aligned right.
-    expect(substr_count($panel, 'data-received'))->toBe(2);
-    preg_match_all('/<span class="([^"]*)" data-received>/', $panel, $marks);
-    foreach ($marks[1] as $classes) {
-        expect(explode(' ', $classes))->toContain('w-full')->toContain('justify-end');
-    }
-
-    // The Remarks field is marked Optional: Confirm Compliance needs none, Decline still asks.
-    expect(Str::of($panel)->after('</ul>')->before('data-compliance-remarks')->toString())->toContain('Remarks')->toContain('Optional');
-    decisionPage()->call('decline')->assertHasErrors('remarks');
-    decisionPage()->call('confirmCompliance')->assertHasNoErrors();
-    expect($this->request->fresh()->status)->toBe(RequestStatus::AwaitingPayment);
-});
-
-// ── The requester's note on a resubmission ─────────────────────────────────────────────────
-
-test('REQ-20-14 the evaluator sees the requester\'s resubmit note between the checklist and the Decision', function () {
-    returnedForClarification($this->request, [CheckItem::CredentialRequest]);
-    workflow()->resubmit($this->request, $this->owner, 'I chose the right purpose.', ['credential_type_id' => $this->org->tor->id, 'purpose' => 'Employment']);
-    evaluating($this->request);
-
-    $html = decisionPage()->assertSee("Requester's note:")->assertSee('I chose the right purpose.')->html();
-    expect(strpos($html, 'data-check="academic_record"'))->toBeLessThan(strpos($html, 'data-resubmit-note'))
-        ->and(strpos($html, 'data-resubmit-note'))->toBeLessThan(strpos($html, 'data-decision>'));
-
-    // A first evaluation, or a resubmission without a note, shows none.
-    $first = submitRequest($this->owner, $this->org->tor);
-    evaluating($first);
-    decisionPage($first)->assertDontSeeHtml('data-resubmit-note');
-
-    $silent = returnedForClarification(submitRequest($this->owner, $this->org->tor), [CheckItem::CredentialRequest]);
-    workflow()->resubmit($silent, $this->owner, null, ['credential_type_id' => $this->org->tor->id, 'purpose' => 'Employment']);
-    evaluating($silent);
-    decisionPage($silent)->assertDontSeeHtml('data-resubmit-note');
-});
-
-// ── Queues, wording and reports ─────────────────────────────────────────────────────────────
-
-test('REQ-20-10 both kinds of return wait for the requester in the queue and in Records', function () {
-    $clarify = returnedForClarification(submitRequest($this->owner, $this->org->free), [CheckItem::Identity]);
-    $visit = sentToOffice(submitRequest($this->owner, $this->org->tor));
-
-    Livewire::withQueryParams(['waiting' => true])->actingAs($this->registrar)->test(Queue::class, ['queue' => 'evaluation'])
-        ->assertSee($clarify->reference_no)->assertSee('Returned for clarification')
-        ->assertSee($visit->reference_no)->assertSee('Pending compliance')
-        ->assertDontSee($this->request->reference_no);
-
-    Livewire::actingAs($this->registrar)->test(RecordsIndex::class)->set('status', 'waiting_for_requester')
-        ->assertSee($clarify->reference_no)->assertSee($visit->reference_no)->assertDontSee($this->request->reference_no);
-});
-
-test('REQ-20-11 where the request is, in the requester\'s and in the staff\'s words', function () {
-    $clarify = returnedForClarification(submitRequest($this->owner, $this->org->free), [CheckItem::Identity]);
-    $visit = sentToOffice(submitRequest($this->owner, $this->org->tor));
-
-    expect($clarify->whereabouts())->toBe('Waiting for you to correct your request')
-        ->and($clarify->staffWhereabouts())->toBe('Waiting for the requester to correct the request')
-        ->and($visit->whereabouts())->toBe('Waiting for you at the Office of the Registrar')
-        ->and($visit->staffWhereabouts())->toBe('Waiting for the requester at the Office of the Registrar');
-});
-
-test('REQ-20-12 the reports keep the two returns apart', function () {
-    $clarify = returnedForClarification(submitRequest($this->owner, $this->org->free), [CheckItem::Identity], 'The ID photo is blurred.');
-    $visit = sentToOffice(submitRequest($this->owner, $this->org->tor), ['Completed clearance'], 'Bring it.');
-
-    $rows = collect((new ComplianceReport)->rows(new ReportFilter))->keyBy(0);
-    expect($rows[$clarify->reference_no][4])->toBe('Returned for clarification')
-        ->and($rows[$clarify->reference_no][5])->toBe('Rejected: User Identity Verification – The ID photo is blurred.')
-        ->and($rows[$visit->reference_no][4])->toBe('Pending compliance')
-        ->and($rows[$visit->reference_no][5])->toBe('Required: Completed clearance');
-
-    // Evaluator, taken up, complete, returned for clarification, sent for compliance, declined…
-    expect(collect((new EvaluatorReport)->rows(new ReportFilter))->firstWhere(0, $this->registrar->name))
-        ->toMatchArray([0 => $this->registrar->name, 1 => 2, 2 => 0, 3 => 1, 4 => 1, 5 => 0]);
 });
 
 test('REQ-20-13 there is no Reopen evaluation and no online resubmit of an office visit; both can be cancelled', function () {

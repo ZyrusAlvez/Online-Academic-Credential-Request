@@ -4,6 +4,14 @@
     <p>The Office of the Registrar also <strong>verifies them only once</strong>, when it evaluates your first request. On your later requests they are already confirmed, as long as they haven't changed, so you don't wait for the same check again.</p>
 </x-faq-item>
 
+<x-faq-item question="Which details are required?">
+    <p>All of them except your middle name and your student number. The Office of the Registrar finds your record by your name, college, program and the years you attended.</p>
+    <ul>
+        <li><strong>Maiden name:</strong> women enter their maiden middle and last names in the Middle name and Last name fields, since records are filed under the name you had as a student.</li>
+        <li><strong>Student number:</strong> give it if you have one. Many alumni don't; your years attended are enough.</li>
+    </ul>
+</x-faq-item>
+
 <x-faq-item question="How do I know whether my details are verified?">
     <p>On <a href="{{ route('student.requests.create') }}" wire:navigate>New Request</a> and in <a href="{{ route('settings.profile') }}" wire:navigate>Settings → Profile</a>, each of the sections Personal Information, Academic Information and Valid ID shows a <strong>Verified</strong> badge once the Office of the Registrar has checked it, as long as it hasn't changed since.</p>
     <p>A section without the badge hasn't been checked yet, or you changed it after it was checked. It is checked when the Office of the Registrar evaluates your next request, and it never stops you from submitting one.</p>

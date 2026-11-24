@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\OverrideStep;
 use App\Enums\RequestStatus;
 use App\Enums\Role;
 use App\Models\CredentialRequest;
@@ -35,6 +36,8 @@ class CredentialRequestPolicy
             Role::Student => $request->user_id === $user->id,
             Role::Department => $user->department_id !== null
                 && $request->visits()->where('department_id', $user->department_id)->exists(),
+            // The online requests whose payment the cashier validates (REQ-25-04).
+            Role::Cashier => ! $request->isWalkIn(),
         };
 
         return $allowed ? Response::allow() : Response::denyAsNotFound();
@@ -86,6 +89,29 @@ class CredentialRequestPolicy
     public function review(User $user, CredentialRequest $request): bool
     {
         return $user->hasRole(Role::Registrar);
+    }
+
+    /**
+     * Approve, return or decline a payment awaiting validation: the Cashier for an online request,
+     * the Registrar for a walk-in one (REQ-25-05, 07).
+     */
+    public function validatePayment(User $user, CredentialRequest $request): bool
+    {
+        // An application is paid once, on its first credential (REQ-27-03).
+        if ($request->status !== RequestStatus::PaymentVerification || ! $request->isLead()) {
+            return false;
+        }
+
+        return $request->isWalkIn() ? $user->hasRole(Role::Registrar) : $user->hasRole(Role::Cashier);
+    }
+
+    /**
+     * Record the credential's next step for whoever couldn't: the Admin, while there is one
+     * (REQ-35-01..06).
+     */
+    public function override(User $user, CredentialRequest $request): bool
+    {
+        return $user->hasRole(Role::Admin) && OverrideStep::for($request) !== null;
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Http\Controllers\IdentityDocumentController;
 use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\RequestDocumentController;
 use App\Livewire\Admin;
+use App\Livewire\Cashier;
 use App\Livewire\Department;
 use App\Livewire\Notifications;
 use App\Livewire\Registrar;
@@ -48,13 +49,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // The Registrar works the requests, Initial Evaluation to Release (REQ-16-01..06, REQ-18-03, 05).
     Route::prefix('registrar')->name('registrar.')->middleware('role:registrar')->group(function () {
         Route::redirect('/', '/registrar/evaluation');
+        // A walk-in client's request, recorded by the Registrar (REQ-26-01).
+        Route::get('walk-in', Registrar\WalkIn::class)->name('walk-in');
         Route::get('evaluation', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Evaluation->value)->name('evaluation');
         Route::get('payments', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Payment->value)->name('payments');
-        Route::get('in-progress', Registrar\Queue::class)->defaults('queue', RegistrarQueue::InProgress->value)->name('in-progress');
+        // In Progress is gone; Records shows where each paper is (REQ-32-10).
+        Route::get('in-progress', fn () => redirect()->route('records', ['status' => 'processing']));
+        // Every office's finished papers, which the Registrar brings to the next office (REQ-32-02).
+        Route::get('outgoing', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Outgoing->value)->name('outgoing');
         Route::get('final-check', Registrar\Queue::class)->defaults('queue', RegistrarQueue::FinalCheck->value)->name('final-check');
         Route::get('release', Registrar\Queue::class)->defaults('queue', RegistrarQueue::Release->value)->name('release');
-        // A request's working page lives under the queue it is in, e.g. payments/cr26-00042 (REQ-16-26).
-        // In Progress has none: its rows forward and accept receipt in place (REQ-17-13).
+        // A request's working page lives under the queue it is in, e.g. payments/rc26-00042 (REQ-16-26).
+        // Outgoing has none: its rows forward in place (REQ-32-03).
         Route::get('evaluation/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::Evaluation->value)->name('evaluation.show');
         Route::get('payments/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::Payment->value)->name('payments.show');
         Route::get('final-check/{credentialRequest}', Registrar\Requests\Show::class)->defaults('queue', RegistrarQueue::FinalCheck->value)->name('final-check.show');
@@ -62,6 +68,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // The former address, in notifications and emails: to wherever the request is now.
         Route::get('requests/{credentialRequest}', fn (CredentialRequest $credentialRequest) => redirect(RegistrarLink::to($credentialRequest)))
             ->name('requests.show');
+    });
+
+    // The Cashier validates the payments of online requests (REQ-25-01..05).
+    Route::prefix('cashier')->name('cashier.')->middleware('role:cashier')->group(function () {
+        Route::redirect('/', '/cashier/payments');
+        Route::get('payments', Cashier\Payments::class)->name('payments');
+        Route::get('payments/{credentialRequest}', Cashier\Requests\Show::class)->name('payments.show');
     });
 
     // Records, shared by the Registrar and the Admin (REQ-16-07, REQ-18-06).
@@ -92,6 +105,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get($path, Department\Queue::class)->defaults('queue', $queue->value)->name(Str::after($queue->routeName(), 'department.'));
             Route::get($path.'/{credentialRequest}', Department\Requests\Show::class)->defaults('queue', $queue->value)->name(Str::after($queue->showRouteName(), 'department.'));
         }
+        // To Forward is now Outgoing (REQ-32-05).
+        Route::permanentRedirect('to-forward', '/department/outgoing');
+        Route::permanentRedirect('to-forward/{path}', '/department/outgoing/{path}')->where('path', '[A-Za-z0-9-]+');
         // The former address, in notifications and emails: to the list the request is in now.
         Route::get('requests/{credentialRequest}', function (CredentialRequest $credentialRequest) {
             Gate::authorize('view', $credentialRequest);
@@ -118,7 +134,7 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['verified', 'role:student'])->name('settings.profile');
     Volt::route('settings/password', 'settings.password')->name('settings.password');
     Route::get('settings/notifications', Notifications\EmailSettings::class)
-        ->middleware('role:student,registrar,department')->name('settings.notifications');
+        ->middleware('role:student,registrar,department,cashier')->name('settings.notifications');
 });
 
 require __DIR__.'/auth.php';

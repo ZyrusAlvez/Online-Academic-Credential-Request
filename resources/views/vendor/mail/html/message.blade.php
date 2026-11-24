@@ -22,7 +22,7 @@
 <x-slot:footer>
 <x-mail::footer>
 **{{ config('mail.from.name') }}**<br>
-University of Perpetual Help System
+University of Perpetual Help System Laguna
 
 {{ __('This system tracks your request only; credentials are released in person at the Registrar\'s Office.') }}
 

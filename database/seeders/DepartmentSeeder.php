@@ -16,17 +16,17 @@ class DepartmentSeeder extends Seeder
     public const DEAN = "Dean's review and signature";
 
     /**
-     * The 11 colleges, code => name (list of 2026-11-06, REQ-02-01).
+     * The 11 colleges, code => name (list of 2026-11-06, REQ-02-01; renamed 2026-11-18, REQ-28-08).
      *
      * @var array<string, string>
      */
     public const COLLEGES = [
         'CAS' => 'College of Arts and Sciences',
         'SOA' => 'School of Aviation',
-        'BED' => 'Basic Education Department',
-        'CBAA' => 'College of Business Administration and Accountancy',
+        'SHS' => 'Senior High School',
+        'CBA' => 'College of Business and Accountancy',
         'CCS' => 'College of Computer Studies',
-        'CCJE' => 'College of Criminal Justice Education',
+        'COC' => 'College of Criminology',
         'CTE' => 'College of Teacher Education',
         'CEA' => 'College of Engineering and Architecture',
         'GS' => 'Graduate School',

@@ -6,7 +6,7 @@
             @if (auth()->user()?->hasRole(\App\Enums\Role::Student))
                 <flux:navlist.item :href="route('settings.profile')" :current="request()->routeIs('settings.profile')" wire:navigate>{{ __('Profile') }}</flux:navlist.item>
             @endif
-            @if (auth()->user()?->hasRole(\App\Enums\Role::Student, \App\Enums\Role::Registrar, \App\Enums\Role::Department))
+            @if (auth()->user()?->hasRole(\App\Enums\Role::Student, \App\Enums\Role::Registrar, \App\Enums\Role::Department, \App\Enums\Role::Cashier))
                 <flux:navlist.item :href="route('settings.notifications')" :current="request()->routeIs('settings.notifications')" wire:navigate>{{ __('Email notifications') }}</flux:navlist.item>
             @endif
             <flux:navlist.item :href="route('settings.password')" :current="request()->routeIs('settings.password')" wire:navigate>{{ __('Password') }}</flux:navlist.item>

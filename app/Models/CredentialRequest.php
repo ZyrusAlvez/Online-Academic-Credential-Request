@@ -7,8 +7,10 @@ use App\Enums\CheckResult;
 use App\Enums\CheckStage;
 use App\Enums\RequesterMode;
 use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Enums\ReviewStatus;
 use App\Enums\RouteTask;
+use App\Enums\Sex;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use Carbon\CarbonInterface;
@@ -25,16 +27,24 @@ use Illuminate\Support\Carbon;
  * A requester's request for a credential. Status changes only via App\Services\RequestWorkflow.
  *
  * @property string $reference_no
- * @property int $user_id
+ * @property int $application_id
+ * @property int $item_no 1 for the application's first credential (spec 27)
+ * @property ?int $user_id null for a walk-in request not linked to an account yet (spec 26)
  * @property string $requester_name
+ * @property ?Sex $sex null on requests made before spec 28
  * @property ?string $contact_number
+ * @property ?string $requester_email a walk-in client's email, to link the request (REQ-26-07)
+ * @property ?int $recorded_by the registrar who recorded a walk-in request
  * @property ?int $identity_document_id
  * @property ReviewStatus $identity_status
  * @property ?Carbon $identity_reviewed_at
  * @property ?string $identity_remarks
+ * @property ?list<string> $terms the ticked Term values, when the credential asks for them (spec 29)
+ * @property ?string $academic_year e.g. "2025-2026"
  * @property int $college_id
  * @property AcademicStatus $academic_status
  * @property RequesterMode $requester_mode
+ * @property RequestType $request_type
  * @property bool $requires_payment
  * @property ?string $fee
  * @property ?string $amount_due
@@ -61,6 +71,66 @@ class CredentialRequest extends Model
         'receiving_institution',
     ];
 
+    /** At most this many open online requests per requester account (REQ-33-01). */
+    public const OPEN_LIMIT = 5;
+
+    /** Requests are made online unless the Registrar records a walk-in (spec 25). */
+    protected $attributes = [
+        'request_type' => 'online',
+        'item_no' => 1,
+    ];
+
+    public function isWalkIn(): bool
+    {
+        return $this->request_type === RequestType::WalkIn;
+    }
+
+    /**
+     * The application this credential is part of (spec 27).
+     *
+     * @return BelongsTo<RequestApplication, $this>
+     */
+    public function application(): BelongsTo
+    {
+        return $this->belongsTo(RequestApplication::class, 'application_id');
+    }
+
+    /**
+     * The application's other credentials.
+     *
+     * @return HasMany<CredentialRequest, $this>
+     */
+    public function siblings(): HasMany
+    {
+        return $this->hasMany(self::class, 'application_id', 'application_id')
+            ->whereKeyNot($this->getKey())->orderBy('item_no');
+    }
+
+    /**
+     * The application's first credential, which carries it until acceptance (REQ-27-03).
+     */
+    public function isLead(): bool
+    {
+        return $this->item_no === 1;
+    }
+
+    /**
+     * The credential the workflow acts on for this one: until acceptance the application's first,
+     * which carries it (REQ-27-03); afterwards this one.
+     */
+    public function actingCredential(): self
+    {
+        return $this->status->isBeforeAcceptance() && ! $this->isLead()
+            ? $this->application()->firstOrFail()->lead()->firstOrFail()
+            : $this;
+    }
+
+    /** The id of its latest history entry, 0 for none: whether anything was recorded since (REQ-35-13). */
+    public function latestEventId(): int
+    {
+        return (int) $this->events()->max('id');
+    }
+
     /**
      * @return array<string, string>
      */
@@ -68,13 +138,17 @@ class CredentialRequest extends Model
     {
         return [
             'status' => RequestStatus::class,
+            'sex' => Sex::class,
             'academic_status' => AcademicStatus::class,
             'requester_mode' => RequesterMode::class,
+            'request_type' => RequestType::class,
             'identity_status' => ReviewStatus::class,
             'identity_reviewed_at' => 'datetime',
             'requires_payment' => 'boolean',
+            'terms' => 'array',
             'fee' => 'decimal:2',
             'amount_due' => 'decimal:2',
+            'item_no' => 'integer',
             'attended_from' => 'integer',
             'attended_to' => 'integer',
             'submitted_at' => 'datetime',
@@ -114,12 +188,13 @@ class CredentialRequest extends Model
     }
 
     /**
-     * The tracking number shown to requesters, e.g. cr26-00042 (REQ-04-03).
+     * The tracking number shown to requesters, e.g. rc26-00042 (REQ-04-03). Requests numbered
+     * earlier keep their number, cr26-… included.
      */
     public static function trackingNumber(int $id, CarbonInterface $createdAt): string
     {
-        // "cr" (lowercase) + the two-digit year it was made, e.g. cr26 for 2026.
-        $prefix = 'cr'.$createdAt->format('y');
+        // "rc" (lowercase) + the two-digit year it was made, e.g. rc26 for 2026.
+        $prefix = 'rc'.$createdAt->format('y');
 
         // The request's id, padded with zeros to 5 digits (00042). Past 99999 it simply grows to
         // 6 digits and more (100000), so the number never runs out or repeats.
@@ -129,13 +204,31 @@ class CredentialRequest extends Model
     }
 
     /**
-     * The document owner.
+     * The document owner's account; none for a walk-in request not linked yet (spec 26).
      *
      * @return BelongsTo<User, $this>
      */
     public function student(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * The registrar who recorded a walk-in request (REQ-26-04).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function recorder(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    /**
+     * Where to reach the requester: their account's email, else the walk-in client's (REQ-26-10).
+     */
+    public function requesterEmail(): ?string
+    {
+        return $this->student->email ?? $this->requester_email;
     }
 
     /**

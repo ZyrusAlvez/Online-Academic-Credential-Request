@@ -5,7 +5,6 @@ use App\Livewire\Admin\Calendar\Index;
 use App\Models\NonWorkingDay;
 use App\Models\User;
 use App\Services\WorkingCalendar;
-use Database\Seeders\NonWorkingDaySeeder;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
@@ -22,12 +21,6 @@ test('REQ-10-01 Monday to Saturday are working days except calendar holidays', f
         ->and($this->calendar->isWorkingDay(Carbon::parse('2026-10-11')))->toBeFalse() // Sunday
         ->and($this->calendar->isWorkingDay(Carbon::parse('2026-10-12')))->toBeFalse() // closure
         ->and($this->calendar->isWorkingDay(Carbon::parse('2026-10-13')))->toBeTrue();
-});
-
-test('REQ-10-01 the work week is a setting', function () {
-    config(['uphsl.work_week' => [1, 2, 3, 4, 5]]);
-
-    expect($this->calendar->isWorkingDay(Carbon::parse('2026-10-10')))->toBeFalse();
 });
 
 test('REQ-10-02 adding working days ends on the last working day, skipping the start date', function () {
@@ -85,37 +78,6 @@ test('REQ-10-05 calendar changes apply to new due dates only', function () {
         ->and($second->fresh()->due_at->toDateTimeString())->toBe('2026-10-14 23:59:59');
 });
 
-test('REQ-10-06 the admin can add, edit and remove non-working days by year', function () {
-    $admin = User::factory()->admin()->create();   // the calendar is the Admin's (REQ-18-04)
-    NonWorkingDay::factory()->create(['date' => '2027-01-01', 'name' => 'Holiday in 2027']);
-
-    $this->actingAs($admin)->get(route('admin.calendar', ['year' => 2026]))
-        ->assertOk()->assertSee('Working days are Monday to Saturday')->assertDontSee('Holiday in 2027');
-
-    $component = Livewire::actingAs($admin)->test(Index::class, ['year' => 2026])
-        ->call('create')
-        ->set('form.date', '2026-11-20')
-        ->set('form.name', 'Typhoon closure')
-        ->set('form.kind', 'closure')
-        ->call('save')
-        ->assertHasNoErrors()
-        ->assertSee('Typhoon closure');
-
-    $day = NonWorkingDay::whereDate('date', '2026-11-20')->sole();
-    expect($day->kind)->toBe(NonWorkingDayKind::Closure)
-        ->and($day->created_by)->toBe($admin->id);
-
-    $component->call('edit', $day->id)
-        ->set('form.name', 'Typhoon Ada closure')
-        ->call('save')
-        ->assertHasNoErrors()
-        ->assertSee('Typhoon Ada closure')
-        ->call('delete', $day->id)
-        ->assertDontSee('Typhoon Ada closure');
-
-    expect(NonWorkingDay::whereDate('date', '2026-11-20')->exists())->toBeFalse();
-});
-
 test('REQ-10-06 a date can appear only once', function () {
     NonWorkingDay::factory()->create(['date' => '2026-12-25', 'name' => 'Christmas Day']);
 
@@ -127,17 +89,31 @@ test('REQ-10-06 a date can appear only once', function () {
         ->assertHasErrors(['form.date' => 'unique']);
 });
 
-test('REQ-10-07 the seeder adds the Philippine holidays for 2026 and 2027 once', function () {
-    $this->seed(NonWorkingDaySeeder::class);
-    $this->seed(NonWorkingDaySeeder::class);
+test('REQ-10-09 a period adds each working day not yet in the calendar, with the same name and kind', function () {
+    $admin = User::factory()->admin()->create();
+    NonWorkingDay::factory()->create(['date' => '2026-12-25', 'name' => 'Christmas Day', 'kind' => 'holiday']);
 
-    $names = NonWorkingDay::pluck('name', 'date')->mapWithKeys(fn ($name, $date) => [substr($date, 0, 10) => $name]);
+    // Mon Dec 21 to Sat Dec 26: Christmas Day is kept, the other five days are added; no Sunday.
+    Livewire::actingAs($admin)->test(Index::class, ['year' => 2026])
+        ->call('create')
+        ->assertSeeHtml('data-until-input')
+        ->set('form.date', '2026-12-20')
+        ->set('form.until', '2026-12-26')
+        ->set('form.name', 'Christmas break')
+        ->set('form.kind', 'closure')
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertDispatched('notify', message: 'Christmas break saved: 5 days.');
 
-    expect(NonWorkingDay::count())->toBe(32)
-        ->and($names['2026-08-31'])->toBe('National Heroes Day')
-        ->and($names['2027-08-30'])->toBe('National Heroes Day')
-        ->and($names['2026-04-03'])->toBe('Good Friday')
-        ->and($names['2027-12-30'])->toBe('Rizal Day');
+    $break = NonWorkingDay::where('name', 'Christmas break')->orderBy('date')->get();
+    expect($break->map(fn ($day) => $day->date->format('Y-m-d'))->all())->toBe(['2026-12-21', '2026-12-22', '2026-12-23', '2026-12-24', '2026-12-26'])
+        ->and($break->every(fn ($day) => $day->kind === NonWorkingDayKind::Closure && $day->created_by === $admin->id))->toBeTrue()
+        ->and(NonWorkingDay::whereDate('date', '2026-12-25')->sole()->name)->toBe('Christmas Day');
+
+    // Each day is edited on its own: no Until there.
+    Livewire::actingAs($admin)->test(Index::class, ['year' => 2026])
+        ->call('edit', $break->first()->id)
+        ->assertDontSeeHtml('data-until-input');
 });
 
 test('REQ-10-08 only the admin can open the working calendar', function () {

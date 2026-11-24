@@ -33,7 +33,10 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
 - **REQ-06-02** THE SYSTEM SHALL show the requester a history of their request built from the
   ledger, newest first, naming offices but never individual staff, and leaving out internal
   entries (forwarding, internal returns and delay notes); an internal return SHALL show as
-  "In progress".
+  "In progress". *(Since 2026-11-21, REQ-16-32: the Request Details on the same page show the
+  evaluator's name, the one staff member the requester sees; the history still names offices
+  only.)* *Since spec 35 (2026-11-23):* an Admin override's reason, and an evaluation unlocked by
+  the Admin, are internal too (REQ-35-05, 10).
 - **REQ-06-03** THE SYSTEM SHALL show the registrar the full ledger of a request, including who
   performed each action, and the office visits with the date received, date released, working days
   spent and status.
@@ -67,12 +70,19 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
 
 ### Staff notifications
 - **REQ-06-07** WHEN a document is forwarded or returned to an office THE SYSTEM SHALL notify that
-  office's active staff in-app and by email; for the Office of the Registrar, registrar accounts
-  are notified. *(By email too: user's decision, 2026-11-12.)*
-- **REQ-06-08** WHEN a request is submitted or resubmitted (REQ-16-15), a proof of payment or
-  another valid ID is uploaded, the requester replies, or a representative is declared THE SYSTEM
-  SHALL notify active registrar accounts in-app and by email. *(By email too: user's decision,
+  office's active staff in-app and by email; for the Office of the Registrar, its department staff
+  and the request's registrar (REQ-06-21) are notified. *(By email too: user's decision,
   2026-11-12.)*
+- **REQ-06-08** WHEN a request is submitted THE SYSTEM SHALL notify every active registrar account;
+  WHEN it is resubmitted (REQ-16-15), another valid ID is uploaded, the requester replies, or a
+  representative is declared THE SYSTEM SHALL notify the request's registrar (REQ-06-21); a proof
+  of payment goes to the cashiers (REQ-25-08). All in-app and by email. *(By email too: user's
+  decision, 2026-11-12.)*
+- **REQ-06-21** A request's registrar SHALL be its evaluator (`evaluated_by`) while that account is
+  active; a request with no evaluator, or whose evaluator is inactive, SHALL go to every active
+  registrar account instead. Registrars are notified only about the requests they evaluate, except
+  new submissions, which have no evaluator yet. *(User's decision, 2026-11-22.)* *Since REQ-35-12
+  (2026-11-23):* a request the Admin unlocks goes to every active registrar too, like a new one.
 - **REQ-06-19** A staff notification SHALL be sent to each account separately, so each account has
   its own read status, and its email SHALL name the request, the credential and the requester,
   say what happened and where the document is, and link to the staff member's own request page.
@@ -87,8 +97,9 @@ Source: *Proposed Workflow*, section VIII-A (customer tracking dashboard and not
   alerted too, in-app and by email. *(Registrars get REQ-06-20 instead; email: user's decision,
   2026-11-12.)*
 - **REQ-06-20** WHEN any request being processed is due within the next working day, and again when
-  it becomes overdue, THE SYSTEM SHALL alert every active registrar account once per request,
-  in-app and by email, naming where the document is. *(User's request, 2026-11-12.)*
+  it becomes overdue, THE SYSTEM SHALL alert the request's registrar (REQ-06-21) once per request,
+  in-app and by email, naming where the document is. *(User's request, 2026-11-12; the evaluator
+  only: user's decision, 2026-11-22.)*
 - **REQ-06-13** WHEN a request becomes overdue THE SYSTEM SHALL tell the requester once, in-app and
   by email.
 - **REQ-06-14** THE SYSTEM SHALL send reminders every working day at 07:00, skip non-working days,

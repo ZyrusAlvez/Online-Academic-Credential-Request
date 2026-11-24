@@ -8,8 +8,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Evaluator performance (REQ-07-15): per registrar evaluator, the requests taken up in the
- * period, their outcomes, the initial evaluation time and the open workload now.
+ * Evaluator performance (REQ-34-15, Proposed Workflow IX-B): per registrar evaluator, the requests
+ * taken up in the period, their outcomes, the initial evaluation time and the open workload now.
  */
 final class EvaluatorReport implements Report
 {
@@ -26,6 +26,21 @@ final class EvaluatorReport implements Report
     public function columns(): array
     {
         return ['Evaluator', 'Taken up', 'Requirements complete', 'Returned for clarification', 'Sent for compliance', 'Declined', 'Avg initial evaluation (hours)', 'Open workload now'];
+    }
+
+    public function filters(): array
+    {
+        return [];
+    }
+
+    public function shows(): array
+    {
+        return [];
+    }
+
+    public function showLabel(): string
+    {
+        return '';
     }
 
     public function rows(ReportFilter $filter): iterable

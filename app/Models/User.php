@@ -5,7 +5,10 @@ namespace App\Models;
 use App\Actions\Auth\SendVerificationCode;
 use App\Enums\AcademicStatus;
 use App\Enums\ActivityCategory;
+use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Enums\Role;
+use App\Enums\Sex;
 use App\Models\Concerns\LogsActivity;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -24,6 +27,7 @@ use Illuminate\Support\Str;
  * @property bool $is_active
  * @property bool $email_notifications
  * @property ?string $contact_number
+ * @property ?Sex $sex
  * @property ?AcademicStatus $academic_status
  * @property ?int $college_id
  * @property ?string $program
@@ -46,6 +50,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'first_name',
         'middle_name',
         'last_name',
+        'sex',
         'email',
         'contact_number',
         'password',
@@ -86,6 +91,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_active' => 'boolean',
             'email_notifications' => 'boolean',
             'privacy_consented_at' => 'datetime',
+            'sex' => Sex::class,
             'academic_status' => AcademicStatus::class,
             'attended_from' => 'integer',
             'attended_to' => 'integer',
@@ -191,6 +197,29 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Their open online requests, one per credential: not released, declined or cancelled.
+     * Walk-ins never count (REQ-33-01).
+     */
+    public function openRequestCount(): int
+    {
+        $final = array_map(fn (RequestStatus $status): string => $status->value, [RequestStatus::Released, RequestStatus::Declined, RequestStatus::Cancelled]);
+
+        return CredentialRequest::query()
+            ->where('user_id', $this->id)
+            ->where('request_type', RequestType::Online->value)
+            ->whereNotIn('status', $final)
+            ->count();
+    }
+
+    /**
+     * How many more credentials they may request now (REQ-33-01).
+     */
+    public function openRequestRoom(): int
+    {
+        return max(0, CredentialRequest::OPEN_LIMIT - $this->openRequestCount());
+    }
+
+    /**
      * Everything a request copies from the profile is filled in (REQ-15-06).
      */
     public function hasRequesterDetails(): bool
@@ -198,6 +227,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return filled($this->first_name)
             && filled($this->last_name)
             && filled($this->contact_number)
+            && $this->sex !== null
             && $this->academic_status !== null
             && $this->college_id !== null
             && filled($this->program)

@@ -3,6 +3,7 @@
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
+use App\Enums\RequestType;
 use App\Enums\RouteTask;
 use App\Enums\VisitStatus;
 use App\Models\CredentialRequest;
@@ -16,7 +17,6 @@ use App\Services\RequestWorkflow;
 use Database\Seeders\PurposeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)
@@ -66,26 +66,6 @@ function organisation(): object
 function requester(Department $college): User
 {
     return User::factory()->withProfile($college)->create();
-}
-
-/**
- * New Request's details card of one credential, from its opening tag to the next card (REQ-15-15).
- */
-function credentialCard(string $html, CredentialType $type): string
-{
-    preg_match('/<div[^>]*data-credential-card="'.$type->id.'".*?(?=<div[^>]*data-credential-card=|data-receiving-school)/s', $html, $card);
-
-    return $card[0] ?? '';
-}
-
-/**
- * Whether that card starts visible (the browser then follows the dropdown, REQ-15-15).
- */
-function credentialCardShown(string $html, CredentialType $type): bool
-{
-    $card = credentialCard($html, $type);
-
-    return $card !== '' && ! str_contains(Str::before($card, '>'), 'display: none');
 }
 
 function workflow(): RequestWorkflow
@@ -141,10 +121,21 @@ function declareRepresentative(CredentialRequest $request, User $owner, array $d
         UploadedFile::fake()->create('spa.pdf', 100, 'application/pdf'), UploadedFile::fake()->image('representative-id.jpg'));
 }
 
+/**
+ * Make a request walk-in, so its payment is the registrar's to validate (REQ-25-07).
+ */
+function walkIn(CredentialRequest $request): CredentialRequest
+{
+    $request->forceFill(['request_type' => RequestType::WalkIn])->save();
+
+    return $request->fresh();
+}
+
 function uploadPayment(CredentialRequest $request): void
 {
+    // No reference number, as on the requester's page (REQ-04-12).
     workflow()->submitPaymentProof($request, $request->student()->firstOrFail(), UploadedFile::fake()->image('receipt.jpg'),
-        'REF-123', (string) $request->amount_due, now()->format('Y-m-d'));
+        null, (string) $request->amount_due, now()->format('Y-m-d'));
 }
 
 /**

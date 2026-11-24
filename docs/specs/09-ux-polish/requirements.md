@@ -75,8 +75,8 @@
 
 ### New Request
 - **REQ-09-10** THE SYSTEM SHALL show New Request's *Incomplete requirements* notice (REQ-04-02)
-  between "Who will transact?" and the "Review request" button, collapsed to its heading until the
-  requester opens it.
+  between "Who will transact?" and the "Review request" button, collapsed to its heading,
+  "Important notice" (user's wording, 2026-11-20), until the requester opens it.
 - **REQ-09-11** WHEN a credential is chosen on New Request THE SYSTEM SHALL show its details
   (REQ-04-02) as a card: the fee and the processing period side by side, then the offices of its
   route as a numbered list, one office per line with its task (the Dean step names the requester's

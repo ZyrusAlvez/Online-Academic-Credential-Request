@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Concerns;
 
-use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\Department;
 use App\Models\OfficeVisit;
@@ -11,8 +10,9 @@ use Flux\Flux;
 use Illuminate\Validation\Rule;
 
 /**
- * Office actions on a request's open visit: accept receipt, mark done, forward, return for
- * correction (specs 05, 17). No delay reasons (REQ-24-09). Registrars forward from In Progress (REQ-17-16). The using component must expose a
+ * Office actions on a request's open visit: accept receipt, mark done, return for correction
+ * (specs 05, 17). No delay reasons (REQ-24-09). Registrars forward, from Outgoing only
+ * (REQ-32-04). The using component must expose a
  * `CredentialRequest $credentialRequest` property.
  *
  * @property CredentialRequest $credentialRequest
@@ -42,24 +42,9 @@ trait ActsOnVisits
         $this->validate(['completeRemarks' => ['nullable', 'string', 'max:500']]);
 
         // A failed attempt keeps the remarks the staff member typed.
-        // A failed attempt keeps the remarks the staff member typed.
-        if ($this->attempt(fn () => $workflow->completeVisit($visit, $this->actor(), $this->completeRemarks), 'Marked done. Forward the document when it leaves your office.')) {
+        if ($this->attempt(fn () => $workflow->completeVisit($visit, $this->actor(), $this->completeRemarks), 'Approved. It waits in Outgoing for the Registrar.')) {
             $this->reset('completeRemarks');
         }
-    }
-
-    /**
-     * A department office sends its done paper on (REQ-17-07). Registrars forward the Office of
-     * the Registrar's papers from In Progress only (REQ-17-16).
-     */
-    public function forwardDocument(RequestWorkflow $workflow): void
-    {
-        abort_if($this->actor()->hasRole(Role::Registrar), 403);
-
-        $visit = $this->actionableVisit();
-        $this->authorize('forward', $visit);
-
-        $this->attempt(fn () => $workflow->forwardDocument($visit, $this->actor()), 'Forwarded. The next office confirms when it arrives.');
     }
 
     public function returnVisit(RequestWorkflow $workflow): void
@@ -73,7 +58,7 @@ trait ActsOnVisits
 
         $returned = $this->attempt(
             fn () => $workflow->returnVisit($visit, $this->actor(), Department::findOrFail((int) $this->returnTo), $this->returnReason, $this->correctiveAction),
-            'Returned for correction. The office has been notified.',
+            'Returned for correction. It waits in Outgoing for the Registrar.',
         );
 
         if ($returned) {

@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Auth;
 
 use App\Actions\Auth\SignInWithGoogle;
 use App\Http\Controllers\Controller;
+use App\Support\IntendedUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\GoogleProvider;
 use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirect;
 use Throwable;
 
@@ -20,7 +22,11 @@ class GoogleController extends Controller
     {
         abort_unless(self::enabled(), 404);
 
-        return Socialite::driver('google')->redirect();
+        /** @var GoogleProvider $google */
+        $google = Socialite::driver('google');
+
+        // Always show Google's account chooser, so a user who logged out can pick another account.
+        return $google->with(['prompt' => 'select_account'])->redirect();
     }
 
     public function callback(SignInWithGoogle $signIn): RedirectResponse
@@ -43,6 +49,7 @@ class GoogleController extends Controller
 
         Auth::login($user);
         request()->session()->regenerate();
+        IntendedUrl::dropIfForeign($user);
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

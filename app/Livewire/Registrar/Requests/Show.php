@@ -5,14 +5,14 @@ namespace App\Livewire\Registrar\Requests;
 use App\Enums\CheckItem;
 use App\Enums\CheckResult;
 use App\Enums\CheckStage;
-use App\Enums\PaymentStatus;
-use App\Enums\RecipientType;
 use App\Enums\RegistrarQueue;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\ReviewStatus;
 use App\Exceptions\InvalidTransition;
 use App\Livewire\Concerns\ActsOnVisits;
+use App\Livewire\Concerns\ChoosesRecipient;
+use App\Livewire\Concerns\ReturnsToList;
 use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use App\Models\RequestCheck;
@@ -37,6 +37,8 @@ class Show extends Component
     use ActsOnVisits {
         attempt as runTransition;
     }
+    use ChoosesRecipient;
+    use ReturnsToList;
     use TrimsInput;
 
     /** What the page shows, by the request's stage. */
@@ -50,6 +52,7 @@ class Show extends Component
 
     public const PANEL_COMPLIANCE = 'compliance';
 
+    /** A walk-in payment, validated with its receipt number (REQ-26-05). */
     public const PANEL_PAYMENT = 'payment';
 
     public const PANEL_FINAL_CHECK = 'final_check';
@@ -70,6 +73,11 @@ class Show extends Component
 
     public string $remarks = '';
 
+    /** Walk-in Payment Validation: the official receipt number and the amount paid (REQ-26-05). */
+    public string $receiptNo = '';
+
+    public string $amountPaid = '';
+
     /**
      * Require Office Visit: the credential's requirements ticked as required at the office, and
      * OTHER_ITEM when "Other" is ticked (REQ-20-04).
@@ -85,10 +93,6 @@ class Show extends Component
     public ?int $rejectingRepresentativeId = null;
 
     public string $representativeRemarks = '';
-
-    public string $recipientType = 'owner';
-
-    public int|string|null $recipientRepresentativeId = null;
 
     /** The decision that could not run, and why (REQ-17-17). */
     #[Locked]
@@ -118,14 +122,21 @@ class Show extends Component
         $current = RegistrarQueue::forRequest($credentialRequest);
         $this->currentQueue = $current;
 
-        if ($queue !== null && $current !== (is_string($queue) ? RegistrarQueue::from($queue) : $queue)) {
+        // Until acceptance the application is worked on through its first credential (REQ-27-03).
+        $follower = ! $credentialRequest->isLead() && $credentialRequest->status->isBeforeAcceptance();
+
+        if ($follower || ($queue !== null && $current !== (is_string($queue) ? RegistrarQueue::from($queue) : $queue))) {
             $this->redirect(RegistrarLink::to($credentialRequest), navigate: true);
+
+            return;
         }
+
+        $this->rememberList($current?->routeName() ?? 'records');
     }
 
     /**
-     * Run a transition; when it moves the request to another queue, follow it there so the address
-     * and the sidebar stay right (REQ-16-26).
+     * Run a transition; when it moves the request out of the queue the page is under, go back to
+     * that queue's list as the registrar left it (REQ-16-26).
      */
     protected function attempt(Closure $transition, string $success): bool
     {
@@ -135,9 +146,8 @@ class Show extends Component
 
         $request = $this->credentialRequest->fresh();
 
-        if ($request !== null && RegistrarQueue::forRequest($request) !== $this->currentQueue) {
-            session()->flash('notify', $success);
-            $this->redirect(RegistrarLink::to($request), navigate: true);
+        if ($request === null || RegistrarQueue::forRequest($request) !== $this->currentQueue) {
+            $this->backToList($success);
         }
 
         return true;
@@ -175,7 +185,7 @@ class Show extends Component
      */
     public function approve(RequestWorkflow $workflow): void
     {
-        $this->authorize('evaluate', $this->credentialRequest);
+        $this->authorizeDecision();
         $request = $this->credentialRequest;
         $optional = ['remarks' => ['nullable', 'string', 'max:500']];
 
@@ -183,10 +193,7 @@ class Show extends Component
             RequestStatus::UnderEvaluation => ['approve', $optional,
                 fn () => $workflow->approveEvaluation($request, $this->actor(), $this->remarks),
                 $request->requires_payment ? 'Approved. Payment instructions were sent to the requester.' : 'Approved and accepted for processing.'],
-            // No checklist and no receipt number: Approve is the confirmation (REQ-16-17).
-            RequestStatus::PaymentVerification => ['approve', $optional,
-                fn () => $workflow->verifyPaymentAndAccept($request, $this->actor(), $this->remarks),
-                'Payment verified and request accepted. The processing period has started.'],
+            // A walk-in payment is validated with its receipt number instead (REQ-26-05).
             RequestStatus::ForFinalApproval => ['approve', $optional,
                 fn () => $workflow->approveFinalCheck($request, $this->actor(), $this->remarks),
                 'Approved. The credential is ready for release and the requester was notified.'],
@@ -203,12 +210,12 @@ class Show extends Component
     }
 
     /**
-     * Return: for clarification at the evaluation, the proof of payment at the payment validation
-     * (REQ-20-03, REQ-16-17).
+     * Return for clarification at the evaluation (REQ-20-03). A walk-in payment is never returned:
+     * the client is at the counter (REQ-26-05).
      */
     public function returnRequest(RequestWorkflow $workflow): void
     {
-        $this->authorize('evaluate', $this->credentialRequest);
+        $this->authorizeDecision();
         $request = $this->credentialRequest;
         $rules = ['remarks' => ['required', 'string', 'max:500']];
 
@@ -216,9 +223,6 @@ class Show extends Component
             RequestStatus::UnderEvaluation => ['return', $rules,
                 fn () => $workflow->returnForClarification($request, $this->actor(), $this->remarks),
                 'Returned to the requester for clarification. They can edit the request and resubmit it.'],
-            RequestStatus::PaymentVerification => ['return', $rules,
-                fn () => $workflow->rejectPayment($request, $this->actor(), $this->remarks),
-                'Proof of payment returned. The requester was asked for a valid one.'],
             default => null,
         };
 
@@ -232,11 +236,30 @@ class Show extends Component
     }
 
     /**
+     * A walk-in client paid at the counter: the official receipt number and the amount paid, then
+     * the request is accepted (REQ-26-05).
+     */
+    public function validatePayment(RequestWorkflow $workflow): void
+    {
+        $this->authorize('validatePayment', $this->credentialRequest);
+
+        $this->validate([
+            'receiptNo' => ['required', 'string', 'max:50'],
+            'amountPaid' => ['required', 'numeric', 'gt:0', 'max:99999999'],
+        ], attributes: ['receiptNo' => 'official receipt number', 'amountPaid' => 'amount paid']);
+
+        if ($this->attempt(fn () => $workflow->verifyWalkInPayment($this->credentialRequest, $this->actor(), $this->receiptNo, (string) $this->amountPaid),
+            'Payment validated and request accepted. The processing period has started.')) {
+            $this->reset('receiptNo', 'amountPaid');
+        }
+    }
+
+    /**
      * Decline at the evaluation, payment validation or final quality check (REQ-16-14, 17, 19).
      */
     public function decline(RequestWorkflow $workflow): void
     {
-        $this->authorize('evaluate', $this->credentialRequest);
+        $this->authorizeDecision();
 
         $this->decide(
             'decline',
@@ -339,16 +362,15 @@ class Show extends Component
     public function release(RequestWorkflow $workflow): void
     {
         $this->authorize('release', $this->credentialRequest);
-        $this->validate([
-            'recipientType' => ['required', Rule::enum(RecipientType::class)],
-            'recipientRepresentativeId' => [Rule::requiredIf($this->recipientType === RecipientType::Representative->value), 'nullable', 'integer'],
-        ], attributes: ['recipientRepresentativeId' => 'representative']);
+
+        $recipient = $this->chosenRecipient($this->credentialRequest);
 
         $this->attempt(fn () => $workflow->release(
             $this->credentialRequest,
             $this->actor(),
-            RecipientType::from($this->recipientType),
-            filled($this->recipientRepresentativeId) ? (int) $this->recipientRepresentativeId : null,
+            $recipient['recipient_type'],
+            $recipient['representative_id'],
+            representativeName: $recipient['representative_name'],
         ), 'Credential marked released.');
     }
 
@@ -369,23 +391,34 @@ class Show extends Component
 
         return view('livewire.registrar.requests.show', [
             'request' => $request,
+            // The application's credentials, listed until acceptance (REQ-27-09).
+            'credentials' => CredentialRequest::query()->where('application_id', $request->application_id)
+                ->with('credentialType:id,name')->orderBy('item_no')->get(),
             'panel' => $panel,
             'items' => $stage !== null ? CheckItem::for($stage, $request) : [],
             'results' => $stage !== null ? $request->checkResults($stage) : [],
             // Parts confirmed from an earlier verification, by item (REQ-21-05).
             'carried' => $request->checks->whereNotNull('carried_from_request_id')->keyBy(fn (RequestCheck $check): string => $check->item->value),
-            'pendingProof' => $request->paymentProofs->firstWhere('status', PaymentStatus::Submitted),
             'verifiedRepresentatives' => $request->representatives->where('status', ReviewStatus::Verified)->values(),
             'lastReturn' => $request->events->last(fn ($event) => in_array($event->type, [RequestEventType::CustomerActionRequested, RequestEventType::ComplianceRequested], true)),
-            // What the requester wrote with the proof under review (REQ-04-20).
-            'paymentNote' => $panel === self::PANEL_PAYMENT
-                ? (string) $request->events->last(fn ($event) => $event->type === RequestEventType::PaymentSubmitted)?->remarks
-                : '',
             // What the requester wrote when resubmitting, for the evaluation that follows (REQ-20-14).
             'resubmitNote' => $panel === self::PANEL_EVALUATION
                 ? (string) $request->events->last(fn ($event) => $event->type === RequestEventType::Resubmitted)?->remarks
                 : '',
         ])->title($request->reference_no);
+    }
+
+    /**
+     * A stage decision; at Payment Validation only for a walk-in request, since online payments
+     * are the cashier's (REQ-25-07).
+     */
+    private function authorizeDecision(): void
+    {
+        $this->authorize('evaluate', $this->credentialRequest);
+
+        if ($this->credentialRequest->status === RequestStatus::PaymentVerification) {
+            $this->authorize('validatePayment', $this->credentialRequest);
+        }
     }
 
     /**
@@ -402,10 +435,10 @@ class Show extends Component
             $request->status === RequestStatus::UnderEvaluation => self::PANEL_EVALUATION,
             $request->status === RequestStatus::ReturnedForClarification => self::PANEL_CLARIFICATION,
             $request->status === RequestStatus::PendingCompliance => self::PANEL_COMPLIANCE,
-            $request->status === RequestStatus::PaymentVerification => self::PANEL_PAYMENT,
+            $request->status === RequestStatus::PaymentVerification && $request->isWalkIn() => self::PANEL_PAYMENT,
             $atFinalCheck => self::PANEL_FINAL_CHECK,
             $request->status === RequestStatus::ReadyForRelease => self::PANEL_RELEASE,
-            // In Progress has no working page: its rows act in place (REQ-17-13).
+            // A paper at an office belongs to no queue; it opens on Records (REQ-32-10).
             default => self::PANEL_VIEW,
         };
     }

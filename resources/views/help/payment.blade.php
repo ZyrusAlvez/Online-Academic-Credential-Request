@@ -6,16 +6,17 @@
 <x-faq-item question="How do I pay?">
     <ol>
         <li>Choose <strong>Pay online</strong> on your request page, which opens the UPHSL payment portal (<a href="{{ config('uphsl.payment_url') }}" target="_blank" rel="noopener">{{ config('uphsl.payment_url') }}</a>), and pay. Keep your receipt.</li>
-        <li>Back on your request page, upload your proof of payment (a JPG, PNG, WebP or PDF of up to 5 MB) with the payment reference number, the amount paid and the date paid, then choose <strong>Submit proof of payment</strong>.</li>
+        <li>Back on your request page, upload your proof of payment (a screenshot or the payment email, as a JPG, PNG, WebP or PDF of up to 5 MB) with the amount paid and the date paid, then choose <strong>Submit proof of payment</strong>.</li>
     </ol>
 </x-faq-item>
 
 <x-faq-item question="How much do I pay?">
-    <p>The credential's fee, shown on its card on New Request and as the amount due on your request page. One request is one document.</p>
+    <p>Each credential's fee, shown on its card on New Request. A request with several credentials is paid once, for the total shown as the amount due on your request page.</p>
+    <p>Graduates pay nothing for the Certificate of Grades. A request with nothing to pay skips this step.</p>
 </x-faq-item>
 
 <x-faq-item question="What happens after I upload my proof of payment?">
-    <p>Your request shows <strong>Payment verification</strong> while the Office of the Registrar checks your payment against the university's official record and records your official receipt number. Uploading a proof alone doesn't mark you as paid.</p>
+    <p>Your request shows <strong>Payment verification</strong> while the university's Cashier checks your payment against the official record. Uploading a proof alone doesn't mark you as paid.</p>
     <p>Once verified, your request is <strong>accepted for processing</strong>: the processing period starts, and you see your expected release date.</p>
 </x-faq-item>
 

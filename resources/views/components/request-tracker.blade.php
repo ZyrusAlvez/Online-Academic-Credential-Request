@@ -84,21 +84,21 @@
         <div>
             <dt class="text-xs font-medium tracking-wide text-zinc-500 uppercase">{{ __('Processing period') }}</dt>
             <dd class="text-lg font-bold text-ink">{{ trans_choice(':count working day|:count working days', $request->credentialType->processing_days) }}</dd>
-            <dd class="text-xs text-zinc-600">{{ __('Starts when your request is accepted.') }}</dd>
+            <dd class="text-xs text-zinc-600">{{ __('Starts upon payment validation.') }}</dd>
         </div>
         <div>
             <dt class="text-xs font-medium tracking-wide text-zinc-500 uppercase">{{ __('Expected release date') }}</dt>
             @if ($request->effective_due_at)
                 <dd class="text-lg font-bold text-ink">{{ $request->effective_due_at->format('l, M j, Y') }}</dd>
                 <dd class="text-xs text-zinc-600">
-                    {{ __('Counted in working days from acceptance.') }}
+                    {{ __('Counted in working days upon payment validation.') }}
                     @if ($request->adjusted_due_at)
                         {{ __('Originally :date.', ['date' => $request->due_at?->format('M j')]) }}
                     @endif
                 </dd>
             @else
-                <dd class="text-lg font-bold text-zinc-500">{{ __('Set on acceptance') }}</dd>
-                <dd class="text-xs text-zinc-600">{{ __('Not yet accepted for processing.') }}</dd>
+                {{-- Validating the payment accepts the request and sets the date (REQ-04-14). --}}
+                <dd class="text-lg font-bold text-zinc-500">{{ __('Set on payment validation') }}</dd>
             @endif
         </div>
     </dl>

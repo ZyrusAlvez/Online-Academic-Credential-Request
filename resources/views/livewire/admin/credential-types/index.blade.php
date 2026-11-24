@@ -26,7 +26,7 @@
                     </flux:table.cell>
                     <flux:table.cell>
                         @if ($type->requires_payment)
-                            <flux:badge size="sm" color="amber">{{ $type->fee !== null ? '₱'.number_format((float) $type->fee, 2) : __('Paid') }}</flux:badge>
+                            <flux:badge size="sm" color="amber">{{ $type->fee !== null ? '₱'.number_format((float) $type->fee, 2).($type->fee_per_term ? ' '.__('per term') : '') : __('Paid') }}</flux:badge>
                         @else
                             <span class="text-zinc-500">{{ __('Free') }}</span>
                         @endif
@@ -76,12 +76,23 @@
                 @if ($form->requires_payment)
                     <flux:input wire:model="form.fee" type="number" step="0.01" min="0" inputmode="decimal" :label="__('Fee (₱)')" badge="Optional" />
                 @endif
-                <flux:input wire:model="form.processing_days" type="number" min="1" max="60" :label="__('Processing period')" :description="__('Working days from acceptance')" required />
+                <flux:input wire:model="form.processing_days" type="number" min="1" max="60" :label="__('Processing period (working days)')" required />
             </div>
+
+            {{-- Per-type fee options (REQ-29-03). --}}
+            @if ($form->requires_payment)
+                <flux:switch wire:model="form.fee_per_term" :label="__('Fee is per term')" :description="__('Charged once for each term ticked.')" data-fee-per-term />
+                <flux:checkbox.group wire:model="form.free_for" :label="__('Free for')" data-free-for>
+                    @foreach (\App\Enums\AcademicStatus::cases() as $status)
+                        <flux:checkbox :value="$status->value" :label="$status->label()" />
+                    @endforeach
+                </flux:checkbox.group>
+            @endif
 
             <flux:textarea wire:model="form.requirements" :label="__('Documentary requirements')" :description="__('One per line.')" badge="Optional" rows="4" />
             <flux:textarea wire:model="form.special_conditions" :label="__('Special conditions')" badge="Optional" rows="2" />
             <flux:switch wire:model="form.requires_receiving_institution" :label="__('Requires the receiving school')" :description="__('For transfer credentials.')" />
+            <flux:switch wire:model="form.asks_term_and_year" :label="__('Asks for the term and academic year')" :description="__('1st Semester, 2nd Semester or Summer, and the school year.')" data-asks-term />
 
             <div class="flex justify-end gap-2">
                 <flux:modal.close>

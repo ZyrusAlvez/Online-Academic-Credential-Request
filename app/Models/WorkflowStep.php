@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $position
  * @property bool $is_student_college
  * @property RouteTask $task
+ * @property int $allotted_days the office's share of the processing period (REQ-30-01)
  */
 class WorkflowStep extends Model
 {
@@ -29,6 +30,7 @@ class WorkflowStep extends Model
         'department_id',
         'is_student_college',
         'task',
+        'allotted_days',
         'instructions',
     ];
 
@@ -37,6 +39,7 @@ class WorkflowStep extends Model
      */
     protected $attributes = [
         'task' => 'sign',
+        'allotted_days' => 0,
     ];
 
     /**
@@ -48,6 +51,7 @@ class WorkflowStep extends Model
             'position' => 'integer',
             'is_student_college' => 'boolean',
             'task' => RouteTask::class,
+            'allotted_days' => 'integer',
         ];
     }
 

@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Enums\Role;
 use App\Models\CredentialRequest;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -12,13 +13,16 @@ use Illuminate\Notifications\Notification;
 
 /**
  * A request is due soon or overdue (REQ-06-11..13, REQ-06-20): to the holding office's staff,
- * every registrar, and (overdue only) the requester; in-app, and by email unless switched off.
+ * the request's registrar (REQ-06-21), and (overdue only) the requester; in-app, and by email unless switched off.
  */
 class DueReminder extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public CredentialRequest $request, public bool $overdue) {}
+    /**
+     * @param  ?CarbonInterface  $officeDue  the holding office's own deadline, for its staff (REQ-30-08)
+     */
+    public function __construct(public CredentialRequest $request, public bool $overdue, public ?CarbonInterface $officeDue = null) {}
 
     /**
      * @return list<string>
@@ -44,7 +48,7 @@ class DueReminder extends Notification implements ShouldQueue
         return $message
             ->line('We are sorry for the delay. You can follow your request at any time.')
             ->action('Track your request', $this->url($notifiable))
-            ->salutation('Office of the Registrar, University of Perpetual Help System');
+            ->salutation('Office of the Registrar, University of Perpetual Help System Laguna');
     }
 
     /**
@@ -68,6 +72,7 @@ class DueReminder extends Notification implements ShouldQueue
             Role::Department => 'department.requests.show',
             Role::Registrar => 'registrar.requests.show',
             Role::Admin => 'records.show',   // admins are not reminded; the read-only record (REQ-18-06)
+            Role::Cashier => 'cashier.payments.show',   // cashiers are not reminded (REQ-25-08)
         }, $this->request);
     }
 
@@ -79,7 +84,7 @@ class DueReminder extends Notification implements ShouldQueue
 
         return $this->overdue
             ? "{$this->request->reference_no} is overdue"
-            : "{$this->request->reference_no} is due {$this->due()}";
+            : "{$this->request->reference_no} is due {$this->due($notifiable)}";
     }
 
     private function message(User $notifiable): string
@@ -98,12 +103,19 @@ class DueReminder extends Notification implements ShouldQueue
         }
 
         return $this->overdue
-            ? "It was due {$this->due()} and is with your office now."
-            : "It is with your office and due {$this->due()}.";
+            ? "It was due {$this->due($notifiable)} and is with your office now."
+            : "It is with your office and due {$this->due($notifiable)}.";
     }
 
-    private function due(): string
+    /**
+     * The office's own deadline for its staff when it has one, otherwise the request's due date.
+     */
+    private function due(?User $notifiable = null): string
     {
-        return (string) $this->request->effective_due_at?->format('l, M j');
+        $date = $notifiable?->hasRole(Role::Department) && $this->officeDue !== null
+            ? $this->officeDue
+            : $this->request->effective_due_at;
+
+        return (string) $date?->format('l, M j');
     }
 }

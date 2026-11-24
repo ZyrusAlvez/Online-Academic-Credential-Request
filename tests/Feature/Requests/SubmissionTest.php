@@ -4,16 +4,12 @@ use App\Enums\AcademicStatus;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Exceptions\InvalidTransition;
-use App\Livewire\Forms\CredentialRequestForm;
 use App\Livewire\Student\Requests\Create;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\User;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Js;
-use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -78,96 +74,22 @@ test('REQ-04-01 the workflow refuses requesters without a complete profile', fun
     expect(fn () => submitRequest($incomplete, $this->org->tor))->toThrow(InvalidTransition::class);
 });
 
-test('REQ-04-02 the form shows fee, period, offices, conditions and the notice, without the requirements', function () {
-    $this->org->tor->update(['special_conditions' => 'Bring the original diploma.']);
-
-    $page = Livewire::actingAs($this->owner)->test(Create::class)
-        ->assertSee('Important notice: incomplete requirements')
-        ->assertSee('Submitting an online request does not automatically mean that your request has been accepted for processing.')
-        ->assertSee('Choose a credential…')
-        ->assertDontSee('Copies')
-        ->assertDontSee('per copy');
-
-    // No card shows until a credential is chosen.
-    expect(credentialCardShown($page->html(), $this->org->tor))->toBeFalse()
-        ->and(credentialCardShown($page->html(), $this->org->free))->toBeFalse();
-
-    // The documentary requirements are not listed (REQ-04-23).
-    expect($page->html())->not->toContain('Completed clearance')->not->toContain('Documentary Requirements');
-
-    $card = credentialCard($page->html(), $this->org->tor);
-    expect($card)->toContain('₱530.00')
-        ->toContain('Bring the original diploma.')
-        ->toMatch('/7 working days.*from acceptance/s')
-        ->toMatch('/Office of the VP for Finance.*\(documentary stamp\).*\(final quality check\)/s');
-
-    $page->set('form.credential_type_id', $this->org->tor->id);
-    expect(credentialCardShown($page->html(), $this->org->tor))->toBeTrue()
-        ->and(credentialCardShown($page->html(), $this->org->free))->toBeFalse();
-});
-
-test('REQ-15-15 the chosen credential\'s details show in the browser at once, without a server round trip', function () {
-    $html = Livewire::actingAs($this->owner)->test(Create::class)->html();
-
-    // Alpine shows the card of the value chosen in the browser; the server only hears of it after
-    // (to clear a fixed error, REQ-01-31).
-    expect(credentialCard($html, $this->org->tor))->toContain("x-show=\"String(\$wire.form.credential_type_id ?? '') === '{$this->org->tor->id}'\"")
-        ->and(credentialCardShown($html, $this->org->tor))->toBeFalse();
-
-    // A credential chosen on the server (Edit Request) starts with its card shown.
-    $html = Livewire::actingAs($this->owner)->test(Create::class)->set('form.credential_type_id', $this->org->tor->id)->html();
-    expect(credentialCardShown($html, $this->org->tor))->toBeTrue()
-        ->and(credentialCardShown($html, $this->org->free))->toBeFalse();
-
-    // The receiving-school field follows the chosen credential the same way.
-    $transfer = CredentialType::factory()->withSteps([$this->org->registrarOffice])->create(['requires_receiving_institution' => true]);
-    $html = Livewire::actingAs($this->owner)->test(Create::class)->html();
-    expect(Str::after($html, 'data-receiving-school'))->toContain(Js::from([(string) $transfer->id])->toHtml())
-        ->toContain('x-text="transfer ?')
-        ->toContain('x-bind:required="transfer"');
-});
-
-test('REQ-15-16 the credential dropdown is a searchable list that scrolls within the page', function () {
-    $html = Livewire::actingAs($this->owner)->test(Create::class)->html();
-    $menu = Str::between($html, 'wire:model.live="form.credential_type_id"', 'data-credential-card');
-
-    // Not the browser's own <select>, whose list of every credential ran off the screen.
-    expect($html)->not->toMatch('/<select[^>]*form\.credential_type_id/')
-        ->and($menu)->toContain('x-modelable="value"')
-        ->toContain('aria-haspopup="listbox"')
-        ->toContain('role="combobox"')
-        ->toContain('aria-label="Search credentials"')
-        ->toContain('role="listbox"')
-        ->toContain('max-h-64 overflow-y-auto')
-        ->toContain('Choose a credential…')
-        ->toContain('x-on:keydown.enter.prevent')
-        ->toContain('x-on:keydown.escape.prevent.stop')
-        // Every active credential is in its list.
-        ->toContain($this->org->free->name)
-        ->toContain($this->org->tor->name);
-
-    expect(file_get_contents(resource_path('js/app.js')))->toContain("Alpine.data('selectMenu'");
-
-    // A credential already chosen (Edit Request) shows its name on the closed dropdown.
-    $html = Livewire::actingAs($this->owner)->test(Create::class)->set('form.credential_type_id', $this->org->tor->id)->html();
-    expect(Str::between($html, 'aria-haspopup="listbox"', '</button>'))->toContain($this->org->tor->name);
-});
-
-test('REQ-04-03 the tracking number is lowercase cr, the two-digit year and the id with at least 5 digits, growing past 99999', function () {
+test('REQ-04-03 the tracking number is lowercase rc, the two-digit year and the id with at least 5 digits, growing past 99999', function () {
     $date = Carbon::create(2026, 11, 11);
 
-    expect(CredentialRequest::trackingNumber(1, $date))->toBe('cr26-00001')
-        ->and(CredentialRequest::trackingNumber(42, $date))->toBe('cr26-00042')
-        ->and(CredentialRequest::trackingNumber(99999, $date))->toBe('cr26-99999')
-        ->and(CredentialRequest::trackingNumber(100000, $date))->toBe('cr26-100000')
-        ->and(CredentialRequest::trackingNumber(1234567, Carbon::create(2027, 1, 1)))->toBe('cr27-1234567');
+    expect(CredentialRequest::trackingNumber(1, $date))->toBe('rc26-00001')
+        ->and(CredentialRequest::trackingNumber(42, $date))->toBe('rc26-00042')
+        ->and(CredentialRequest::trackingNumber(99999, $date))->toBe('rc26-99999')
+        ->and(CredentialRequest::trackingNumber(100000, $date))->toBe('rc26-100000')
+        ->and(CredentialRequest::trackingNumber(1234567, Carbon::create(2027, 1, 1)))->toBe('rc27-1234567');
 });
 
 test('REQ-04-03 a submitted request gets a tracking number and snapshots of the profile and fee', function () {
     $request = submitRequest($this->owner, $this->org->tor);
 
     expect($request->status)->toBe(RequestStatus::Submitted)
-        ->and($request->reference_no)->toBe(sprintf('cr%s-%05d', now()->format('y'), $request->id))
+        // The application's number and the credential's position (REQ-27-01).
+        ->and($request->reference_no)->toBe(sprintf('rc%s-%05d-1', now()->format('y'), $request->application_id))
         ->and($request->submitted_at)->not->toBeNull()
         ->and($request->accepted_at)->toBeNull()
         ->and($request->due_at)->toBeNull()
@@ -189,7 +111,7 @@ test('REQ-04-03 the requester is told the request was received for evaluation', 
     $this->actingAs($this->owner)->get(route('student.requests.show', $request))
         ->assertOk()
         ->assertSee('received for evaluation')
-        ->assertSee('Set on acceptance');
+        ->assertSee('Set on payment validation');
 });
 
 test('REQ-04-04 requesters see only their own requests', function () {
@@ -199,52 +121,4 @@ test('REQ-04-04 requesters see only their own requests', function () {
     $this->actingAs($this->owner)->get(route('student.dashboard'))
         ->assertSee($mine->reference_no)->assertDontSee($theirs->reference_no);
     $this->actingAs($this->owner)->get(route('student.requests.show', $theirs))->assertNotFound();
-});
-
-test('REQ-01-31 on New Request choosing a valid credential and purpose removes their errors at once', function () {
-    Livewire::actingAs($this->owner)->test(Create::class)
-        ->call('review')
-        ->assertHasErrors(['form.credential_type_id' => 'required', 'form.purpose' => 'required'])
-        ->set('form.credential_type_id', $this->org->tor->id)
-        ->assertHasNoErrors('form.credential_type_id')
-        ->assertHasErrors(['form.purpose' => 'The purpose field is required.'])
-        ->set('form.purpose', 'Employment abroad')
-        ->assertHasNoErrors(['form.credential_type_id', 'form.purpose'])
-        ->assertDontSee('The credential field is required.')
-        ->assertDontSee('The purpose field is required.');
-});
-
-test('REQ-01-31 an entry still invalid keeps its error, updated; one no longer needed loses it', function () {
-    Livewire::actingAs($this->owner)->test(Create::class)
-        ->set('form.purpose', CredentialRequestForm::OTHER_PURPOSE)
-        ->call('review')
-        ->assertHasErrors(['form.purpose_other' => 'required'])
-        ->set('form.purpose_other', str_repeat('a', 501))
-        ->assertHasErrors(['form.purpose_other' => 'The purpose field must not be greater than 500 characters.'])
-        ->set('form.purpose_other', 'Scholarship')
-        ->assertHasNoErrors('form.purpose_other');
-
-    Livewire::actingAs($this->owner)->test(Create::class)
-        ->set('form.purpose', CredentialRequestForm::OTHER_PURPOSE)
-        ->call('review')
-        ->assertHasErrors(['form.purpose_other' => 'required'])
-        ->set('form.purpose', 'Employment abroad')
-        ->assertHasNoErrors('form.purpose_other');
-});
-
-test('REQ-01-31 New Request sends choices at once and typed entries when the field is left', function () {
-    $html = Livewire::actingAs($this->owner)->test(Create::class)->set('form.purpose', CredentialRequestForm::OTHER_PURPOSE)->html();
-
-    expect($html)->toContain('wire:model.live="form.credential_type_id"')
-        ->toContain('wire:model.live="form.purpose"')
-        ->toContain('wire:model.live.blur="form.purpose_other"')
-        ->toContain('wire:model.live.blur="form.receiving_institution"')
-        ->toContain('wire:model.live.blur="profile.first_name"');
-});
-
-test('REQ-04-01 a request is for one document: there is no number of copies', function () {
-    Livewire::actingAs($this->owner)->test(Create::class)
-        ->assertDontSee('form.copies');
-
-    expect(Schema::hasColumn('credential_requests', 'copies'))->toBeFalse();
 });

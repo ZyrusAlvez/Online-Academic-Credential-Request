@@ -7,6 +7,8 @@ use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
 use App\Models\Department;
+use App\Models\User;
+use App\Queries\DashboardScope;
 use App\Queries\RegistrarRequestFilter;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Title;
@@ -26,7 +28,7 @@ class Index extends Component
     #[Url(except: '')]
     public string $search = '';
 
-    /** 'processing', 'open', 'overdue', '' (all) or a RequestStatus value. */
+    /** 'processing', 'open', 'overdue', 'office_overdue', '' (all) or a RequestStatus value. */
     #[Url(except: '')]
     public string $status = '';
 
@@ -37,6 +39,23 @@ class Index extends Component
     #[Url(except: '')]
     public string $office = '';
 
+    /** The user who evaluated the request (REQ-16-30). */
+    #[Url(except: '')]
+    public string $evaluator = '';
+
+    /** The dashboard number this list was opened from, with its period and office (REQ-34-17). */
+    #[Url(except: '')]
+    public string $scope = '';
+
+    #[Url(except: '')]
+    public string $from = '';
+
+    #[Url(except: '')]
+    public string $to = '';
+
+    #[Url(except: '')]
+    public string $at = '';
+
     public function mount(): void
     {
         $this->authorize('viewAny', CredentialRequest::class);
@@ -44,23 +63,51 @@ class Index extends Component
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['search', 'status', 'type', 'office'], true)) {
+        if (in_array($property, ['search', 'status', 'type', 'office', 'evaluator'], true)) {
             $this->resetPage();
         }
     }
 
+    /** The chip's ✕: back to every request (REQ-34-17). */
+    public function clearScope(): void
+    {
+        $this->scope = $this->from = $this->to = $this->at = '';
+        $this->resetPage();
+    }
+
     public function render(): View
     {
-        $requests = (new RegistrarRequestFilter($this->search, $this->status, $this->type, $this->office))->query()
-            ->with(['credentialType:id,name', 'openVisit.department:id,name', 'openVisit.fromDepartment:id,name'])
+        $scope = new DashboardScope($this->scope, $this->from, $this->to, $this->at);
+
+        // One row per application with a credential that matches the filters (REQ-27-08).
+        $matching = (new RegistrarRequestFilter($this->search, $this->status, $this->type, $this->office, $this->evaluator))->query()
+            ->when($scope->active(), fn ($q) => $scope->apply($q))
+            ->reorder()->select('application_id');
+
+        $requests = CredentialRequest::query()
+            ->where('item_no', 1)
+            ->whereIn('application_id', $matching)
+            ->with([
+                'application.credentialRequests.credentialType:id,name',
+                'application.credentialRequests.openVisit.department:id,name',
+                'application.credentialRequests.openVisit.fromDepartment:id,name',
+            ])
+            ->when(RegistrarRequestFilter::sortsByDueDate($this->status), fn ($q) => $q->orderBy('effective_due_at'), fn ($q) => $q->latest('id'))
             ->paginate(20);
 
         return view('livewire.registrar.records.index', [
             'requests' => $requests,
+            'scopeLabel' => $scope->active() ? $scope->label() : null,
             'statuses' => RequestStatus::cases(),
             'types' => CredentialType::active()->orderBy('name')->get(['id', 'name']),
             'offices' => Department::active()->orderBy('name')->get(['id', 'name']),
+            // Everyone who has evaluated a request, former registrars too (REQ-16-30).
+            'evaluators' => User::query()
+                ->whereIn('id', CredentialRequest::query()->whereNotNull('evaluated_by')->select('evaluated_by'))
+                ->orderBy('first_name')->orderBy('last_name')
+                ->get(['id', 'first_name', 'middle_name', 'last_name', 'email']),
             'overdueCount' => CredentialRequest::overdue()->count(),
+            'officeOverdueCount' => RegistrarRequestFilter::officeOverdue(CredentialRequest::query())->count(),
         ]);
     }
 }

@@ -2,45 +2,33 @@
 
 namespace App\Enums;
 
-use App\Reports\ComplianceReport;
 use App\Reports\DelayReport;
 use App\Reports\DepartmentReport;
 use App\Reports\EvaluatorReport;
-use App\Reports\PeriodicReport;
-use App\Reports\ReleaseReport;
+use App\Reports\MonthlySummaryReport;
 use App\Reports\Report;
-use App\Reports\SignatoryReport;
-use App\Reports\TrackingReport;
+use App\Reports\TransactionReport;
 
 /**
- * The client's ten reports (REQ-07-13).
+ * The five reports of the Registrar's performance (REQ-34-05). Office Performance comes first and
+ * is the default.
  */
 enum ReportKind: string
 {
-    case Daily = 'daily';
-    case Weekly = 'weekly';
-    case Monthly = 'monthly';
+    case Office = 'office';
     case Evaluator = 'evaluator';
-    case Department = 'department';
-    case Signatory = 'signatory';
-    case Tracking = 'tracking';
+    case Transactions = 'transactions';
     case Delay = 'delay';
-    case Compliance = 'compliance';
-    case Release = 'release';
+    case Monthly = 'monthly';
 
     public function report(): Report
     {
         return match ($this) {
-            self::Daily => new PeriodicReport('day'),
-            self::Weekly => new PeriodicReport('week'),
-            self::Monthly => new PeriodicReport('month'),
+            self::Office => new DepartmentReport,
             self::Evaluator => new EvaluatorReport,
-            self::Department => new DepartmentReport,
-            self::Signatory => new SignatoryReport,
-            self::Tracking => new TrackingReport,
+            self::Transactions => new TransactionReport,
             self::Delay => new DelayReport,
-            self::Compliance => new ComplianceReport,
-            self::Release => new ReleaseReport,
+            self::Monthly => new MonthlySummaryReport,
         };
     }
 }

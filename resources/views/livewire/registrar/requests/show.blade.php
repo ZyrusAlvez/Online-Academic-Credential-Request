@@ -4,7 +4,6 @@
     use App\Livewire\Registrar\Requests\Show as Page;
 
     $status = $request->status;
-    $owner = $request->student;
     $idDocument = $request->identityDocument;
     $visit = $request->openVisit;
 
@@ -18,7 +17,8 @@
 
 <div class="mx-auto max-w-4xl space-y-6">
     <flux:breadcrumbs>
-        <flux:breadcrumbs.item :href="route($queueRoute)" wire:navigate>{{ $queueLabel }}</flux:breadcrumbs.item>
+        {{-- Back to the list as it was left (REQ-16-26). --}}
+        <flux:breadcrumbs.item :href="$listUrl ?: route($queueRoute)" wire:navigate>{{ $queueLabel }}</flux:breadcrumbs.item>
         <flux:breadcrumbs.item>{{ $request->reference_no }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 
@@ -35,6 +35,7 @@
                 <x-copy-button :value="$request->reference_no" :label="__('Copy tracking number')" :copied="__('Tracking number copied.')" />
             </x-slot:afterTitle>
             <x-slot:actions>
+                <x-walk-in-badge :request="$request" class="self-center" />
                 <x-request-status :status="$status" class="self-center" />
                 @if ($request->isOverdue())
                     <flux:badge color="red" icon="clock" class="self-center">{{ __('Overdue since :date', ['date' => $request->effective_due_at->format('M j')]) }}</flux:badge>
@@ -110,11 +111,21 @@
                 <x-check-card :item="$item" :result="$results[$item->value] ?? null" :carried="$carried[$item->value] ?? null" wire:key="check-{{ $item->value }}">
                     @switch($item)
                         @case(Item::CredentialRequest)
+                            {{-- Every credential of the application (REQ-27-09). --}}
+                            @if ($credentials->count() > 1)
+                                <x-application-credentials :requests="$credentials" class="mb-3" />
+                            @endif
                             <dl class="divide-y divide-zinc-200 text-sm">
-                                <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
-                                <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
-                                @if ($request->receiving_institution)
-                                    <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
+                                @if ($credentials->count() <= 1)
+                                    <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
+                                    <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
+                                    @if ($request->receiving_institution)
+                                        <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
+                                    @endif
+                                    @if ($request->academic_year)
+                                        <x-summary-row :label="__('Terms')">{{ \App\Enums\Term::labels($request->terms) }}</x-summary-row>
+                                        <x-summary-row :label="__('Academic year')">{{ $request->academic_year }}</x-summary-row>
+                                    @endif
                                 @endif
                                 <x-summary-row :label="__('Amount due')">{{ $request->requires_payment ? '₱'.number_format((float) $request->amount_due, 2) : __('None required') }}</x-summary-row>
                                 <x-summary-row :label="__('Transacting')">{{ $request->requester_mode->label() }}</x-summary-row>
@@ -125,7 +136,10 @@
                         @case(Item::Identity)
                             <dl class="divide-y divide-zinc-200 text-sm">
                                 <x-summary-row :label="__('Name')">{{ $request->requester_name }}</x-summary-row>
-                                <x-summary-row :label="__('Email')" class="[&_dd]:break-all"><a href="mailto:{{ $owner->email }}" class="text-highlight underline underline-offset-2">{{ $owner->email }}</a></x-summary-row>
+                                @if ($request->sex)
+                                    <x-summary-row :label="__('Sex')">{{ $request->sex->label() }}</x-summary-row>
+                                @endif
+                                <x-summary-row :label="__('Email')" class="[&_dd]:break-all"><a href="mailto:{{ $request->requesterEmail() }}" class="text-highlight underline underline-offset-2">{{ $request->requesterEmail() }}</a></x-summary-row>
                                 <x-summary-row :label="__('Contact number')">{{ $request->contact_number ?? '—' }}</x-summary-row>
                                 <x-summary-row :label="__('Valid ID')">
                                     @if ($idDocument)
@@ -161,66 +175,24 @@
             @endforeach
         @endif
 
-        @if ($panel === Page::PANEL_PAYMENT)
-            {{-- The requester's note with a new proof, after a return (REQ-04-20). --}}
-            @if ($paymentNote !== '')
-                <p class="rounded-md border border-secondary/50 bg-white p-3 text-sm whitespace-pre-line text-ink" data-payment-note><span class="font-semibold">{{ __('Requester\'s note:') }}</span> {{ $paymentNote }}</p>
-            @endif
-            {{-- The proof and its details, read-only: no checklist (REQ-16-17). --}}
-            <section aria-labelledby="proof-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-payment-proof>
-                <h2 id="proof-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Proof of Payment') }}</h2>
-                @if ($pendingProof)
-                    @if ($pendingProof->isImage())
-                        <x-file-link :href="route('payment-proofs.show', $pendingProof)" :name="__('Proof of payment: :file', ['file' => $pendingProof->original_name])" :type="$pendingProof->mime_type" class="block w-fit cursor-zoom-in">
-                            <x-loading-image :src="route('payment-proofs.show', $pendingProof)" :alt="__('Proof of payment uploaded by the requester (open larger)')" class="max-h-96 w-auto rounded-lg border border-secondary/50" />
-                        </x-file-link>
-                    @else
-                        <x-file-link :href="route('payment-proofs.show', $pendingProof)" :name="__('Proof of payment: :file', ['file' => $pendingProof->original_name])" :type="$pendingProof->mime_type" class="text-sm font-medium">
-                            {{ $pendingProof->original_name }}
-                        </x-file-link>
-                    @endif
-                @else
-                    <p class="text-sm text-zinc-600">{{ __('No proof of payment uploaded yet.') }}</p>
-                @endif
-            </section>
-            <section aria-labelledby="payment-details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-payment-details>
-                <h2 id="payment-details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Payment Details') }}</h2>
+        @if ($panel === Page::PANEL_FINAL_CHECK)
+            {{-- The final quality check: the credential and its route, read-only (REQ-16-19). Received at
+                 once when the Registrar brings it back (REQ-32-09), so there is no Accept receipt. --}}
+            <section aria-labelledby="final-document-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-final-check-details>
+                <h2 id="final-document-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Credential Document') }}</h2>
                 <dl class="divide-y divide-zinc-200 text-sm">
-                    <x-summary-row :label="__('Amount due')">₱{{ number_format((float) $request->amount_due, 2) }}</x-summary-row>
-                    <x-summary-row :label="__('Amount paid')">{{ $pendingProof?->amount !== null ? '₱'.number_format((float) $pendingProof->amount, 2) : '—' }}</x-summary-row>
-                    <x-summary-row :label="__('Reference')" class="[&_dd]:break-all">{{ $pendingProof?->reference_no ?? '—' }}</x-summary-row>
-                    <x-summary-row :label="__('Date paid')">{{ $pendingProof?->paid_on?->format('M j, Y') ?? '—' }}</x-summary-row>
+                    <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
+                    <x-summary-row :label="__('Issued to')">{{ $request->requester_name }}</x-summary-row>
+                    <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
+                    @if ($request->receiving_institution)
+                        <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
+                    @endif
                 </dl>
             </section>
-        @endif
-
-        @if ($panel === Page::PANEL_FINAL_CHECK)
-            @if ($visit->status === \App\Enums\VisitStatus::InTransit)
-                <section aria-labelledby="receive-heading" class="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary bg-primary-50 p-5 sm:p-6">
-                    <div>
-                        <h2 id="receive-heading" class="text-lg font-semibold text-primary">{{ __('Final Quality Check') }}</h2>
-                        <p class="text-sm text-zinc-700">{{ __('Forwarded :time from :office.',['time' => $visit->forwarded_at->diffForHumans(), 'office' => $request->visits->where('status', \App\Enums\VisitStatus::Completed)->last()?->department->name ?? __('the last office')]) }}</p>
-                    </div>
-                    <flux:button wire:click="acceptReceipt" variant="primary" icon="inbox-arrow-down">{{ __('Accept receipt') }}</flux:button>
-                </section>
-            @else
-                {{-- The final quality check: the credential and its route, read-only (REQ-16-19). --}}
-                <section aria-labelledby="final-document-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-final-check-details>
-                    <h2 id="final-document-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Credential Document') }}</h2>
-                    <dl class="divide-y divide-zinc-200 text-sm">
-                        <x-summary-row :label="__('Credential')">{{ $request->credentialType->name }}</x-summary-row>
-                        <x-summary-row :label="__('Issued to')">{{ $request->requester_name }}</x-summary-row>
-                        <x-summary-row :label="__('Purpose')">{{ $request->purpose }}</x-summary-row>
-                        @if ($request->receiving_institution)
-                            <x-summary-row :label="__('Receiving school')">{{ $request->receiving_institution }}</x-summary-row>
-                        @endif
-                    </dl>
-                </section>
-                <section aria-labelledby="final-route-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-final-check-route>
-                    <h2 id="final-route-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Signatures and Stamps') }}</h2>
-                    <x-request-route :steps="$request->steps" />
-                </section>
-            @endif
+            <section aria-labelledby="final-route-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6" data-final-check-route>
+                <h2 id="final-route-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Signatures and Stamps') }}</h2>
+                <x-request-route :steps="$request->steps" />
+            </section>
         @endif
 
         @if ($panel === Page::PANEL_RELEASE)
@@ -235,18 +207,7 @@
             <section aria-labelledby="release-heading" class="space-y-4 rounded-xl border border-green-700 bg-green-50 p-5 sm:p-6">
                 <h2 id="release-heading" class="text-lg font-semibold text-green-900">{{ __('Release') }}</h2>
                 <form wire:submit="release" class="space-y-4">
-                    <flux:radio.group wire:model.live="recipientType" :label="__('Claimed by')">
-                        <flux:radio value="owner" :label="__('The document owner: :name', ['name' => $request->requester_name])" />
-                        <flux:radio value="representative" :label="__('A verified representative')" :disabled="$verifiedRepresentatives->isEmpty()" />
-                    </flux:radio.group>
-                    @if ($recipientType === 'representative')
-                        <flux:select wire:model="recipientRepresentativeId" :label="__('Verified representative')" required>
-                            <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
-                            @foreach ($verifiedRepresentatives as $representative)
-                                <flux:select.option :value="$representative->id">{{ $representative->full_name }}</flux:select.option>
-                            @endforeach
-                        </flux:select>
-                    @endif
+                    @include('partials.release-recipient')
                     <flux:button type="submit" variant="primary" icon="hand-raised">{{ __('Mark released') }}</flux:button>
                 </form>
             </section>
@@ -286,7 +247,23 @@
                     @endif
                 </div>
 
-                <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
+                @if ($panel === Page::PANEL_PAYMENT)
+                    {{-- A walk-in payment, made at the counter: its official receipt (REQ-26-05), for
+                         every credential of the application (REQ-27-09). --}}
+                    @if ($credentials->count() > 1)
+                        <x-application-credentials :requests="$credentials" :total="$request->amount_due" />
+                    @endif
+                    <dl class="divide-y divide-zinc-200 text-sm" data-walk-in-payment>
+                        <x-summary-row :label="__('Amount due')">₱{{ number_format((float) $request->amount_due, 2) }}</x-summary-row>
+                    </dl>
+                    <div class="grid gap-6 sm:grid-cols-2">
+                        <flux:input wire:model="receiptNo" :label="__('Official receipt no.')" maxlength="50" required data-receipt-no-input />
+                        <flux:input wire:model="amountPaid" type="number" step="0.01" min="0.01" inputmode="decimal" :label="__('Amount paid')" required data-amount-paid-input />
+                    </div>
+                    <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="2" />
+                @else
+                    <flux:textarea wire:model="remarks" :label="__('Remarks')" rows="3" />
+                @endif
 
                 {{-- Always enabled; a decision that can't run says why (REQ-17-17). The approving one is on the right (REQ-17-02). --}}
                 <div class="flex flex-wrap justify-center gap-2" data-decision-buttons>
@@ -297,11 +274,12 @@
                             <flux:button icon="building-office" data-office-visit-button>{{ __('Require Office Visit') }}</flux:button>
                         </flux:modal.trigger>
                         <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return for Clarification') }}</flux:button>
-                    @elseif ($panel === Page::PANEL_PAYMENT)
-                        {{-- Payment Validation: Decline, Return to Requester, Approve (REQ-16-17). --}}
-                        <flux:button wire:click="returnRequest" icon="arrow-uturn-left" data-return-button>{{ __('Return to Requester') }}</flux:button>
                     @endif
-                    <flux:button wire:click="approve" variant="primary" icon="check" data-approve-button>{{ __('Approve') }}</flux:button>
+                    @if ($panel === Page::PANEL_PAYMENT)
+                        <flux:button wire:click="validatePayment" variant="primary" icon="check" data-validate-payment-button>{{ __('Validate Payment') }}</flux:button>
+                    @else
+                        <flux:button wire:click="approve" variant="primary" icon="check" data-approve-button>{{ __('Approve') }}</flux:button>
+                    @endif
                 </div>
             </section>
         @endif

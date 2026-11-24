@@ -104,7 +104,7 @@ class RequestActivity extends Notification implements ShouldQueue
         return $message
             ->line('Current location: '.$request->whereabouts())
             ->action('Track your request', $this->url($notifiable, $request))
-            ->salutation('Office of the Registrar, University of Perpetual Help System');
+            ->salutation('Office of the Registrar, University of Perpetual Help System Laguna');
     }
 
     /**
@@ -115,7 +115,8 @@ class RequestActivity extends Notification implements ShouldQueue
         $message = (new MailMessage)
             ->subject("{$request->reference_no}: {$this->title}")
             ->greeting($notifiable->greeting())
-            ->line("{$request->credentialType->name} requested by {$request->student->fullName()} ({$request->reference_no}):")
+            // The request's own copy of the name: a walk-in request may have no account (REQ-26-10).
+            ->line("{$request->credentialType->name} requested by {$request->requester_name} ({$request->reference_no}):")
             ->line("**{$this->event->summary()}**");
 
         if (filled($this->event->remarks)) {
@@ -142,6 +143,7 @@ class RequestActivity extends Notification implements ShouldQueue
             Role::Department => 'department.requests.show',
             Role::Registrar => 'registrar.requests.show',
             Role::Admin => 'records.show',   // admins are not notified; the read-only record (REQ-18-06)
+            Role::Cashier => 'cashier.payments.show',   // payments to validate (REQ-25-08)
         };
 
         return route($route, $request);

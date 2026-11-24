@@ -15,6 +15,7 @@ use Illuminate\Support\Carbon;
  * @property int $position
  * @property int $department_id
  * @property RouteTask $task
+ * @property ?int $allotted_days copied at acceptance; null on the final check (REQ-30-04)
  * @property StepStatus $status
  * @property ?Carbon $completed_at
  */
@@ -24,6 +25,7 @@ class RequestStep extends Model
         'position',
         'department_id',
         'task',
+        'allotted_days',
         'instructions',
         'status',
     ];
@@ -36,6 +38,7 @@ class RequestStep extends Model
         return [
             'position' => 'integer',
             'task' => RouteTask::class,
+            'allotted_days' => 'integer',
             'status' => StepStatus::class,
             'completed_at' => 'datetime',
         ];

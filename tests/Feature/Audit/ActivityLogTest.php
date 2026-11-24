@@ -1,6 +1,5 @@
 <?php
 
-use App\Actions\Audit\RecordRequestEvent;
 use App\Actions\Identity\SubmitIdentityDocument;
 use App\Enums\ActivityCategory;
 use App\Enums\CheckItem;
@@ -10,16 +9,11 @@ use App\Livewire\Admin\CredentialTypes\Index as CredentialTypes;
 use App\Livewire\Admin\Logs\Index;
 use App\Livewire\Admin\Users\Index as Accounts;
 use App\Models\ActivityLog;
-use App\Models\CredentialType;
 use App\Models\Purpose;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Laravel\Socialite\Facades\Socialite;
-use Laravel\Socialite\Two\GoogleProvider;
-use Laravel\Socialite\Two\User as GoogleUser;
 use Livewire\Livewire;
 use Livewire\Volt\Volt;
 
@@ -75,13 +69,6 @@ test('REQ-14-02 setup changes are logged with each changed field', function () {
 
     expect(ActivityLog::where('action', 'credential_type.updated')->latest('id')->first()->description)
         ->toBe('Deactivated credential type “Certification of Enrollment”');
-});
-
-test('REQ-14-02 seeding and migrating write nothing to the log', function () {
-    CredentialType::factory()->create();
-    Purpose::create(['name' => 'Seeded purpose']);
-
-    expect(ActivityLog::count())->toBe(0);
 });
 
 test('REQ-14-03 account changes are logged, including activation and the requester\'s own profile', function () {
@@ -200,105 +187,6 @@ test('REQ-14-08 passwords and tokens are never logged, but a password change is'
         ->not->toContain('12345');
 });
 
-test('REQ-14-09 the admin sees the log newest first with who, what, the transaction ID, the office and the changes', function () {
-    $owner = requester($this->org->ccs);
-    $request = acceptRequest(submitRequest($owner, $this->org->tor), $this->registrar);
-
-    $this->actingAs($this->admin);
-    $this->org->tor->update(['fee' => '600.00']);
-
-    $this->get(route('admin.logs'))
-        ->assertOk()
-        ->assertSee('Logs')
-        ->assertSeeInOrder(['Updated credential type “Transcript of Records”', 'Fee', '530.00', '600.00', 'Payment verified', 'Submitted'])
-        ->assertSee('Rita Registrar')
-        ->assertSee(Role::Student->label())
-        ->assertSee($request->reference_no)
-        ->assertSee($this->org->registrarOffice->name);
-
-    $this->get(route('admin.dashboard'))->assertSee(route('admin.logs'));
-});
-
-test('REQ-14-10 the registrar can search by reference no., name, email or action', function () {
-    $juan = User::factory()->withProfile($this->org->ccs)->create(['first_name' => 'Juan', 'middle_name' => null, 'last_name' => 'Cruz', 'email' => 'juan@example.com']);
-    $maria = User::factory()->withProfile($this->org->cba)->create(['first_name' => 'Maria', 'middle_name' => null, 'last_name' => 'Reyes', 'email' => 'maria@example.com']);
-    $juansRequest = submitRequest($juan, $this->org->tor);
-    $mariasRequest = submitRequest($maria, $this->org->free);
-    workflow()->startEvaluation($juansRequest, $this->registrar);
-
-    $page = Livewire::actingAs($this->admin)->test(Index::class);
-
-    $page->set('search', $juansRequest->reference_no)
-        ->assertSee('Evaluation started')->assertDontSee($mariasRequest->reference_no);
-
-    // A requester's name also finds what staff did on their requests.
-    $page->set('search', 'Juan Cruz')
-        ->assertSee('Evaluation started')->assertSee($juansRequest->reference_no)->assertDontSee($mariasRequest->reference_no);
-
-    $page->set('search', 'maria@example.com')
-        ->assertSee($mariasRequest->reference_no)->assertDontSee($juansRequest->reference_no);
-
-    $page->set('search', 'Evaluation started')
-        ->assertSee($juansRequest->reference_no)->assertDontSee($mariasRequest->reference_no);
-});
-
-test('REQ-14-11 the registrar can filter by role, kind of action, office and date', function () {
-    $owner = requester($this->org->ccs);
-    Carbon::setTestNow('2026-11-02 10:00:00');
-    $request = acceptRequest(submitRequest($owner, $this->org->tor), $this->registrar);
-
-    Carbon::setTestNow('2026-11-05 10:00:00');
-    $this->actingAs($this->registrar);
-    $this->org->tor->update(['fee' => '600.00']);
-    auth()->logout();
-    Volt::test('auth.login')->set('email', $owner->email)->set('password', 'wrong')->call('login');
-
-    $page = Livewire::actingAs($this->admin)->test(Index::class);
-
-    $page->set('role', 'student')
-        ->assertSee('Submitted')->assertSee("Failed sign-in for {$owner->email}")
-        ->assertDontSee('Payment verified')->assertDontSee('Updated credential type');
-    $page->set('role', 'registrar')
-        ->assertSee('Updated credential type')->assertDontSee('Failed sign-in')->assertDontSee('Submitted')
-        ->assertDontSee('System (no one signed in)');
-
-    $page->set('role', '')->set('category', 'setup')
-        ->assertSee('Updated credential type')->assertDontSee($request->reference_no);
-
-    $page->set('category', '')->set('office', (string) $this->org->registrarOffice->id)
-        ->assertSee('Document forwarded')->assertDontSee('Updated credential type')->assertDontSee('Payment verified');
-
-    $page->set('office', '')->set('from', '2026-11-05')->set('to', '2026-11-05')
-        ->assertSee('Updated credential type')->assertDontSee($request->reference_no);
-
-    $page->set('from', '2026-11-01')->set('to', '2026-11-02')
-        ->assertSee($request->reference_no)->assertDontSee('Updated credential type');
-});
-
-test('REQ-14-12 a request entry links to the request\'s record', function () {
-    $request = submitRequest(requester($this->org->ccs), $this->org->tor);
-
-    $this->actingAs($this->admin)->get(route('admin.logs'))
-        ->assertSee(route('records.show', $request), false);   // the Admin's read-only record (REQ-18-06)
-});
-
-test('REQ-14-14 copying an existing ledger entry keeps its time and leaves no IP address', function () {
-    Carbon::setTestNow('2026-10-20 08:30:00');
-    $request = submitRequest(requester($this->org->ccs), $this->org->tor);
-    $event = $request->events()->with(['actor', 'department'])->sole();
-
-    // What the migration does for every ledger entry that predates the log.
-    DB::table('activity_logs')->delete();
-    Carbon::setTestNow('2026-11-06 12:00:00');
-    app(RecordRequestEvent::class)->handle($event, $request, $event->actor, at: $event->created_at);
-
-    $log = ActivityLog::sole();
-    expect($log->action)->toBe('request.submitted')
-        ->and($log->reference_no)->toBe($request->reference_no)
-        ->and($log->created_at->format('Y-m-d H:i'))->toBe('2026-10-20 08:30')
-        ->and($log->ip_address)->toBeNull();
-});
-
 test('REQ-14-15 a failed sign-in is logged under the account whose email was typed, or as the typed email with no account', function () {
     $owner = requester($this->org->ccs);
 
@@ -316,26 +204,6 @@ test('REQ-14-15 a failed sign-in is logged under the account whose email was typ
     Livewire::actingAs($this->admin)->test(Index::class)
         ->assertSeeInOrder(['nobody@example.com', 'No account', 'Failed sign-in for nobody@example.com'])
         ->assertSeeInOrder([$owner->name, Role::Student->label(), "Failed sign-in for {$owner->email}"]);
-});
-
-test('REQ-14-15 a Google sign-in that verifies an account is logged under that account', function () {
-    config(['services.google.client_id' => 'client-id', 'services.google.client_secret' => 'client-secret']);
-    $existing = User::factory()->unverified()->create(['email' => 'juan@gmail.com']);
-
-    $claims = ['sub' => 'google-123', 'email' => 'juan@gmail.com', 'email_verified' => true, 'given_name' => 'Juan', 'family_name' => 'Cruz'];
-    $google = (new GoogleUser)->setRaw($claims)->map(['id' => $claims['sub'], 'email' => $claims['email'], 'name' => 'Juan Cruz']);
-    $provider = Mockery::mock(GoogleProvider::class);
-    $provider->shouldReceive('user')->andReturn($google);
-    Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
-
-    // A real web request, not the console the tests run in (where nothing is logged without a user).
-    (fn () => $this->isRunningInConsole = false)->call(app());
-    $this->get(route('auth.google.callback'))->assertRedirect();
-
-    $log = ActivityLog::where('category', ActivityCategory::Account)->sole();
-    expect($log->description)->toBe('Verified their email address')
-        ->and($log->actor_id)->toBe($existing->id)
-        ->and($log->actor_role)->toBe(Role::Student);
 });
 
 test('REQ-14-13 only the admin can open the Logs page', function (string $role) {

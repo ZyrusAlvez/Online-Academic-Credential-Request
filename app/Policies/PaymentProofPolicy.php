@@ -11,8 +11,9 @@ use Illuminate\Auth\Access\Response;
 class PaymentProofPolicy
 {
     /**
-     * The owner, registrars and admins (REQ-18-07); department staff only the verified proof of
-     * a request sent to their office (REQ-24-08). Anyone else gets a 404.
+     * The owner, registrars and admins (REQ-18-07); cashiers for online requests (REQ-25-06);
+     * department staff only the verified proof of a request sent to their office (REQ-24-08).
+     * Anyone else gets a 404.
      */
     public function view(User $user, PaymentProof $proof): Response
     {
@@ -22,6 +23,8 @@ class PaymentProofPolicy
             $user->hasRole(Role::Registrar, Role::Admin) => true,
             $request === null => false,
             $request->user_id === $user->id => true,
+            // The proofs of the online requests whose payment the cashier validates (REQ-25-06).
+            $user->hasRole(Role::Cashier) => ! $request->isWalkIn(),
             $user->hasRole(Role::Department) => $user->department_id !== null
                 && $proof->status === PaymentStatus::Verified
                 && $request->visits()->where('department_id', $user->department_id)->exists(),

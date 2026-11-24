@@ -24,6 +24,9 @@ enum RequestEventType: string
     case Resubmitted = 'resubmitted';
     case EvaluationReopened = 'evaluation_reopened';
 
+    // The Admin unlocked an absent evaluator's request (REQ-35-05)
+    case EvaluationUnlocked = 'evaluation_unlocked';
+
     // Edit Request (spec 20)
     case CredentialChanged = 'credential_changed';
 
@@ -57,6 +60,10 @@ enum RequestEventType: string
 
     case Cancelled = 'cancelled';
 
+    // Walk-in requests (spec 26)
+    case WalkInRecorded = 'walk_in_recorded';
+    case LinkedToAccount = 'linked_to_account';
+
     public function label(): string
     {
         return ucfirst(str_replace('_', ' ', $this->value));
@@ -78,8 +85,8 @@ enum RequestEventType: string
     }
 
     /**
-     * Entries requesters never see: hand-offs between offices, internal returns, delay notes
-     * and bypasses (REQ-06-02).
+     * Entries requesters never see: hand-offs between offices, internal returns, delay notes,
+     * bypasses and an evaluation unlocked by the Admin (REQ-06-02, REQ-35-12).
      */
     public function isInternal(): bool
     {
@@ -90,6 +97,7 @@ enum RequestEventType: string
             self::Corrected,
             self::DelayRecorded,
             self::StepBypassed,
+            self::EvaluationUnlocked,
         ], true);
     }
 }

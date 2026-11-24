@@ -10,6 +10,7 @@
         'document_returned' => 'arrow-uturn-left', 'document_resubmitted' => 'arrow-path', 'delay_recorded' => 'clock', 'step_bypassed' => 'forward',
         'ready_for_release' => 'gift', 'representative_declared' => 'user-plus', 'representative_verified' => 'shield-check',
         'representative_rejected' => 'shield-exclamation', 'released' => 'hand-raised', 'cancelled' => 'no-symbol',
+        'evaluation_unlocked' => 'lock-open',
     ];
 @endphp
 
@@ -32,6 +33,12 @@
             </p>
             @if ($event->remarks)
                 <p class="mt-1 rounded-md bg-primary-50 px-3 py-2 text-sm text-zinc-800">{{ $event->displayRemarks() }}</p>
+            @endif
+            {{-- Staff only: the requester's history never shows an override (REQ-35-10). --}}
+            @if ($showActors && $event->isOverride())
+                <p class="mt-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950" data-override-entry>
+                    {{ __('Admin override · recorded :time: :reason', ['time' => $event->recorded_at?->format('M j, Y · g:i A'), 'reason' => $event->override_reason]) }}
+                </p>
             @endif
         </li>
     @endforeach

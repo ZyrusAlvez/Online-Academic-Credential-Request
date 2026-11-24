@@ -51,12 +51,17 @@ This replaces:
   requester" tab, like Initial Evaluation's (REQ-16-02), SHALL list the requests awaiting payment
   (approved, no proof sent yet), oldest first, and show their count. *(User's requests,
   2026-11-11: the requests awaiting payment are added, then moved to their own tab.)*
+  *Changed by REQ-25-04 and REQ-25-07 (2026-11-17):* this list, for online requests, is now the
+  Cashier's; the Registrar's Payment Validation lists walk-in requests only. "Oldest first" in both
+  tabs means by when the request entered its status (the proof sent, or the request approved), as
+  the history records it, not by its last edit (2026-11-20).
 - **REQ-16-04** THE In Progress queue SHALL list the requests in progress or returned for correction
   between offices (not those sent for the final check), with the office holding the document now,
   whether it has been received there, since when, the due date and an overdue mark, and SHALL let
   the registrar filter it by office. It SHALL be for tracking only, with no actions. *Changed by
   REQ-17-11, 12:* it also lists accepted requests, shows the next office, and lets the registrar
-  forward the papers its office holds.
+  forward the papers its office holds. *(Removed 2026-11-18 by REQ-32-10: there is no In Progress
+  list; Records shows where each paper is.)*
 - **REQ-16-05** THE Final Quality Check queue SHALL list the requests whose document is sent to, or
   held by, the Registrar for the final quality check, oldest first.
 - **REQ-16-06** THE Release queue SHALL list the credentials ready for release, oldest first.
@@ -74,27 +79,36 @@ This replaces:
   another queue than the request's, or at the former `/registrar/requests/{tracking no.}` (in
   notifications and emails), THE SYSTEM SHALL redirect to the request's current queue, or to its
   Records page once it is released, declined or cancelled. WHEN a decision or action moves the
-  request to another queue THE SYSTEM SHALL follow it there. *(User's report, 2026-11-16: every
+  request out of the queue the page is under THE SYSTEM SHALL go back to that queue's list, as the
+  registrar left it (tab, search, filters and page), with the decision's message; a decision that
+  keeps it in the queue stays on the page. *(Changed 2026-11-19, user's rule for every role: the
+  page used to follow the request to its next queue or to Records, so the registrar lost their
+  place. Same for the department, REQ-24-06, and the cashier, REQ-25-05.)* *(User's report, 2026-11-16: every
   request page was `/registrar/requests/…`, so no sidebar item was highlighted. In Progress page
-  removed 2026-11-15, user's decision.)*
+  removed 2026-11-15, user's decision.)* *(Changed 2026-11-18, REQ-32-10: In Progress is removed;
+  a request being processed at an office, not in Outgoing or at the final check, leads to its
+  Records page.)*
 - **REQ-16-07** THE Records list SHALL show every request, searchable by tracking number, student
   number or name, and filterable by status (including "Overdue"), credential type and the office
   holding it. A record SHALL open a read-only page with the request's details, route, office visits
-  and ledger, and no actions. The working page does not show the ledger (REQ-17-04).
+  and ledger, and no actions. The working page does not show the ledger (REQ-17-04). *Changed by
+  REQ-35-01 (2026-11-23):* the Admin's view of a record has one action, the Override.
 - **REQ-16-23** WHERE staff see where a request is (the Records list's *Currently at* column, a
   record's "Where it is now" and the Admin dashboard), THE SYSTEM SHALL name the requester instead
   of addressing them: "Waiting for the requester to complete the requirements", "Waiting for the
   requester's response" and "Waiting for the requester's payment". The requester's own pages and
   emails keep "you" and "your". *Changed by REQ-20-11:* the wording of the two returns.
-- **REQ-16-08** THE SYSTEM SHALL NOT offer a CSV download of the requests or of any report; the
-  former download addresses SHALL respond 404.
+- **REQ-16-08** THE SYSTEM SHALL NOT offer a CSV download of the requests (Records); the former
+  download addresses SHALL respond 404. *Changed by REQ-34-16 (2026-11-20):* Reports offer
+  "Export CSV".
 
 ### The evaluation lock
 - **REQ-16-09** WHEN a registrar starts the evaluation of a submitted request THE SYSTEM SHALL make
   them its evaluator. WHILE the request is under evaluation THE SYSTEM SHALL let only its evaluator
   open its working page and act on it. Any other registrar SHALL see only "<tracking number> is under
   evaluation by <name>", and their actions SHALL be refused (403). The lock SHALL end when the
-  evaluator approves, returns or declines the request.
+  evaluator approves, returns or declines the request. *Changed by REQ-35-05 (2026-11-23):* or
+  when the Admin unlocks it.
 
 ### Initial Evaluation
 - **REQ-16-10** WHILE a request is under evaluation THE SYSTEM SHALL show its evaluator a checklist
@@ -150,6 +164,7 @@ This replaces:
   authorized personnel confirm the payment against the official payment record (V, step 3), so
   both are removed, like the final check's checklist (REQ-16-19).)* The request's record below
   SHALL NOT list the proofs of payment again *(user's request, 2026-11-16: it repeated the proof)*.
+  *Changed by REQ-25-05 (2026-11-17):* the Cashier makes this decision for online requests.
 - **REQ-16-27** WHERE a stage has a decision (Initial Evaluation, Payment Validation, Final Quality
   Check) THE SYSTEM SHALL show the Decision section last on the working page, after the request's
   record, with the requester's resubmit note just above it (REQ-20-14). *(User's request,
@@ -161,8 +176,8 @@ This replaces:
   forwarded to the next office THE SYSTEM SHALL set the status `in_progress`.
 
 ### Final Quality Check
-- **REQ-16-19** WHILE a request's document is at the final quality check THE SYSTEM SHALL first let
-  the registrar accept its receipt (REQ-05-03). Once it is received, THE SYSTEM SHALL show the
+- **REQ-16-19** WHILE a request's document is at the final quality check (received there at once,
+  REQ-32-09; there is no Accept receipt step since 2026-11-18) THE SYSTEM SHALL show the
   credential's details (credential, issued to, purpose, receiving school) and its route (each office
   and when it finished), read-only with no checklist, then Remarks and the buttons Approve and
   Decline. The BRD asks only that the Registrar confirm the credential is complete and accurate
@@ -177,7 +192,27 @@ This replaces:
   recipient's name SHALL be filled in from them, and the release time and the staff member
   recorded. A representative not yet verified SHALL be verifiable or rejectable, with a reason, on
   this page. (Representatives are declared on New Request only since 2026-11-13, REQ-11-01, so
-  they are normally verified during the evaluation.)
+  they are normally verified during the evaluation.) *Since REQ-35-04 (2026-11-23):* the Admin
+  can also mark it released, through an override.
+- **REQ-16-28** THE "A representative" choice on Release SHALL always be selectable. WHEN it is
+  chosen THE SYSTEM SHALL offer the request's verified representatives, if any, and "Someone else";
+  for someone else (or when there is no verified representative) the registrar SHALL type the
+  representative's full name, which becomes the recipient's name, and the history SHALL say the
+  SPA and IDs were checked at release. WHILE a representative is chosen THE SYSTEM SHALL remind the
+  registrar to confirm the SPA and the document owner's valid ID, and the representative's valid
+  ID. *(User's decision, 2026-11-20.)*
+
+### Evaluator
+A request's evaluator is the registrar who took it up for Initial Evaluation (the latest one after
+a resubmission) or who entered it as a walk-in (`evaluated_by`). The Evaluator Performance report
+(REQ-34-15) keeps counting by it. *(User's request, 2026-11-21.)*
+- **REQ-16-29** A record's Request Details SHALL show the Evaluator by name. WHILE a request has no
+  evaluator yet THE SYSTEM SHALL NOT show the row.
+- **REQ-16-30** THE Records list SHALL filter by evaluator, offering every user who has evaluated
+  a request. It SHALL NOT have an Evaluator column. *(Column removed 2026-11-21, user's decision.)*
+- **REQ-16-31** THE Initial Evaluation queue SHALL filter by the request's college (department), on
+  both tabs and together with the search.
+- **REQ-16-32** THE requester's request page SHALL show the Evaluator row as REQ-16-29 does.
 
 ### Removed registrar actions
 - **REQ-16-21** THE SYSTEM SHALL NOT let the registrar change a request's college, cancel a

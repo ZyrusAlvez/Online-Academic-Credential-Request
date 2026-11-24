@@ -45,40 +45,44 @@ This replaces:
 
 ### Roles and pages
 - **REQ-18-01** THE SYSTEM SHALL have four roles: `student` (shown as *Requester*), `registrar`,
-  `department` (shown as *Department Staff*) and `admin` (shown as *Admin*).
+  `department` (shown as *Department Staff*) and `admin` (shown as *Admin*). *Changed by REQ-25-01
+  (2026-11-17):* a fifth role, `cashier`.
 - **REQ-18-02** THE SYSTEM SHALL give the Admin the sidebar groups **Overview** (Dashboard,
-  Records, Reports) and **Administration** (Credential Types, Departments, Programs, Purposes,
+  Reports, Records; user's order, 2026-11-19) and **Administration** (Credential Types, Departments, Programs, Purposes,
   Accounts, Working Calendar, Logs). Opening `/dashboard` or logging in as the Admin SHALL lead
   to the Dashboard (`/admin`).
 - **REQ-18-03** THE SYSTEM SHALL give the Registrar the sidebar items Initial Evaluation,
   Payment Validation, In Progress, Final Quality Check, Release and Records. Opening
   `/dashboard` or logging in as the Registrar SHALL lead to Initial Evaluation. `/registrar`
-  SHALL redirect there.
+  SHALL redirect there. *Changed by REQ-25-07 (2026-11-17):* Payment Validation lists walk-in
+  requests only.
 - **REQ-18-04** THE Dashboard, Reports and the Administration pages SHALL be at `/admin/…`. IF
   anyone but the Admin opens one, or calls one of its actions, THEN THE SYSTEM SHALL respond 403.
 - **REQ-18-05** THE stage queues and the registrar's working pages (`/registrar/<queue>/{id}`, REQ-16-26)
   SHALL stay the Registrar's. IF the Admin opens one, or calls one of its actions, THEN THE
   SYSTEM SHALL respond 403.
 - **REQ-18-06** THE SYSTEM SHALL serve Records at `/records` and a request's read-only record at
-  `/records/{id}`, to the Registrar and the Admin only. Other roles SHALL get 403.
+  `/records/{id}`, to the Registrar and the Admin only. Other roles SHALL get 403. *Since
+  REQ-35-01 (2026-11-23):* the Admin's record has the Override, which records a stuck request's
+  next step.
 - **REQ-18-07** THE SYSTEM SHALL let the Registrar and the Admin open a request's uploaded valid
   ID, SPA and IDs, and proof of payment. Everyone else keeps the rules of REQ-01-20 and spec 11.
 
 ### Dashboard
-- **REQ-18-08** THE Admin's Dashboard SHALL keep:
-  - the status counts;
-  - the performance indicators for a period and the link to Reports;
-  - where requests are waiting, by office;
-  - the most overdue requests.
-
-  Its links SHALL open Records (filtered by status or office) or a request's record. It SHALL
-  NOT show the Office of the Registrar queue: the Registrar works those papers from In Progress
-  (REQ-17-12).
+- **REQ-18-08** THE Admin's Dashboard SHALL be spec 34's (REQ-34-01..04), and its links SHALL
+  open Records filtered by office, or Reports. It SHALL NOT show the Office of the Registrar
+  queue: the Registrar works those papers from In Progress (REQ-17-12). Records' "Needs the
+  Registrar" filter SHALL include the requests submitted or under evaluation and the **walk-in**
+  payments to validate, but not online payments, which are the Cashier's (REQ-25-04). Its "Waiting
+  for the requester" filter SHALL include those returned for clarification, pending compliance or
+  returned for customer action. *(2026-11-19: the dashboard's status counts moved to these
+  filters, spec 34.)*
 
 ### Accounts
 - **REQ-18-09** THE Admin SHALL create staff accounts as Department Staff, Registrar or Admin. THE
   Admin SHALL change any other account's role to Requester, Department Staff, Registrar or
   Admin, with the rules of REQ-02-15/16. Only Department Staff SHALL need a department.
+  *Changed by REQ-25-09 (2026-11-17):* Cashier too.
 - **REQ-18-10** THE SYSTEM SHALL NOT let anyone change their own role or deactivate their own
   account (REQ-02-15), so at least one Admin always remains.
 
@@ -95,5 +99,6 @@ This replaces:
   account, `registrar@example.com`, with the demo password `@Test123` (REQ-07-09). The demo
   requests are evaluated and released by that Registrar. There is no demo Admin (removed
   2026-11-15): the only Admin is the first admin from `INITIAL_ADMIN_*` (REQ-18-11).
+  *Changed by REQ-25-10 (2026-11-17):* and a Cashier, `cashier@example.com`.
 - **REQ-18-13** THE demo reset (`app:reset-demo`) SHALL refuse to start, changing nothing, unless
   `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` are set.

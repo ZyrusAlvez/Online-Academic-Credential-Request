@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property ?int $from_department_id
  * @property Carbon $forwarded_at
  * @property ?Carbon $received_at
+ * @property ?Carbon $due_at the office deadline (REQ-30-05)
  * @property ?Carbon $done_at the office's task was done (spec 17)
  * @property ?Carbon $completed_at the paper left the office, or the final check closed it
  * @property ?int $returned_to_department_id
@@ -44,6 +45,7 @@ class OfficeVisit extends Model
             'status' => VisitStatus::class,
             'forwarded_at' => 'datetime',
             'received_at' => 'datetime',
+            'due_at' => 'datetime',
             'done_at' => 'datetime',
             'completed_at' => 'datetime',
             'working_days' => 'integer',
@@ -53,17 +55,40 @@ class OfficeVisit extends Model
     /**
      * Where the paper goes when it leaves this office: a corrected document back to the office
      * that returned it (its step), otherwise the route's next waiting step; null after the final
-     * quality check (REQ-17-07). Reads the loaded `step` and `credentialRequest.steps`.
+     * quality check (REQ-17-07). A returned document goes to the office it was returned to
+     * (REQ-32-07). Reads the loaded `step` and `credentialRequest.steps`.
      */
     public function nextStep(): ?RequestStep
     {
         $steps = $this->credentialRequest->steps->sortBy('position');
+
+        if ($this->isPendingReturn()) {
+            return $steps->last(fn (RequestStep $step): bool => $step->position < $this->step->position && $step->department_id === $this->returned_to_department_id);
+        }
 
         if ($this->purpose === VisitPurpose::Correction) {
             return $steps->firstWhere('id', $this->request_step_id);
         }
 
         return $steps->first(fn (RequestStep $step): bool => $step->position > $this->step->position && $step->status === StepStatus::Waiting);
+    }
+
+    /**
+     * The office still has the document to work on and its deadline has passed (REQ-30-07).
+     */
+    public function isOverdue(): bool
+    {
+        return $this->status === VisitStatus::Received && $this->due_at?->isPast() === true;
+    }
+
+    /**
+     * Visits overdue at their office, as isOverdue() (REQ-30-10).
+     *
+     * @param  Builder<OfficeVisit>  $query
+     */
+    public static function whereOverdue(Builder $query): void
+    {
+        $query->where('office_visits.status', VisitStatus::Received)->where('office_visits.due_at', '<', now());
     }
 
     /**
@@ -111,9 +136,36 @@ class OfficeVisit extends Model
     }
 
     /**
-     * The registrar can send the paper on from here: its office's task is done, or it is the
-     * Office of the Registrar's own task (preparation or a correction, not the final quality
-     * check), which forwarding marks done (REQ-17-12). Reads the loaded `department` and `step`.
+     * The office returned the document for correction and still has it, until the Registrar
+     * brings it back (REQ-32-07).
+     */
+    public function isPendingReturn(): bool
+    {
+        return $this->status === VisitStatus::Done && $this->returned_to_department_id !== null;
+    }
+
+    /**
+     * Open visits the Registrar can forward from Outgoing, as isForwardable() (REQ-32-02).
+     *
+     * @param  Builder<OfficeVisit>  $query
+     */
+    public static function whereForwardable(Builder $query): void
+    {
+        $query->where(fn (Builder $q) => $q
+            ->where('office_visits.status', VisitStatus::Done)
+            ->orWhere(fn (Builder $q) => $q
+                ->where('office_visits.status', VisitStatus::Received)
+                ->whereHas('department', fn (Builder $d) => $d->where('code', Department::REGISTRAR_CODE))
+                ->where(fn (Builder $q) => $q
+                    ->where('office_visits.purpose', VisitPurpose::Correction)
+                    ->orWhereHas('step', fn (Builder $s) => $s->where('task', '!=', RouteTask::FinalCheck)))));
+    }
+
+    /**
+     * The registrar can send the paper on from here: its office's task is done (or it returned
+     * the document), or it is the Office of the Registrar's own task (preparation or a
+     * correction, not the final quality check), which forwarding marks done (REQ-17-12, REQ-32-02).
+     * Reads the loaded `department` and `step`.
      */
     public function isForwardable(): bool
     {

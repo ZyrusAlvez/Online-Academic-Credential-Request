@@ -149,15 +149,29 @@ The route (template) of a credential type: its offices in order and each one's t
 
 Rules: at most one Dean step per route; an office appears at most once.
 
-## credential_requests
+## request_applications
 
-One row per request (specs 04, 05, 11). Status changes only through `RequestWorkflow`.
+One row per application: one or more credentials requested together, evaluated and paid as one until acceptance (spec 27).
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
-| reference_no | varchar(20) | Yes | UQ | | Tracking number `crYY-NNNNN` (lowercase): the id with at least 5 digits (set right after insert); older requests keep their number |
-| user_id | bigint unsigned | No | FK → users, IX (with created_at) | | The document owner (requester) |
+| reference_no | varchar(20) | No | UQ | | Tracking number `rcYY-NNNNN` (lowercase): the id with at least 5 digits; applications made before spec 27 keep their request's number |
+| user_id | bigint unsigned | Yes | FK → users, IX (with created_at) | | The requester; null for a walk-in application not linked yet |
+| channel | varchar(20) | No | | online | `online` or `walk_in` |
+| submitted_at | timestamp | Yes | | | |
+
+## credential_requests
+
+One row per credential of an application (specs 04, 05, 11, 27). Status changes only through `RequestWorkflow`.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| application_id | bigint unsigned | No | FK → request_applications, UQ (with item_no) | | The application (spec 27) |
+| item_no | smallint unsigned | No | | 1 | Position in the application; 1 carries it until acceptance |
+| reference_no | varchar(20) | Yes | UQ | | The application's number and the position, `rcYY-NNNNN-N` (REQ-27-01); requests made earlier keep their number |
+| user_id | bigint unsigned | Yes | FK → users, IX (with created_at) | | The document owner (requester); null for a walk-in request not linked to an account yet (spec 26) |
 | credential_type_id | bigint unsigned | No | FK → credential_types | | |
 | purpose | varchar(500) | No | | | A copy of the chosen purpose's name (spec 13); older requests keep their free text |
 | receiving_institution | varchar(255) | Yes | | | Receiving school (required for transfer credentials) |
@@ -168,12 +182,15 @@ One row per request (specs 04, 05, 11). Status changes only through `RequestWork
 | attended_from, attended_to | smallint unsigned | No | | | Snapshot: years attended |
 | requester_name | varchar(150) | No | | | Snapshot: "First Middle Last" with the full middle name, to compare with the ID (spec 15) |
 | contact_number | varchar(20) | Yes | | | Snapshot of the requester's contact number |
+| requester_email | varchar(255) | Yes | IX (with user_id) | | A walk-in client's email, used to link the request to their account (REQ-26-07) |
 | identity_document_id | bigint unsigned | Yes | FK → identity_documents | | The ID sent with this request (`RESTRICT`); a replacement after a rejection points here |
 | identity_status | varchar(20) | No | IX | pending | The request's identity check: `pending`, `verified`, `rejected` (see [ReviewStatus](#reviewstatus)) |
 | identity_reviewed_by | bigint unsigned | Yes | FK → users | | Registrar who verified or rejected the ID |
 | identity_reviewed_at | timestamp | Yes | | | |
 | identity_remarks | varchar(500) | Yes | | | Reason for a rejection, shown to the requester |
 | requester_mode | varchar(20) | No | | personal | `personal` or `representative` (see [RequesterMode](#requestermode)) |
+| channel | varchar(20) | No | IX (with status) | online | `online` (made by the requester) or `walk_in` (recorded by the Registrar); the Cashier validates online payments, the Registrar walk-in ones (spec 25) |
+| recorded_by | bigint unsigned | Yes | FK → users | | The registrar who recorded a walk-in request (REQ-26-04) |
 | requires_payment | tinyint(1) | No | | 0 | Snapshot of the credential type |
 | fee | decimal(10,2) | Yes | | | Snapshot of the credential's fee |
 | amount_due | decimal(10,2) | Yes | | | The fee (one document per request) |
@@ -305,12 +322,12 @@ Proofs of payment uploaded by the requester (private files on the receipts disk)
 | id | bigint unsigned | No | PK | | |
 | credential_request_id | bigint unsigned | No | FK → credential_requests | | |
 | uploaded_by | bigint unsigned | No | FK → users | | |
-| path, original_name, mime_type, size | | No | | | File on the private disk |
+| path, original_name, mime_type, size | | Yes | | | File on the private disk; none for a walk-in payment, validated at the counter (spec 26) |
 | reference_no | varchar(100) | Yes | | | Payment reference given by the requester |
 | amount | decimal(10,2) | Yes | | | Amount paid, as given |
 | paid_on | date | Yes | | | Date paid, as given |
 | status | varchar(20) | No | IX | | See [PaymentStatus](#paymentstatus) |
-| official_receipt_no | varchar(50) | Yes | | | Recorded on verification until 2026-11-16; no longer written (REQ-16-17) |
+| official_receipt_no | varchar(50) | Yes | | | A walk-in payment's official receipt number (REQ-26-05); for online proofs, recorded on verification until 2026-11-16 only (REQ-16-17) |
 | reviewed_by, reviewed_at, remarks | | Yes | | | |
 | created_at, updated_at | timestamp | Yes | | | |
 
@@ -364,20 +381,24 @@ The release acknowledgment, one per released request (spec 11).
 
 ## request_events
 
-The append-only ledger: every action on a request. Rows are never updated or deleted.
+The append-only ledger: every action on a request. Rows are never updated or deleted. An entry
+written by an Admin override (spec 35) has `override_reason` and `recorded_at`, and its
+`created_at` is when the step happened.
 
 | Column | Type | Null | Key | Default | Description |
 |---|---|---|---|---|---|
 | id | bigint unsigned | No | PK | | |
 | credential_request_id | bigint unsigned | No | FK → credential_requests, IX (with id) | | |
-| actor_id | bigint unsigned | Yes | FK → users | | Who did it |
+| actor_id | bigint unsigned | Yes | FK → users | | Who did it (the Admin, for an override) |
 | type | varchar(40) | No | IX (with created_at) | | See [RequestEventType](#requesteventtype) |
 | from_status, to_status | varchar(30) | Yes | | | Set when the request status changed |
 | request_step_id | bigint unsigned | Yes | FK → request_steps | | |
 | office_visit_id | bigint unsigned | Yes | FK → office_visits | | |
 | department_id | bigint unsigned | Yes | FK → departments | | Office involved |
 | remarks | text | Yes | | | |
-| created_at | timestamp | No | | CURRENT_TIMESTAMP | |
+| override_reason | varchar(500) | Yes | | | Why the Admin recorded the step for someone else (REQ-35-10); null on every other entry |
+| recorded_at | timestamp | Yes | | | When an override's entry was really recorded; null on every other entry |
+| created_at | timestamp | No | | CURRENT_TIMESTAMP | When it happened: the time recorded, or an override's time (REQ-35-09) |
 
 ## activity_logs
 
@@ -569,8 +590,9 @@ from before spec 16 only, `deficiency_resolved`, `customer_action_requested`, `c
 `payment_verified`, `accepted`. Routing: `document_forwarded`, `receipt_accepted`,
 `step_completed`, `document_returned`, `document_resubmitted`, `delay_recorded`, `step_bypassed`
 (before spec 16 only), `ready_for_release`. Representatives and release: `representative_declared`,
-`representative_verified`, `representative_rejected`, `released`. And `cancelled`. Internal
-entries hidden from requesters: forwarding, returns, resubmissions, delay notes, bypasses.
+`representative_verified`, `representative_rejected`, `released`. And `cancelled`. Admin override:
+`evaluation_unlocked` (REQ-35-05). Internal entries hidden from requesters: forwarding, returns,
+resubmissions, delay notes, bypasses, unlocks.
 
 ### CheckItem
 

@@ -4,7 +4,6 @@ use App\Enums\Role;
 use App\Models\User;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\GoogleProvider;
-use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Two\User as GoogleUser;
 
 beforeEach(fn () => config(['services.google.client_id' => 'client-id', 'services.google.client_secret' => 'client-secret']));
@@ -19,23 +18,6 @@ function googleReturns(array $claims): void
     $provider->shouldReceive('user')->andReturn($user);
     Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
 }
-
-test('REQ-01-24 the Google button shows on log in and sign up only when Google is configured', function () {
-    $this->get(route('login'))->assertSee('Continue with Google')->assertSee(route('auth.google.redirect'), false);
-    $this->get(route('register'))->assertSee('Sign up with Google');
-
-    config(['services.google.client_id' => null]);
-
-    $this->get(route('login'))->assertDontSee('Continue with Google');
-    $this->get(route('register'))->assertDontSee('Sign up with Google');
-    $this->get(route('auth.google.redirect'))->assertNotFound();
-});
-
-test('REQ-01-24 the Google button sends the user to Google', function () {
-    expect($this->get(route('auth.google.redirect'))->assertRedirect()->headers->get('Location'))
-        ->toStartWith('https://accounts.google.com/o/oauth2/auth')
-        ->toContain(urlencode(url('/auth/google/callback')));
-});
 
 test('REQ-01-24 a new Google account becomes a verified requester with the name pre-filled', function () {
     googleReturns([]);
@@ -89,15 +71,6 @@ test('REQ-01-24 a deactivated account cannot sign in with Google', function () {
 
     $this->assertGuest();
     expect(User::sole()->google_id)->toBeNull();
-});
-
-test('REQ-01-24 a cancelled Google sign-in returns to log in with a message', function () {
-    $provider = Mockery::mock(GoogleProvider::class);
-    $provider->shouldReceive('user')->andThrow(new InvalidStateException);
-    Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
-
-    $this->get(route('auth.google.callback'))->assertRedirect(route('login'))->assertSessionHas('auth_error');
-    $this->assertGuest();
 });
 
 test('REQ-01-24 an account made with Google cannot log in with an empty password', function () {

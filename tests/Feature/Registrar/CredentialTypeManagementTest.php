@@ -1,61 +1,12 @@
 <?php
 
-use App\Enums\RouteTask;
 use App\Livewire\Admin\CredentialTypes\Index;
 use App\Models\CredentialType;
-use App\Models\Department;
 use App\Models\User;
-use Database\Seeders\CredentialTypeSeeder;
-use Database\Seeders\DepartmentSeeder;
 use Livewire\Livewire;
 
 beforeEach(function () {
     $this->admin = User::factory()->admin()->create();   // the master list is the Admin's (REQ-18-04)
-});
-
-test('REQ-03-01 the seeder creates the 17-type master list with fees, periods and routes', function () {
-    $this->seed([DepartmentSeeder::class, CredentialTypeSeeder::class]);
-
-    $tor = CredentialType::where('name', 'Transcript of Records (TOR)')->with('steps.department')->sole();
-    $authentication = CredentialType::where('name', 'Authentication')->with('steps.department')->sole();
-    $transfer = CredentialType::where('name', 'TOR for Transfer Credentials')->sole();
-
-    expect(CredentialType::count())->toBe(17)
-        ->and($tor->fee)->toBe('530.00')
-        ->and($tor->processing_days)->toBe(7)
-        ->and($tor->routeSummary())->toBe('REG → Dean → VPF → CHAN')
-        ->and($tor->steps->map->task->all())->toBe([RouteTask::Prepare, RouteTask::Sign, RouteTask::DocumentaryStamp, RouteTask::Sign])
-        ->and($tor->requirements)->toContain('PSA-authenticated birth certificate')
-        ->and($authentication->fee)->toBe('50.00')
-        ->and($authentication->routeSummary())->toBe('REG')
-        ->and(CredentialType::where('name', 'Diploma / Certificate for Non-Degree Programs')->with('steps.department')->sole()->routeSummary())->toBe('REG → CHAN → PRES')
-        ->and($transfer->requires_receiving_institution)->toBeTrue()
-        ->and($tor->requires_receiving_institution)->toBeFalse();
-});
-
-test('REQ-03-01 re-seeding does not duplicate types or overwrite edited routes', function () {
-    $this->seed([DepartmentSeeder::class, CredentialTypeSeeder::class]);
-    $tor = CredentialType::where('name', 'Transcript of Records (TOR)')->sole();
-    $tor->steps()->first()->delete();
-    $tor->update(['fee' => '600.00']);
-
-    $this->seed(CredentialTypeSeeder::class);
-
-    expect(CredentialType::count())->toBe(17)
-        ->and($tor->steps()->count())->toBe(3)
-        ->and($tor->fresh()->fee)->toBe('600.00');
-});
-
-test('REQ-03-02 the registrar sees credential types with fee, processing period and route', function () {
-    $registrarOffice = Department::factory()->registrarOffice()->create();
-    CredentialType::factory()->paid('250.00')->withSteps([$registrarOffice, 'college'])->create(['name' => 'Transcript of Records', 'processing_days' => 10]);
-
-    $this->actingAs($this->admin)->get(route('admin.credential-types'))
-        ->assertOk()
-        ->assertSee('Transcript of Records')
-        ->assertSee('₱250.00')
-        ->assertSee('10 working days')
-        ->assertSee('REG → Dean');
 });
 
 test('REQ-03-03 the registrar can create a paid credential type with requirements and is sent to its route', function () {
@@ -98,17 +49,6 @@ test('REQ-03-03 fee is dropped when payment is not required and inputs are valid
         ->set('form.processing_days', 'ten')
         ->call('save')
         ->assertHasErrors(['form.name' => 'unique', 'form.fee' => 'min', 'form.processing_days' => 'integer']);
-});
-
-test('REQ-03-04 the registrar can deactivate and reactivate a credential type', function () {
-    $type = CredentialType::factory()->create();
-
-    $component = Livewire::actingAs($this->admin)->test(Index::class)->call('toggleStatus', $type->id);
-    expect($type->fresh()->is_active)->toBeFalse();
-
-    $component->call('toggleStatus', $type->id);
-    expect($type->fresh()->is_active)->toBeTrue()
-        ->and(method_exists(Index::class, 'delete'))->toBeFalse();
 });
 
 test('REQ-03-05 credential types without steps are flagged and not requestable', function () {

@@ -37,10 +37,14 @@ released, working days spent, status (registrar and office pages).
   - requester — every non-internal event except their own actions (the `submitted` confirmation is
     always sent) (REQ-06-05, 06);
   - offices — `document_forwarded` (a hand-off, or a return for correction, which forwards with
-    `VisitPurpose::Correction`) to the destination office's staff (registrars for the Office of
-    the Registrar) (REQ-06-07);
-  - registrars — `submitted`, `resubmitted`, `payment_submitted`, `identity_resubmitted`,
-    `customer_responded`, `representative_declared`, when done by the requester (REQ-06-08).
+    `VisitPurpose::Correction`) to the destination office's staff (for the Office of the
+    Registrar, its department staff and the request's registrar) (REQ-06-07);
+  - registrars — `submitted` to every active registrar; `resubmitted`, `identity_resubmitted`,
+    `customer_responded`, `representative_declared` to the request's registrar; `payment_submitted`
+    to the cashiers; only when done by the requester (REQ-06-08).
+- The request's registrar (REQ-06-21): `App\Support\RequestRegistrars::for($request)` — the
+  evaluator (`evaluated_by`) if that account is active, else every active registrar. Used for the
+  events above, "ready to collect" (REQ-32-11) and the registrar reminders (REQ-06-20).
 - `App\Notifications\RequestActivity` (`ShouldQueue`) — `database` always; `mail` when the
   notification is [ACTION REQUIRED] or the account wants email (REQ-06-16). Each recipient gets
   its own `notifications` row, so read status is per account (REQ-06-19). Payload: `request_id`,
@@ -62,11 +66,12 @@ released, working days spent, status (registrar and office pages).
 
 | Event | Requester | Registrars | Office staff |
 |---|---|---|---|
-| Submitted, resubmitted, proof of payment, another valid ID, reply, representative declared | only the `submitted` confirmation | in-app + email | — |
+| Submitted | the confirmation | every registrar | — |
+| Resubmitted, another valid ID, reply, representative declared | — | the evaluator | — |
 | Returned for clarification, office visit, ID or payment or representative not accepted, payment instructions, ready for release | [ACTION REQUIRED], always emailed | — | — |
 | Any other visible update | in-app + email | — | — |
 | Forwarded or returned to an office | — | Office of the Registrar | in-app + email |
-| Due within a working day / overdue | overdue, once | every request, once per kind | holding office, once per visit |
+| Due within a working day / overdue | overdue, once | the evaluator, once per kind | holding office, once per visit |
 
 ## Email preference (REQ-06-16)
 
@@ -95,9 +100,9 @@ released, working days spent, status (registrar and office pages).
 
 - Due soon: requests being processed whose `effective_due_at` is not past and falls on or before
   the end of the next working day → `DueReminder` to the holding office's department staff
-  (`office_due_soon`) and to every registrar (`registrar_due_soon`, REQ-06-20).
+  (`office_due_soon`) and to the request's registrar (`registrar_due_soon`, REQ-06-20, 21).
 - Overdue: requests being processed past `effective_due_at` → `DueReminder` to the holding office's
-  department staff (`office_overdue`), every registrar (`registrar_overdue`) and the requester
+  department staff (`office_overdue`), the request's registrar (`registrar_overdue`) and the requester
   (`requester_overdue`).
 - Holding office = the open visit's office. Registrars are left out of the office reminder, so the
   Office of the Registrar's own papers are not reminded twice.

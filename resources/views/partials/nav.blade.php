@@ -20,17 +20,24 @@
         {{-- Initial Evaluation to Release, and Records (REQ-18-03); a queue is current on its list
              and on the working pages under it (REQ-16-26). --}}
         <flux:navlist.group :heading="__('Registrar')" class="grid">
+            {{-- First: a walk-in client's request (REQ-26-01). --}}
+            <flux:navlist.item icon="building-library" :href="route('registrar.walk-in')" :current="request()->routeIs('registrar.walk-in')" wire:navigate>{{ __('Walk-in Request') }}</flux:navlist.item>
             @foreach (\App\Enums\RegistrarQueue::cases() as $queue)
                 <flux:navlist.item :icon="$queue->icon()" :href="route($queue->routeName())" :current="request()->routeIs($queue->routeName(), $queue->showRouteName())" wire:navigate>{{ __($queue->label()) }}</flux:navlist.item>
             @endforeach
             <flux:navlist.item icon="archive-box" :href="route('records')" :current="request()->routeIs('records*')" wire:navigate>{{ __('Records') }}</flux:navlist.item>
         </flux:navlist.group>
+    @elseif ($role === \App\Enums\Role::Cashier)
+        {{-- Online payments to validate (REQ-25-02). --}}
+        <flux:navlist.group :heading="__('Cashier')" class="grid">
+            <flux:navlist.item icon="credit-card" :href="route('cashier.payments')" :current="request()->routeIs('cashier.payments*')" wire:navigate>{{ __('Payment Validation') }}</flux:navlist.item>
+        </flux:navlist.group>
     @elseif ($role === \App\Enums\Role::Admin)
-        {{-- The dashboard, Records and Reports, and the Administration pages (REQ-18-02). --}}
+        {{-- The dashboard, Reports and Records, and the Administration pages (REQ-18-02). --}}
         <flux:navlist.group :heading="__('Overview')" class="grid">
             <flux:navlist.item icon="home" :href="route('admin.dashboard')" :current="request()->routeIs('admin.dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
-            <flux:navlist.item icon="archive-box" :href="route('records')" :current="request()->routeIs('records*')" wire:navigate>{{ __('Records') }}</flux:navlist.item>
             <flux:navlist.item icon="chart-bar" :href="route('admin.reports')" :current="request()->routeIs('admin.reports*')" wire:navigate>{{ __('Reports') }}</flux:navlist.item>
+            <flux:navlist.item icon="archive-box" :href="route('records')" :current="request()->routeIs('records*')" wire:navigate>{{ __('Records') }}</flux:navlist.item>
         </flux:navlist.group>
         <flux:navlist.group :heading="__('Administration')" class="grid">
             <flux:navlist.item icon="document-duplicate" :href="route('admin.credential-types')" :current="request()->routeIs('admin.credential-types*')" wire:navigate>{{ __('Credential Types') }}</flux:navlist.item>

@@ -4,7 +4,7 @@
     use App\Enums\VisitStatus;
 
     $bulk = $queue->hasCheckboxes();
-    $toForward = $queue === Q::ToForward;
+    $outgoing = $queue === Q::Outgoing;
     $history = $queue === Q::History;
     $allTicked = $pageIds !== [] && array_diff($pageIds, array_map('strval', $selected)) === [];
 @endphp
@@ -35,12 +35,6 @@
                 data-confirm-title="{{ __('Acknowledge receipt') }}" data-confirm-label="{{ __('Acknowledge') }}" :wire:confirm="trans_choice('Acknowledge receipt of :count document?|Acknowledge receipt of :count documents?', count($selected))">
                 {{ $selected === [] ? __('Acknowledge receipt') : __('Acknowledge receipt (:count)', ['count' => count($selected)]) }}
             </flux:button>
-        @elseif ($toForward)
-            {{-- Each goes to its own next office (REQ-24-10). --}}
-            <flux:button variant="primary" icon="paper-airplane" wire:click="forward" :disabled="$selected === []" data-forward-selected
-                data-confirm-title="{{ __('Forward documents') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="trans_choice('Forward :count document to its next office?|Forward :count documents to their next offices?', count($selected))">
-                {{ $selected === [] ? __('Forward') : __('Forward (:count)', ['count' => count($selected)]) }}
-            </flux:button>
         @endif
     </div>
 
@@ -56,7 +50,7 @@
             <flux:table.column sortable :sorted="$sortColumn === 'requester'" :direction="$sortDirection" wire:click="sortBy('requester')" class="cursor-pointer max-md:hidden">{{ __('Requester') }}</flux:table.column>
             @if ($history)
                 <flux:table.column>{{ __('Action') }}</flux:table.column>
-            @elseif ($toForward)
+            @elseif ($outgoing)
                 <flux:table.column>{{ __('Next') }}</flux:table.column>
             @endif
             <flux:table.column sortable :sorted="$sortColumn === 'since'" :direction="$sortDirection" wire:click="sortBy('since')" class="cursor-pointer">{{ $history ? __('Date') : __('Since') }}</flux:table.column>
@@ -78,7 +72,10 @@
                         @if ($visit->purpose !== VisitPurpose::Route)
                             <flux:badge size="sm" color="orange" class="mt-1">{{ $visit->purpose === VisitPurpose::Correction ? __('For correction') : __('Corrected, sent back') }}</flux:badge>
                         @endif
-                        @if (! $history && $request->isOverdue())
+                        @if (! $history && $visit->status === VisitStatus::Received && $visit->due_at)
+                            <div class="text-xs text-zinc-600" data-office-deadline>{{ __('Due :date', ['date' => $visit->due_at->format('D, M j')]) }}</div>
+                        @endif
+                        @if (! $history && ($visit->isOverdue() || $request->isOverdue()))
                             <flux:badge size="sm" color="red" class="mt-1">{{ __('Overdue') }}</flux:badge>
                         @endif
                     </flux:table.cell>
@@ -100,22 +97,19 @@
                             @endif
                         </flux:table.cell>
                     @else
-                        @if ($toForward)
-                            {{-- The button names the next office, as on the registrar's In Progress (REQ-24-10). --}}
+                        @if ($outgoing)
+                            {{-- The Registrar collects it and brings it there (REQ-32-05). --}}
                             @php($next = $visit->nextStep()?->department)
-                            <flux:table.cell class="whitespace-normal" data-next-office>
-                                @if ($next)
-                                    <flux:button size="sm" variant="primary" icon="paper-airplane" wire:click="forwardOne({{ $visit->id }})" data-forward-row
-                                        data-confirm-title="{{ __('Forward document') }}" data-confirm-label="{{ __('Forward') }}" :wire:confirm="__('Forward :ref to :office now?', ['ref' => $request->reference_no, 'office' => $next->name])">
-                                        {{ __('Forward to :office', ['office' => $next->name]) }}
-                                    </flux:button>
-                                @else
-                                    —
-                                @endif
+                            <flux:table.cell class="whitespace-normal text-ink" data-next-office>
+                                {{ match (true) {
+                                    $next === null => '—',
+                                    $visit->isPendingReturn() => __('Return to :office', ['office' => $next->name]),
+                                    default => $next->name,
+                                } }}
                             </flux:table.cell>
                         @endif
                         <flux:table.cell class="text-zinc-700">
-                            @php($since = match ($queue) { Q::Incoming => $visit->forwarded_at, Q::ToForward => $visit->done_at, default => $visit->received_at })
+                            @php($since = match ($queue) { Q::Incoming => $visit->forwarded_at, Q::Outgoing => $visit->done_at, default => $visit->received_at })
                             <time datetime="{{ $since->toIso8601String() }}" title="{{ $since->format('M j, Y g:i A') }}">{{ $since->diffForHumans(short: true) }}</time>
                         </flux:table.cell>
                     @endif

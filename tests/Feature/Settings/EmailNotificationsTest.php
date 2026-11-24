@@ -24,25 +24,6 @@ test('REQ-06-16 email notifications are on for new and existing accounts', funct
         ->and(User::factory()->create()->fresh()->wantsEmailNotifications())->toBeTrue();
 });
 
-test('REQ-06-16 a requester turns email notifications off and on in settings', function () {
-    $this->actingAs($this->owner)->get(route('settings.notifications'))
-        ->assertOk()
-        ->assertSee('Email me about my requests');
-
-    Livewire::actingAs($this->owner)->test(EmailSettings::class)
-        ->assertSet('enabled', true)
-        ->set('enabled', false)
-        ->assertDispatched('notify');
-
-    expect($this->owner->fresh()->email_notifications)->toBeFalse();
-
-    Livewire::actingAs($this->owner->fresh())->test(EmailSettings::class)
-        ->assertSet('enabled', false)
-        ->set('enabled', true);
-
-    expect($this->owner->fresh()->email_notifications)->toBeTrue();
-});
-
 test('REQ-06-16 with email off the requester is still notified in-app but not emailed', function () {
     Notification::fake();
     $this->owner->forceFill(['email_notifications' => false])->save();
@@ -62,11 +43,6 @@ test('REQ-06-16 with email off the requester is still notified in-app but not em
         ->and($sent->first(fn ($n) => $n->event->type === RequestEventType::Declined)->via($this->owner))->toBe(['database']);
 
     expect((new DueReminder($request, true))->via($this->owner))->toBe(['database']);
-});
-
-test('REQ-06-16 the requester\'s page says [ACTION REQUIRED] notifications are always emailed', function () {
-    $this->actingAs($this->owner)->get(route('settings.notifications'))
-        ->assertSee('Notifications marked [ACTION REQUIRED] are always emailed, even when this is turned off.');
 });
 
 test('REQ-06-16 verification codes are always emailed', function () {

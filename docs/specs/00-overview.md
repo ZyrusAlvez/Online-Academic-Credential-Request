@@ -62,9 +62,9 @@ at acceptance.
 | Role | Who | Can |
 |---|---|---|
 | `student` (shown as *Requester*) | Current students, graduates and former students (self-registered) | Register and upload an ID, request credentials, declare a representative, upload proof of payment, track requests, cancel before acceptance |
-| `registrar` | Office of the Registrar staff | Work the requests, one queue per stage from Initial Evaluation to Release: evaluate requests (identity, academic record, representative), validate payments and accept, act on the Registrar's preparation step and forward its papers, do the final quality check, release. Look any request up in Records. One role for all Registrar staff; every action records the staff member. |
-| `department` (shown as *Department Staff*) | Staff of a signing office: a college (the Dean), VP Finance, Chancellor, President | Accept receipt of documents sent to their office, approve and release them to the next office, return them for correction, record delay reasons |
-| `admin` (shown as *Admin*) | The system's authorized administrators (BRD module 12, sections IX–X) | Manage credential types (fees, routes, processing periods), offices, programs, purposes, accounts and roles, and the working calendar; read the activity logs; view the performance dashboard and reports; look any request up in Records. Does not act on requests (spec 18). |
+| `registrar` | Office of the Registrar staff | Work the requests, one queue per stage from Initial Evaluation to Release: evaluate requests (identity, academic record, representative), validate payments and accept, act on the Registrar's preparation step, carry every office's finished papers to the next office (forward, spec 32), do the final quality check, release. Look any request up in Records. One role for all Registrar staff; every action records the staff member. |
+| `department` (shown as *Department Staff*) | Staff of a signing office: a college (the Dean), VP Finance, Chancellor, President | Accept receipt of documents sent to their office, approve them or return them for correction; the Registrar then collects and forwards them (spec 32) |
+| `admin` (shown as *Admin*) | The system's authorized administrators (BRD module 12, sections IX–X) | Manage credential types (fees, routes, processing periods), offices, programs, purposes, accounts and roles, and the working calendar; read the activity logs; view the performance dashboard and reports; look any request up in Records. Acts on a request only through an override: records a stuck request's next step for whoever couldn't, with the reason and when it happened (spec 35). |
 
 ## Glossary
 
@@ -80,15 +80,15 @@ at acceptance.
 | Representative | A person acting for the document owner, backed by an SPA and the IDs of both |
 | Accepted date | When the Registrar formally accepted the request; the processing period starts here |
 | Due date | Accepted date plus the processing period in working days. Never changed; approved pauses produce a separate *adjusted* due date. |
+| Office deadline | Receipt date at an office plus that route step's allotted working days; the processing period is split among the route's offices (spec 30, an addition beyond the BRD). Internal only; the due date stays the promise to the requester. |
 | Working day | Monday to Saturday, except days in the working calendar (holidays, closures) |
 | Ledger / request event | An append-only record of every action on a request |
-| Tracking number | Human-friendly request ID shown to requesters, e.g. `cr26-00042` |
+| Tracking number | Human-friendly request ID shown to requesters, e.g. `rc26-00042` |
 
 ## Offices and credential master list
 
-Offices: the 11 colleges (each acting as the **Dean**: Arts and Sciences; Aviation; Basic
-Education Department; Business Administration and Accountancy; Computer Studies; Criminal Justice
-Education; Teacher Education; Engineering and Architecture; Graduate School; Nutrition,
+Offices: the 11 colleges (each acting as the **Dean**: Arts and Sciences; Aviation; Senior High
+School; Business and Accountancy; Computer Studies; Criminology; Teacher Education; Engineering and Architecture; Graduate School; Nutrition,
 Hospitality and Tourism Management; Maritime Education), the **Office of
 the Registrar**, the **VP Finance** (documentary stamp, no signature), the **Chancellor** and the
 **President**. Library, Cashier and Student Affairs clearance is checked by the evaluator as a
@@ -101,7 +101,8 @@ Registrar's final quality check.
 |---|---|---|---|
 | Authentication | ₱50 | University Registrar | 1 working day |
 | Certification, Authentication, Verification (CAV) | ₱500 | University Registrar | 2 working days |
-| Certification – general; of Graduation; of Enrollment; of Units Earned; Course Description; Medium of Instruction; Copy of Grades; Notice of Acceptance; Letter for the BI Commissioner; Permit to Cross-Enroll; Transfer Certificate; Copy of Grades for Transfer Credentials | ₱230 each | University Registrar, VP Finance (documentary stamp), Chancellor | 6 working days |
+| Certification of Graduation; of Enrollment; of Units Earned; Course Description; Medium of Instruction; Certificate of Grades (free for graduates); Notice of Acceptance; Letter for the BI Commissioner; Permit to Cross-Enroll; Certificate of Transfer; Copy of Grades for Transfer Credentials | ₱230 each | University Registrar, VP Finance (documentary stamp), Chancellor | 6 working days |
+| Semestral Report of Grades (terms and academic year chosen on the request) | ₱100 per term | University Registrar, VP Finance (documentary stamp), Chancellor | 6 working days |
 | Diploma / Certificate for Non-Degree Programs | ₱800 | University Registrar, Chancellor, President | 6 working days |
 | Transcript of Records (TOR); TOR for Transfer Credentials | ₱530 | University Registrar, Dean, VP Finance (documentary stamp), Chancellor | 7 working days |
 
@@ -180,9 +181,12 @@ Every office has the same buttons:
 - **Accept receipt.** Confirms the document physically arrived; records the office, employee
   and time. Forwarding a document never counts as its receipt.
 - **Approve / release to next office.** Records completion of the office's task (prepared,
-  signed, stamped, checked) and forwards the document to the next office on the route.
-- **Return for correction.** Sends the document back to an earlier office with the reason and the
-  corrective action needed; once corrected, it is forwarded back and received again.
+  signed, stamped, checked). The document stays in the office's Outgoing list until the Registrar
+  collects it and forwards it to the next office on the route (spec 32, user's decision
+  2026-11-18).
+- **Return for correction.** Records the reason and the corrective action needed for an earlier
+  office; the Registrar carries the document back there. Once corrected, it is forwarded back the
+  same way and received again.
 - **Record delay reason.** A category and explanation, for the delay analysis.
 - **View transaction history.** Every receipt, release, return, resubmission and approval.
 
@@ -195,6 +199,10 @@ Every office has the same buttons:
   the Records page no longer shows it, REQ-09-23).
 - Time spent at an office = working days from receipt to completion (receipt day excluded,
   completion day included; the same day counts as 0).
+- Office deadline (spec 30, user's decision 2026-11-18, not in the BRD): each office gets a share of
+  the processing period, counted from its receipt of the document. The split is automatic (period
+  ÷ offices, leftover days to the first offices in route order, e.g. TOR 2-2-2-1) and the Admin can
+  adjust it. It never changes the request's due date.
 
 ## Cross-cutting rules
 

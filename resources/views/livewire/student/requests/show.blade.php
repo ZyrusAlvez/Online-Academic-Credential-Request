@@ -1,35 +1,42 @@
+{{-- An application: its part (what is needed, payment, representative) from its first credential,
+     and a tab per credential when it has several (REQ-27-07). $current is the tab shown. --}}
+@php($several = $credentials->count() > 1)
+@php($trackingNo = $several ? $request->application->reference_no : $request->reference_no)
 <div class="mx-auto max-w-4xl space-y-6">
     <flux:breadcrumbs>
         <flux:breadcrumbs.item :href="route('student.dashboard')" wire:navigate>{{ __('Request Tracker') }}</flux:breadcrumbs.item>
-        <flux:breadcrumbs.item>{{ $request->reference_no }}</flux:breadcrumbs.item>
+        <flux:breadcrumbs.item>{{ $trackingNo }}</flux:breadcrumbs.item>
     </flux:breadcrumbs>
 
-    <x-page-header :title="$request->credentialType->name">
+    <x-page-header :title="$several ? __('Credential Request') : $request->credentialType->name">
         <x-slot:description>
             <span class="inline-flex items-center gap-1">
-                {{ __('Tracking no. :ref', ['ref' => $request->reference_no]) }}
-                <x-copy-button :value="$request->reference_no" :label="__('Copy tracking number')" :copied="__('Tracking number copied.')" />
+                {{ __('Tracking no. :ref', ['ref' => $trackingNo]) }}
+                <x-copy-button :value="$trackingNo" :label="__('Copy tracking number')" :copied="__('Tracking number copied.')" />
             </span>
         </x-slot:description>
         <x-slot:actions>
             @can('cancel', $request)
                 <flux:modal.trigger name="cancel-request">
-                    <flux:button variant="ghost" icon="x-circle">{{ __('Cancel request') }}</flux:button>
+                    {{-- Outlined in red so it is easy to find, but not a filled danger button (user's request, 2026-11-19). --}}
+                    <flux:button icon="x-circle" class="border-red-300! text-red-700! hover:bg-red-50!" data-cancel-request-button>{{ __('Cancel request') }}</flux:button>
                 </flux:modal.trigger>
             @endcan
         </x-slot:actions>
     </x-page-header>
 
+    <x-credential-tabs :requests="$credentials" :current="$current" />
+
     <section aria-labelledby="whereabouts-heading" class="rounded-xl bg-primary p-5 text-white sm:p-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="whereabouts-heading" class="text-sm font-medium tracking-wide text-secondary uppercase">{{ __('Where Is My Request?') }}</h2>
-            <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary">{{ $request->status->customerLabel() }}</span>
+            <h2 id="whereabouts-heading" class="text-sm font-medium tracking-wide text-secondary uppercase">{{ $several ? $current->credentialType->name : __('Where Is My Request?') }}</h2>
+            <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary">{{ $current->status->customerLabel() }}</span>
         </div>
-        <p class="mt-2 text-2xl font-bold">{{ $request->whereabouts() }}</p>
-        @if ($request->status === \App\Enums\RequestStatus::Declined)
-            <p class="mt-2 rounded-md bg-white/10 p-3 text-sm"><span class="font-semibold">{{ __('Reason:') }}</span> {{ $request->decline_reason }}</p>
-        @elseif ($request->status === \App\Enums\RequestStatus::Cancelled && $request->cancel_reason)
-            <p class="mt-2 text-sm text-secondary">{{ $request->cancel_reason }}</p>
+        <p class="mt-2 text-2xl font-bold">{{ $current->whereabouts() }}</p>
+        @if ($current->status === \App\Enums\RequestStatus::Declined)
+            <p class="mt-2 rounded-md bg-white/10 p-3 text-sm"><span class="font-semibold">{{ __('Reason:') }}</span> {{ $current->decline_reason }}</p>
+        @elseif ($current->status === \App\Enums\RequestStatus::Cancelled && $current->cancel_reason)
+            <p class="mt-2 text-sm text-secondary">{{ $current->cancel_reason }}</p>
         @endif
     </section>
 
@@ -102,6 +109,11 @@
                 @endif
             </div>
 
+            {{-- One payment for every credential of the application (REQ-27-09). --}}
+            @if ($several)
+                <x-application-credentials :requests="$credentials" :total="$request->amount_due" />
+            @endif
+
             @if ($request->status === \App\Enums\RequestStatus::AwaitingPayment)
                 @if ($rejectedProof)
                     {{-- Earlier proofs open from here, not listed on the page (REQ-04-21). --}}
@@ -132,8 +144,7 @@
                             <p class="text-sm">{{ __('Upload your proof of payment (JPG, PNG, WebP or PDF, up to 5 MB).') }}</p>
                             {{-- The valid ID's picker: the chosen file's name opens the viewer (REQ-04-12). --}}
                             <x-file-picker model="receipt" :label="__('Proof of payment')" data-receipt-picker />
-                            <div class="grid gap-4 md:grid-cols-3">
-                                <flux:input wire:model="paymentReference" :label="__('Payment reference no.')" required />
+                            <div class="grid gap-4 md:grid-cols-2">
                                 <flux:input wire:model="amountPaid" type="number" step="0.01" min="0" inputmode="decimal" :label="__('Amount paid (₱)')" required />
                                 <flux:input wire:model="paidOn" type="date" :max="now()->format('Y-m-d')" :label="__('Date paid')" required />
                             </div>
@@ -168,7 +179,7 @@
         @endif
     @endif
 
-    @if ($request->status === \App\Enums\RequestStatus::ReadyForRelease)
+    @if ($current->status === \App\Enums\RequestStatus::ReadyForRelease)
         <section aria-labelledby="claim-heading" class="space-y-3 rounded-xl border border-green-700 bg-green-50 p-5 sm:p-6">
             <h2 id="claim-heading" class="text-lg font-semibold text-green-900">{{ __('Your Credential Is Ready for Release') }}</h2>
             <p class="text-sm text-green-950" data-claim-who>
@@ -183,7 +194,7 @@
 
     <section aria-labelledby="tracker-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="tracker-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Progress') }}</h2>
-        <x-request-tracker :request="$request" :events="$events" />
+        <x-request-tracker :request="$current" :events="$currentEvents" />
     </section>
 
     {{-- Only when one was named on New Request; none is added afterwards (REQ-11-01). --}}
@@ -197,23 +208,28 @@
     <section aria-labelledby="details-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
         {{-- Field left, value right; the ID is a row too (REQ-09-22). --}}
-        <x-request-details :request="$request">
-            @if ($request->identityDocument)
+        <x-request-details :request="$current">
+            @if ($current->identityDocument)
                 {{-- The ID sent with this request, without a verification badge: "Verified" shows on
                      New Request and Settings → Profile only (REQ-15-08, REQ-21-06). --}}
                 <x-summary-row :label="__('Valid ID')" data-request-id>
-                    <x-file-link :href="route('identity-documents.show', $request->identityDocument)" :name="$request->identityDocument->id_type.': '.$request->identityDocument->original_name" :type="$request->identityDocument->mime_type" class="break-all">
-                        {{ $request->identityDocument->id_type }}: {{ $request->identityDocument->original_name }}
+                    <x-file-link :href="route('identity-documents.show', $current->identityDocument)" :name="$current->identityDocument->id_type.': '.$current->identityDocument->original_name" :type="$current->identityDocument->mime_type" class="break-all">
+                        {{ $current->identityDocument->id_type }}: {{ $current->identityDocument->original_name }}
                     </x-file-link>
                 </x-summary-row>
+            @endif
+            {{-- Who evaluates the request, once it is taken up (REQ-16-32). --}}
+            @if ($current->evaluator)
+                <x-summary-row :label="__('Evaluator')" data-request-evaluator>{{ $current->evaluator->name }}</x-summary-row>
             @endif
         </x-request-details>
     </section>
 
-    {{-- The full history comes last (REQ-09-22). --}}
+    {{-- The full history comes last (REQ-09-22): the application's until acceptance, then the
+         credential's own (REQ-27-07). --}}
     <section aria-labelledby="history-heading" class="rounded-xl border border-secondary/50 p-5 sm:p-6">
         <h2 id="history-heading" class="mb-5 text-lg font-semibold text-primary">{{ __('Tracking History') }}</h2>
-        <x-request-timeline :events="$events" />
+        <x-request-timeline :events="$currentEvents" />
     </section>
 
     @can('cancel', $request)

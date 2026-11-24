@@ -35,12 +35,19 @@ class Dashboard extends Component
     {
         $term = trim($this->search);
 
+        // One row per application, its first credential, matched by any of its credentials (REQ-27-06).
         $requests = CredentialRequest::query()
             ->whereBelongsTo(Auth::user(), 'student')
-            ->when($term !== '', fn (Builder $query) => $query->where(fn (Builder $query) => $query
+            ->where('item_no', 1)
+            ->when($term !== '', fn (Builder $query) => $query->whereIn('application_id', CredentialRequest::query()
+                ->select('application_id')
                 ->where('reference_no', 'like', "%{$term}%")
                 ->orWhereHas('credentialType', fn (Builder $type) => $type->where('name', 'like', "%{$term}%"))))
-            ->with(['credentialType:id,name', 'openVisit.department:id,name', 'openVisit.fromDepartment:id,name'])
+            ->with([
+                'application.credentialRequests.credentialType:id,name',
+                'application.credentialRequests.openVisit.department:id,name',
+                'application.credentialRequests.openVisit.fromDepartment:id,name',
+            ])
             ->latest('id')
             ->paginate(10);
 

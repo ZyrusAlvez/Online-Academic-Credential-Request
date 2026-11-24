@@ -3,7 +3,7 @@
 <tr>
 <td class="header">
 <a href="{{ $url }}" style="display: inline-block;">
-<img src="{{ asset('images/uphsl-logo-email.png') }}" class="logo" width="60" height="80" alt="University of Perpetual Help System">
+<img src="{{ asset('images/uphsl-logo-email.png') }}" class="logo" width="60" height="80" alt="University of Perpetual Help System Laguna">
 <span class="brand">{!! $slot !!}</span>
 </a>
 </td>

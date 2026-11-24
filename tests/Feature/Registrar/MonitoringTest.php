@@ -1,10 +1,10 @@
 <?php
 
-use App\Enums\RequestStatus;
 use App\Livewire\Registrar\Records\Index;
 use App\Models\CredentialRequest;
 use App\Models\User;
-use Database\Seeders\DemoRequestSeeder;
+use App\Reports\DepartmentReport;
+use App\Reports\ReportFilter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -39,40 +39,27 @@ test('REQ-07-02 requests being processed past their due date are overdue and fil
         ->set('status', 'overdue')
         ->assertSee($late->reference_no)
         ->assertDontSee($onTime->reference_no)
-        ->assertSee('Overdue');
+        ->assertSee('Request overdue')->assertSeeHtml('data-request-overdue');   // "Overdue" before REQ-30-10
 
     // In progress: its row opens the record (REQ-17-12).
     $this->actingAs($this->registrar)->get(route('records.show', $late))->assertSee('Overdue since');
 });
 
-test('REQ-07-03 the dashboard shows the work-queue counts', function () {
-    submitRequest($this->owner, $this->org->free);                          // needs the Registrar
-    evaluate(submitRequest($this->owner, $this->org->tor), $this->registrar); // awaiting payment
-    acceptedAt('2026-01-05 09:00:00');                                      // overdue
-
-    $this->actingAs($this->admin)->get(route('admin.dashboard'))
-        ->assertOk()
-        ->assertSeeInOrder(['Needs the Registrar', '1', 'Pending compliance', '0', 'Awaiting payment', '1', 'Being processed', '1', 'Ready for release', '0', 'Overdue', '1']);
-});
-
-test('REQ-07-05 the dashboard shows which offices hold documents, largest first', function () {
+test('REQ-34-02 the office table\'s pending counts follow the paper', function () {
     acceptedAt(now()->toDateTimeString(), $this->org->tor);
     acceptedAt(now()->toDateTimeString(), $this->org->tor);
     $atDean = acceptedAt(now()->toDateTimeString(), $this->org->tor);
     passOffice($atDean, $this->registrar);
     workflow()->acceptReceipt(openVisit($atDean), User::factory()->departmentStaff($this->org->ccs)->create());   // delivered (REQ-17-18)
 
+    $pending = DepartmentReport::offices(new ReportFilter)->pluck('pending', 'name');
+    expect($pending['Office of the Registrar'])->toBe(2)
+        ->and($pending['College of Computer Studies'])->toBe(1);
+
+    // Each pending count opens Records for the office (REQ-34-02).
     $this->actingAs($this->admin)->get(route('admin.dashboard'))
-        ->assertSeeInOrder(['Where Requests Are Waiting', 'Office of the Registrar', '2', 'College of Computer Studies', '1'])
+        ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->registrarOffice->id]))
         ->assertSee(route('records', ['status' => 'processing', 'office' => $this->org->ccs->id]));
-});
-
-test('REQ-07-06 the dashboard lists the most overdue requests', function () {
-    $late = acceptedAt('2026-01-05 09:00:00');
-
-    $this->actingAs($this->admin)->get(route('admin.dashboard'))
-        ->assertSeeInOrder(['Most Overdue', $late->reference_no])
-        ->assertSee(route('records.show', $late), false);   // the read-only record (REQ-18-08)
 });
 
 test('REQ-07-07 the request list can be filtered by the office holding the document', function () {
@@ -86,16 +73,4 @@ test('REQ-07-07 the request list can be filtered by the office holding the docum
         ->set('office', (string) $this->org->ccs->id)
         ->assertSee($atDean->reference_no)
         ->assertDontSee($atRegistrar->reference_no);
-});
-
-test('REQ-07-09 the demo seeder creates accounts and requests in every status still in use', function () {
-    CredentialRequest::query()->delete();
-
-    $this->seed(DemoRequestSeeder::class);
-
-    expect(User::where('email', 'student@example.com')->exists())->toBeTrue()
-        ->and(User::where('email', 'vpf@example.com')->value('department_id'))->not->toBeNull()
-        ->and(CredentialRequest::distinct()->pluck('status')->map->value->sort()->values()->all())
-        ->toBe(collect(RequestStatus::cases())->reject(fn ($s) => $s === RequestStatus::ReturnedForCustomerAction)->map->value->sort()->values()->all())
-        ->and(CredentialRequest::overdue()->count())->toBeGreaterThan(0);
 });

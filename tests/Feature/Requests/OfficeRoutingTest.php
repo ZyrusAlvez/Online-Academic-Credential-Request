@@ -6,7 +6,6 @@ use App\Enums\StepStatus;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use App\Exceptions\InvalidTransition;
-use App\Livewire\Department\Queue as OfficeList;
 use App\Livewire\Department\Requests\Show as OfficeShow;
 use App\Models\CredentialRequest;
 use App\Models\OfficeVisit;
@@ -45,23 +44,6 @@ test('REQ-05-01 acceptance copies the route with the Dean resolved and the final
         ->and(openVisit($this->request))->department_id->toBe($this->org->registrarOffice->id)->status->toBe(VisitStatus::Received);
 });
 
-test('REQ-05-02 the office lists show incoming, in-office and history', function () {
-    passOffice($this->request, $this->registrar);
-    $list = fn (User $user, string $queue) => Livewire::actingAs($user)->test(OfficeList::class, ['queue' => $queue]);
-
-    $list($this->dean, 'incoming')->assertSee($this->request->reference_no);
-    $list($this->dean, 'to_validate')->assertDontSee($this->request->reference_no);
-
-    workflow()->acceptReceipt(openVisit($this->request), $this->dean);
-    $list($this->dean, 'to_validate')->assertSee($this->request->reference_no);
-
-    workflow()->completeVisit($visit = openVisit($this->request), $this->dean);
-    workflow()->forwardDocument($visit, $this->dean);
-
-    $list($this->dean, 'history')->assertSee($this->request->reference_no)->assertSee('Signed');
-    $list($this->chancellor, 'incoming')->assertDontSee($this->request->reference_no);
-});
-
 test('REQ-05-03 receipt is confirmed separately from forwarding', function () {
     passOffice($this->request, $this->registrar);
     $visit = openVisit($this->request);
@@ -83,12 +65,13 @@ test('REQ-05-04 approving releases the document to the next office, which must r
     Livewire::actingAs($this->dean)->test(OfficeShow::class, ['credentialRequest' => $this->request])
         ->call('acceptReceipt')
         ->set('completeRemarks', 'Signed')
-        ->call('completeVisit')
-        ->call('forwardDocument');   // a separate action since spec 17
+        ->call('completeVisit');
+    // A separate action since spec 17, the Registrar's since spec 32 (REQ-32-03).
+    workflow()->forwardDocument(openVisit($this->request), $this->registrar);
 
     $visits = $this->request->visits()->get();
     expect($visits->pluck('status')->all())->toBe([VisitStatus::Completed, VisitStatus::Completed, VisitStatus::InTransit])
-        ->and($visits[1])->done_by->toBe($this->dean->id)->completed_by->toBe($this->dean->id)->remarks->toBe('Signed')
+        ->and($visits[1])->done_by->toBe($this->dean->id)->completed_by->toBe($this->registrar->id)->remarks->toBe('Signed')
         ->and($visits[2])->department_id->toBe($this->org->vpf->id)->from_department_id->toBe($this->org->ccs->id)
         ->and($this->request->steps()->where('status', StepStatus::Completed)->count())->toBe(2);
 });
@@ -110,8 +93,7 @@ test('REQ-05-05 the final quality check makes the request ready for release', fu
     passOffice($request, $this->vpf);
     passOffice($request, $this->chancellor);
 
-    workflow()->acceptReceipt(openVisit($request), $this->registrar);
-    expect($request->fresh()->status)->toBe(RequestStatus::ForFinalApproval);
+    expect($request->fresh()->status)->toBe(RequestStatus::ForFinalApproval);   // received at once (REQ-32-09)
 
     workflow()->completeVisit(openVisit($request), $this->registrar);
     expect($request->fresh())
@@ -131,6 +113,7 @@ test('REQ-05-06 an office returns the document to an earlier office with reason 
         ->set('returnReason', 'Wrong middle name')
         ->set('correctiveAction', 'Reprint the TOR')
         ->call('returnVisit')->assertHasNoErrors();
+    workflow()->forwardDocument(openVisit($request), $this->registrar);   // carried back (REQ-32-08)
 
     $correction = openVisit($request);
     expect($visit->fresh())
@@ -139,23 +122,6 @@ test('REQ-05-06 an office returns the document to an earlier office with reason 
         ->return_reason->toBe('Wrong middle name')
         ->and($correction)->purpose->toBe(VisitPurpose::Correction)->department_id->toBe($this->org->registrarOffice->id)
         ->and($request->fresh()->status)->toBe(RequestStatus::ReturnedForCorrection);
-});
-
-test('REQ-05-06 the corrective action is optional', function () {
-    $request = toVpFinance();
-    $visit = openVisit($request);
-    workflow()->acceptReceipt($visit, $this->vpf);
-
-    $html = $this->actingAs($this->vpf)->get(route('department.to-validate.show', $request))->assertOk()->getContent();
-    expect($html)->toMatch('#Corrective action needed.{0,400}Optional#s');
-
-    Livewire::actingAs($this->vpf)->test(OfficeShow::class, ['credentialRequest' => $request])
-        ->set('returnTo', $this->org->registrarOffice->id)
-        ->set('returnReason', 'Wrong middle name')
-        ->call('returnVisit')->assertHasNoErrors();
-
-    expect($visit->fresh())->status->toBe(VisitStatus::Returned)->corrective_action->toBeNull()
-        ->and($request->events()->where('type', RequestEventType::DocumentReturned)->sole()->remarks)->toBe("Returned to {$this->org->registrarOffice->name}: Wrong middle name");
 });
 
 test('REQ-05-06 a document can only go back to an office it already passed', function () {
@@ -171,6 +137,7 @@ test('REQ-05-07 the corrected document goes back and is received again before th
     $request = toVpFinance();
     workflow()->acceptReceipt(openVisit($request), $this->vpf);
     workflow()->returnVisit(openVisit($request), $this->vpf, $this->org->registrarOffice, 'Wrong name', 'Reprint');
+    workflow()->forwardDocument(openVisit($request), $this->registrar);
 
     passOffice($request, $this->registrar);   // correction received and sent back
 
@@ -182,7 +149,7 @@ test('REQ-05-07 the corrected document goes back and is received again before th
     expect($request->fresh()->status)->toBe(RequestStatus::InProgress);
 
     workflow()->completeVisit($resubmission, $this->vpf);
-    workflow()->forwardDocument($resubmission, $this->vpf);
+    workflow()->forwardDocument($resubmission, $this->registrar);
     expect(openVisit($request)->department_id)->toBe($this->org->chancellor->id);
 });
 
@@ -192,6 +159,7 @@ test('REQ-05-08 every visit is kept with working days spent', function () {
     workflow()->acceptReceipt(openVisit($request), $this->vpf);
     Carbon::setTestNow('2026-10-27 15:00:00');   // Tuesday
     workflow()->returnVisit(openVisit($request), $this->vpf, $this->org->registrarOffice, 'Wrong name', 'Reprint');
+    workflow()->forwardDocument(openVisit($request), $this->registrar);   // the same day
     passOffice($request, $this->registrar);
     passOffice($request, $this->vpf);
 

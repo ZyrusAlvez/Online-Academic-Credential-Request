@@ -4,11 +4,13 @@ namespace App\Queries;
 
 use App\Enums\RegistrarQueue;
 use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Enums\RouteTask;
 use App\Enums\VisitPurpose;
 use App\Enums\VisitStatus;
 use App\Models\CredentialRequest;
 use App\Models\OfficeVisit;
+use App\Models\RequestEvent;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -20,28 +22,43 @@ final class StageQueue
      * @param  bool  $waiting  Initial Evaluation and Payment Validation: the requests waiting for the
      *                         requester instead (returned, or awaiting payment)
      * @param  string  $search  tracking number or requester name, as on Records (REQ-16-25)
+     * @param  RequestType  $requestType  Payment Validation: walk-in requests are the Registrar's,
+     *                                    online ones the Cashier's (REQ-25-04, 07)
+     * @param  string  $college  Initial Evaluation: the request's college (REQ-16-31)
      * @return Builder<CredentialRequest>
      */
-    public static function for(RegistrarQueue $queue, bool $waiting = false, string $office = '', string $search = ''): Builder
+    public static function for(RegistrarQueue $queue, bool $waiting = false, string $office = '', string $search = '', RequestType $requestType = RequestType::WalkIn, string $college = ''): Builder
     {
         $query = RegistrarRequestFilter::matching(CredentialRequest::query(), $search)->with([
             'credentialType:id,name', 'evaluator:id,first_name,middle_name,last_name,email',
             'openVisit.department:id,name,code', 'openVisit.fromDepartment:id,name', 'openVisit.step:id,task,position,department_id',
         ]);
 
+        // Until acceptance an application is one row, its first credential (REQ-27-03).
+        if (in_array($queue, [RegistrarQueue::Evaluation, RegistrarQueue::Payment], true)) {
+            $query->where('item_no', 1);
+        }
+
         return match ($queue) {
             RegistrarQueue::Evaluation => $query
                 ->whereIn('status', $waiting ? RequestStatus::waitingForRequester() : [RequestStatus::Submitted, RequestStatus::UnderEvaluation])
+                ->when($college !== '', fn (Builder $q) => $q->where('college_id', (int) $college))
                 ->orderBy('submitted_at')->orderBy('id'),
-            // Proofs to verify; the requests still awaiting payment wait apart (REQ-16-03).
+            // Proofs to verify; the requests still awaiting payment wait apart (REQ-16-03). Oldest
+            // first by when each entered its status, from the ledger: `updated_at` moves on any edit.
             RegistrarQueue::Payment => $query
+                ->where('request_type', $requestType)
                 ->where('status', $waiting ? RequestStatus::AwaitingPayment : RequestStatus::PaymentVerification)
-                ->orderBy('updated_at')->orderBy('id'),
-            // Where each paper is and goes next, from acceptance on (REQ-17-11).
-            RegistrarQueue::InProgress => $query
-                ->with(['steps:id,credential_request_id,department_id,position,status', 'steps.department:id,name'])
+                ->orderBy(RequestEvent::query()->selectRaw('max(created_at)')
+                    ->whereColumn('request_events.credential_request_id', 'credential_requests.id')
+                    ->whereColumn('request_events.to_status', 'credential_requests.status'))
+                ->orderBy('id'),
+            // The papers an office finished, waiting for the Registrar to collect (REQ-32-02).
+            RegistrarQueue::Outgoing => $query
+                ->with(['steps:id,credential_request_id,department_id,position,status', 'steps.department:id,name', 'openVisit.returnedTo:id,name'])
                 ->whereIn('status', [RequestStatus::AcceptedForProcessing, RequestStatus::InProgress, RequestStatus::ReturnedForCorrection])
                 ->whereDoesntHave('visits', self::atFinalCheck(...))
+                ->whereHas('visits', self::forwardable(...))
                 ->when($office !== '', fn (Builder $q) => RegistrarRequestFilter::heldBy($q, (int) $office))
                 ->orderBy('effective_due_at')->orderBy('id'),
             RegistrarQueue::FinalCheck => $query
@@ -52,6 +69,17 @@ final class StageQueue
                 ->where('status', RequestStatus::ReadyForRelease)
                 ->orderBy('ready_at')->orderBy('id'),
         };
+    }
+
+    /**
+     * An open visit whose paper the Registrar can collect and forward (REQ-32-02).
+     *
+     * @param  Builder<OfficeVisit>  $visits
+     */
+    private static function forwardable(Builder $visits): void
+    {
+        $visits->whereIn('status', VisitStatus::open());
+        OfficeVisit::whereForwardable($visits);
     }
 
     /**

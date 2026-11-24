@@ -26,7 +26,10 @@ period starts only at acceptance.
   credential from a dropdown and, once one is chosen, show its description, fee, processing
   period, offices on its route and special conditions; THE SYSTEM SHALL also show the *Incomplete
   requirements* notice of the client's workflow. *(Documentary requirements no longer shown since
-  2026-11-15, REQ-04-23.)*
+  2026-11-15, REQ-04-23.)* *(2026-11-19, pilot consultation §5–6: the notice is in plain language,
+  "such as Form 137 or a TOR copy for UPHSL", without "Submitting an online request does not
+  automatically mean…"; the processing period reads "upon payment validation"; under the purpose,
+  a note says general purposes are not accepted.)*
 - ~~REQ-04-18, REQ-04-19~~ *Superseded by REQ-04-22 (user's decision, 2026-11-15):* the optional
   upload of copies of the documentary requirements on New Request, and their listing for the
   evaluator, Records and the owner, are removed. The client's workflow never asks the requester to
@@ -46,10 +49,13 @@ period starts only at acceptance.
   requirements before submitting: the user chose to show only what the evaluator requires at the
   office visit.)*
 - **REQ-04-03** WHEN a request is submitted THE SYSTEM SHALL give it the status `submitted`, a
-  unique tracking number `cr<2-digit year>-<id>` in lowercase, the id padded with zeros to at
-  least 5 digits (`cr26-00042`) and growing past 99999 without a cap (`cr26-100000`); requests
-  numbered earlier keep their number *(user's request, 2026-11-11)*, a snapshot of the requester's name, contact
+  unique tracking number `rc<2-digit year>-<id>` in lowercase, the id padded with zeros to at
+  least 5 digits (`rc26-00042`) and growing past 99999 without a cap (`rc26-100000`); requests
+  numbered earlier keep their number, `cr…` ones included *(user's requests, 2026-11-11 and
+  2026-11-17: the prefix changed from `cr` to `rc`)*, a snapshot of the requester's name, contact
   number, academic profile and ID (REQ-15-06) and of the fee (the amount due is the fee: one request is one document), and confirm that it was received for evaluation.
+  *Changed by REQ-27-01 (2026-11-17):* the number is the application's; each of its credentials
+  adds a hyphen and its position (`rc26-00042-1`), and the amount due is the total of their fees.
 - **REQ-04-04** THE SYSTEM SHALL list a requester's own requests (newest first) and SHALL NOT show
   other requesters' requests (404).
 
@@ -70,8 +76,10 @@ period starts only at acceptance.
 ### Payment
 - **REQ-04-12** WHILE a request is `awaiting_payment` THE SYSTEM SHALL show the amount due and a
   "Pay online" link to the UPHSL payment portal, and let the owner upload a proof of payment (JPG,
-  PNG, WebP or PDF, max 5 MB, stored privately) with the payment reference, amount and date paid
-  (status `payment_verification`). The proof field SHALL be the valid ID's picker (REQ-15-04): the
+  PNG, WebP or PDF, max 5 MB, stored privately) with the amount and date paid
+  (status `payment_verification`). *(No payment reference number since 2026-11-19: the pilot
+  consultation §8 said requesters only upload the payment email or screenshot. A reference on an
+  older proof is still shown.)* The proof field SHALL be the valid ID's picker (REQ-15-04): the
   chosen file's name is a link that opens it in the file viewer. *(User's request, 2026-11-13.)*
 - **REQ-04-13** THE SYSTEM SHALL let the registrar reject a proof with remarks (back to
   `awaiting_payment`) or verify it against the official record; an uploaded proof alone SHALL NOT

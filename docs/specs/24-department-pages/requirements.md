@@ -68,6 +68,8 @@ This replaces:
   Each row's Next column SHALL also be a "Forward to <next office>" button that forwards that one
   document after a confirmation, as the registrar's In Progress row does (REQ-17-12); Forward is
   offered only on this list, not on the request page (REQ-24-07). *(User's request, 2026-11-15.)*
+  *(Replaced 2026-11-18 by REQ-32-05: the list is "Outgoing" at `/department/outgoing`, view-only;
+  the Registrar forwards, REQ-32-03. The same rename applies to REQ-24-01, 02, 06 and 07.)*
 
 ### The request page
 - **REQ-24-06** A request SHALL open under the list it is in for the office:
@@ -76,9 +78,10 @@ This replaces:
   with that list's sidebar item current and the list as the breadcrumb. Opened under another
   list, or at the former `/department/requests/{tracking no.}` (in notifications and emails), it
   SHALL redirect to the right one. WHEN an action moves the request out of the list it was opened
-  under THE SYSTEM SHALL go back to that list with the action's message (e.g. Acknowledge receipt
-  returns to Incoming, Approve or Return to To Validate). *(User's request, 2026-11-16: no longer
-  follow the request to its new list.)* A request that has never been sent to the office SHALL
+  under THE SYSTEM SHALL go back to that list, as the user left it (search, filters and page), with
+  the action's message (e.g. Acknowledge receipt returns to Incoming, Approve or Return to To
+  Validate). *(User's request, 2026-11-16: no longer follow the request to its new list. The list
+  kept as left added 2026-11-19, the same rule for every role, REQ-16-26.)* A request that has never been sent to the office SHALL
   respond 404.
 - **REQ-24-07** THE request page SHALL show, in order: Request Details, Proof of Payment (only
   the verified proof; the section is left out when there is none) and Route, and below them the

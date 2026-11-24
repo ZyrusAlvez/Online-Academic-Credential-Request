@@ -48,7 +48,9 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   the user out on their next request.
 
 - **REQ-01-24** WHERE Google sign-in is configured THE SYSTEM SHALL offer "Continue with Google"
-  on the log-in page and "Sign up with Google" on the sign-up page. WHEN Google returns an account
+  on the log-in page and "Sign up with Google" on the sign-up page, and Google SHALL ask the user
+  which Google account to use every time, even when the browser is already signed in to one (so
+  logging out and back in can switch accounts). WHEN Google returns an account
   with a verified email THE SYSTEM SHALL sign in the account linked to that Google ID or, failing
   that, the account with that email (linking it), or else create a requester account with the email
   marked verified, no password and the name pre-filled from Google. IF Google has not verified the
@@ -65,6 +67,10 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
 - **REQ-01-32** WHEN a logged-in user opens the landing page (`/`) THE SYSTEM SHALL take them to
   their role's home (as `/dashboard` does); only guests see the landing page. *(User's request,
   2026-11-13.)*
+- **REQ-01-33** WHEN a user signs in (password or Google) after being sent to the login page from a
+  page under another role's area (e.g. `/student` before a registrar signs in) THE SYSTEM SHALL
+  take them to their role's home instead of that page; a page in their own area or a shared page
+  is still honoured. *(User's report, 2026-11-18: signing in landed on a 403.)*
 
 ### Profile
 - **REQ-01-12** THE SYSTEM SHALL NOT let users change their own email in settings; settings holds

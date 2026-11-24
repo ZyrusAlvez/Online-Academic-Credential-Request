@@ -26,107 +26,9 @@
     {{-- Hidden, not removed, on the summary: the file inputs keep the chosen files for "Back to edit".
          novalidate: the browser's popups would stop the submit before the errors modal (REQ-01-26). --}}
     <form wire:submit="review" novalidate @class(['space-y-8', 'hidden' => $reviewing])>
-        <section aria-labelledby="what-heading" class="space-y-6 rounded-xl border border-secondary/50 p-5 sm:p-6">
-            <h2 id="what-heading" class="text-lg font-semibold text-primary">{{ __('1. What Do You Need?') }}</h2>
-
-            <x-select-menu wire:model.live="form.credential_type_id" :label="__('Credential')"
-                :options="$types->pluck('name', 'id')->all()" :value="$form->credential_type_id"
-                :placeholder="__('Choose a credential…')" :search-label="__('Search credentials')" />
-
-            {{-- Every credential's details are on the page and the chosen one is shown in the browser at
-                 once, without a trip to the server (REQ-15-15). --}}
-            <div aria-live="polite">
-            @foreach ($types as $type)
-                {{-- The chosen credential's details (REQ-04-02), laid out as a card (REQ-09-11). --}}
-                <div wire:key="credential-card-{{ $type->id }}" data-credential-card="{{ $type->id }}"
-                    x-show="String($wire.form.credential_type_id ?? '') === '{{ $type->id }}'" @if ((int) $form->credential_type_id !== $type->id) x-cloak style="display: none" @endif
-                    class="overflow-hidden rounded-xl border border-secondary/50 bg-white text-sm">
-                    <div class="space-y-1 border-b border-secondary/40 bg-primary-50 px-4 py-3 sm:px-5">
-                        <h3 class="text-base font-semibold text-primary">{{ $type->name }}</h3>
-                        @if ($type->description)
-                            <p class="text-ink">{{ $type->description }}</p>
-                        @endif
-                    </div>
-
-                    <div class="space-y-6 p-4 sm:p-5">
-                        <dl class="grid gap-3 sm:grid-cols-2">
-                            <div class="flex items-start gap-3 rounded-lg border border-zinc-200 p-3">
-                                <flux:icon.banknotes class="size-5 shrink-0 text-primary" />
-                                <div>
-                                    <dt class="text-xs font-medium uppercase tracking-wide text-zinc-600">{{ __('Fee') }}</dt>
-                                    @if ($type->requires_payment && $type->fee !== null)
-                                        <dd class="mt-0.5 font-semibold text-ink">₱{{ number_format((float) $type->fee, 2) }}</dd>
-                                    @else
-                                        <dd class="mt-0.5 font-semibold text-ink">{{ $type->requires_payment ? __('Requires payment') : __('Free') }}</dd>
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="flex items-start gap-3 rounded-lg border border-zinc-200 p-3">
-                                <flux:icon.clock class="size-5 shrink-0 text-primary" />
-                                <div>
-                                    <dt class="text-xs font-medium uppercase tracking-wide text-zinc-600">{{ __('Processing period') }}</dt>
-                                    <dd class="mt-0.5 font-semibold text-ink">{{ trans_choice(':count working day|:count working days', $type->processing_days) }}</dd>
-                                    <dd class="text-zinc-600">{{ __('from acceptance') }}</dd>
-                                </div>
-                            </div>
-                        </dl>
-
-                        <div>
-                            <h4 class="font-semibold text-ink">{{ __('Offices that process it') }}</h4>
-                            <ol role="list" class="mt-3">
-                                @foreach ($routes[$type->id] as $stop)
-                                    <li class="relative flex gap-3 pb-4 last:pb-0">
-                                        @unless ($loop->last)
-                                            <span class="absolute top-7 bottom-1 left-3 w-px -translate-x-1/2 bg-secondary" aria-hidden="true"></span>
-                                        @endunless
-                                        <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white" aria-hidden="true">{{ $loop->iteration }}</span>
-                                        <span class="pt-0.5 text-ink"><span class="font-medium">{{ $stop['office'] }}</span> <span class="text-zinc-600">({{ strtolower($stop['task']) }})</span></span>
-                                    </li>
-                                @endforeach
-                            </ol>
-                        </div>
-
-                        @if ($type->special_conditions)
-                            <div class="flex items-start gap-2 rounded-lg bg-primary-50 p-3 text-ink">
-                                <flux:icon.information-circle variant="mini" class="mt-0.5 shrink-0 text-primary" />
-                                <p><span class="font-semibold">{{ __('Special conditions:') }}</span> {{ $type->special_conditions }}</p>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            @endforeach
-            </div>
-
-            <div class="space-y-3">
-                <flux:select wire:model.live="form.purpose" :label="__('Purpose')" required>
-                    <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
-                    @foreach ($purposes as $purpose)
-                        <flux:select.option :value="$purpose">{{ $purpose }}</flux:select.option>
-                    @endforeach
-                    <flux:select.option :value="\App\Livewire\Forms\CredentialRequestForm::OTHER_PURPOSE">{{ __('Others (please specify)') }}</flux:select.option>
-                </flux:select>
-                @if ($form->purpose === \App\Livewire\Forms\CredentialRequestForm::OTHER_PURPOSE)
-                    <flux:input wire:model.live.blur="form.purpose_other" :label="__('Please specify')" :placeholder="__('Type the purpose of your request')" maxlength="500" required />
-                @endif
-            </div>
-
-            {{-- One field whose wording follows the chosen credential in the browser (REQ-15-15). --}}
-            @php($transferIds = $types->where('requires_receiving_institution', true)->pluck('id')->map(fn ($id) => (string) $id)->values())
-            <div data-receiving-school x-data="{ get transfer() { return @js($transferIds).includes(String($wire.form.credential_type_id ?? '')) } }">
-                <flux:field>
-                    <flux:label>
-                        <span x-text="transfer ? @js(__('Receiving school')) : @js(__('Receiving school, employer or agency'))">{{ $selectedType?->requires_receiving_institution ? __('Receiving school') : __('Receiving school, employer or agency') }}</span>
-                        {{-- Flux's own "Optional" badge, shown only when the field is optional. --}}
-                        <span x-show="! transfer" @if ($selectedType?->requires_receiving_institution) style="display: none" @endif class="ms-1.5 -my-1 rounded-[4px] bg-zinc-800/5 px-1.5 py-1 text-xs text-zinc-800/70" aria-hidden="true">{{ __('Optional') }}</span>
-                    </flux:label>
-                    <flux:description>
-                        <span x-text="transfer ? @js(__('Its complete name.')) : @js(__('If the credential is for a specific institution.'))">{{ $selectedType?->requires_receiving_institution ? __('Its complete name.') : __('If the credential is for a specific institution.') }}</span>
-                    </flux:description>
-                    <flux:input wire:model.live.blur="form.receiving_institution" x-bind:required="transfer" />
-                    <flux:error name="form.receiving_institution" />
-                </flux:field>
-            </div>
-        </section>
+        {{-- Edit Request keeps the credentials the application has (REQ-27-10); New Request offers
+             only as many as the requester has room for (REQ-33-04). --}}
+        @include('partials.credential-choice', ['several' => ! $editing, 'room' => $room])
 
         {{-- Sections 2 to 4, filled in from the saved profile (REQ-15-03, 04). No documentary
              requirements are listed (REQ-04-23). --}}
@@ -166,14 +68,15 @@
         <details wire:ignore.self class="group rounded-xl border border-amber-500 bg-amber-50">
             <summary class="flex cursor-pointer list-none items-center gap-3 rounded-xl p-4 font-medium text-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight [&::-webkit-details-marker]:hidden">
                 <flux:icon.exclamation-triangle variant="mini" class="shrink-0 text-amber-600" />
-                <span class="flex-1">{{ __('Important notice: incomplete requirements') }}</span>
+                <span class="flex-1">{{ __('Important notice') }}</span>
                 <flux:icon.chevron-down variant="mini" class="shrink-0 text-amber-700 transition-transform group-open:rotate-180" />
             </summary>
             <div class="space-y-2 px-4 pb-4 text-sm text-amber-950 sm:pl-12">
                 <p>{{ __('Before submitting your online request for academic credentials, please ensure that your admission requirements and clearance are complete.') }}</p>
-                <p>{{ __('If your records indicate that you have lacking admission requirements, such as Form 137, the required UPHSL copy of your previous Transcript of Records, a PSA-authenticated birth certificate, or other applicable documents, you must first submit the original required documents to the Registrar\'s Office of the University of Perpetual Help System Laguna (UPHSL). You will also be required to accomplish the appropriate clearance form and complete the necessary clearance process.') }}</p>
+                {{-- Plain language (pilot consultation §6). --}}
+                <p>{{ __('If your records show that an admission requirement is missing, such as your Form 137, a TOR copy for UPHSL or a PSA-authenticated birth certificate, submit the original to the Registrar\'s Office of the University of Perpetual Help System Laguna (UPHSL) first. You will also need to complete your clearance.') }}</p>
                 <p>{{ __('You must visit the University personally or send an authorized representative on your behalf. A representative must present a valid Special Power of Attorney (SPA) authorizing them to act on your behalf, together with the valid IDs of both the document owner and the representative, subject to University verification.') }}</p>
-                <p class="font-medium">{{ __('Your online request will remain pending until the deficiencies have been resolved and verified by the Registrar\'s Office. The prescribed processing period will begin only after all applicable requirements and clearance have been completed, payment has been verified, and the request has been officially accepted. Submitting an online request does not automatically mean that your request has been accepted for processing.') }}</p>
+                <p class="font-medium">{{ __('Your request stays pending until the Registrar\'s Office has received and checked what is missing. The processing period starts only upon payment validation, once your requirements and clearance are complete.') }}</p>
             </div>
         </details>
 

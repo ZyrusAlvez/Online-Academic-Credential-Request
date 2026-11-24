@@ -13,9 +13,14 @@ use LogicException;
 /**
  * Append-only ledger entry. Rows can be created but never updated or deleted.
  *
+ * An entry written by an Admin override (spec 35) has `override_reason` and `recorded_at`; its
+ * `created_at` is when the step happened.
+ *
  * @property RequestEventType $type
  * @property ?RequestStatus $from_status
  * @property ?RequestStatus $to_status
+ * @property ?string $override_reason
+ * @property ?Carbon $recorded_at
  * @property Carbon $created_at
  */
 class RequestEvent extends Model
@@ -32,6 +37,8 @@ class RequestEvent extends Model
         'office_visit_id',
         'department_id',
         'remarks',
+        'override_reason',
+        'recorded_at',
     ];
 
     protected static function booted(): void
@@ -49,8 +56,15 @@ class RequestEvent extends Model
             'type' => RequestEventType::class,
             'from_status' => RequestStatus::class,
             'to_status' => RequestStatus::class,
+            'recorded_at' => 'datetime',
             'created_at' => 'datetime',
         ];
+    }
+
+    /** Written by an Admin override (REQ-35-10). */
+    public function isOverride(): bool
+    {
+        return $this->override_reason !== null;
     }
 
     /**
@@ -67,6 +81,7 @@ class RequestEvent extends Model
             RequestEventType::ComplianceRequested => 'Returned to you – please complete the requirements',
             RequestEventType::Resubmitted => 'Resubmitted for evaluation',
             RequestEventType::EvaluationReopened => 'Evaluation reopened by the Office of the Registrar',
+            RequestEventType::EvaluationUnlocked => 'Evaluation unlocked; back in Initial Evaluation',
             RequestEventType::DeficiencyResolved => 'Requirement complied with',
             RequestEventType::CustomerActionRequested => 'Returned to you for clarification – please correct your request',
             RequestEventType::CredentialChanged => 'Credential changed by the requester',
@@ -97,6 +112,8 @@ class RequestEvent extends Model
             RequestEventType::RepresentativeRejected => 'Authorized representative not accepted',
             RequestEventType::Released => 'Released',
             RequestEventType::Cancelled => 'Request cancelled',
+            RequestEventType::WalkInRecorded => 'Walk-in request recorded at the Office of the Registrar',
+            RequestEventType::LinkedToAccount => 'Linked to the requester\'s account',
         };
     }
 

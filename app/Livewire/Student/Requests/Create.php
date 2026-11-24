@@ -115,6 +115,20 @@ class Create extends Component
         $this->showStep(reviewing: false);
     }
 
+    /** Another credential in the same application (REQ-27-10). */
+    public function addCredential(): void
+    {
+        // Only as many credentials as the requester has room for (REQ-33-04).
+        if (count($this->form->more) + 1 < $this->owner()->openRequestRoom()) {
+            $this->form->addCredential();
+        }
+    }
+
+    public function removeCredential(int $index): void
+    {
+        $this->form->removeCredential($index);
+    }
+
     /**
      * Save the details to the profile and submit the request with its copy of them, all or
      * nothing (REQ-15-06).
@@ -134,12 +148,16 @@ class Create extends Component
         $stored = null;
 
         try {
-            $data = $this->form->validatedRequest();
+            $data = $this->form->validatedItems();
             $representative = $this->form->representative();
             $this->validateRepresentativeFiles();
             $documents = $representative !== null ? $this->representativeDocuments() : null;
 
             $request = DB::transaction(function () use ($owner, $data, $representative, $documents, $workflow, $submitIdentity, &$stored): CredentialRequest {
+                // The owner's row is locked so two submissions at once cannot pass the limit together (REQ-33-03).
+                User::query()->whereKey($owner->id)->lockForUpdate()->first();
+                $this->checkRequestLimit();
+
                 $chosen = $this->profile->save($owner, $this->mayReplaceSavedId());
 
                 if ($chosen !== null) {
@@ -161,7 +179,9 @@ class Create extends Component
             return;
         }
 
-        session()->flash('notify', "Request {$request->reference_no} received for evaluation.");
+        // An application of several credentials is quoted by its own number (REQ-27-01).
+        $number = count($data) > 1 ? $request->application()->value('reference_no') : $request->reference_no;
+        session()->flash('notify', "Request {$number} received for evaluation.");
         $this->redirectRoute('student.requests.show', $request, navigate: true);
     }
 
@@ -188,11 +208,39 @@ class Create extends Component
             'idTypes' => IdentityDocument::ID_TYPES,
             'savedId' => $owner->latestIdentityDocument()->first(),
             'verified' => VerifiedDetails::sections($owner),
-            'requestSummary' => $this->reviewing ? $this->requestSummary($selectedType) : [],
+            'requestSummary' => $this->reviewing ? $this->requestSummary() : [],
             'transactSummary' => $this->reviewing ? $this->transactSummary() : [],
             'summary' => $this->reviewing ? $this->profile->summary() : [],
             // Edit Request (spec 20) shows the same form for a returned request.
             'editing' => null,
+            'room' => $owner->openRequestRoom(),
+        ]);
+    }
+
+    /**
+     * At most OPEN_LIMIT open online requests, each credential one; checked on review and again,
+     * under a lock, on submit (REQ-33-02, 03).
+     *
+     * @throws ValidationException on the first credential
+     */
+    protected function checkRequestLimit(): void
+    {
+        $owner = $this->owner();
+        $room = $owner->openRequestRoom();
+
+        if (count($this->form->more) + 1 <= $room) {
+            return;
+        }
+
+        $limit = CredentialRequest::OPEN_LIMIT;
+
+        throw ValidationException::withMessages(['form.credential_type_id' => $room === 0
+            ? __('You have :limit open requests, the most allowed at a time. You can request again once one is released, declined or cancelled.', ['limit' => $limit])
+            : trans_choice(
+                'You can request only :room more credential while you have :open open requests (at most :limit at a time).|You can request only :room more credentials while you have :open open requests (at most :limit at a time).',
+                $room,
+                ['room' => $room, 'open' => $limit - $room, 'limit' => $limit],
+            ),
         ]);
     }
 
@@ -219,7 +267,8 @@ class Create extends Component
      */
     protected function extraChecks(): array
     {
-        return [];
+        // Edit Request overrides this: a resubmission is not a new request (REQ-33-05).
+        return [fn () => $this->checkRequestLimit()];
     }
 
     /**
@@ -276,19 +325,10 @@ class Create extends Component
      *
      * @return array<string, array<string, string|EmptyValue>>
      */
-    protected function requestSummary(?CredentialType $type): array
+    protected function requestSummary(): array
     {
-        $purpose = $this->form->purpose === CredentialRequestForm::OTHER_PURPOSE ? $this->form->purpose_other : $this->form->purpose;
-        $receivingLabel = $type?->requires_receiving_institution ? __('Receiving school') : __('Receiving school, employer or agency');
-
-        return [
-            __('1. What Do You Need?') => [
-                __('Credential') => (string) $type?->name,
-                __('Purpose') => $purpose,
-                // Left blank: shown as a grey "Not provided", not as an entry (REQ-15-19).
-                $receivingLabel => filled($this->form->receiving_institution) ? $this->form->receiving_institution : EmptyValue::notProvided(),
-            ],
-        ];
+        // One section per credential, and the total when there are several (REQ-27-10).
+        return $this->form->summary(AcademicStatus::tryFrom($this->profile->academic_status));
     }
 
     /**

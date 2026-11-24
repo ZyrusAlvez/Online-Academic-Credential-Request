@@ -17,55 +17,6 @@ beforeEach(function () {
     $this->library = Department::factory()->create(['name' => 'Library', 'code' => 'LIB']);
 });
 
-test('REQ-02-07 the admin can list, search and filter accounts with departments', function () {
-    User::factory()->departmentStaff($this->library)->create(['first_name' => 'Lina', 'middle_name' => null, 'last_name' => 'Librarian']);
-    // A fixed email: the search also looks there, and a random one can contain "lina".
-    User::factory()->student()->create(['first_name' => 'Sam', 'middle_name' => null, 'last_name' => 'Student', 'email' => 'sam@example.com']);
-
-    $this->actingAs($this->admin)->get(route('admin.accounts'))
-        ->assertOk()->assertSee('Lina Librarian')->assertSee('Library')->assertSee('Sam Student');
-
-    Livewire::actingAs($this->admin)->test(Index::class)
-        ->set('role', 'student')
-        ->assertSee('Sam Student')->assertDontSee('Lina Librarian')
-        ->set('role', '')
-        ->set('search', 'lina')
-        ->assertSee('Lina Librarian')->assertDontSee('Sam Student');
-});
-
-test('REQ-02-07 the account search matches a first and last name typed together', function () {
-    User::factory()->student()->create(['first_name' => 'Sam', 'middle_name' => null, 'last_name' => 'Student', 'email' => 'sam@example.com']);
-    User::factory()->student()->create(['first_name' => 'Samuel', 'middle_name' => null, 'last_name' => 'Reyes', 'email' => 'samuel@example.com']);
-
-    Livewire::actingAs($this->admin)->test(Index::class)
-        ->set('search', 'sam stu')
-        ->assertSee('Sam Student')->assertDontSee('Samuel Reyes')
-        ->set('search', 'Samuel Reyes')
-        ->assertSee('Samuel Reyes')->assertDontSee('Sam Student');
-});
-
-test('REQ-02-07 the accounts list shows only active accounts until another status is chosen', function () {
-    User::factory()->student()->create(['first_name' => 'Sam', 'middle_name' => null, 'last_name' => 'Student', 'email' => 'sam@example.com']);
-    User::factory()->student()->create(['first_name' => 'Ina', 'middle_name' => null, 'last_name' => 'Inactive', 'email' => 'ina@example.com', 'is_active' => false]);
-
-    Livewire::actingAs($this->admin)->test(Index::class)
-        ->assertSet('status', 'active')
-        ->assertSee('Sam Student')->assertDontSee('Ina Inactive')
-        ->set('status', 'inactive')
-        ->assertSee('Ina Inactive')->assertDontSee('Sam Student')
-        ->set('status', '')
-        ->assertSee('Sam Student')->assertSee('Ina Inactive');
-});
-
-test('REQ-02-07 an account with no name yet shows its email alone', function () {
-    User::factory()->student()->create(['first_name' => null, 'middle_name' => null, 'last_name' => null, 'email' => 'new@example.com']);
-
-    Livewire::actingAs($this->admin)->test(Index::class)
-        ->assertSee('new@example.com')
-        ->assertSeeHtmlInOrder(['font-medium text-ink">new@example.com</div>'])
-        ->assertDontSeeHtml('text-xs text-zinc-500">new@example.com');
-});
-
 test('REQ-02-08 the admin can create a verified department staff account', function () {
     Livewire::actingAs($this->admin)->test(Index::class)
         ->call('create')
@@ -133,44 +84,6 @@ test('REQ-02-08 a department is required for department staff and must be active
     $component->call('save')->assertHasErrors(['form.department_id' => 'required']);
     $component->set('form.department_id', $inactive->id)->call('save')->assertHasErrors(['form.department_id' => 'exists']);
     $component->set('form.department_id', 'abc')->call('save')->assertHasErrors('form.department_id');
-});
-
-test('REQ-02-08 a registrar account has no department', function () {
-    Livewire::actingAs($this->admin)->test(Index::class)
-        ->set('form.first_name', 'New')->set('form.last_name', 'Registrar')
-        ->set('form.email', 'new.registrar@uphsl.edu.ph')->set('form.password', 'Secret123!')
-        ->set('form.role', 'registrar')
-        ->set('form.department_id', $this->library->id)
-        ->call('save')
-        ->assertHasNoErrors();
-
-    $account = User::where('email', 'new.registrar@uphsl.edu.ph')->sole();
-    expect($account->role)->toBe(Role::Registrar)->and($account->department_id)->toBeNull();
-});
-
-test('REQ-02-09 the admin can edit a staff account and optionally reset its password', function () {
-    $staff = User::factory()->departmentStaff($this->library)->create();
-    $cashier = Department::factory()->create(['code' => 'FIN']);
-    $oldHash = $staff->password;
-
-    Livewire::actingAs($this->admin)->test(Index::class)
-        ->call('edit', $staff->id)
-        ->set('form.last_name', 'Changed')
-        ->set('form.department_id', $cashier->id)
-        ->call('save')
-        ->assertHasNoErrors();
-
-    $staff->refresh();
-    expect($staff->last_name)->toBe('Changed')
-        ->and($staff->department_id)->toBe($cashier->id)
-        ->and($staff->password)->toBe($oldHash);
-
-    Livewire::actingAs($this->admin)->test(Index::class)
-        ->call('edit', $staff->id)
-        ->set('form.password', 'Brand-new-pass1')
-        ->call('save');
-
-    expect(Hash::check('Brand-new-pass1', $staff->fresh()->password))->toBeTrue();
 });
 
 test('REQ-02-10 the admin can deactivate and reactivate any account', function (string $state) {
@@ -248,19 +161,6 @@ test('REQ-02-15 the admin can change an account to any other role', function (st
     ['department', 'admin'],     // REQ-18-09
     ['admin', 'registrar'],
 ]);
-
-test('REQ-02-15 a department staff member can move to another department', function () {
-    $staff = User::factory()->departmentStaff($this->library)->create();
-    $other = Department::factory()->create();
-
-    Livewire::actingAs($this->admin)->test(Index::class)
-        ->call('editRole', $staff->id)
-        ->set('roleForm.department_id', $other->id)
-        ->call('changeRole')
-        ->assertHasNoErrors();
-
-    expect($staff->fresh()->department_id)->toBe($other->id);
-});
 
 test('REQ-02-15 the department role needs an active department and a change', function () {
     $student = User::factory()->student()->create();

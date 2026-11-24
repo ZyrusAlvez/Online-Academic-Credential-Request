@@ -1,6 +1,11 @@
 {{-- Help: Tracking & Statuses (REQ-22-03, 04). --}}
 <x-faq-item question="Where do I see my requests?">
     <p>In the <a href="{{ route('student.dashboard') }}" wire:navigate>Request Tracker</a>, newest first. Search by credential or tracking number, and open a request to see its progress, the office that has your document, its dates and its history.</p>
+    <p>A request with several credentials has a tab for each one at the top of its page. Choose a tab to see where that credential is.</p>
+</x-faq-item>
+
+<x-faq-item question="I made a request at the Office of the Registrar. Can I follow it here?">
+    <p>Yes. Sign up, or sign in with Google, using the <strong>same email address</strong> you gave at the counter. Once your email is confirmed, the request appears in your Request Tracker, and you are notified of its updates from then on.</p>
 </x-faq-item>
 
 <x-faq-item question="What does each status mean?">
@@ -22,12 +27,12 @@
 </x-faq-item>
 
 <x-faq-item question="When does the processing period start? When will my credential be ready?">
-    <p>The processing period starts when your request is <strong>accepted for processing</strong> (when your payment is verified), not when you submit it.</p>
+    <p>The processing period starts when your request is <strong>accepted for processing</strong> (when your payment is verified), not when you submit it. Don't count the days from the day you filed.</p>
     <p>It is counted in working days: Monday to Saturday, without holidays and office closures. Once accepted, your request page shows the processing period and the expected release date.</p>
 </x-faq-item>
 
 <x-faq-item question="Who has my document right now?">
-    <p>Your request page shows the office currently holding it, such as your college's Dean or the Office of the Chancellor. Each credential passes through its offices in order, and each signs or stamps it before sending it on.</p>
+    <p>Your request page shows the office currently holding it, such as your college's Dean or the Office of the Chancellor. Each credential passes through its offices in order, and each signs or stamps it. Between offices, the Office of the Registrar collects your document and brings it to the next one.</p>
 </x-faq-item>
 
 <x-faq-item question="How will I know when something changes?">

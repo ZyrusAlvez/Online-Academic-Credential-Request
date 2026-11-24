@@ -42,3 +42,16 @@
 - [x] No working page under In Progress; a request in progress leads to the searched list (REQ-16-26, see spec 17)
 - [x] Search on Release too: remove `RegistrarQueue::isSearchable()` (REQ-16-25)
 - [x] Pest test for the changed REQ-16-25
+- [x] After a decision, back to the queue's list as left: `ReturnsToList` concern on the
+      Registrar, Department and Cashier pages; breadcrumb uses it too (REQ-16-26, REQ-24-06, REQ-25-05)
+- [x] Pest tests for the changed REQ-16-26, REQ-24-06, REQ-25-05
+- [x] Release to a representative typed at the counter: `release(..., ?representativeName)`,
+      "A representative" always selectable, "Someone else" and the name field, the SPA/ID reminder
+      (REQ-16-28, REQ-11-07)
+- [x] Pest tests for REQ-16-28 and the changed REQ-11-07
+- [x] Evaluator row on the record, the working page and the requester's page (REQ-16-29, 32)
+- [x] Records: Evaluator column and filter, `RegistrarRequestFilter` `evaluator` (REQ-16-30)
+- [x] Initial Evaluation: college filter, `StageQueue::for(..., college)` (REQ-16-31)
+- [x] Pest tests for REQ-16-29..32 and the changed REQ-16-25 layout
+- [x] Records: remove the Evaluator column, keep the filter (REQ-16-30)
+- [x] Pest test for the changed REQ-16-30

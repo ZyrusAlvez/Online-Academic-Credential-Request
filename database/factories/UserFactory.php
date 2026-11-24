@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\AcademicStatus;
 use App\Enums\Role;
+use App\Enums\Sex;
 use App\Models\Department;
 use App\Models\IdentityDocument;
 use App\Models\User;
@@ -37,6 +38,7 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'contact_number' => null,
+            'sex' => null,
             'academic_status' => null,
             'college_id' => null,
             'program' => null,
@@ -75,6 +77,13 @@ class UserFactory extends Factory
         ]);
     }
 
+    public function cashier(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => Role::Cashier,
+        ]);
+    }
+
     public function admin(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -97,6 +106,7 @@ class UserFactory extends Factory
     {
         return $this->afterCreating(fn (User $user) => IdentityDocument::factory()->for($user)->create())->state(fn (array $attributes) => [
             'role' => Role::Student,
+            'sex' => Sex::Male,
             'contact_number' => '0917'.fake()->numerify('#######'),
             'academic_status' => AcademicStatus::Graduate,
             'college_id' => $college ?? Department::factory()->college(),

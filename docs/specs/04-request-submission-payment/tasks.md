@@ -20,6 +20,8 @@
       workflow and the factory; older numbers stay (REQ-04-03)
 - [x] Pest tests for the changed REQ-04-03
 - [x] Tracking number prefix in lowercase: `cr26-00042` (REQ-04-03)
+- [x] Tracking number prefix `rc` instead of `cr` for new requests: `rc26-00042` (REQ-04-03)
+- [x] Pest test for it
 - [x] Each chosen requirement file's name on New Request links to the file viewer (REQ-04-18)
 - [x] Pest test for it
 - [x] Optional note with a new proof after a return: workflow remarks, requester field, registrar
