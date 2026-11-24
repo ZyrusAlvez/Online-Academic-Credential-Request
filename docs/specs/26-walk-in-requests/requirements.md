@@ -75,7 +75,8 @@ There is no other setup for walk-in requests.
   a staff account, and never moved from one account to another.
 - **REQ-26-09** A linked walk-in request SHALL be the account's like any other: listed in the
   Request Tracker, opened by its owner only, and notified to them from then on. Before it is
-  linked, THE SYSTEM SHALL send no requester notifications for it.
+  linked, THE SYSTEM SHALL send no requester notifications for it. *(Since REQ-36-05, 2026-11-24:
+  except a text of each [ACTION REQUIRED] notice to the request's contact number.)*
 
 ### Showing walk-in requests
 - **REQ-26-10** THE registrar's queues, Records and a request's record SHALL mark a walk-in request

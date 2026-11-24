@@ -72,7 +72,6 @@ Accounts for all three roles.
 | student_number | varchar(30) | Yes | | | Requesters: optional |
 | attended_from, attended_to | smallint unsigned | Yes | | | Requesters: years attended |
 | is_active | tinyint(1) | No | | 1 | 0 = deactivated by the registrar; cannot log in |
-| sms_notifications | tinyint(1) | No | | 1 | Requesters: text me about my requests (REQ-36-05) |
 | email_verified_at | timestamp | Yes | | | Required before a student can submit a request |
 | password | varchar(255) | Yes | | | Bcrypt hash; empty for accounts made through Google |
 | remember_token | varchar(100) | Yes | | | "Remember me" token |
