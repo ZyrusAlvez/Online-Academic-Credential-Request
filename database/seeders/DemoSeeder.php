@@ -97,7 +97,7 @@ class DemoSeeder extends Seeder
             'last_name' => $last,
             'sex' => $sex,
             'password' => self::PASSWORD,
-            'contact_number' => '0917'.fake()->numerify('#######'),
+            'contact_number' => '+63917'.fake()->numerify('#######'),
             'academic_status' => AcademicStatus::Graduate,
             'college_id' => $college->id,
             'program' => $program,

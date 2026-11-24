@@ -16,7 +16,8 @@
         "laravel/tinker": "^2.10.1",
         "league/flysystem-aws-s3-v3": "^3.0",
         "livewire/flux": "^2.0",
-        "livewire/volt": "^1.6.7"
+        "livewire/volt": "^1.6.7",
+        "propaganistas/laravel-phone": "^6.1"
     },
     "require-dev": {
         "larastan/larastan": "^3.13",

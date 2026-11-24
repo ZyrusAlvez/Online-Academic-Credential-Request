@@ -34,6 +34,9 @@ test('REQ-06-16 with email off the requester is still notified in-app but not em
     workflow()->requireOfficeVisit($request, $this->registrar, ['Form 137'], 'Bring the original.');
     workflow()->decline($request, $this->registrar, 'Not eligible');
 
+    // No contact number, so no texts (REQ-36-06): only the email switch is under test here.
+    $this->owner->forceFill(['contact_number' => null])->save();
+
     $sent = Notification::sent($this->owner, RequestActivity::class);
     expect($sent->map(fn (RequestActivity $n) => $n->event->type)->all())
         ->toContain(RequestEventType::Submitted, RequestEventType::ComplianceRequested, RequestEventType::Declined)

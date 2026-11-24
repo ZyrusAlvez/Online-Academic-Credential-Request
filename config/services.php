@@ -35,6 +35,26 @@ return [
         'redirect' => '/auth/google/callback',
     ],
 
+    // Text messages to requesters (spec 36): PhilSMS for +63 numbers, Telnyx for the rest. While a
+    // provider's key is blank, its texts are written to the log instead (REQ-36-07).
+    'philsms' => [
+        'token' => env('PHILSMS_TOKEN'),
+        'sender_id' => env('PHILSMS_SENDER_ID', 'PhilSMS'),
+    ],
+
+    // Outside production every text goes to this one number instead, or only to the log when it is
+    // blank, since demo requesters have made-up numbers that may be real (REQ-36-11).
+    'sms' => [
+        'redirect' => env('APP_ENV') !== 'production',
+        'redirect_to' => env('SMS_REDIRECT_TO'),
+    ],
+
+    'telnyx' => [
+        'key' => env('TELNYX_API_KEY'),
+        'from' => env('TELNYX_FROM', 'UPHSL'),
+        'messaging_profile_id' => env('TELNYX_MESSAGING_PROFILE_ID'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

@@ -26,7 +26,7 @@
         <h2 id="details-heading" class="mb-4 text-lg font-semibold text-primary">{{ __('Request Details') }}</h2>
         <x-request-details :request="$request">
             <x-summary-row :label="__('Email')" class="[&_dd]:break-all" data-record-email>{{ $request->requesterEmail() ?? '—' }}</x-summary-row>
-            <x-summary-row :label="__('Contact number')" data-record-contact>{{ $request->contact_number ?: '—' }}</x-summary-row>
+            <x-summary-row :label="__('Contact number')" data-record-contact>{{ \App\Support\PhoneNumbers::display($request->contact_number) ?: '—' }}</x-summary-row>
         </x-request-details>
     </section>
 
