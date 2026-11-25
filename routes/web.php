@@ -95,6 +95,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('accounts', Admin\Users\Index::class)->name('accounts');
         Route::get('calendar', Admin\Calendar\Index::class)->name('calendar');
         Route::get('logs', Admin\Logs\Index::class)->name('logs');
+        Route::get('sms', Admin\Sms\Index::class)->name('sms');
     });
 
     // A department office's lists, and a request under the list it is in (REQ-24-01, 06).

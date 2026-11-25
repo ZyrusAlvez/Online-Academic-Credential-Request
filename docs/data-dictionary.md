@@ -495,6 +495,18 @@ Working days are the `uphsl.work_week` days (Monday–Saturday) not listed here.
 | created_by | bigint unsigned | Yes | FK → users | | Registrar who added it; empty for seeded holidays |
 | created_at, updated_at | timestamp | Yes | | | |
 
+## settings
+
+System-wide switches the Admin sets (spec 36). A missing row means the default; there are no
+starting rows.
+
+| Column | Type | Null | Key | Default | Description |
+|---|---|---|---|---|---|
+| id | bigint unsigned | No | PK | | |
+| key | varchar(64) | No | UQ | | `sms_enabled`: texting requesters, off until the Admin turns it on (REQ-36-12) |
+| value | json | Yes | | | The setting's value, e.g. `true` |
+| created_at, updated_at | timestamp | Yes | | | |
+
 ## Framework tables
 
 These belong to Laravel and are not part of the domain model.

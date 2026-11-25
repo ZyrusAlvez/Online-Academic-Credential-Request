@@ -89,6 +89,14 @@ test('only local redirects every email to the developer inbox', function () {
         ->and($redirect('production'))->toBeNull();
 });
 
+test('REQ-36-11 staging and production send texts; local only logs them', function () {
+    $sends = fn (string $env) => configUnder('services.php', ['APP_ENV' => $env])['sms']['send'];
+
+    expect($sends('local'))->toBeFalse()
+        ->and($sends('staging'))->toBeTrue()
+        ->and($sends('production'))->toBeTrue();
+});
+
 test('session cookies are secure exactly when the app URL is https', function () {
     $secure = function (string $url) {
         config(['app.url' => $url]);

@@ -42,11 +42,10 @@ return [
         'token' => env('IPROG_API_TOKEN'),
     ],
 
-    // Outside production every text goes to this one number instead, or only to the log when it is
-    // blank, since demo requesters have made-up numbers that may be real (REQ-36-11).
+    // A developer's machine only logs texts; staging and production send them (REQ-36-11), once the
+    // Admin turns texting on (REQ-36-12).
     'sms' => [
-        'redirect' => env('APP_ENV') !== 'production',
-        'redirect_to' => env('SMS_REDIRECT_TO'),
+        'send' => env('APP_ENV') !== 'local',
     ],
 
     'slack' => [

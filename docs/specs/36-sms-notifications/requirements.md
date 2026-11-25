@@ -12,6 +12,8 @@ with a number from another country is told in-app and by email, not texted.
 - **US-36-2** As a requester living abroad, I want to give my own country's mobile number, even
   though only Philippine numbers are texted.
 - **US-36-3** As the Registrar's Office, I want texts sent as cheaply as possible.
+- **US-36-4** As the Admin, I want to turn texting on or off and see the credits left, so that I
+  control what it costs.
 
 ## Acceptance criteria
 
@@ -41,20 +43,29 @@ with a number from another country is told in-app and by email, not texted.
 
 ### Sending
 - **REQ-36-07** THE SYSTEM SHALL send texts through IPROG SMS. WHILE its key is not set THE
-  SYSTEM SHALL write its texts to the log instead, like mail (so local and
-  staging cost nothing until keys are set). *(IPROG instead of PhilSMS: user's decision, 2026-11-25,
+  SYSTEM SHALL write its texts to the log instead, like mail. *(IPROG instead of PhilSMS: user's decision, 2026-11-25,
   since PhilSMS no longer registers sender names for academic projects; IPROG accepts capstone
   teams. The international provider, Telnyx, was removed the same day: user's decision.)*
 - **REQ-36-08** A text SHALL start with "[ACTION REQUIRED]", name the reference number and say what
   happened; an online requester's also links to their request page. It SHALL be kept short to fit in as few SMS parts as possible. *(No test: wording.)*
 - **REQ-36-09** A text that fails to send (the provider refuses it or cannot be reached) SHALL be
   logged and SHALL NOT stop the in-app notification or the email (REQ-06-10).
-- **REQ-36-11** Outside production THE SYSTEM SHALL send every text to the one number set as
-  `SMS_REDIRECT_TO` instead of the requester's, and only write it to the log when none is set, since
-  demo requesters have made-up numbers that may belong to real people (like mail, which is
-  redirected locally).
+- **REQ-36-11** On a developer's machine (`local`) THE SYSTEM SHALL only write texts to the log;
+  staging and production send them. *(User's decision, 2026-11-25: replaces `SMS_REDIRECT_TO`.)*
 - **REQ-36-10** THE test suite SHALL check the IPROG SMS key set in the environment's `.env`
   against IPROG itself, without sending a text (its credit balance), and SHALL skip the check when
   the key is not set, so it costs nothing and
   runs without keys on CI. Every other SMS test fakes the providers. *(User's decision, 2026-11-25:
   replaces `app:test-sms`, which sent a paid text.)*
+
+### Administration
+- **REQ-36-12** THE Admin SHALL have an SMS page under Administration with a switch that turns
+  texting on or off for the whole system. It SHALL be off until the Admin turns it on, in every
+  environment, so a new or reset database (including staging's demo requesters, whose made-up
+  numbers may be real) texts no one. WHILE it is off THE SYSTEM SHALL text no one and only write
+  the texts to the log; in-app notices and emails are unaffected. Each change SHALL be recorded in
+  the activity log. Only the Admin sees the page. *(User's request, 2026-11-25; off by default:
+  Claude's suggestion, for the demo data.)*
+- **REQ-36-13** THE SMS page SHALL show the IPROG SMS credit balance, fetched from IPROG when the
+  page opens and on request, without delaying the page; WHEN the key is not set or IPROG cannot be
+  reached THE page SHALL say so instead. *(User's request, 2026-11-25.)*

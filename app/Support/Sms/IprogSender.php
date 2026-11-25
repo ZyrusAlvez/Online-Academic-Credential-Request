@@ -38,6 +38,28 @@ class IprogSender implements SmsSender
         }
     }
 
+    /**
+     * The account's credit balance (REQ-36-13). Free: no text is sent.
+     *
+     * @throws SmsFailed when IPROG refuses the token or cannot be reached
+     */
+    public function credits(): float
+    {
+        try {
+            $response = Http::acceptJson()->timeout(20)->get(self::CREDITS_URL, ['api_token' => $this->token]);
+        } catch (ConnectionException $e) {
+            throw new SmsFailed("IPROG SMS could not be reached: {$e->getMessage()}", previous: $e);
+        }
+
+        $balance = $response->json('data.load_balance');
+
+        if ($response->json('status') !== 'success' || ! is_numeric($balance)) {
+            throw new SmsFailed('IPROG SMS refused the balance check: '.($response->json('message') ?? "HTTP {$response->status()}"));
+        }
+
+        return (float) $balance;
+    }
+
     public function name(): string
     {
         return 'IPROG SMS';
