@@ -931,12 +931,12 @@ not delivered. Copy the API token.
 
 ```dotenv
 IPROG_API_TOKEN=<token>
-SMS_REDIRECT_TO=+639171234567   # staging only: every text goes to this number
 ```
 
-Outside production every text goes to `SMS_REDIRECT_TO` instead (demo requesters have made-up
-numbers that may be real), or only to the log when it is blank. Production texts the requesters.
-Run `php artisan optimize`.
+Run `php artisan optimize`. Staging and production send real texts, but only once the Admin turns
+texting on in **Administration → SMS**, which also shows the credits left. It is off on a new or
+reset database. Keep it off on staging unless you are testing: its demo requesters have made-up
+numbers that may belong to real people. A developer's machine never sends.
 
 To check the token without sending (or paying for) a text, run the key check on a development
 machine with the same token in its `.env` (REQ-36-10):

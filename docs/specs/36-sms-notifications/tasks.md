@@ -11,8 +11,8 @@
 - [x] IPROG SMS instead of PhilSMS (REQ-36-07)
 - [x] Key checks against the providers instead of `app:test-sms` (REQ-36-10)
 - [x] Philippine numbers only: Telnyx removed (REQ-36-06, 07, 10)
-- [ ] Local only logs; `SMS_REDIRECT_TO` removed (REQ-36-11)
-- [ ] `settings` table, `Setting`, `SetSmsEnabled`, `SettingPolicy` (REQ-36-12)
-- [ ] Admin SMS page: switch and IPROG balance (REQ-36-12, 13); data dictionary
+- [x] Local only logs; `SMS_REDIRECT_TO` removed (REQ-36-11)
+- [x] `settings` table, `Setting`, `SetSmsEnabled`, `SettingPolicy` (REQ-36-12)
+- [x] Admin SMS page: switch and IPROG balance (REQ-36-12, 13); data dictionary
 - [x] Pest tests REQ-36-01, 02, 04..07, 09..11
 - [x] `composer qa`

@@ -7,6 +7,7 @@ use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Events\RequestEventRecorded;
 use App\Models\CredentialRequest;
+use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\Channels\SmsChannel;
 use App\Notifications\RequestActivity;
@@ -58,9 +59,11 @@ function requireVisit(CredentialRequest $request): void
     workflow()->requireOfficeVisit($request, test()->registrar, ['Form 137'], 'Bring the original.');
 }
 
+/** The key set and texting turned on by the Admin (REQ-36-12). */
 function withIprog(): void
 {
     config(['services.iprog.token' => 'test-token']);
+    Setting::set(Setting::SMS_ENABLED, true);
 }
 
 test('REQ-36-02 11-digit Philippine numbers become E.164; anything else is left as it is', function () {
@@ -184,18 +187,29 @@ test('REQ-36-09 a text the provider refuses is logged and the in-app notificatio
     Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => str_contains($message, 'Insufficient credit'))->once();
 });
 
-test('REQ-36-11 outside production every text goes to SMS_REDIRECT_TO, or only to the log', function () {
+test('REQ-36-11 a developer\'s machine only logs texts, even with the key set and texting on', function () {
     withIprog();
-    Http::fake([IprogSender::URL => Http::response(['status' => 200, 'message_id' => 'iSms-1'])]);
-    config(['services.sms.redirect' => true, 'services.sms.redirect_to' => '+639990000000']);
+    config(['services.sms.send' => false]);   // what APP_ENV=local sets
+    Http::fake();
+    Log::spy();
 
     requireVisit(submitRequest($this->owner, $this->org->tor));
 
-    Http::assertSentCount(1);
-    Http::assertSent(fn (Request $sent) => $sent['phone_number'] === '639990000000');
+    Http::assertNothingSent();
+    Log::shouldHaveReceived('info')->withArgs(fn (string $message) => str_contains($message, 'SMS to +639171234567'))->once();
+});
 
-    config(['services.sms.redirect_to' => null]);
-    requireVisit(submitRequest(requester($this->org->ccs), $this->org->tor));
+test('REQ-36-12 while the Admin has texting off, no one is texted; in-app notices and emails still go out', function () {
+    withIprog();
+    Setting::set(Setting::SMS_ENABLED, false);
+    Http::fake();
+    Log::spy();
+    $sent = collect();
+    Event::listen(NotificationSent::class, fn (NotificationSent $event) => $sent->push($event->channel));
 
-    Http::assertSentCount(1);
+    requireVisit(submitRequest($this->owner, $this->org->tor));
+
+    Http::assertNothingSent();
+    expect($sent->all())->toContain('database', 'mail');
+    Log::shouldHaveReceived('info')->withArgs(fn (string $message) => str_contains($message, 'the Admin has turned texting off'))->once();
 });
