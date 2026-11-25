@@ -40,13 +40,15 @@ without its leading 0 (REQ-36-02). `down()` turns `+639…` back into `09…`. N
 - `IprogSender` (Laravel `Http`, 10 s timeout; fails on any reply whose `status` isn't 200),
   `LogSmsSender` (writes to the log).
 - `App\Support\Sms\SmsRouter::sender(): SmsSender`: IPROG, or the log sender when its key is
-  blank. Bound in the container, so tests fake it with `Http`.
+  blank, the environment is `local` (`services.sms.send`, REQ-36-11) or the Admin turned texting
+  off (REQ-36-12). `iprog(): ?IprogSender` gives the balance check the real provider whatever the
+  switch. Bound in the container, so tests fake it with `Http`.
 - `App\Notifications\Channels\SmsChannel` (used by class name in `via()`): reads
   `$notifiable->routeNotificationFor('sms')` (the user's `contact_number`) and
   `$notification->toSms($notifiable)`; catches any failure, logs it as a warning and returns, so the
   other channels still go out (REQ-36-09).
 - Config: `services.iprog.token`,
-  `services.sms.{redirect,redirect_to}` (REQ-36-11: `redirect` is on outside production);
+  `services.sms.send` (REQ-36-11: off when `APP_ENV` is `local`);
   `.env.example` lists them.
 
 ## Notifications
@@ -67,3 +69,15 @@ without its leading 0 (REQ-36-02). `down()` turns `+639…` back into `09…`. N
 No command sends a test text (REQ-36-10). `tests/Feature/Notifications/SmsKeysTest.php` reads the
 key from the environment (the `.env`, not the config, which `tests/TestCase.php` blanks), lets that
 one request through, and checks IPROG's free credit-balance endpoint; it is skipped without a key. Deployment guide: the keys, per environment.
+
+## Administration (REQ-36-12, 13)
+
+- Migration `2026_11_25_000001_create_settings_table`: `settings` (`key` varchar(64) primary key,
+  `value` json null, timestamps). System-wide switches the Admin sets; a missing row is the
+  default. No seeder rows.
+- `App\Models\Setting` (`LogsActivity`, category Setup, noun "setting", label from
+  `Setting::LABELS`): `Setting::enabled(string $key)`; `SMS_ENABLED = 'sms_enabled'`, default off.
+- `App\Actions\Settings\SetSmsEnabled::handle(bool)`; `SettingPolicy::update` (Admin only).
+- `IprogSender::credits(): float` (`GET /api/v1/account/sms_credits`), throwing `SmsFailed`.
+- `App\Livewire\Admin\Sms\Index` at `/admin/sms` ("SMS" under Administration): the switch, and
+  the balance loaded after the page with `wire:init` (`loadBalance()`), with a refresh button.
