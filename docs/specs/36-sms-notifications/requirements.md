@@ -38,9 +38,11 @@ contact number can now be from any country.
 
 ### Sending
 - **REQ-36-07** THE SYSTEM SHALL send a text to a +63 number through the Philippine provider
-  (PhilSMS) and any other number through the international provider (Telnyx). WHILE a provider's
+  (IPROG SMS) and any other number through the international provider (Telnyx). WHILE a provider's
   keys are not set THE SYSTEM SHALL write its texts to the log instead, like mail (so local and
-  staging cost nothing until keys are set).
+  staging cost nothing until keys are set). *(IPROG instead of PhilSMS: user's decision, 2026-11-25,
+  since PhilSMS no longer registers sender names for academic projects; IPROG accepts capstone
+  teams.)*
 - **REQ-36-08** A text SHALL start with "[ACTION REQUIRED]", name the reference number and say what
   happened; an online requester's also links to their request page. It SHALL be kept short to fit in as few SMS parts as possible. *(No test: wording.)*
 - **REQ-36-09** A text that fails to send (the provider refuses it or cannot be reached) SHALL be
@@ -49,5 +51,8 @@ contact number can now be from any country.
   `SMS_REDIRECT_TO` instead of the requester's, and only write it to the log when none is set, since
   demo requesters have made-up numbers that may belong to real people (like mail, which is
   redirected locally).
-- **REQ-36-10** `php artisan app:test-sms <number>` SHALL send one text right away, through the
-  provider that number would use, to check an environment's settings.
+- **REQ-36-10** THE test suite SHALL check the provider keys set in the environment's `.env`
+  against the providers themselves, without sending a text (IPROG's credit balance, Telnyx's balance
+  and messaging profile), and SHALL skip a provider whose keys are not set, so it costs nothing and
+  runs without keys on CI. Every other SMS test fakes the providers. *(User's decision, 2026-11-25:
+  replaces `app:test-sms`, which sent a paid text.)*

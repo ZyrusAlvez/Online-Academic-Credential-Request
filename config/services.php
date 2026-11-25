@@ -35,11 +35,11 @@ return [
         'redirect' => '/auth/google/callback',
     ],
 
-    // Text messages to requesters (spec 36): PhilSMS for +63 numbers, Telnyx for the rest. While a
+    // Text messages to requesters (spec 36): IPROG SMS for +63 numbers, Telnyx for the rest. While a
     // provider's key is blank, its texts are written to the log instead (REQ-36-07).
-    'philsms' => [
-        'token' => env('PHILSMS_TOKEN'),
-        'sender_id' => env('PHILSMS_SENDER_ID', 'PhilSMS'),
+    // The sender name is the account's approved one, set on IPROG's dashboard.
+    'iprog' => [
+        'token' => env('IPROG_API_TOKEN'),
     ],
 
     // Outside production every text goes to this one number instead, or only to the log when it is

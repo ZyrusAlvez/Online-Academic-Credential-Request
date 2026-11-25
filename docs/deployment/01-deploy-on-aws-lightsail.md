@@ -919,33 +919,36 @@ fill its disk. Each environment writes to its own folder in the bucket (`staging
 > `local/` folder and can't touch staging's or production's receipts. Keeping laptops on
 > `RECEIPTS_DISK=local` is still simpler: no development files in the shared bucket.
 
-### 13.3 Text messages (PhilSMS and Telnyx)
+### 13.3 Text messages (IPROG SMS and Telnyx)
 
 Requesters are texted their [ACTION REQUIRED] notices (spec 36): +63 numbers through
-[PhilSMS](https://app.philsms.com), everything else through [Telnyx](https://telnyx.com). Until a
+[IPROG SMS](https://www.iprogsms.com), everything else through [Telnyx](https://telnyx.com). Until a
 provider's key is set, its texts are written to `storage/logs/laravel.log`.
 
-- **PhilSMS:** sign up, top up, and request a sender name (e.g. `UPHSL`, at most 11 characters;
-  approval takes a few days). Copy the API token from *Developers*.
-- **Telnyx:** sign up, top up, create a *Messaging Profile* and enable the countries you need; use
-  an alphanumeric sender ID (with the profile's ID) or buy a number. Copy an API key.
+- **IPROG SMS:** sign up, verify the account, top up, and request a sender name (header) and footer
+  on the dashboard; approval takes about 15–20 days. Until it is approved, texts to Smart and TNT
+  numbers are not delivered. Copy the API token.
+- **Telnyx:** sign up, top up, and create a *Messaging Profile*: allow only the countries you need,
+  leave the webhooks blank, and add an alphanumeric sender (e.g. `UPHSLCreds`). Copy the profile's
+  ID and create an API key.
 
 ```dotenv
-PHILSMS_TOKEN=<token>
-PHILSMS_SENDER_ID=UPHSL
+IPROG_API_TOKEN=<token>
 TELNYX_API_KEY=<key>
-TELNYX_FROM=UPHSL                       # or a Telnyx number, +1…
-TELNYX_MESSAGING_PROFILE_ID=<profile id> # needed with an alphanumeric sender
+TELNYX_FROM=UPHSLCreds                  # the alphanumeric sender, or a Telnyx number
+TELNYX_MESSAGING_PROFILE_ID=<profile id>
 SMS_REDIRECT_TO=+639171234567           # staging only: every text goes to this number
 ```
 
 Outside production every text goes to `SMS_REDIRECT_TO` instead (demo requesters have made-up
 numbers that may be real), or only to the log when it is blank. Production texts the requesters.
-Check each provider, then run `php artisan optimize`:
+Run `php artisan optimize`.
+
+To check the keys without sending (or paying for) a text, run the key checks on a development
+machine with the same keys in its `.env` (REQ-36-10):
 
 ```bash
-php artisan app:test-sms +639171234567   # PhilSMS
-php artisan app:test-sms +16502530000    # Telnyx (use a real number you own)
+php artisan test --filter=SmsKeysTest   # asks each provider for its balance; skipped without keys
 ```
 
 ---

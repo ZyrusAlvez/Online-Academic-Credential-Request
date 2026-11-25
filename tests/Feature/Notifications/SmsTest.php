@@ -12,7 +12,7 @@ use App\Notifications\Channels\SmsChannel;
 use App\Notifications\RequestActivity;
 use App\Notifications\WalkInActionText;
 use App\Services\RequestWorkflow;
-use App\Support\Sms\PhilSmsSender;
+use App\Support\Sms\IprogSender;
 use App\Support\Sms\TelnyxSender;
 use Illuminate\Http\Client\Request;
 use Illuminate\Notifications\AnonymousNotifiable;
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 /*
-| Spec 36: [ACTION REQUIRED] notices are texted to the requester, online or walk-in, through PhilSMS
+| Spec 36: [ACTION REQUIRED] notices are texted to the requester, online or walk-in, through IPROG SMS
 | for +63 numbers and Telnyx for the rest. tests/TestCase.php blanks the keys and stops stray HTTP
 | calls.
 */
@@ -59,9 +59,9 @@ function requireVisit(CredentialRequest $request): void
     workflow()->requireOfficeVisit($request, test()->registrar, ['Form 137'], 'Bring the original.');
 }
 
-function withPhilSms(): void
+function withIprog(): void
 {
-    config(['services.philsms.token' => 'test-token', 'services.philsms.sender_id' => 'UPHSL']);
+    config(['services.iprog.token' => 'test-token']);
 }
 
 function withTelnyx(): void
@@ -129,10 +129,10 @@ test('REQ-36-06 a requester with no contact number is not texted', function () {
     expect(textedEvents($this->owner))->toBe([]);
 });
 
-test('REQ-36-07 +63 numbers go through PhilSMS and others through Telnyx', function () {
-    withPhilSms();
+test('REQ-36-07 +63 numbers go through IPROG SMS and others through Telnyx', function () {
+    withIprog();
     withTelnyx();
-    Http::fake([PhilSmsSender::URL => Http::response(['status' => 'success', 'data' => []]), TelnyxSender::URL => Http::response(['data' => ['id' => 'm1']])]);
+    Http::fake([IprogSender::URL => Http::response(['status' => 200, 'message_id' => 'iSms-1']), TelnyxSender::URL => Http::response(['data' => ['id' => 'm1']])]);
 
     $request = submitRequest($this->owner, $this->org->tor);
     requireVisit($request);
@@ -141,11 +141,9 @@ test('REQ-36-07 +63 numbers go through PhilSMS and others through Telnyx', funct
     requireVisit(submitRequest($abroad, $this->org->tor));
 
     Http::assertSentCount(2);
-    Http::assertSent(fn (Request $sent) => $sent->url() === PhilSmsSender::URL
-        && $sent->hasHeader('Authorization', 'Bearer test-token')
-        && $sent['recipient'] === '639171234567'
-        && $sent['sender_id'] === 'UPHSL'
-        && $sent['type'] === 'plain'
+    Http::assertSent(fn (Request $sent) => $sent->url() === IprogSender::URL
+        && $sent['api_token'] === 'test-token'
+        && $sent['phone_number'] === '639171234567'
         && str_starts_with((string) $sent['message'], "UPHSL: [ACTION REQUIRED] {$request->reference_no}: ")
         && str_ends_with((string) $sent['message'], route('student.requests.show', $request)));
     Http::assertSent(fn (Request $sent) => $sent->url() === TelnyxSender::URL
@@ -166,8 +164,8 @@ test('REQ-36-07 without a provider\'s keys its texts are only logged', function 
 });
 
 test('REQ-36-09 a text the provider refuses is logged and the in-app notification and email still go out', function () {
-    withPhilSms();
-    Http::fake([PhilSmsSender::URL => Http::response(['status' => 'error', 'message' => 'Insufficient credit'])]);
+    withIprog();
+    Http::fake([IprogSender::URL => Http::response(['status' => 500, 'message' => 'Insufficient credit'])]);
     Log::spy();
     $request = submitRequest($this->owner, $this->org->tor);
     $sent = collect();
@@ -181,28 +179,17 @@ test('REQ-36-09 a text the provider refuses is logged and the in-app notificatio
 });
 
 test('REQ-36-11 outside production every text goes to SMS_REDIRECT_TO, or only to the log', function () {
-    withPhilSms();
-    Http::fake([PhilSmsSender::URL => Http::response(['status' => 'success'])]);
+    withIprog();
+    Http::fake([IprogSender::URL => Http::response(['status' => 200, 'message_id' => 'iSms-1'])]);
     config(['services.sms.redirect' => true, 'services.sms.redirect_to' => '+639990000000']);
 
     requireVisit(submitRequest($this->owner, $this->org->tor));
 
     Http::assertSentCount(1);
-    Http::assertSent(fn (Request $sent) => $sent['recipient'] === '639990000000');
+    Http::assertSent(fn (Request $sent) => $sent['phone_number'] === '639990000000');
 
     config(['services.sms.redirect_to' => null]);
     requireVisit(submitRequest(requester($this->org->ccs), $this->org->tor));
 
-    Http::assertSentCount(1);
-});
-
-test('REQ-36-10 app:test-sms texts the number through its provider', function () {
-    withTelnyx();
-    Http::fake([TelnyxSender::URL => Http::response(['data' => ['id' => 'm1']])]);
-
-    $this->artisan('app:test-sms', ['number' => '+16502530000'])->expectsOutputToContain('provider: Telnyx')->assertSuccessful();
-    Http::assertSent(fn (Request $sent) => $sent['to'] === '+16502530000');
-
-    $this->artisan('app:test-sms', ['number' => '09171234567'])->assertFailed();
     Http::assertSentCount(1);
 });

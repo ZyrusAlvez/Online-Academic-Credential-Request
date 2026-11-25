@@ -7,6 +7,8 @@
 - [x] Demo seeders and factories make E.164 numbers
 - [x] `SmsSender`, PhilSMS / Telnyx / log senders, `SmsRouter`, `SmsChannel`, config and `.env.example`
 - [x] `RequestActivity` texts [ACTION REQUIRED] notices; `User::wantsSms()`; `WalkInActionText` for unlinked walk-ins; `SMS_REDIRECT_TO`
-- [x] `app:test-sms`; deployment guide
+- [x] Deployment guide
+- [x] IPROG SMS instead of PhilSMS (REQ-36-07)
+- [x] Key checks against the providers instead of `app:test-sms` (REQ-36-10)
 - [x] Pest tests REQ-36-01, 02, 04..07, 09..11
 - [x] `composer qa`
