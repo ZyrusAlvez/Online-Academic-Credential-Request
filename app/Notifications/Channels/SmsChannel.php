@@ -11,8 +11,7 @@ use Throwable;
 
 /**
  * The SMS notification channel (spec 36): the notification's `toSms()` text to the requester's
- * number (an account's, or a walk-in request's through an on-demand notifiable), through the
- * provider for that number. A failure is logged and goes no further, so the in-app notification
+ * number (an account's, or a walk-in request's through an on-demand notifiable), through IPROG SMS. A failure is logged and goes no further, so the in-app notification
  * and the email still go out (REQ-36-09).
  */
 class SmsChannel
@@ -38,7 +37,7 @@ class SmsChannel
             return;
         }
 
-        $sender = $this->router->for($to);
+        $sender = $this->router->sender();
 
         try {
             $sender->send($to, $text);
