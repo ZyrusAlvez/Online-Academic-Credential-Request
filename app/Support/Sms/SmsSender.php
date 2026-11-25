@@ -14,6 +14,6 @@ interface SmsSender
      */
     public function send(string $to, string $text): void;
 
-    /** The provider's name, for the log and `app:test-sms`. */
+    /** The provider's name, for the log. */
     public function name(): string;
 }

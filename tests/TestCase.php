@@ -22,7 +22,7 @@ abstract class TestCase extends BaseTestCase
         // Never text anyone from a test, whatever keys the local .env holds (spec 36); tests that
         // check a provider set its key and fake the HTTP call.
         config([
-            'services.philsms.token' => null,
+            'services.iprog.token' => null,
             'services.telnyx.key' => null,
             'services.sms.redirect' => false,
         ]);

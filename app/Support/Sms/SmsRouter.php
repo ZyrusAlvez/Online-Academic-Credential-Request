@@ -5,23 +5,21 @@ namespace App\Support\Sms;
 use App\Support\PhoneNumbers;
 
 /**
- * Picks the cheapest provider for a number (REQ-36-07): PhilSMS for +63, Telnyx for the rest, and
+ * Picks the cheapest provider for a number (REQ-36-07): IPROG SMS for +63, Telnyx for the rest, and
  * the log while that provider's keys are not set.
  */
 class SmsRouter
 {
     public function for(string $to): SmsSender
     {
-        return PhoneNumbers::isPhilippine($to) ? $this->philSms() : $this->telnyx();
+        return PhoneNumbers::isPhilippine($to) ? $this->iprog() : $this->telnyx();
     }
 
-    private function philSms(): SmsSender
+    private function iprog(): SmsSender
     {
-        $token = (string) config('services.philsms.token');
+        $token = (string) config('services.iprog.token');
 
-        return filled($token)
-            ? new PhilSmsSender($token, (string) config('services.philsms.sender_id'))
-            : new LogSmsSender('PhilSMS');
+        return filled($token) ? new IprogSender($token) : new LogSmsSender('IPROG SMS');
     }
 
     private function telnyx(): SmsSender
