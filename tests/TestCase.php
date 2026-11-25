@@ -19,11 +19,10 @@ abstract class TestCase extends BaseTestCase
         // them inline so they can be asserted right after the action.
         config(['queue.default' => 'sync']);
 
-        // Never text anyone from a test, whatever keys the local .env holds (spec 36); tests that
-        // check a provider set its key and fake the HTTP call.
+        // Never text anyone from a test, whatever key the local .env holds (spec 36); tests that
+        // check the provider set a key and fake the HTTP call.
         config([
             'services.iprog.token' => null,
-            'services.telnyx.key' => null,
             'services.sms.redirect' => false,
         ]);
         Http::preventStrayRequests();

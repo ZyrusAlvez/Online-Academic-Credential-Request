@@ -10,6 +10,7 @@ use App\Enums\RequestType;
 use App\Enums\Role;
 use App\Enums\Sex;
 use App\Models\Concerns\LogsActivity;
+use App\Support\PhoneNumbers;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -141,11 +142,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Whether a notice is texted (REQ-36-04, 06): only [ACTION REQUIRED] ones, to requesters with a
-     * contact number, whatever their email setting.
+     * Philippine number, whatever their email setting.
      */
     public function wantsSms(bool $actionRequired): bool
     {
-        return $actionRequired && $this->hasRole(Role::Student) && filled($this->contact_number);
+        return $actionRequired && $this->hasRole(Role::Student) && PhoneNumbers::isTextable($this->contact_number);
     }
 
     /** The number texts go to, in E.164 form (REQ-36-01). */

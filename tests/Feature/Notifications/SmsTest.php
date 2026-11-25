@@ -13,7 +13,6 @@ use App\Notifications\RequestActivity;
 use App\Notifications\WalkInActionText;
 use App\Services\RequestWorkflow;
 use App\Support\Sms\IprogSender;
-use App\Support\Sms\TelnyxSender;
 use Illuminate\Http\Client\Request;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\Events\NotificationSent;
@@ -25,8 +24,8 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 /*
-| Spec 36: [ACTION REQUIRED] notices are texted to the requester, online or walk-in, through IPROG SMS
-| for +63 numbers and Telnyx for the rest. tests/TestCase.php blanks the keys and stops stray HTTP
+| Spec 36: [ACTION REQUIRED] notices are texted to the requester, online or walk-in, at a Philippine
+| number, through IPROG SMS. tests/TestCase.php blanks the keys and stops stray HTTP
 | calls.
 */
 
@@ -62,11 +61,6 @@ function requireVisit(CredentialRequest $request): void
 function withIprog(): void
 {
     config(['services.iprog.token' => 'test-token']);
-}
-
-function withTelnyx(): void
-{
-    config(['services.telnyx.key' => 'test-key', 'services.telnyx.from' => 'UPHSL', 'services.telnyx.messaging_profile_id' => 'profile-1']);
 }
 
 test('REQ-36-02 11-digit Philippine numbers become E.164; anything else is left as it is', function () {
@@ -129,28 +123,40 @@ test('REQ-36-06 a requester with no contact number is not texted', function () {
     expect(textedEvents($this->owner))->toBe([]);
 });
 
-test('REQ-36-07 +63 numbers go through IPROG SMS and others through Telnyx', function () {
+test('REQ-36-07 texts go through IPROG SMS', function () {
     withIprog();
-    withTelnyx();
-    Http::fake([IprogSender::URL => Http::response(['status' => 200, 'message_id' => 'iSms-1']), TelnyxSender::URL => Http::response(['data' => ['id' => 'm1']])]);
+    Http::fake([IprogSender::URL => Http::response(['status' => 200, 'message_id' => 'iSms-1'])]);
 
     $request = submitRequest($this->owner, $this->org->tor);
     requireVisit($request);
-    $abroad = requester($this->org->ccs);
-    $abroad->forceFill(['contact_number' => '+16502530000'])->save();
-    requireVisit(submitRequest($abroad, $this->org->tor));
 
-    Http::assertSentCount(2);
+    Http::assertSentCount(1);
     Http::assertSent(fn (Request $sent) => $sent->url() === IprogSender::URL
         && $sent['api_token'] === 'test-token'
         && $sent['phone_number'] === '639171234567'
         && str_starts_with((string) $sent['message'], "UPHSL: [ACTION REQUIRED] {$request->reference_no}: ")
         && str_ends_with((string) $sent['message'], route('student.requests.show', $request)));
-    Http::assertSent(fn (Request $sent) => $sent->url() === TelnyxSender::URL
-        && $sent->hasHeader('Authorization', 'Bearer test-key')
-        && $sent['to'] === '+16502530000'
-        && $sent['from'] === 'UPHSL'
-        && $sent['messaging_profile_id'] === 'profile-1');
+});
+
+test('REQ-36-06 a number from outside the Philippines is not texted, online or walk-in', function () {
+    Notification::fake();
+    $this->owner->forceFill(['contact_number' => '+16502530000'])->save();
+
+    requireVisit(submitRequest($this->owner, $this->org->tor));
+
+    $walkIn = workflow()->submitWalkIn($this->registrar, ['credential_type_id' => $this->org->tor->id, 'purpose' => 'Employment', 'receiving_institution' => null], [
+        'first_name' => 'Ana', 'middle_name' => null, 'last_name' => 'Reyes', 'sex' => 'female', 'email' => 'ana@example.com',
+        'contact_number' => '+16502530001', 'academic_status' => AcademicStatus::Graduate->value, 'college_id' => $this->org->ccs->id,
+        'program' => 'BS Computer Science', 'student_number' => null, 'attended_from' => 2018, 'attended_to' => 2022,
+    ]);
+    RequestEventRecorded::dispatch($walkIn->events()->create([
+        'actor_id' => $this->registrar->id, 'type' => RequestEventType::ReadyForRelease,
+        'from_status' => RequestStatus::InProgress, 'to_status' => RequestStatus::ReadyForRelease,
+    ]));
+
+    expect(textedEvents($this->owner))->toBe([]);
+    Notification::assertSentTo($this->owner, RequestActivity::class);   // still told in-app and by email
+    Notification::assertSentOnDemandTimes(WalkInActionText::class, 0);
 });
 
 test('REQ-36-07 without a provider\'s keys its texts are only logged', function () {

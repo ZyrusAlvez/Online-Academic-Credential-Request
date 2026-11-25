@@ -14,6 +14,7 @@ use App\Notifications\Channels\SmsChannel;
 use App\Notifications\RequestActivity;
 use App\Notifications\WalkInActionText;
 use App\Support\OfficeStaff;
+use App\Support\PhoneNumbers;
 use App\Support\RequestRegistrars;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Notification;
@@ -98,7 +99,7 @@ class SendRequestNotifications
         // A walk-in request not linked to an account yet: no in-app notice or email (REQ-26-09),
         // but what the client must act on is texted to the request's number (REQ-36-05).
         if ($owner === null) {
-            if (filled($request->contact_number) && $event->type->requiresRequesterAction($request)) {
+            if (PhoneNumbers::isTextable($request->contact_number) && $event->type->requiresRequesterAction($request)) {
                 Notification::route(SmsChannel::class, $request->contact_number)->notify(new WalkInActionText($event));
             }
 

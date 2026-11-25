@@ -10,5 +10,6 @@
 - [x] Deployment guide
 - [x] IPROG SMS instead of PhilSMS (REQ-36-07)
 - [x] Key checks against the providers instead of `app:test-sms` (REQ-36-10)
+- [x] Philippine numbers only: Telnyx removed (REQ-36-06, 07, 10)
 - [x] Pest tests REQ-36-01, 02, 04..07, 09..11
 - [x] `composer qa`

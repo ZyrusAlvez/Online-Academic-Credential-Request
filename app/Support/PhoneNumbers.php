@@ -82,10 +82,10 @@ class PhoneNumbers
         return self::parse($saved)?->formatInternational() ?? $saved;
     }
 
-    /** Whether a saved number is a Philippine one, sent through the Philippine provider (REQ-36-07). */
-    public static function isPhilippine(string $e164): bool
+    /** Whether a saved number can be texted: only Philippine (+63) numbers are (REQ-36-06). */
+    public static function isTextable(?string $saved): bool
     {
-        return str_starts_with($e164, '+63');
+        return $saved !== null && str_starts_with($saved, '+63');
     }
 
     private static function parse(?string $saved): ?PhoneNumber

@@ -35,8 +35,8 @@ return [
         'redirect' => '/auth/google/callback',
     ],
 
-    // Text messages to requesters (spec 36): IPROG SMS for +63 numbers, Telnyx for the rest. While a
-    // provider's key is blank, its texts are written to the log instead (REQ-36-07).
+    // Text messages to requesters (spec 36), to Philippine numbers only, through IPROG SMS. While the
+    // key is blank, texts are written to the log instead (REQ-36-07).
     // The sender name is the account's approved one, set on IPROG's dashboard.
     'iprog' => [
         'token' => env('IPROG_API_TOKEN'),
@@ -47,12 +47,6 @@ return [
     'sms' => [
         'redirect' => env('APP_ENV') !== 'production',
         'redirect_to' => env('SMS_REDIRECT_TO'),
-    ],
-
-    'telnyx' => [
-        'key' => env('TELNYX_API_KEY'),
-        'from' => env('TELNYX_FROM', 'UPHSL'),
-        'messaging_profile_id' => env('TELNYX_MESSAGING_PROFILE_ID'),
     ],
 
     'slack' => [

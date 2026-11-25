@@ -919,36 +919,30 @@ fill its disk. Each environment writes to its own folder in the bucket (`staging
 > `local/` folder and can't touch staging's or production's receipts. Keeping laptops on
 > `RECEIPTS_DISK=local` is still simpler: no development files in the shared bucket.
 
-### 13.3 Text messages (IPROG SMS and Telnyx)
+### 13.3 Text messages (IPROG SMS)
 
-Requesters are texted their [ACTION REQUIRED] notices (spec 36): +63 numbers through
-[IPROG SMS](https://www.iprogsms.com), everything else through [Telnyx](https://telnyx.com). Until a
-provider's key is set, its texts are written to `storage/logs/laravel.log`.
+Requesters are texted their [ACTION REQUIRED] notices (spec 36), at Philippine (+63) numbers only,
+through [IPROG SMS](https://www.iprogsms.com). Until the key is set, texts are written to
+`storage/logs/laravel.log`.
 
-- **IPROG SMS:** sign up, verify the account, top up, and request a sender name (header) and footer
-  on the dashboard; approval takes about 15–20 days. Until it is approved, texts to Smart and TNT
-  numbers are not delivered. Copy the API token.
-- **Telnyx:** sign up, top up, and create a *Messaging Profile*: allow only the countries you need,
-  leave the webhooks blank, and add an alphanumeric sender (e.g. `UPHSLCreds`). Copy the profile's
-  ID and create an API key.
+Sign up, verify the account, top up, and request a sender name (header) and footer on the
+dashboard; approval takes about 15–20 days. Until it is approved, texts to Smart and TNT numbers are
+not delivered. Copy the API token.
 
 ```dotenv
 IPROG_API_TOKEN=<token>
-TELNYX_API_KEY=<key>
-TELNYX_FROM=UPHSLCreds                  # the alphanumeric sender, or a Telnyx number
-TELNYX_MESSAGING_PROFILE_ID=<profile id>
-SMS_REDIRECT_TO=+639171234567           # staging only: every text goes to this number
+SMS_REDIRECT_TO=+639171234567   # staging only: every text goes to this number
 ```
 
 Outside production every text goes to `SMS_REDIRECT_TO` instead (demo requesters have made-up
 numbers that may be real), or only to the log when it is blank. Production texts the requesters.
 Run `php artisan optimize`.
 
-To check the keys without sending (or paying for) a text, run the key checks on a development
-machine with the same keys in its `.env` (REQ-36-10):
+To check the token without sending (or paying for) a text, run the key check on a development
+machine with the same token in its `.env` (REQ-36-10):
 
 ```bash
-php artisan test --filter=SmsKeysTest   # asks each provider for its balance; skipped without keys
+php artisan test --filter=SmsKeysTest   # asks IPROG for the credit balance; skipped without a token
 ```
 
 ---
