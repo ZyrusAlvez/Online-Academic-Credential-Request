@@ -14,6 +14,10 @@
             @foreach ($statuses as $option)
                 <flux:select.option :value="$option->value">{{ $option->label() }}</flux:select.option>
             @endforeach
+            {{-- REQ-37-04: the Admin's deleted requests, restorable from their record. --}}
+            @if ($isAdmin)
+                <flux:select.option value="deleted">{{ __('Deleted') }}</flux:select.option>
+            @endif
         </flux:select>
         <flux:select wire:model.live="type" :label="__('Credential')" label:sr-only>
             <flux:select.option value="">{{ __('All credentials') }}</flux:select.option>

@@ -119,6 +119,7 @@ class Queue extends Component
         $visits = OfficeVisit::query()
             ->whereKey(array_map(intval(...), $this->selected))
             ->where('department_id', $actor->department_id)
+            ->whereHas('credentialRequest')   // not a deleted request's (REQ-37-02)
             ->with(['department', 'step', 'credentialRequest'])
             ->get();
 

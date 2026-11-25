@@ -31,6 +31,11 @@ class CredentialRequestPolicy
      */
     public function view(User $user, CredentialRequest $request): Response
     {
+        // A deleted request is the Admin's alone to see (REQ-37-02, 04).
+        if ($request->trashed()) {
+            return $user->hasRole(Role::Admin) ? Response::allow() : Response::denyAsNotFound();
+        }
+
         $allowed = match ($user->role) {
             Role::Registrar, Role::Admin => true,
             Role::Student => $request->user_id === $user->id,
@@ -111,7 +116,19 @@ class CredentialRequestPolicy
      */
     public function override(User $user, CredentialRequest $request): bool
     {
-        return $user->hasRole(Role::Admin) && OverrideStep::for($request) !== null;
+        return $user->hasRole(Role::Admin) && ! $request->trashed() && OverrideStep::for($request) !== null;
+    }
+
+    /** The Admin deletes any request, in any status (REQ-37-01). */
+    public function delete(User $user, CredentialRequest $request): bool
+    {
+        return $user->hasRole(Role::Admin) && ! $request->trashed();
+    }
+
+    /** The Admin restores a deleted request (REQ-37-05). */
+    public function restore(User $user, CredentialRequest $request): bool
+    {
+        return $user->hasRole(Role::Admin) && $request->trashed();
     }
 
     /**

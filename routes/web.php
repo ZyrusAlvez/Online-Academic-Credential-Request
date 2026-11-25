@@ -80,7 +80,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Records, shared by the Registrar and the Admin (REQ-16-07, REQ-18-06).
     Route::middleware('role:registrar,admin')->group(function () {
         Route::get('records', Registrar\Records\Index::class)->name('records');
-        Route::get('records/{credentialRequest}', Registrar\Records\Show::class)->name('records.show');
+        // The Admin opens a deleted request too (REQ-37-04); the policy hides it from the Registrar.
+        Route::get('records/{credentialRequest}', Registrar\Records\Show::class)->name('records.show')->withTrashed();
     });
 
     // The Admin: dashboard, reports and administration (REQ-18-02, 04).

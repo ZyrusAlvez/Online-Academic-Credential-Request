@@ -65,6 +65,7 @@ class VisitQueue
         return OfficeVisit::query()
             ->where('department_id', $departmentId)
             ->whereIn('status', [VisitStatus::Completed, VisitStatus::Returned, VisitStatus::Bypassed])
+            ->whereHas('credentialRequest')   // not a deleted request's (REQ-37-02)
             ->with([...self::relations(), 'completer:id,first_name,middle_name,last_name,email', 'returnedTo:id,name']);
     }
 

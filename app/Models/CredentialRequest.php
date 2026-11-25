@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
@@ -59,11 +60,14 @@ use Illuminate\Support\Carbon;
  * @property ?Carbon $ready_at
  * @property ?Carbon $released_at
  * @property ?int $processing_working_days
+ * @property ?Carbon $deleted_at set while the Admin has deleted it (spec 37)
+ * @property ?int $deleted_by
+ * @property ?string $deletion_reason
  */
 class CredentialRequest extends Model
 {
     /** @use HasFactory<CredentialRequestFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'credential_type_id',
@@ -271,6 +275,16 @@ class CredentialRequest extends Model
     public function evaluator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'evaluated_by');
+    }
+
+    /**
+     * The Admin who deleted it (spec 37).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function deleter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     /**

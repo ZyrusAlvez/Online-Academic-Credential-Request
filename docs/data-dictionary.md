@@ -209,6 +209,9 @@ One row per credential of an application (specs 04, 05, 11, 27). Status changes 
 | released_at | timestamp | Yes | IX | | |
 | processing_working_days | smallint unsigned | Yes | | | Working days from acceptance to release, frozen at release |
 | cancelled_at, cancel_reason | timestamp, varchar(500) | Yes | | | |
+| deleted_at | timestamp | Yes | IX | | Set while the Admin has deleted it: hidden everywhere but kept (spec 37) |
+| deleted_by | bigint unsigned | Yes | FK → users | | The Admin who deleted it |
+| deletion_reason | varchar(500) | Yes | | | Why |
 | created_at, updated_at | timestamp | Yes | | | |
 
 ## request_checks

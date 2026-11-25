@@ -207,7 +207,8 @@ Every office has the same buttons:
 ## Cross-cutting rules
 
 - Every action writes a `request_events` row (actor, from → to, remarks, time). Events are never
-  edited or deleted. Office visits are never overwritten either.
+  edited or deleted. Office visits are never overwritten either. A request the Admin deletes is
+  only hidden, with its ledger kept, and can be restored (spec 37).
 - Requesters are notified in-app and by email when the request is received, when requirements or
   clarification are needed, when payment instructions are available, when the payment is verified
   and the request accepted, when the credential is ready for release, and when it becomes overdue.

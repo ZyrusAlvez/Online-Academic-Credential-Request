@@ -79,7 +79,8 @@ Source: *Proposed Workflow*, section III-A (registration and identity verificati
   removed: an email change took effect at once, with no confirmation, and locked the user out until
   the new address was verified. The requester's Settings → Profile of spec 15 has no email field.)
 - **REQ-01-13** THE SYSTEM SHALL NOT let users delete their own account (requests form a
-  permanent ledger; the registrar deactivates accounts instead).
+  permanent ledger; the registrar deactivates accounts instead). *(Since spec 37, 2026-11-25: the
+  Admin can delete a request, which hides it but keeps it and its ledger, REQ-37-01..03.)*
 - **REQ-01-14** WHEN a user's name is displayed THE SYSTEM SHALL format it as
   "First M. Last" (middle initial only when a middle name exists).
 

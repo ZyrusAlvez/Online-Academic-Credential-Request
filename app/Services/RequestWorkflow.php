@@ -1522,7 +1522,7 @@ class RequestWorkflow
     private function lockVisit(OfficeVisit $visit, array $allowed): array
     {
         $locked = $this->lock(
-            $visit->credentialRequest()->firstOrFail(),
+            $visit->credentialRequest()->withTrashed()->firstOrFail(),   // lock() refuses a deleted one (REQ-37-02)
             RequestStatus::processing(),
             'This request is not being processed.',
         );
@@ -1547,7 +1547,12 @@ class RequestWorkflow
     private function lock(CredentialRequest $request, array $allowed, string $message): CredentialRequest
     {
         /** @var CredentialRequest $locked */
-        $locked = CredentialRequest::whereKey($request->getKey())->lockForUpdate()->firstOrFail();
+        $locked = CredentialRequest::withTrashed()->whereKey($request->getKey())->lockForUpdate()->firstOrFail();
+
+        // A page opened before the Admin deleted it can't act on it (REQ-37-02).
+        if ($locked->trashed()) {
+            throw new InvalidTransition("{$locked->reference_no} was deleted by the Admin.");
+        }
 
         if (! in_array($locked->status, $allowed, true)) {
             throw new InvalidTransition($message);

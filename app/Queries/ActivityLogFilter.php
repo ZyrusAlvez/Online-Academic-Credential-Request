@@ -43,7 +43,8 @@ final class ActivityLogFilter
                 ->orWhere('description', 'like', "%{$term}%")
                 ->orWhereHas('actor', fn (Builder $q) => $q->where('email', 'like', "%{$term}%"))
                 // The requester of a request entry, so "Juan" also finds what staff did on Juan's requests.
-                ->orWhereHasMorph('subject', [CredentialRequest::class], fn (Builder $q) => $q
+                // A deleted request's entries are still found (REQ-37-06).
+                ->orWhereHasMorph('subject', [CredentialRequest::class], fn (Builder $q) => $q->withTrashed()
                     ->whereHas('student', fn (Builder $q) => $q
                         ->where('first_name', 'like', "%{$term}%")
                         ->orWhere('last_name', 'like', "%{$term}%")

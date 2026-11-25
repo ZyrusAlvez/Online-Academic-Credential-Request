@@ -104,10 +104,10 @@ final class ReportFilter
      */
     private function matching(Builder $visits): Builder
     {
-        return $visits
-            ->when($this->type !== '' || $this->evaluator !== '', fn (Builder $q) => $q->whereHas('credentialRequest', fn (Builder $r) => $r
-                ->when($this->type !== '', fn (Builder $r) => $r->where('credential_type_id', (int) $this->type))
-                ->when($this->evaluator !== '', fn (Builder $r) => $r->where('evaluated_by', (int) $this->evaluator))));
+        // Always through the request, so a deleted one is left out (REQ-37-02).
+        return $visits->whereHas('credentialRequest', fn (Builder $r) => $r
+            ->when($this->type !== '', fn (Builder $r) => $r->where('credential_type_id', (int) $this->type))
+            ->when($this->evaluator !== '', fn (Builder $r) => $r->where('evaluated_by', (int) $this->evaluator)));
     }
 
     private static function date(string $value): ?CarbonImmutable
