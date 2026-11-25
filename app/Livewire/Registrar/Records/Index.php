@@ -3,6 +3,7 @@
 namespace App\Livewire\Registrar\Records;
 
 use App\Enums\RequestStatus;
+use App\Enums\Role;
 use App\Livewire\Concerns\TrimsInput;
 use App\Models\CredentialRequest;
 use App\Models\CredentialType;
@@ -11,6 +12,7 @@ use App\Models\User;
 use App\Queries\DashboardScope;
 use App\Queries\RegistrarRequestFilter;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -28,7 +30,7 @@ class Index extends Component
     #[Url(except: '')]
     public string $search = '';
 
-    /** 'processing', 'open', 'overdue', 'office_overdue', '' (all) or a RequestStatus value. */
+    /** 'processing', 'open', 'overdue', 'office_overdue', 'deleted' (the Admin's), '' (all) or a RequestStatus value. */
     #[Url(except: '')]
     public string $status = '';
 
@@ -78,16 +80,21 @@ class Index extends Component
     public function render(): View
     {
         $scope = new DashboardScope($this->scope, $this->from, $this->to, $this->at);
+        // Only the Admin lists deleted requests, and only under this filter (REQ-37-04).
+        $deleted = $this->status === 'deleted' && $this->user()->hasRole(Role::Admin);
 
         // One row per application with a credential that matches the filters (REQ-27-08).
-        $matching = (new RegistrarRequestFilter($this->search, $this->status, $this->type, $this->office, $this->evaluator))->query()
+        $matching = (new RegistrarRequestFilter($this->search, $deleted ? '' : $this->status, $this->type, $this->office, $this->evaluator))->query()
+            ->when($deleted, fn ($q) => $q->onlyTrashed())
             ->when($scope->active(), fn ($q) => $scope->apply($q))
             ->reorder()->select('application_id');
 
         $requests = CredentialRequest::query()
+            ->when($deleted, fn ($q) => $q->onlyTrashed())
             ->where('item_no', 1)
             ->whereIn('application_id', $matching)
             ->with([
+                'application.credentialRequests' => fn ($q) => $q->withTrashed(),
                 'application.credentialRequests.credentialType:id,name',
                 'application.credentialRequests.openVisit.department:id,name',
                 'application.credentialRequests.openVisit.fromDepartment:id,name',
@@ -108,6 +115,13 @@ class Index extends Component
                 ->get(['id', 'first_name', 'middle_name', 'last_name', 'email']),
             'overdueCount' => CredentialRequest::overdue()->count(),
             'officeOverdueCount' => RegistrarRequestFilter::officeOverdue(CredentialRequest::query())->count(),
+            'isAdmin' => $this->user()->hasRole(Role::Admin),
         ]);
+    }
+
+    private function user(): User
+    {
+        /** @var User */
+        return Auth::user();
     }
 }

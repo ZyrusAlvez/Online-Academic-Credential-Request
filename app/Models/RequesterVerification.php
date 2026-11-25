@@ -42,13 +42,14 @@ class RequesterVerification extends Model
     }
 
     /**
-     * The request whose copy of the details was verified.
+     * The request whose copy of the details was verified, even if the Admin has since deleted it:
+     * the details were still checked (REQ-37-03).
      *
      * @return BelongsTo<CredentialRequest, $this>
      */
     public function credentialRequest(): BelongsTo
     {
-        return $this->belongsTo(CredentialRequest::class);
+        return $this->belongsTo(CredentialRequest::class)->withTrashed();
     }
 
     /**

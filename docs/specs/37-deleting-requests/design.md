@@ -26,6 +26,16 @@ Queries that start from office visits without going through the request get
 `matching()`), and the department's bulk actions (`Department\Queue::eachSelected`).
 `ActivityLogFilter`'s search by requester name uses `withTrashed()` (REQ-37-06).
 
+`RequestWorkflow::lock()` reads the request `withTrashed()` and refuses a deleted one with "… was
+deleted by the Admin", so a page opened before the delete can't act on it (`lockVisit()` reaches it
+the same way).
+
+Two links keep reaching a deleted request, because what they record still happened: a requester's
+verification (`RequesterVerification::credentialRequest`) and a check carried from it
+(`RequestCheck::carriedFrom`), so verified details keep counting (spec 21). A deleted request's
+files (proofs of payment, a representative's documents) are the Admin's only:
+`PaymentProofPolicy` and `RequestDocumentPolicy` allow the Registrar only while the request exists.
+
 ## Deleting and restoring
 
 - `App\Actions\Requests\DeleteRequest::handle(CredentialRequest, User $admin, string $reason)` and

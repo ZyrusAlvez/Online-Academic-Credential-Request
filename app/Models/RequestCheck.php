@@ -50,12 +50,13 @@ class RequestCheck extends Model
     }
 
     /**
-     * The earlier request whose verified details confirmed this part (REQ-21-05).
+     * The earlier request whose verified details confirmed this part (REQ-21-05), even if the
+     * Admin has since deleted it (REQ-37-03).
      *
      * @return BelongsTo<CredentialRequest, $this>
      */
     public function carriedFrom(): BelongsTo
     {
-        return $this->belongsTo(CredentialRequest::class, 'carried_from_request_id');
+        return $this->belongsTo(CredentialRequest::class, 'carried_from_request_id')->withTrashed();
     }
 }
