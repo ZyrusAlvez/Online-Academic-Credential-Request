@@ -1,15 +1,16 @@
 # 36 — SMS Notifications · Requirements
 
 Requesters are told about their request in-app and by email (spec 06). This adds a text message
-for the notices that ask them to act, sent through the cheapest provider for the number: a Philippine
-provider for +63 numbers and an international one for the rest (user's decision, 2026-11-24). A
-contact number can now be from any country.
+for the notices that ask them to act, sent through a Philippine provider to Philippine (+63)
+numbers only (user's decision, 2026-11-25). A contact number can be from any country; a requester
+with a number from another country is told in-app and by email, not texted.
 
 ## User stories
 
 - **US-36-1** As a requester, online or walk-in, I want a text message when I need to do something
   about my request, so that I don't miss it if I don't read email.
-- **US-36-2** As a requester living abroad, I want to give my own country's mobile number.
+- **US-36-2** As a requester living abroad, I want to give my own country's mobile number, even
+  though only Philippine numbers are texted.
 - **US-36-3** As the Registrar's Office, I want texts sent as cheaply as possible.
 
 ## Acceptance criteria
@@ -34,15 +35,16 @@ contact number can now be from any country.
   [ACTION REQUIRED] notices texted to the request's own contact number; it still gets no in-app
   notification or email. Once linked, it is texted like any online request. *(User's decision,
   2026-11-24.)*
-- **REQ-36-06** A requester with no contact number SHALL NOT be texted; nothing else changes.
+- **REQ-36-06** A requester with no contact number, or with a number from outside the Philippines,
+  SHALL NOT be texted; nothing else changes. *(Philippine numbers only: user's decision,
+  2026-11-25.)*
 
 ### Sending
-- **REQ-36-07** THE SYSTEM SHALL send a text to a +63 number through the Philippine provider
-  (IPROG SMS) and any other number through the international provider (Telnyx). WHILE a provider's
-  keys are not set THE SYSTEM SHALL write its texts to the log instead, like mail (so local and
+- **REQ-36-07** THE SYSTEM SHALL send texts through IPROG SMS. WHILE its key is not set THE
+  SYSTEM SHALL write its texts to the log instead, like mail (so local and
   staging cost nothing until keys are set). *(IPROG instead of PhilSMS: user's decision, 2026-11-25,
   since PhilSMS no longer registers sender names for academic projects; IPROG accepts capstone
-  teams.)*
+  teams. The international provider, Telnyx, was removed the same day: user's decision.)*
 - **REQ-36-08** A text SHALL start with "[ACTION REQUIRED]", name the reference number and say what
   happened; an online requester's also links to their request page. It SHALL be kept short to fit in as few SMS parts as possible. *(No test: wording.)*
 - **REQ-36-09** A text that fails to send (the provider refuses it or cannot be reached) SHALL be
@@ -51,8 +53,8 @@ contact number can now be from any country.
   `SMS_REDIRECT_TO` instead of the requester's, and only write it to the log when none is set, since
   demo requesters have made-up numbers that may belong to real people (like mail, which is
   redirected locally).
-- **REQ-36-10** THE test suite SHALL check the provider keys set in the environment's `.env`
-  against the providers themselves, without sending a text (IPROG's credit balance, Telnyx's balance
-  and messaging profile), and SHALL skip a provider whose keys are not set, so it costs nothing and
+- **REQ-36-10** THE test suite SHALL check the IPROG SMS key set in the environment's `.env`
+  against IPROG itself, without sending a text (its credit balance), and SHALL skip the check when
+  the key is not set, so it costs nothing and
   runs without keys on CI. Every other SMS test fakes the providers. *(User's decision, 2026-11-25:
   replaces `app:test-sms`, which sent a paid text.)*
