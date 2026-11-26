@@ -79,7 +79,7 @@
 <div class="space-y-3">
     {{-- General purposes are returned, so the requester is told before choosing (pilot consultation §5). --}}
     <flux:select wire:model.live="{{ $path }}.purpose" :label="__('Purpose')" required data-purpose-note
-        :description="__('Be specific. General purposes such as “personal copy”, “for reference” or “for whatever legal purpose it may serve” are not accepted, and the request is returned.')">
+        :description="__('Be specific. General purposes such as “personal copy”, “for reference” or “for whatever legal purpose it may serve” are not accepted.')">
         <flux:select.option value="">{{ __('Choose…') }}</flux:select.option>
         @foreach ($purposes as $purpose)
             <flux:select.option :value="$purpose">{{ $purpose }}</flux:select.option>

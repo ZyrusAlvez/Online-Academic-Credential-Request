@@ -64,6 +64,16 @@
         cursor: pointer;
     }
 
+    /* Every other control you click to choose: dropdowns, checkboxes, radios, date pickers, and their labels. */
+    select:not(:disabled),
+    summary,
+    input:is([type="checkbox"], [type="radio"], [type="date"], [type="datetime-local"], [type="month"], [type="week"], [type="time"], [type="color"], [type="range"]):not(:disabled),
+    :is(ui-checkbox, ui-radio):not([disabled]),
+    label:has(input:is([type="checkbox"], [type="radio"]):not(:disabled)),
+    [data-flux-field]:has(> :is(ui-checkbox, ui-radio):not([disabled])) [data-flux-label] {
+        cursor: pointer;
+    }
+
     /* Own rule: a browser drops a whole selector list if it doesn't know one pseudo-element. */
     input:not(:disabled)::file-selector-button {
         cursor: pointer;
