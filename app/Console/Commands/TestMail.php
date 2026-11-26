@@ -22,8 +22,8 @@ class TestMail extends Command
 
         try {
             Mail::raw(
-                'This is a test email from the UPHSL Credential Tracker ('.$this->laravel->environment().'). If you can read it, email is working.',
-                fn ($message) => $message->to((string) $this->argument('email'))->subject('UPHSL Credential Tracker: test email'),
+                'This is a test email from the UPHSL Credential Request Tracker ('.$this->laravel->environment().'). If you can read it, email is working.',
+                fn ($message) => $message->to((string) $this->argument('email'))->subject('UPHSL Credential Request Tracker: test email'),
             );
         } catch (Throwable $e) {
             $this->error('Sending failed: '.$e->getMessage());

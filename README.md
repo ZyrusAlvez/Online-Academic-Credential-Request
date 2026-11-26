@@ -1,4 +1,4 @@
-# UPHSL Credential Tracker
+# UPHSL Credential Request Tracker
 
 **Online Academic Credential Request, Tracking & Monitoring** for the Office of the Registrar,
 University of Perpetual Help System.

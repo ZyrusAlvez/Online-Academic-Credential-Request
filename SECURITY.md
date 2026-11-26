@@ -1,6 +1,6 @@
 # Security
 
-What protects the UPHSL Credential Tracker, layer by layer: the application, the server, and the
+What protects the UPHSL Credential Request Tracker, layer by layer: the application, the server, and the
 path code takes to reach it. The last two sections cover vulnerabilities that were patched and
 what is still open.
 
