@@ -1,6 +1,6 @@
 # Deploying on AWS Lightsail (Staging and Production on One Server)
 
-This guide sets up the UPHSL Credential Tracker on a single AWS Lightsail server, with both
+This guide sets up the UPHSL Credential Request Tracker on a single AWS Lightsail server, with both
 environments running side by side:
 
 | | Staging | Production |

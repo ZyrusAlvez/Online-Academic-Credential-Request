@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'UPHSL Credential Tracker'),
+    'name' => env('APP_NAME', 'UPHSL Credential Request Tracker'),
 
     /*
     |--------------------------------------------------------------------------
